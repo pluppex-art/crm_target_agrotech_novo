@@ -1,0 +1,76 @@
+import { Lead } from '../types/leads';
+
+export const MOCK_LEADS: Lead[] = [
+  {
+    id: '1',
+    name: 'Mariana Lima',
+    phone: '+55 21 99999-3333',
+    email: 'mariana@example.com',
+    product: 'Criação de Site',
+    value: 2000,
+    stars: 5,
+    photo: 'https://i.pravatar.cc/150?u=mariana',
+    status: 'new',
+    cnpj: '12.345.678/0001-90',
+    city: 'Rio de Janeiro - RJ',
+    responsible: 'Gustavo Oliveira',
+    history: [
+      { id: '1', date: '18/04/2023', time: '15:30', description: 'Tomar nota de cada conversa.' },
+    ]
+  },
+  {
+    id: '2',
+    name: 'Gustavo Alverícas',
+    phone: '+55 11 94444-1234',
+    email: 'gostavo@gmail.com',
+    product: 'Drone mavic',
+    value: 12000,
+    stars: 4,
+    photo: 'https://i.pravatar.cc/150?u=gustavo',
+    status: 'closed',
+    cnpj: '111.222.333-44',
+    city: 'São Paulo - SP',
+    responsible: 'Gustavo Oliveira',
+    history: [
+      { id: '10', date: '18/04/2023', time: '15:30', description: 'Tomar nota de cada conversa. Salvar' },
+      { id: '7', date: '16/04/2023', time: '14:00', description: 'Cliente interessado, enviar proposta formalizada.' },
+      { id: '5', date: '14/04/2023', time: '11:35', description: 'Primeira ligação feita, cliente interessado em drone, agendar segunda reunião.' },
+    ]
+  },
+  {
+    id: '3',
+    name: 'Amanda Costa',
+    phone: '+55 11 88888-7777',
+    email: 'amanda@example.com',
+    product: 'Drone mavic',
+    value: 12000,
+    stars: 5,
+    photo: 'https://i.pravatar.cc/150?u=amanda',
+    status: 'new',
+    cnpj: '22.333.444/0001-55',
+    city: 'São Paulo - SP',
+    responsible: 'Gustavo Oliveira',
+  },
+  {
+    id: '4',
+    name: 'Rafael Souza',
+    phone: '+55 31 99999-5555',
+    email: 'rafael@example.com',
+    product: 'Drone mavic',
+    value: 4000,
+    stars: 4,
+    photo: 'https://i.pravatar.cc/150?u=rafael',
+    status: 'new',
+  },
+  {
+    id: '5',
+    name: 'Pedro Oliveira',
+    phone: '+55 41 66666-2222',
+    email: 'pedro@example.com',
+    product: 'Drone mavic',
+    value: 5000,
+    stars: 5,
+    photo: 'https://i.pravatar.cc/150?u=pedro',
+    status: 'closed',
+  }
+];
