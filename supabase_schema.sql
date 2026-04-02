@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS leads (
     stars INTEGER DEFAULT 0,
     photo TEXT,
     status TEXT DEFAULT 'new' CHECK (status IN ('new', 'qualified', 'proposal', 'closed')),
+    "subStatus" TEXT,
     cnpj TEXT,
     city TEXT,
     discount TEXT,
@@ -79,10 +80,13 @@ CREATE TABLE IF NOT EXISTS marketing_campaigns (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     name TEXT NOT NULL,
-    type TEXT, -- email, social, ads
-    status TEXT DEFAULT 'planned' CHECK (status IN ('planned', 'active', 'completed', 'paused')),
+    platform TEXT, -- email, social, ads
+    status TEXT DEFAULT 'active',
     budget NUMERIC,
-    leads_generated INTEGER DEFAULT 0
+    leads_count INTEGER DEFAULT 0,
+    conversion_rate NUMERIC DEFAULT 0,
+    start_date DATE,
+    end_date DATE
 );
 
 -- Enable Row Level Security (RLS)
