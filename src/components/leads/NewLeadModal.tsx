@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, User, Phone, Mail, Tag, DollarSign, MapPin, Save, Loader2 } from 'lucide-react';
+import { X, User, Phone, Mail, Tag, DollarSign, MapPin, Save, Loader2, ChevronDown } from 'lucide-react';
 import { useLeadStore } from '../../store/useLeadStore';
+import { useProductStore } from '../../store/useProductStore';
 import { LeadStatus, LeadSubStatus } from '../../types/leads';
+import { cn } from '../../lib/utils';
 
 interface NewLeadModalProps {
   isOpen: boolean;
@@ -12,6 +14,7 @@ interface NewLeadModalProps {
 
 export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, initialStatus = 'new' }) => {
   const { addLead } = useLeadStore();
+  const { products, fetchProducts } = useProductStore();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -24,6 +27,21 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
     responsible: '',
     subStatus: 'qualified' as LeadSubStatus,
   });
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchProducts();
+    }
+  }, [isOpen, fetchProducts]);
+
+  const handleProductChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedProduct = products.find(p => p.name === e.target.value);
+    setFormData({
+      ...formData,
+      product: e.target.value,
+      value: selectedProduct ? selectedProduct.price.toString() : formData.value
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,14 +143,19 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Produto de Interesse</label>
                 <div className="relative">
-                  <input 
-                    type="text" 
+                  <select 
                     value={formData.product}
-                    onChange={(e) => setFormData({...formData, product: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
-                    placeholder="Ex: Curso Agrícola Full"
-                  />
-                  <Tag size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    onChange={handleProductChange}
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 appearance-none cursor-pointer"
+                  >
+                    <option value="">Selecione um produto</option>
+                    {products.map(product => (
+                      <option key={product.id} value={product.name}>
+                        {product.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                 </div>
               </div>
 

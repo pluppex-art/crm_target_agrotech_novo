@@ -2,14 +2,26 @@ import { useEffect, useState } from 'react';
 import { Package, Plus, Edit3, Trash2, MoreHorizontal, Loader2 } from 'lucide-react';
 import { useProductStore } from '../store/useProductStore';
 import { NewProductModal } from '../components/products/NewProductModal';
+import { Product } from '../services/productService';
 
 export function Products() {
   const { products, loading, fetchProducts, deleteProduct } = useProductStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
+
+  const handleEdit = (product: Product) => {
+    setEditingProduct(product);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingProduct(null);
+  };
 
   return (
     <div className="p-6">
@@ -55,11 +67,16 @@ export function Products() {
                 <div className="flex items-center justify-between pt-4 border-t border-slate-50">
                   <span className="text-[10px] text-slate-400 font-bold uppercase">Estoque: {product.stock || 0}</span>
                   <div className="flex items-center gap-2">
-                    <button className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all">
+                    <button 
+                      onClick={() => handleEdit(product)}
+                      className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
+                    >
                       <Edit3 className="w-3.5 h-3.5" />
                     </button>
                     <button 
-                      onClick={() => deleteProduct(product.id)}
+                      onClick={() => {
+                        deleteProduct(product.id);
+                      }}
                       className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -80,7 +97,8 @@ export function Products() {
 
       <NewProductModal 
         isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+        onClose={handleCloseModal} 
+        product={editingProduct}
       />
     </div>
   );

@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { Lead, LeadStatus, LeadSubStatus } from '../types/leads';
-import { MOCK_LEADS } from '../constants/leads';
 import { supabaseService } from '../services/supabaseService';
 
 interface LeadStore {
@@ -13,11 +12,13 @@ interface LeadStore {
   setSelectedLead: (lead: Lead | null) => void;
   updateLeadStatus: (leadId: string, status: LeadStatus) => Promise<void>;
   updateLeadSubStatus: (leadId: string, subStatus: LeadSubStatus | null) => Promise<void>;
+  updateLead: (leadId: string, lead: Partial<Omit<Lead, 'id' | 'created_at'>>) => Promise<void>;
+  deleteLead: (leadId: string) => Promise<void>;
   addLead: (lead: Omit<Lead, 'id' | 'created_at'>) => Promise<void>;
 }
 
 export const useLeadStore = create<LeadStore>((set, get) => ({
-  leads: MOCK_LEADS, // Initial state with mock data
+  leads: [], // Start empty
   selectedLead: null,
   isLoading: false,
   error: null,
@@ -26,12 +27,7 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const leads = await supabaseService.getLeads();
-      if (leads.length > 0) {
-        set({ leads, isLoading: false });
-      } else {
-        // If no data in Supabase, keep mock data but stop loading
-        set({ isLoading: false });
-      }
+      set({ leads, isLoading: false });
     } catch (err) {
       set({ error: 'Failed to fetch leads from Supabase', isLoading: false });
     }
@@ -85,6 +81,42 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
       }
     } catch (err) {
       set({ leads: previousLeads, error: 'Failed to update lead sub-status in Supabase' });
+    }
+  },
+
+  updateLead: async (leadId, leadData) => {
+    // Optimistic update
+    const previousLeads = get().leads;
+    set((state) => ({
+      leads: state.leads.map(lead => lead.id === leadId ? { ...lead, ...leadData } : lead)
+    }));
+
+    try {
+      const success = await supabaseService.updateLead(leadId, leadData);
+      if (!success) {
+        // Revert on failure
+        set({ leads: previousLeads, error: 'Failed to update lead in Supabase' });
+      }
+    } catch (err) {
+      set({ leads: previousLeads, error: 'Failed to update lead in Supabase' });
+    }
+  },
+
+  deleteLead: async (leadId) => {
+    // Optimistic update
+    const previousLeads = get().leads;
+    set((state) => ({
+      leads: state.leads.filter(lead => lead.id !== leadId)
+    }));
+
+    try {
+      const success = await supabaseService.deleteLead(leadId);
+      if (!success) {
+        // Revert on failure
+        set({ leads: previousLeads, error: 'Failed to delete lead in Supabase' });
+      }
+    } catch (err) {
+      set({ leads: previousLeads, error: 'Failed to delete lead in Supabase' });
     }
   },
 }));

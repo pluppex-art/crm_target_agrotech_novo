@@ -20,9 +20,10 @@ interface MarketingState {
   error: string | null;
   fetchCampaigns: () => Promise<void>;
   addCampaign: (campaign: Omit<Campaign, 'id' | 'created_at'>) => Promise<void>;
+  deleteCampaign: (id: string) => Promise<void>;
 }
 
-export const useMarketingStore = create<MarketingState>((set) => ({
+export const useMarketingStore = create<MarketingState>((set, get) => ({
   campaigns: [],
   loading: false,
   error: null,
@@ -61,6 +62,27 @@ export const useMarketingStore = create<MarketingState>((set) => ({
       set((state) => ({ campaigns: [...state.campaigns, data as Campaign], loading: false }));
     } catch (error) {
       set({ error: 'Failed to create campaign', loading: false });
+    }
+  },
+
+  deleteCampaign: async (id) => {
+    const supabase = getSupabaseClient();
+    if (!supabase) return;
+
+    const previousCampaigns = get().campaigns;
+    set((state) => ({
+      campaigns: state.campaigns.filter((c) => c.id !== id),
+    }));
+
+    try {
+      const { error } = await supabase
+        .from('marketing_campaigns')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    } catch (error) {
+      set({ campaigns: previousCampaigns, error: 'Failed to delete campaign' });
     }
   },
 }));

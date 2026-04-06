@@ -43,5 +43,22 @@ export const financeService = {
     }
 
     return data as Transaction;
+  },
+
+  async deleteTransaction(id: string): Promise<boolean> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return false;
+
+    const { error } = await supabase
+      .from('transactions')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting transaction:', error);
+      return false;
+    }
+
+    return true;
   }
 };

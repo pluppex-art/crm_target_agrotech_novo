@@ -15,7 +15,8 @@ import {
   Share2,
   DollarSign,
   TrendingDown,
-  Loader2
+  Loader2,
+  Plane
 } from 'lucide-react';
 import { 
   PieChart, 
@@ -82,6 +83,17 @@ export function Dashboard() {
       return acc;
     }, []);
 
+  const salesByResponsible = leads.reduce((acc: any[], l) => {
+    if (!l.responsible) return acc;
+    const existing = acc.find(item => item.name === l.responsible);
+    if (existing) {
+      existing.value += 1;
+    } else {
+      acc.push({ name: l.responsible, value: 1 });
+    }
+    return acc;
+  }, []);
+
   const columns: { id: LeadStatus; title: string; color: string; border: string; total: number; count: number }[] = [
     { 
       id: 'new', 
@@ -131,13 +143,25 @@ export function Dashboard() {
     return d.toLocaleString('pt-BR', { month: 'short' });
   });
 
-  const chartData = last5Months.map(month => {
-    // This is a simplified version, in a real app you'd filter by actual date
+  const chartData = last5Months.map((month, index) => {
+    const monthIndex = new Date().getMonth() - (4 - index);
+    const year = new Date().getFullYear();
+    
+    const monthTransactions = transactions.filter(t => {
+      const tDate = new Date(t.date);
+      return tDate.getMonth() === monthIndex && tDate.getFullYear() === year;
+    });
+
+    const monthLeads = leads.filter(l => {
+      const lDate = new Date(l.created_at);
+      return lDate.getMonth() === monthIndex && lDate.getFullYear() === year;
+    });
+
     return {
       name: month,
-      income: Math.floor(Math.random() * 5000) + 2000,
-      expense: Math.floor(Math.random() * 3000) + 1000,
-      leads: Math.floor(Math.random() * 20) + 5
+      income: monthTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0),
+      expense: monthTransactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + Math.abs(t.amount), 0),
+      leads: monthLeads.length
     };
   });
 
@@ -265,6 +289,26 @@ export function Dashboard() {
                 <p className="text-xs text-slate-400 font-bold uppercase mb-1">Valor em Vendas</p>
                 <h2 className="text-2xl font-bold text-slate-800">R$ {leads.filter(l => l.status === 'closed').reduce((acc, l) => acc + l.value, 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}</h2>
               </motion.div>
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
+                    <Star className="w-5 h-5 text-indigo-600" />
+                  </div>
+                  <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-full uppercase">Qualificados</span>
+                </div>
+                <p className="text-xs text-slate-400 font-bold uppercase mb-1">Leads Qualificados</p>
+                <h2 className="text-2xl font-bold text-slate-800">{leads.filter(l => l.status === 'qualified').length}</h2>
+              </motion.div>
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center">
+                    <Clock className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <span className="text-[10px] font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded-full uppercase">Propostas</span>
+                </div>
+                <p className="text-xs text-slate-400 font-bold uppercase mb-1">Leads em Proposta</p>
+                <h2 className="text-2xl font-bold text-slate-800">{leads.filter(l => l.status === 'proposal').length}</h2>
+              </motion.div>
             </>
           ) : activeView === 'finance' ? (
             <>
@@ -376,11 +420,109 @@ export function Dashboard() {
                 <p className="text-xs text-slate-400 font-bold uppercase mb-1">Atingimento</p>
                 <h2 className="text-2xl font-bold text-slate-800">85%</h2>
               </motion.div>
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center">
+                    <DollarSign className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <span className="text-[10px] font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded-full uppercase">Ticket</span>
+                </div>
+                <p className="text-xs text-slate-400 font-bold uppercase mb-1">Ticket Médio Geral</p>
+                <h2 className="text-2xl font-bold text-slate-800">R$ {averageTicket.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}</h2>
+              </motion.div>
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-full uppercase">Conversão</span>
+                </div>
+                <p className="text-xs text-slate-400 font-bold uppercase mb-1">Conversão Geral</p>
+                <h2 className="text-2xl font-bold text-slate-800">{conversionRate.toFixed(1)}%</h2>
+              </motion.div>
             </>
           )}
         </div>
 
         {/* Charts Section */}
+        {activeView === 'sales' && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm mb-8"
+          >
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h3 className="text-xl font-bold text-slate-800">Corrida de Vendedores</h3>
+                <p className="text-sm text-slate-500 text-balance">Acompanhe o desempenho em tempo real dos seus consultores.</p>
+              </div>
+              <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
+                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                AO VIVO
+              </div>
+            </div>
+
+            <div className="space-y-8">
+              {salesByResponsible.sort((a, b) => b.value - a.value).map((seller, index) => {
+                const maxValue = Math.max(...salesByResponsible.map(s => s.value));
+                const percentage = (seller.value / maxValue) * 100;
+                
+                return (
+                  <div key={seller.name} className="relative">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className={cn(
+                          "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white",
+                          index === 0 ? "bg-yellow-400" : index === 1 ? "bg-slate-300" : index === 2 ? "bg-amber-600" : "bg-slate-200 text-slate-500"
+                        )}>
+                          {index + 1}
+                        </span>
+                        <span className="text-sm font-bold text-slate-700">{seller.name}</span>
+                      </div>
+                      <span className="text-xs font-bold text-slate-400">{seller.value} leads</span>
+                    </div>
+                    
+                    <div className="h-4 bg-slate-100 rounded-full overflow-visible relative">
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${percentage}%` }}
+                        transition={{ duration: 1.5, ease: "easeOut", delay: index * 0.1 }}
+                        className={cn(
+                          "h-full rounded-full relative",
+                          index === 0 ? "bg-emerald-500" : "bg-blue-500"
+                        )}
+                      >
+                        {/* Drone Icon */}
+                        <motion.div 
+                          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 z-10"
+                          animate={{ 
+                            y: [-12, -8, -12],
+                            rotate: [-5, 5, -5]
+                          }}
+                          transition={{ 
+                            duration: 2, 
+                            repeat: Infinity, 
+                            ease: "easeInOut" 
+                          }}
+                        >
+                          <div className="relative">
+                            <Plane className="w-8 h-8 text-slate-800 fill-slate-800" />
+                            {/* Propellers effect */}
+                            <div className="absolute -top-1 -left-1 w-3 h-1 bg-slate-400 rounded-full animate-spin" />
+                            <div className="absolute -top-1 -right-1 w-3 h-1 bg-slate-400 rounded-full animate-spin" />
+                            <div className="absolute -bottom-1 -left-1 w-3 h-1 bg-slate-400 rounded-full animate-spin" />
+                            <div className="absolute -bottom-1 -right-1 w-3 h-1 bg-slate-400 rounded-full animate-spin" />
+                          </div>
+                        </motion.div>
+                      </motion.div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           {(activeView === 'all' || activeView === 'finance') && (
             <motion.div 
@@ -500,7 +642,7 @@ export function Dashboard() {
             </motion.div>
           )}
 
-          {activeView === 'sales' && (
+          {activeView === 'all' && (
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -512,11 +654,48 @@ export function Dashboard() {
                   <BarChart data={salesByProduct}>
                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
                     <Tooltip />
-                    <Bar dataKey="value" fill="#10b981" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </motion.div>
+          )}
+
+          {activeView === 'sales' && (
+            <>
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm"
+              >
+                <h3 className="font-bold text-slate-800 mb-6">Vendas por Produto</h3>
+                <div className="h-64 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={salesByProduct}>
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                      <Tooltip />
+                      <Bar dataKey="value" fill="#10b981" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </motion.div>
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm"
+              >
+                <h3 className="font-bold text-slate-800 mb-6">Leads por Responsável</h3>
+                <div className="h-64 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={salesByResponsible} layout="vertical">
+                      <XAxis type="number" hide />
+                      <Tooltip />
+                      <Bar dataKey="value" fill="#a855f7" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </motion.div>
+            </>
           )}
         </div>
 

@@ -5,6 +5,7 @@ import {
   MoreHorizontal, 
   Plus, 
   Star, 
+  Trash2,
   Eye, 
   Search, 
   Filter, 
@@ -12,7 +13,10 @@ import {
   ChevronDown,
   User,
   Loader2,
-  X
+  X,
+  Phone,
+  Edit2,
+  CheckSquare
 } from 'lucide-react';
 import { useLeadStore } from '../store/useLeadStore';
 import { Lead, LeadStatus, LeadSubStatus } from '../types/leads';
@@ -28,7 +32,16 @@ const COLUMNS: { id: LeadStatus; title: string; color: string }[] = [
 ];
 
 export const Pipeline: React.FC = () => {
-  const { leads, updateLeadStatus, updateLeadSubStatus, selectedLead, setSelectedLead, fetchLeads, isLoading } = useLeadStore();
+  const { 
+    leads, 
+    updateLeadStatus, 
+    updateLeadSubStatus, 
+    selectedLead, 
+    setSelectedLead, 
+    fetchLeads, 
+    isLoading,
+    deleteLead
+  } = useLeadStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedResponsible, setSelectedResponsible] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<LeadStatus | 'all'>('all');
@@ -315,78 +328,90 @@ export const Pipeline: React.FC = () => {
                               {...provided.dragHandleProps}
                               onDoubleClick={() => setSelectedLead(lead)}
                               className={cn(
-                                "bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-emerald-200 transition-all group relative",
+                                "bg-white p-4 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md hover:border-emerald-200 transition-all group relative",
                                 snapshot.isDragging ? "shadow-xl border-emerald-500 rotate-2" : ""
                               )}
                             >
-                              <div className="flex items-start justify-between mb-3">
+                              {/* Card Header */}
+                              <div className="flex items-start justify-between mb-4">
                                 <div className="flex items-center gap-3">
-                                  <img
-                                    src={lead.photo}
-                                    alt={lead.name}
-                                    className="w-10 h-10 rounded-full object-cover border-2 border-gray-100"
-                                    referrerPolicy="no-referrer"
-                                  />
-                                  <div>
-                                    <h4 className="font-bold text-gray-900 text-sm">{lead.name}</h4>
-                                    <p className="text-[10px] text-gray-500">{lead.phone}</p>
+                                  <div className="relative">
+                                    <img
+                                      src={lead.photo}
+                                      alt={lead.name}
+                                      className="w-12 h-12 rounded-full object-cover border-2 border-slate-50 shadow-sm"
+                                      referrerPolicy="no-referrer"
+                                    />
+                                  </div>
+                                  <div className="space-y-0.5">
+                                    <h4 className="font-bold text-slate-800 text-sm leading-tight">{lead.name}</h4>
+                                    <div className="flex gap-0.5">
+                                      {[...Array(5)].map((_, i) => (
+                                        <Star
+                                          key={i}
+                                          size={10}
+                                          className={cn(
+                                            i < lead.stars ? "fill-yellow-400 text-yellow-400" : "text-slate-200"
+                                          )}
+                                        />
+                                      ))}
+                                    </div>
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-1">
+                                <button className="p-1 text-slate-300 hover:text-slate-500 transition-colors">
+                                  <MoreHorizontal size={18} />
+                                </button>
+                              </div>
+
+                              {/* Card Body */}
+                              <div className="space-y-2.5">
+                                <div className="flex items-center gap-2 text-slate-500">
+                                  <Phone size={14} className="text-emerald-500" />
+                                  <span className="text-xs font-medium">{lead.phone}</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-slate-500">
+                                  <Plus size={14} className="text-slate-300" />
+                                  <span className="text-xs font-medium">{lead.product}</span>
+                                </div>
+                                
+                                <div className="flex items-center justify-between pt-2">
+                                  <span className="text-sm font-bold text-slate-800">
+                                    R$ {lead.value.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                                  </span>
+                                  
+                                <div className="flex items-center gap-1.5">
+                                  <button 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      deleteLead(lead.id);
+                                    }}
+                                    className="p-1.5 bg-slate-50 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all border border-slate-100"
+                                    title="Excluir lead"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
                                   <button 
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setSelectedLead(lead);
                                     }}
-                                    className="p-1.5 opacity-0 group-hover:opacity-100 hover:bg-emerald-50 rounded-lg text-emerald-600 transition-all"
+                                    className="p-1.5 bg-slate-50 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all border border-slate-100"
                                   >
-                                    <Eye size={14} />
+                                    <Edit2 size={14} />
                                   </button>
-                                  <button className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400">
-                                    <MoreHorizontal size={14} />
+                                  <button className="p-1.5 bg-slate-50 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all border border-slate-100">
+                                    <CheckSquare size={14} />
                                   </button>
                                 </div>
-                              </div>
-
-                              <div className="flex items-center gap-2 mb-3">
-                                <div className="p-1.5 bg-emerald-50 rounded-lg">
-                                  <Plus size={12} className="text-emerald-600" />
                                 </div>
-                                <span className="text-xs font-medium text-gray-600">{lead.product}</span>
-                              </div>
-
-                              {lead.responsible && (
-                                <div className="flex items-center gap-2 mb-3 px-2 py-1 bg-gray-50 rounded-lg border border-gray-100">
-                                  <User size={12} className="text-gray-400" />
-                                  <span className="text-[10px] font-bold text-gray-600 uppercase tracking-wider truncate">
-                                    {lead.responsible}
-                                  </span>
-                                </div>
-                              )}
-
-                              <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-50">
-                                <div className="flex gap-0.5">
-                                  {[...Array(5)].map((_, i) => (
-                                    <Star
-                                      key={i}
-                                      size={10}
-                                      className={cn(
-                                        i < lead.stars ? "fill-yellow-400 text-yellow-400" : "text-gray-200"
-                                      )}
-                                    />
-                                  ))}
-                                </div>
-                                <span className="text-sm font-bold text-gray-900">
-                                  R$ {lead.value.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
-                                </span>
                               </div>
 
                               {lead.status === 'qualified' && (
-                                <div className="mt-3 pt-3 border-t border-gray-50 flex flex-wrap gap-2">
+                                <div className="mt-4 pt-3 border-t border-slate-50 flex flex-wrap gap-2">
                                   {[
-                                    { id: 'qualified', label: 'Qualificado', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
-                                    { id: 'warming', label: 'Aquecimento', color: 'bg-amber-100 text-amber-700 border-amber-200' },
-                                    { id: 'disqualified', label: 'Desqualificado', color: 'bg-red-100 text-red-700 border-red-200' }
+                                    { id: 'qualified', label: 'Qualificado', color: 'bg-emerald-50 text-emerald-600 border-emerald-100' },
+                                    { id: 'warming', label: 'Aquecimento', color: 'bg-amber-50 text-amber-600 border-amber-100' },
+                                    { id: 'disqualified', label: 'Desqualificado', color: 'bg-red-50 text-red-600 border-red-100' }
                                   ].map((sub) => (
                                     <button
                                       key={sub.id}
@@ -398,7 +423,7 @@ export const Pipeline: React.FC = () => {
                                         "text-[10px] font-bold px-2 py-1 rounded-full border transition-all",
                                         lead.subStatus === sub.id 
                                           ? sub.color 
-                                          : "bg-gray-50 text-gray-400 border-gray-100 hover:border-gray-200"
+                                          : "bg-white text-slate-400 border-slate-100 hover:border-slate-200"
                                       )}
                                     >
                                       {sub.label}

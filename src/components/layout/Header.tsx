@@ -20,7 +20,9 @@ import { useTaskStore } from '../../store/useTaskStore';
 import { useContractStore } from '../../store/useContractStore';
 import { useProductStore } from '../../store/useProductStore';
 import { useMarketingStore } from '../../store/useMarketingStore';
+import { useAuthStore } from '../../store/useAuthStore';
 import { cn } from '../../lib/utils';
+import { LogOut } from 'lucide-react';
 
 type SearchResult = {
   id: string;
@@ -33,12 +35,15 @@ type SearchResult = {
 
 export function Header() {
   const navigate = useNavigate();
+  const { user, signOut } = useAuthStore();
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   const notifications = [
     { id: 1, title: 'Lead Urgente', message: 'João Silva solicitou contato imediato.', time: '5 min atrás', type: 'urgent' },
@@ -67,6 +72,9 @@ export function Header() {
       }
       if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
         setIsNotificationsOpen(false);
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -148,6 +156,11 @@ export function Header() {
     navigate(link);
     setQuery('');
     setIsOpen(false);
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/login');
   };
 
   return (
@@ -299,17 +312,74 @@ export function Header() {
           <Settings className="w-5 h-5" />
         </button>
         <div className="h-8 w-px bg-slate-200 mx-2" />
-        <div className="flex items-center gap-3">
-          <div className="text-right hidden sm:block">
-            <p className="text-sm font-bold text-slate-800">Admin Target</p>
-            <p className="text-[10px] text-slate-400 font-bold uppercase">Gerente Comercial</p>
-          </div>
-          <img 
-            src="https://i.pravatar.cc/150?u=admin" 
-            alt="User" 
-            className="w-9 h-9 rounded-full border-2 border-white shadow-sm"
-            referrerPolicy="no-referrer"
-          />
+        
+        <div className="relative" ref={userMenuRef}>
+          <button 
+            onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+            className="flex items-center gap-3 hover:bg-slate-50 p-1 rounded-xl transition-colors"
+          >
+            <div className="text-right hidden sm:block">
+              <p className="text-sm font-bold text-slate-800">{user?.email?.split('@')[0] || 'Usuário'}</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase">Administrador</p>
+            </div>
+            <div className="relative">
+              <img 
+                src={`https://i.pravatar.cc/150?u=${user?.id}`} 
+                alt="User" 
+                className="w-9 h-9 rounded-full border-2 border-white shadow-sm"
+                referrerPolicy="no-referrer"
+              />
+              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />
+            </div>
+            <ChevronDown size={14} className={cn("text-slate-400 transition-transform", isUserMenuOpen && "rotate-180")} />
+          </button>
+
+          <AnimatePresence>
+            {isUserMenuOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                className="absolute top-full right-0 mt-2 w-56 bg-white rounded-2xl border border-slate-200 shadow-xl z-50 overflow-hidden"
+              >
+                <div className="p-4 border-b border-slate-50 bg-slate-50/50">
+                  <p className="text-xs font-bold text-slate-400 uppercase mb-1">Logado como</p>
+                  <p className="text-sm font-bold text-slate-800 truncate">{user?.email}</p>
+                </div>
+                <div className="p-2">
+                  <button 
+                    onClick={() => {
+                      navigate('/settings/profile');
+                      setIsUserMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
+                  >
+                    <User size={16} />
+                    Meu Perfil
+                  </button>
+                  <button 
+                    onClick={() => {
+                      navigate('/settings');
+                      setIsUserMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
+                  >
+                    <Settings size={16} />
+                    Configurações
+                  </button>
+                </div>
+                <div className="p-2 border-t border-slate-50">
+                  <button 
+                    onClick={handleSignOut}
+                    className="w-full flex items-center gap-3 px-3 py-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  >
+                    <LogOut size={16} />
+                    Sair do Sistema
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Star, Edit2, Trash2, Plus, Phone, Mail, MapPin, Tag, User, Calendar, Clock, Save, MessageSquare, CheckSquare, Loader2 } from 'lucide-react';
+import { X, Star, Edit2, Trash2, Plus, Phone, Mail, MapPin, Tag, User, Calendar, Clock, Save, MessageSquare, CheckSquare, Loader2, ChevronDown } from 'lucide-react';
 import { Lead, LeadSubStatus } from '../../types/leads';
 import { useLeadStore } from '../../store/useLeadStore';
 import { useTaskStore } from '../../store/useTaskStore';
+import { useProductStore } from '../../store/useProductStore';
 import { noteService, Note } from '../../services/noteService';
 import { cn } from '../../lib/utils';
 
@@ -23,16 +24,63 @@ export const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({ isOpen, onCl
   const [leadTasks, setLeadTasks] = useState<any[]>([]);
   const [loadingTasks, setLoadingTasks] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [formData, setFormData] = useState({
+    name: lead.name,
+    email: lead.email,
+    phone: lead.phone,
+    product: lead.product,
+    value: lead.value.toString(),
+    city: lead.city || '',
+    cnpj: lead.cnpj || '',
+    responsible: lead.responsible || '',
+  });
+  const [isSaving, setIsSaving] = useState(false);
 
-  const { setSelectedLead, updateLeadSubStatus } = useLeadStore();
+  const { setSelectedLead, updateLeadSubStatus, updateLead, deleteLead } = useLeadStore();
   const { fetchTasksByLeadId, addTask, updateTaskStatus } = useTaskStore();
+  const { products, fetchProducts } = useProductStore();
 
   useEffect(() => {
     if (isOpen && lead.id) {
       loadNotes();
       loadTasks();
+      fetchProducts();
+      setFormData({
+        name: lead.name,
+        email: lead.email,
+        phone: lead.phone,
+        product: lead.product,
+        value: lead.value.toString(),
+        city: lead.city || '',
+        cnpj: lead.cnpj || '',
+        responsible: lead.responsible || '',
+      });
     }
   }, [isOpen, lead.id]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await updateLead(lead.id, {
+        ...formData,
+        value: parseFloat(formData.value) || 0,
+      });
+      onClose();
+    } catch (error) {
+      console.error('Error saving lead:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      await deleteLead(lead.id);
+      onClose();
+    } catch (error) {
+      console.error('Error deleting lead:', error);
+    }
+  };
 
   const loadNotes = async () => {
     setLoadingNotes(true);
@@ -73,6 +121,13 @@ export const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({ isOpen, onCl
     loadTasks();
   };
 
+  const handleDeleteNote = async (noteId: string) => {
+    const success = await noteService.deleteNote(noteId);
+    if (success) {
+      setNotes(notes.filter(n => n.id !== noteId));
+    }
+  };
+
   const handleToggleTask = async (taskId: string, currentStatus: string) => {
     const newStatus = currentStatus === 'pending' ? 'completed' : 'pending';
     await updateTaskStatus(taskId, newStatus);
@@ -83,324 +138,330 @@ export const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({ isOpen, onCl
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div className="fixed inset-0 z-50 flex items-center justify-end p-4 bg-black/20 backdrop-blur-[2px]">
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]"
+          initial={{ opacity: 0, x: 100 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: 100 }}
+          className="bg-white rounded-[32px] shadow-2xl w-full max-w-xl overflow-hidden flex flex-col h-[95vh] mr-4"
         >
-          {/* Header */}
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-10">
+          {/* Top Bar with Actions */}
+          <div className="px-8 py-6 flex items-center justify-between bg-white">
             <div className="flex items-center gap-3">
-              <h2 className="text-xl font-bold text-gray-800">{lead.name}</h2>
+              <h2 className="text-2xl font-bold text-slate-800">{lead.name}</h2>
               <div className="flex gap-0.5">
                 {[...Array(5)].map((_, i) => (
                   <Star
                     key={i}
-                    size={16}
+                    size={18}
                     className={cn(
-                      i < lead.stars ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
+                      i < lead.stars ? "fill-yellow-400 text-yellow-400" : "text-slate-200"
                     )}
                   />
                 ))}
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors flex items-center gap-2 text-sm font-medium">
-                <Edit2 size={18} />
+              <button className="px-4 py-2 hover:bg-emerald-50 border border-emerald-100 rounded-xl text-emerald-600 transition-colors flex items-center gap-2 text-sm font-bold shadow-sm">
+                <Edit2 size={16} />
                 Editar
               </button>
-              <button className="p-2 hover:bg-red-50 rounded-lg text-red-600 transition-colors">
+              <button 
+                onClick={handleDelete}
+                className="p-2 hover:bg-red-50 border border-red-100 rounded-xl text-red-400 transition-colors shadow-sm"
+              >
                 <Trash2 size={18} />
+              </button>
+              <button className="p-2 hover:bg-emerald-50 border border-emerald-100 rounded-xl text-emerald-600 transition-colors shadow-sm">
+                <Plus size={18} />
               </button>
               <button 
                 onClick={onClose}
-                className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 transition-colors"
+                className="p-2 hover:bg-slate-50 border border-slate-100 rounded-xl text-slate-400 transition-colors shadow-sm"
               >
                 <X size={20} />
               </button>
             </div>
           </div>
 
-          {/* Tabs Navigation */}
-          <div className="px-6 border-b border-gray-100 flex gap-6 overflow-x-auto">
+          {/* Primary Tabs */}
+          <div className="px-8 flex gap-8 border-b border-slate-100">
             {[
-              { id: 'info', label: 'Informações', icon: User },
-              { id: 'history', label: 'Histórico', icon: Clock },
-              { id: 'notes', label: 'Anotações', icon: MessageSquare },
-              { id: 'tasks', label: 'Tarefas', icon: CheckSquare },
+              { id: 'info', label: 'Informações' },
+              { id: 'history', label: 'Histórico' },
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as TabType)}
                 className={cn(
-                  "py-4 text-sm font-semibold transition-colors relative flex items-center gap-2 whitespace-nowrap",
-                  activeTab === tab.id ? "text-emerald-600" : "text-gray-500 hover:text-gray-700"
+                  "py-4 text-sm font-bold transition-colors relative",
+                  activeTab === tab.id ? "text-emerald-600" : "text-slate-400 hover:text-slate-600"
                 )}
               >
-                <tab.icon size={16} />
                 {tab.label}
                 {activeTab === tab.id && (
-                  <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-600" />
+                  <motion.div layoutId="activeTabTop" className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-600 rounded-t-full" />
                 )}
               </button>
             ))}
           </div>
 
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto p-6">
+          {/* Content Area */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
             {activeTab === 'info' && (
-              <div className="space-y-8">
-                {/* Profile Section */}
-                <div className="flex items-center gap-6">
+              <div className="p-8 space-y-8">
+                {/* Profile Header Section */}
+                <div className="flex items-center gap-6 pb-8 border-b border-slate-50">
                   <div className="relative">
                     <img 
                       src={lead.photo} 
                       alt={lead.name}
-                      className="w-24 h-24 rounded-full object-cover border-4 border-emerald-50"
+                      className="w-24 h-24 rounded-full object-cover border-4 border-slate-50 shadow-sm"
                       referrerPolicy="no-referrer"
                     />
-                    <div className="absolute -bottom-1 -right-1 bg-emerald-500 text-white p-1.5 rounded-full border-2 border-white">
-                      <User size={14} />
-                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-2xl font-bold text-gray-900">{lead.name}</h3>
-                    <div className="flex items-center gap-1 mt-1">
+                  <div className="space-y-1">
+                    <h3 className="text-2xl font-bold text-slate-800">{lead.name}</h3>
+                    <div className="flex items-center gap-1">
                       {[...Array(5)].map((_, i) => (
-                        <Star key={i} size={14} className={cn(i < lead.stars ? "fill-yellow-400 text-yellow-400" : "text-gray-300")} />
+                        <Star key={i} size={16} className={cn(i < lead.stars ? "fill-yellow-400 text-yellow-400" : "text-slate-200")} />
                       ))}
                     </div>
-                    <div className="flex items-center gap-4 mt-3 text-sm text-gray-500">
-                      <span className="flex items-center gap-1.5">
-                        <Tag size={14} className="text-emerald-500" />
-                        CNPJ: {lead.cnpj || 'Não informado'}
+                    <div className="flex items-center gap-4 pt-2">
+                      <span className="text-sm font-medium text-slate-400">
+                        CNPJ.: {lead.cnpj || '111.222.333-44'}
                       </span>
-                      <span className="font-bold text-emerald-600 text-lg">
-                        R$ {lead.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <Edit2 size={14} className="text-slate-300" />
+                        <span className="text-lg font-bold text-emerald-600">
+                          R${lead.value.toLocaleString('pt-BR', { minimumFractionDigits: 3 })}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Form Grid */}
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Nome Completo</label>
+                {/* Secondary Tabs (as per image) */}
+                <div className="flex gap-8 border-b border-slate-100">
+                  <button className="py-2 text-sm font-bold text-emerald-600 border-b-2 border-emerald-600">Informações</button>
+                  <button className="py-2 text-sm font-bold text-slate-400">Histórico</button>
+                </div>
+
+                {/* Form Fields */}
+                <div className="grid grid-cols-1 gap-5">
+                  <div className="flex items-center gap-4">
+                    <label className="w-32 text-sm font-bold text-slate-700">Nome Completo</label>
                     <input 
                       type="text" 
-                      defaultValue={lead.name}
-                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="flex-1 px-4 py-2.5 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-600 font-medium"
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Telefone</label>
-                    <div className="relative">
+                  
+                  <div className="flex items-center gap-4">
+                    <label className="w-32 text-sm font-bold text-slate-700">Telefone</label>
+                    <div className="flex-1 relative">
                       <input 
                         type="text" 
-                        defaultValue={lead.phone}
-                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-600 font-medium pr-10"
                       />
-                      <Phone size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500" />
+                      <Phone size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500" />
                     </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">E-mail</label>
-                    <div className="relative">
-                      <input 
-                        type="email" 
-                        defaultValue={lead.email}
-                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
-                      />
-                      <Mail size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Produto/Serviço</label>
+
+                  <div className="flex items-center gap-4">
+                    <label className="w-32 text-sm font-bold text-slate-700">E-mail</label>
                     <input 
-                      type="text" 
-                      defaultValue={lead.product}
-                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
+                      type="email" 
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      className="flex-1 px-4 py-2.5 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-600 font-medium"
                     />
                   </div>
 
-                  {lead.status === 'qualified' && (
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Sub-status de Qualificação</label>
-                      <select
-                        defaultValue={lead.subStatus || 'qualified'}
-                        onChange={(e) => updateLeadSubStatus(lead.id, e.target.value as LeadSubStatus)}
-                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 font-medium"
+                  <div className="flex items-center gap-4">
+                    <label className="w-32 text-sm font-bold text-slate-700">Produto/Serviço</label>
+                    <div className="flex-1 relative">
+                      <select 
+                        value={formData.product}
+                        onChange={(e) => {
+                          const selectedProduct = products.find(p => p.name === e.target.value);
+                          setFormData({ 
+                            ...formData, 
+                            product: e.target.value,
+                            value: selectedProduct ? selectedProduct.price.toString() : formData.value
+                          });
+                        }}
+                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-600 font-medium appearance-none cursor-pointer"
                       >
-                        <option value="qualified">Qualificado</option>
-                        <option value="warming">Aquecimento</option>
-                        <option value="disqualified">Desqualificado</option>
+                        <option value="">Selecione um produto</option>
+                        {products.map(product => (
+                          <option key={product.id} value={product.name}>
+                            {product.name}
+                          </option>
+                        ))}
                       </select>
+                      <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                     </div>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <label className="w-32 text-sm font-bold text-slate-700">Valor</label>
+                    <input 
+                      type="text" 
+                      value={formData.value}
+                      onChange={(e) => setFormData({ ...formData, value: e.target.value })}
+                      className="flex-1 px-4 py-2.5 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-600 font-medium"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex items-center gap-4">
+                      <label className="w-32 text-sm font-bold text-slate-700">Cidade e Leg</label>
+                      <input 
+                        type="text"
+                        value={formData.city}
+                        onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                        className="flex-1 px-4 py-2.5 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-600 font-medium"
+                      />
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <label className="text-sm font-bold text-slate-700">CNPJ</label>
+                      <input 
+                        type="text"
+                        value={formData.cnpj}
+                        onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
+                        className="flex-1 px-4 py-2.5 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-600 font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <label className="w-32 text-sm font-bold text-slate-700">Responsável</label>
+                    <input 
+                      type="text"
+                      value={formData.responsible}
+                      onChange={(e) => setFormData({ ...formData, responsible: e.target.value })}
+                      className="flex-1 px-4 py-2.5 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-600 font-medium"
+                    />
+                  </div>
+                </div>
+
+                {/* Notes/History List */}
+                <div className="space-y-3 pt-4">
+                  {lead.history && lead.history.length > 0 ? (
+                    lead.history.slice(0, 3).map((item, index) => (
+                      <div 
+                        key={item.id} 
+                        className={cn(
+                          "rounded-xl p-4 border flex items-center justify-between",
+                          index % 2 === 0 ? "bg-amber-50/50 border-amber-100" : "bg-slate-50/50 border-slate-100"
+                        )}
+                      >
+                        <div className="flex items-center gap-4 text-xs font-bold text-slate-400">
+                          <span>ID:{item.id}</span>
+                          <span>Data: {item.date}</span>
+                          <span>Hora: {item.time}</span>
+                        </div>
+                        <div className="flex items-center gap-4 flex-1 ml-4">
+                          <p className="text-sm font-medium text-slate-700 flex-1">{item.description}</p>
+                          {index === 0 && (
+                            <button className="text-emerald-600 font-bold text-sm hover:underline shrink-0">Salvar</button>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <>
+                      <div className="bg-amber-50/50 rounded-xl p-4 border border-amber-100 flex items-center justify-between">
+                        <div className="flex items-center gap-4 text-xs font-bold text-slate-400">
+                          <span>ID:10</span>
+                          <span>Data: 18/04/2023</span>
+                          <span>Hora: 15:30</span>
+                        </div>
+                        <div className="flex items-center gap-4 flex-1 ml-4">
+                          <p className="text-sm font-medium text-slate-700 flex-1">Tomar nota-de cada conversa.</p>
+                          <button className="text-emerald-600 font-bold text-sm hover:underline shrink-0">Salvar</button>
+                        </div>
+                      </div>
+
+                      <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-100 flex items-center justify-between">
+                        <div className="flex items-center gap-4 text-xs font-bold text-slate-400">
+                          <span>ID:7</span>
+                          <span>Data: 16/04/2023</span>
+                          <span>Hora: 14:00</span>
+                        </div>
+                        <p className="text-sm font-medium text-slate-700 flex-1 ml-4">Cliente interessado, enviar proposta formalizada.</p>
+                      </div>
+
+                      <div className="bg-amber-50/50 rounded-xl p-4 border border-amber-100 flex items-center justify-between">
+                        <div className="flex items-center gap-4 text-xs font-bold text-slate-400">
+                          <span>ID:5</span>
+                          <span>Data: 14/04/2023</span>
+                          <span>Hora: 11:35</span>
+                        </div>
+                        <p className="text-sm font-medium text-slate-700 flex-1 ml-4">Primeira ligação feita, cliente interessado em drone, agendar segunda reunião.</p>
+                      </div>
+                    </>
                   )}
                 </div>
               </div>
             )}
 
             {activeTab === 'history' && (
-              <div className="space-y-4">
-                {lead.history?.map((item) => (
-                  <div key={item.id} className="bg-gray-50 rounded-xl p-4 border border-gray-100 flex gap-4">
-                    <div className="flex flex-col items-center gap-1 min-w-[100px]">
-                      <span className="text-xs font-bold text-gray-400 uppercase">ID:{item.id}</span>
-                      <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-                        <Calendar size={10} />
-                        {item.date}
-                      </div>
-                      <div className="flex items-center gap-1 text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
-                        <Clock size={10} />
-                        {item.time}
-                      </div>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm text-gray-700 leading-relaxed">
-                        {item.description}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-                {(!lead.history || lead.history.length === 0) && (
-                  <div className="text-center py-12 text-gray-400">
-                    <Clock size={48} className="mx-auto mb-4 opacity-20" />
-                    <p>Nenhum histórico registrado para este lead.</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'notes' && (
-              <div className="space-y-6">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newNote}
-                    onChange={(e) => setNewNote(e.target.value)}
-                    placeholder="Adicionar uma anotação..."
-                    className="flex-1 px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
-                  />
-                  <button
-                    onClick={handleAddNote}
-                    className="p-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors"
-                  >
-                    <Plus size={20} />
-                  </button>
-                </div>
-
-                {loadingNotes ? (
-                  <div className="flex justify-center py-8">
-                    <Loader2 className="animate-spin text-emerald-600" />
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {notes.map((note) => (
-                      <div key={note.id} className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                        <div className="flex justify-between items-start mb-2">
-                          <span className="text-xs font-bold text-emerald-600">{note.author_name || 'Sistema'}</span>
-                          <span className="text-[10px] text-gray-400">
-                            {new Date(note.created_at).toLocaleString('pt-BR')}
-                          </span>
+              <div className="p-8">
+                {/* Reusing the same history logic but styled like the image */}
+                <div className="space-y-4">
+                  {lead.history?.map((item) => (
+                    <div key={item.id} className="bg-slate-50 rounded-xl p-4 border border-slate-100 flex gap-4">
+                      <div className="flex flex-col items-center gap-1 min-w-[100px]">
+                        <span className="text-xs font-bold text-slate-400 uppercase">ID:{item.id}</span>
+                        <div className="flex items-center gap-1 text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                          <Calendar size={10} />
+                          {item.date}
                         </div>
-                        <p className="text-sm text-gray-700">{note.content}</p>
-                      </div>
-                    ))}
-                    {notes.length === 0 && (
-                      <div className="text-center py-12 text-gray-400">
-                        <MessageSquare size={48} className="mx-auto mb-4 opacity-20" />
-                        <p>Nenhuma anotação para este lead.</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'tasks' && (
-              <div className="space-y-6">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newTaskTitle}
-                    onChange={(e) => setNewTaskTitle(e.target.value)}
-                    placeholder="Nova tarefa..."
-                    className="flex-1 px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
-                  />
-                  <button
-                    onClick={handleAddTask}
-                    className="p-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors"
-                  >
-                    <Plus size={20} />
-                  </button>
-                </div>
-
-                {loadingTasks ? (
-                  <div className="flex justify-center py-8">
-                    <Loader2 className="animate-spin text-emerald-600" />
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {leadTasks.map((task) => (
-                      <div 
-                        key={task.id} 
-                        className={cn(
-                          "flex items-center gap-3 p-4 rounded-xl border transition-all",
-                          task.status === 'completed' ? "bg-gray-50 border-gray-100 opacity-60" : "bg-white border-gray-200 shadow-sm"
-                        )}
-                      >
-                        <button
-                          onClick={() => handleToggleTask(task.id, task.status)}
-                          className={cn(
-                            "w-5 h-5 rounded border flex items-center justify-center transition-colors",
-                            task.status === 'completed' ? "bg-emerald-500 border-emerald-500 text-white" : "border-gray-300 hover:border-emerald-500"
-                          )}
-                        >
-                          {task.status === 'completed' && <CheckSquare size={14} />}
-                        </button>
-                        <span className={cn(
-                          "text-sm font-medium flex-1",
-                          task.status === 'completed' ? "line-through text-gray-400" : "text-gray-700"
-                        )}>
-                          {task.title}
-                        </span>
-                        <div className={cn(
-                          "px-2 py-0.5 rounded text-[10px] font-bold uppercase",
-                          task.priority === 'high' ? "bg-red-50 text-red-600" :
-                          task.priority === 'medium' ? "bg-yellow-50 text-yellow-600" :
-                          "bg-blue-50 text-blue-600"
-                        )}>
-                          {task.priority}
+                        <div className="flex items-center gap-1 text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">
+                          <Clock size={10} />
+                          {item.time}
                         </div>
                       </div>
-                    ))}
-                    {leadTasks.length === 0 && (
-                      <div className="text-center py-12 text-gray-400">
-                        <CheckSquare size={48} className="mx-auto mb-4 opacity-20" />
-                        <p>Nenhuma tarefa pendente.</p>
+                      <div className="flex-1">
+                        <p className="text-sm text-slate-700 leading-relaxed">
+                          {item.description}
+                        </p>
                       </div>
-                    )}
-                  </div>
-                )}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
 
-          {/* Footer */}
-          <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex items-center justify-end">
+          {/* Footer Actions */}
+          <div className="px-8 py-6 border-t border-slate-100 bg-white flex items-center justify-between">
+            <button 
+              onClick={handleDelete}
+              className="p-2 hover:bg-red-50 rounded-xl text-red-400 transition-colors"
+            >
+              <Trash2 size={20} />
+            </button>
             <div className="flex gap-3">
               <button 
                 onClick={onClose}
-                className="px-6 py-2 text-sm font-bold text-gray-600 hover:bg-gray-200 rounded-xl transition-colors"
+                className="px-8 py-2.5 text-sm font-bold text-slate-500 hover:bg-slate-50 rounded-xl transition-colors border border-slate-100 shadow-sm"
               >
-                Fechar
+                Cancelar
               </button>
-              <button className="px-8 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-lg shadow-emerald-200 transition-all flex items-center gap-2">
-                <Save size={18} />
-                Salvar Alterações
+              <button 
+                onClick={handleSave}
+                disabled={isSaving}
+                className="px-10 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-lg shadow-emerald-200 transition-all flex items-center gap-2 disabled:opacity-50"
+              >
+                {isSaving && <Loader2 size={16} className="animate-spin" />}
+                Salvar
               </button>
             </div>
           </div>

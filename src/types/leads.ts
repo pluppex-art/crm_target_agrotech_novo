@@ -23,5 +23,6 @@ export interface Lead {
   city?: string;
   discount?: string;
   responsible?: string;
+  created_at: string;
   history?: LeadHistory[];
 }

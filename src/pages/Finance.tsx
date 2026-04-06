@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Plus, TrendingUp, TrendingDown, DollarSign, Filter, Download, MoreHorizontal, Loader2 } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, DollarSign, Filter, Download, Trash2, Loader2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useFinanceStore } from '../store/useFinanceStore';
 import { NewTransactionModal } from '../components/finance/NewTransactionModal';
 
 export function Finance() {
-  const { transactions, fetchTransactions, isLoading } = useFinanceStore();
+  const { transactions, fetchTransactions, isLoading, deleteTransaction } = useFinanceStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -161,8 +161,14 @@ export function Finance() {
                     {t.type === 'income' ? '+' : ''} R$ {Math.abs(t.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </td>
                   <td className="px-6 py-4 text-sm border-b border-slate-50 text-right">
-                    <button className="p-1 text-slate-300 hover:text-slate-600">
-                      <MoreHorizontal className="w-4 h-4" />
+                    <button 
+                      onClick={() => {
+                        deleteTransaction(t.id);
+                      }}
+                      className="p-1 text-slate-300 hover:text-red-600 transition-colors"
+                      title="Excluir transação"
+                    >
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </td>
                 </tr>

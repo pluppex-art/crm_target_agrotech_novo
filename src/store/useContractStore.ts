@@ -17,9 +17,10 @@ interface ContractState {
   error: string | null;
   fetchContracts: () => Promise<void>;
   addContract: (contract: Omit<Contract, 'id' | 'created_at'>) => Promise<void>;
+  deleteContract: (id: string) => Promise<void>;
 }
 
-export const useContractStore = create<ContractState>((set) => ({
+export const useContractStore = create<ContractState>((set, get) => ({
   contracts: [],
   loading: false,
   error: null,
@@ -58,6 +59,27 @@ export const useContractStore = create<ContractState>((set) => ({
       set((state) => ({ contracts: [...state.contracts, data as Contract], loading: false }));
     } catch (error) {
       set({ error: 'Failed to create contract', loading: false });
+    }
+  },
+
+  deleteContract: async (id) => {
+    const supabase = getSupabaseClient();
+    if (!supabase) return;
+
+    const previousContracts = get().contracts;
+    set((state) => ({
+      contracts: state.contracts.filter((c) => c.id !== id),
+    }));
+
+    try {
+      const { error } = await supabase
+        .from('contracts')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    } catch (error) {
+      set({ contracts: previousContracts, error: 'Failed to delete contract' });
     }
   },
 }));

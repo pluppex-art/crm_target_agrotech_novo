@@ -1,80 +1,66 @@
-import React, { useState } from 'react';
-import { UserPlus, Mail, Shield, Save, X, Trash2, Edit2 } from 'lucide-react';
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  role: string;
-  department: string;
-  status: 'active' | 'inactive';
-  cpf: string;
-}
-
-const initialUsers: User[] = [
-  { 
-    id: '1', 
-    name: 'Admin User', 
-    email: 'admin@targetagrotech.com', 
-    phone: '(11) 99999-9999',
-    role: 'Administrador', 
-    department: 'Diretoria',
-    status: 'active',
-    cpf: '000.000.000-00'
-  },
-  { 
-    id: '2', 
-    name: 'Consultor Vendas', 
-    email: 'vendas@targetagrotech.com', 
-    phone: '(11) 88888-8888',
-    role: 'Consultor', 
-    department: 'Comercial',
-    status: 'active',
-    cpf: '111.111.111-11'
-  },
-];
+import React, { useState, useEffect } from 'react';
+import { UserPlus, Mail, Shield, Save, X, Trash2, Edit2, Loader2 } from 'lucide-react';
+import { useProfileStore } from '../../store/useProfileStore';
+import { UserProfile } from '../../services/profileService';
 
 export function Users() {
-  const [users, setUsers] = useState<User[]>(initialUsers);
+  const { profiles, loading, fetchProfiles, addProfile, updateProfile, deleteProfile } = useProfileStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
     role: 'Consultor',
     department: 'Comercial',
-    password: '',
     cpf: '',
   });
 
-  const handleAddUser = (e: React.FormEvent) => {
+  useEffect(() => {
+    fetchProfiles();
+  }, [fetchProfiles]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newUser: User = {
-      id: Math.random().toString(36).substr(2, 9),
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      role: formData.role,
-      department: formData.department,
-      status: 'active',
-      cpf: formData.cpf,
-    };
-    setUsers([...users, newUser]);
+    
+    if (editingId) {
+      await updateProfile(editingId, formData);
+    } else {
+      const newProfile: UserProfile = {
+        id: Math.random().toString(36).substr(2, 9), // In a real app, this would be the Supabase Auth ID
+        ...formData,
+        status: 'active',
+      };
+      await addProfile(newProfile);
+    }
+    
+    handleCloseModal();
+  };
+
+  const handleEdit = (profile: UserProfile) => {
+    setEditingId(profile.id);
+    setFormData({
+      name: profile.name,
+      email: profile.email,
+      phone: profile.phone,
+      role: profile.role,
+      department: profile.department,
+      cpf: profile.cpf,
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
     setIsModalOpen(false);
+    setEditingId(null);
     setFormData({ 
       name: '', 
       email: '', 
       phone: '',
       role: 'Consultor', 
       department: 'Comercial',
-      password: '',
       cpf: ''
     });
-  };
-
-  const handleDeleteUser = (id: string) => {
-    setUsers(users.filter(u => u.id !== id));
   };
 
   return (
@@ -106,7 +92,14 @@ export function Users() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {users.map((user) => (
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center">
+                    <Loader2 className="w-8 h-8 text-emerald-600 animate-spin mx-auto mb-2" />
+                    <p className="text-sm text-slate-500">Carregando usuários...</p>
+                  </td>
+                </tr>
+              ) : profiles.map((user) => (
                 <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
@@ -139,11 +132,14 @@ export function Users() {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2">
-                      <button className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all">
+                      <button 
+                        onClick={() => handleEdit(user)}
+                        className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
+                      >
                         <Edit2 size={16} />
                       </button>
                       <button 
-                        onClick={() => handleDeleteUser(user.id)}
+                        onClick={() => deleteProfile(user.id)}
                         className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                       >
                         <Trash2 size={16} />
@@ -157,18 +153,18 @@ export function Users() {
         </div>
       </div>
 
-      {/* Modal Novo Usuário */}
+      {/* Modal Novo/Editar Usuário */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-slate-800">Novo Usuário</h2>
-              <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 transition-colors">
+              <h2 className="text-xl font-bold text-slate-800">{editingId ? 'Editar Usuário' : 'Novo Usuário'}</h2>
+              <button onClick={handleCloseModal} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 transition-colors">
                 <X size={20} />
               </button>
             </div>
             
-            <form onSubmit={handleAddUser} className="p-6 space-y-6">
+            <form onSubmit={handleSubmit} className="p-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nome Completo</label>
@@ -250,24 +246,12 @@ export function Users() {
                     <Shield size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                   </div>
                 </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Senha Inicial</label>
-                  <input 
-                    required
-                    type="password" 
-                    value={formData.password}
-                    onChange={(e) => setFormData({...formData, password: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700"
-                    placeholder="********"
-                  />
-                </div>
               </div>
 
               <div className="pt-4 flex justify-end gap-3">
                 <button 
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={handleCloseModal}
                   className="px-6 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
                 >
                   Cancelar
@@ -277,7 +261,7 @@ export function Users() {
                   className="px-8 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-lg shadow-emerald-200 transition-all flex items-center gap-2"
                 >
                   <Save size={18} />
-                  Salvar Usuário
+                  {editingId ? 'Salvar Alterações' : 'Salvar Usuário'}
                 </button>
               </div>
             </form>

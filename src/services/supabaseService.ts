@@ -71,9 +71,44 @@ export const supabaseService = {
     return data as Lead;
   },
 
+  async updateLead(leadId: string, lead: Partial<Omit<Lead, 'id' | 'created_at'>>): Promise<boolean> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return false;
+
+    const { error } = await supabase
+      .from('leads')
+      .update(lead)
+      .eq('id', leadId);
+
+    if (error) {
+      console.error('Error updating lead:', error);
+      return false;
+    }
+
+    return true;
+  },
+
   async deleteLead(leadId: string): Promise<boolean> {
     const supabase = getSupabaseClient();
     if (!supabase) return false;
+
+    // Delete associated tasks first
+    await supabase
+      .from('tasks')
+      .delete()
+      .eq('lead_id', leadId);
+
+    // Delete associated notes
+    await supabase
+      .from('notes')
+      .delete()
+      .eq('lead_id', leadId);
+
+    // Delete associated contracts
+    await supabase
+      .from('contracts')
+      .delete()
+      .eq('lead_id', leadId);
 
     const { error } = await supabase
       .from('leads')

@@ -12,7 +12,6 @@ CREATE TABLE IF NOT EXISTS leads (
     stars INTEGER DEFAULT 0,
     photo TEXT,
     status TEXT DEFAULT 'new' CHECK (status IN ('new', 'qualified', 'proposal', 'closed')),
-    "subStatus" TEXT,
     cnpj TEXT,
     city TEXT,
     discount TEXT,
@@ -80,13 +79,10 @@ CREATE TABLE IF NOT EXISTS marketing_campaigns (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     name TEXT NOT NULL,
-    platform TEXT, -- email, social, ads
-    status TEXT DEFAULT 'active',
+    type TEXT, -- email, social, ads
+    status TEXT DEFAULT 'planned' CHECK (status IN ('planned', 'active', 'completed', 'paused')),
     budget NUMERIC,
-    leads_count INTEGER DEFAULT 0,
-    conversion_rate NUMERIC DEFAULT 0,
-    start_date DATE,
-    end_date DATE
+    leads_generated INTEGER DEFAULT 0
 );
 
 -- Enable Row Level Security (RLS)
@@ -107,3 +103,24 @@ CREATE POLICY "Allow all access to tasks" ON tasks FOR ALL USING (true);
 CREATE POLICY "Allow all access to notes" ON notes FOR ALL USING (true);
 CREATE POLICY "Allow all access to contracts" ON contracts FOR ALL USING (true);
 CREATE POLICY "Allow all access to marketing_campaigns" ON marketing_campaigns FOR ALL USING (true);
+
+-- 8. Profiles Table (perfis)
+CREATE TABLE IF NOT EXISTS perfis (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    name TEXT,
+    email TEXT,
+    phone TEXT,
+    role TEXT,
+    department TEXT,
+    status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+    cpf TEXT,
+    avatar_url TEXT
+);
+
+-- Enable RLS for perfis
+ALTER TABLE perfis ENABLE ROW LEVEL SECURITY;
+
+-- Create policies for perfis
+-- Note: In a real app, you'd restrict this more. For now, we'll allow all to match the other tables.
+CREATE POLICY "Allow all access to perfis" ON perfis FOR ALL USING (true);

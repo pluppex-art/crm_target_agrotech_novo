@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { FileText, Plus, Edit3, Eye, Download, MoreHorizontal, Loader2 } from 'lucide-react';
+import { FileText, Plus, Edit3, Eye, Download, Trash2, Loader2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useContractStore } from '../store/useContractStore';
 import { NewContractModal } from '../components/contracts/NewContractModal';
@@ -75,8 +75,14 @@ export function Contracts() {
                 <button className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all">
                   <Download className="w-4 h-4" />
                 </button>
-                <button className="p-2 text-slate-300 hover:text-slate-600">
-                  <MoreHorizontal className="w-4 h-4" />
+                <button 
+                  onClick={() => {
+                    useContractStore.getState().deleteContract(contract.id);
+                  }}
+                  className="p-2 text-slate-300 hover:text-red-600 transition-colors"
+                  title="Excluir contrato"
+                >
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
             </div>

@@ -3,13 +3,16 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, Package, DollarSign, Tag, Save, Loader2, Image as ImageIcon } from 'lucide-react';
 import { useProductStore } from '../../store/useProductStore';
 
+import { Product } from '../../services/productService';
+
 interface NewProductModalProps {
   isOpen: boolean;
   onClose: () => void;
+  product?: Product | null;
 }
 
-export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClose }) => {
-  const { addProduct } = useProductStore();
+export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClose, product }) => {
+  const { addProduct, updateProduct } = useProductStore();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -17,27 +20,50 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
     price: '',
     category: '',
     image_url: '',
+    stock: '0',
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      await addProduct({
-        ...formData,
-        price: parseFloat(formData.price) || 0,
-        image_url: formData.image_url || `https://picsum.photos/seed/${formData.name}/400/300`,
+  React.useEffect(() => {
+    if (product) {
+      setFormData({
+        name: product.name,
+        description: product.description || '',
+        price: product.price.toString(),
+        category: product.category || '',
+        image_url: product.image_url || '',
+        stock: (product.stock || 0).toString(),
       });
-      onClose();
+    } else {
       setFormData({
         name: '',
         description: '',
         price: '',
         category: '',
         image_url: '',
+        stock: '0',
       });
+    }
+  }, [product, isOpen]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const data = {
+        ...formData,
+        price: parseFloat(formData.price) || 0,
+        stock: parseInt(formData.stock) || 0,
+        image_url: formData.image_url || `https://picsum.photos/seed/${formData.name}/400/300`,
+      };
+
+      if (product) {
+        await updateProduct(product.id, data);
+      } else {
+        await addProduct(data);
+      }
+      onClose();
     } catch (error) {
-      console.error('Error adding product:', error);
+      console.error('Error saving product:', error);
     } finally {
       setLoading(false);
     }

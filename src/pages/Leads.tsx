@@ -7,74 +7,80 @@ import {
 import { useEffect, useState } from 'react';
 import { useLeadStore } from '../store/useLeadStore';
 import { Lead } from '../types/leads';
-import { MoreHorizontal, Plus, Search, Filter, Download, Loader2 } from 'lucide-react';
+import { Trash2, Plus, Search, Filter, Download, Loader2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { NewLeadModal } from '../components/leads/NewLeadModal';
 
 const columnHelper = createColumnHelper<Lead>();
 
-const columns = [
-  columnHelper.accessor('photo', {
-    header: '',
-    cell: info => (
-      <img 
-        src={info.getValue()} 
-        alt="Lead" 
-        className="w-8 h-8 rounded-full border border-slate-100"
-        referrerPolicy="no-referrer"
-      />
-    ),
-  }),
-  columnHelper.accessor('name', {
-    header: 'Nome',
-    cell: info => <span className="font-bold text-slate-800">{info.getValue()}</span>,
-  }),
-  columnHelper.accessor('phone', {
-    header: 'Telefone',
-    cell: info => <span className="text-slate-500">{info.getValue()}</span>,
-  }),
-  columnHelper.accessor('product', {
-    header: 'Produto',
-    cell: info => (
-      <span className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded-md text-[10px] font-bold uppercase">
-        {info.getValue()}
-      </span>
-    ),
-  }),
-  columnHelper.accessor('value', {
-    header: 'Valor',
-    cell: info => <span className="font-bold">R$ {info.getValue().toLocaleString()}</span>,
-  }),
-  columnHelper.accessor('status', {
-    header: 'Status',
-    cell: info => {
-      const statusMap: Record<string, { label: string; class: string }> = {
-        new: { label: 'Em Aberto', class: 'bg-blue-50 text-blue-600' },
-        qualified: { label: 'Qualificação', class: 'bg-green-50 text-green-600' },
-        proposal: { label: 'Proposta', class: 'bg-purple-50 text-purple-600' },
-        closed: { label: 'Fechado', class: 'bg-red-50 text-red-600' },
-      };
-      const status = statusMap[info.getValue()] || { label: info.getValue(), class: 'bg-gray-50 text-gray-600' };
-      return (
-        <span className={cn("px-2 py-1 rounded-full text-[10px] font-bold uppercase", status.class)}>
-          {status.label}
-        </span>
-      );
-    },
-  }),
-  columnHelper.display({
-    id: 'actions',
-    cell: () => (
-      <button className="p-2 text-slate-400 hover:text-slate-600 transition-colors">
-        <MoreHorizontal className="w-4 h-4" />
-      </button>
-    ),
-  }),
-];
-
 export function Leads() {
-  const { leads, fetchLeads, isLoading } = useLeadStore();
+  const { leads, fetchLeads, isLoading, deleteLead } = useLeadStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const columns = [
+    columnHelper.accessor('photo', {
+      header: '',
+      cell: info => (
+        <img 
+          src={info.getValue()} 
+          alt="Lead" 
+          className="w-8 h-8 rounded-full border border-slate-100"
+          referrerPolicy="no-referrer"
+        />
+      ),
+    }),
+    columnHelper.accessor('name', {
+      header: 'Nome',
+      cell: info => <span className="font-bold text-slate-800">{info.getValue()}</span>,
+    }),
+    columnHelper.accessor('phone', {
+      header: 'Telefone',
+      cell: info => <span className="text-slate-500">{info.getValue()}</span>,
+    }),
+    columnHelper.accessor('product', {
+      header: 'Produto',
+      cell: info => (
+        <span className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded-md text-[10px] font-bold uppercase">
+          {info.getValue()}
+        </span>
+      ),
+    }),
+    columnHelper.accessor('value', {
+      header: 'Valor',
+      cell: info => <span className="font-bold">R$ {info.getValue().toLocaleString()}</span>,
+    }),
+    columnHelper.accessor('status', {
+      header: 'Status',
+      cell: info => {
+        const statusMap: Record<string, { label: string; class: string }> = {
+          new: { label: 'Em Aberto', class: 'bg-blue-50 text-blue-600' },
+          qualified: { label: 'Qualificação', class: 'bg-green-50 text-green-600' },
+          proposal: { label: 'Proposta', class: 'bg-purple-50 text-purple-600' },
+          closed: { label: 'Fechado', class: 'bg-red-50 text-red-600' },
+        };
+        const status = statusMap[info.getValue()] || { label: info.getValue(), class: 'bg-gray-50 text-gray-600' };
+        return (
+          <span className={cn("px-2 py-1 rounded-full text-[10px] font-bold uppercase", status.class)}>
+            {status.label}
+          </span>
+        );
+      },
+    }),
+    columnHelper.display({
+      id: 'actions',
+      cell: (info) => (
+        <button 
+          onClick={() => {
+            deleteLead(info.row.original.id);
+          }}
+          className="p-2 text-slate-300 hover:text-red-600 transition-colors"
+          title="Excluir lead"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      ),
+    }),
+  ];
 
   useEffect(() => {
     fetchLeads();

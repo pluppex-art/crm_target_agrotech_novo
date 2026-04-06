@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Megaphone, Plus, Mail, MessageCircle, Share2, TrendingUp, Target, Loader2 } from 'lucide-react';
+import { Megaphone, Plus, Mail, MessageCircle, Share2, TrendingUp, Target, Trash2, Loader2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useMarketingStore } from '../store/useMarketingStore';
 import { NewCampaignModal } from '../components/marketing/NewCampaignModal';
@@ -83,6 +83,7 @@ export function Marketing() {
                   <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">Status</th>
                   <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">Leads</th>
                   <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">Orçamento</th>
+                  <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -107,6 +108,17 @@ export function Marketing() {
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-500 border-b border-slate-50">{c.leads_count}</td>
                     <td className="px-6 py-4 text-sm font-bold text-slate-800 border-b border-slate-50">R$ {c.budget?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                    <td className="px-6 py-4 text-sm border-b border-slate-50 text-right">
+                      <button 
+                        onClick={() => {
+                          useMarketingStore.getState().deleteCampaign(c.id);
+                        }}
+                        className="p-1 text-slate-300 hover:text-red-600 transition-colors"
+                        title="Excluir campanha"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
                   </tr>
                 ))}
                 {campaigns.length === 0 && (
