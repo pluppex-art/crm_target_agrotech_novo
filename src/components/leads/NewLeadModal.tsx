@@ -4,7 +4,7 @@ import { X, User, Phone, Mail, Tag, DollarSign, MapPin, Save, Loader2, ChevronDo
 import { useLeadStore } from '../../store/useLeadStore';
 import { useProductStore } from '../../store/useProductStore';
 import { LeadStatus, LeadSubStatus } from '../../types/leads';
-import { cn } from '../../lib/utils';
+import { cn, parseBRNumber } from '../../lib/utils';
 
 interface NewLeadModalProps {
   isOpen: boolean;
@@ -26,6 +26,8 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
     cnpj: '',
     responsible: '',
     subStatus: 'qualified' as LeadSubStatus,
+    isDiscountApplied: false,
+    discountValue: '',
   });
 
   useEffect(() => {
@@ -33,6 +35,12 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
       fetchProducts();
     }
   }, [isOpen, fetchProducts]);
+
+  const calculateFinalValue = () => {
+    const val = parseBRNumber(formData.value);
+    const discount = parseBRNumber(formData.discountValue);
+    return val * (1 - discount / 100);
+  };
 
   const handleProductChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedProduct = products.find(p => p.name === e.target.value);
@@ -48,13 +56,20 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
     setLoading(true);
     try {
       await addLead({
-        ...formData,
-        value: parseFloat(formData.value) || 0,
-        status: initialStatus,
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        product: formData.product,
+        value: parseBRNumber(formData.value),
+        city: formData.city,
+        cnpj: formData.cnpj,
+        responsible: formData.responsible,
+        status: initialStatus as LeadStatus,
         subStatus: initialStatus === 'qualified' ? formData.subStatus : undefined,
         stars: 0,
         photo: `https://picsum.photos/seed/${formData.name}/200`,
         history: [],
+        discount: formData.isDiscountApplied ? formData.discountValue : '',
       });
       onClose();
       setFormData({
@@ -66,6 +81,9 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
         city: '',
         cnpj: '',
         responsible: '',
+        subStatus: 'qualified',
+        isDiscountApplied: false,
+        discountValue: '',
       });
     } catch (error) {
       console.error('Error adding lead:', error);
@@ -78,8 +96,9 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div key="overlay-new" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
         <motion.div
+          key="modal-new"
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -88,6 +107,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
           <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-10">
             <h2 className="text-xl font-bold text-gray-800">Novo Lead</h2>
             <button 
+              key="btn-close-new"
               onClick={onClose}
               className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 transition-colors"
             >
@@ -150,7 +170,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                   >
                     <option value="">Selecione um produto</option>
                     {products.map(product => (
-                      <option key={product.id} value={product.name}>
+                      <option key={`prod-${product.id}`} value={product.name}>
                         {product.name}
                       </option>
                     ))}
@@ -163,11 +183,11 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Valor Estimado (R$)</label>
                 <div className="relative">
                   <input 
-                    type="number" 
+                    type="text" 
                     value={formData.value}
                     onChange={(e) => setFormData({...formData, value: e.target.value})}
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
-                    placeholder="0.00"
+                    placeholder="0,00"
                   />
                   <DollarSign size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 </div>
@@ -225,6 +245,61 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
               )}
             </div>
 
+            <div className="pt-2">
+              <label className="flex items-center gap-3 cursor-pointer group w-fit">
+                <div className="relative">
+                  <input 
+                    type="checkbox"
+                    checked={formData.isDiscountApplied}
+                    onChange={(e) => setFormData({ ...formData, isDiscountApplied: e.target.checked })}
+                    className="sr-only peer"
+                  />
+                  <div className="w-5 h-5 border-2 border-slate-200 rounded-md bg-white peer-checked:bg-emerald-600 peer-checked:border-emerald-600 transition-all flex items-center justify-center">
+                    <svg className={cn("w-3 h-3 text-white transition-opacity", formData.isDiscountApplied ? "opacity-100" : "opacity-0")} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                </div>
+                <span className="text-sm font-bold text-slate-700">Aplicar desconto?</span>
+              </label>
+
+              <AnimatePresence>
+                {formData.isDiscountApplied && (
+                  <motion.div 
+                    key="discount-controls-new"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="pt-3 space-y-3">
+                      <div className="flex gap-4">
+                        <div className="flex-1 relative">
+                          <input 
+                            type="text"
+                            placeholder="0"
+                            value={formData.discountValue}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/[^0-9.]/g, '');
+                              setFormData({ ...formData, discountValue: val });
+                            }}
+                            className="w-full px-4 py-2 bg-emerald-50 border border-emerald-100 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-emerald-700 font-bold text-sm text-right pr-8"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-400 font-bold text-sm">%</span>
+                        </div>
+                        <div className="flex-[2] px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-400 uppercase">Valor Final</span>
+                          <span className="text-sm font-bold text-emerald-600">
+                            R$ {calculateFinalValue().toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
             <div className="pt-4 flex justify-end gap-3">
               <button 
                 type="button"
@@ -238,7 +313,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                 disabled={loading}
                 className="px-8 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-lg shadow-emerald-200 transition-all flex items-center gap-2 disabled:opacity-50"
               >
-                {loading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                {loading ? <Loader2 key="loader-new" size={18} className="animate-spin" /> : <Save key="save-new" size={18} />}
                 Criar Lead
               </button>
             </div>

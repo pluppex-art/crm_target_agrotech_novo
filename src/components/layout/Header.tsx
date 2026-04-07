@@ -11,6 +11,7 @@ import {
   FileText,
   Package,
   Megaphone,
+  GraduationCap,
   X,
   Loader2,
   ChevronDown
@@ -33,7 +34,7 @@ type SearchResult = {
   icon: any;
 };
 
-export function Header() {
+export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
   const navigate = useNavigate();
   const { user, signOut } = useAuthStore();
   const [query, setQuery] = useState('');
@@ -164,9 +165,15 @@ export function Header() {
   };
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 sticky top-0 z-40">
+    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-40">
       <div className="flex items-center gap-4 flex-1">
-        <div className="relative w-96" ref={dropdownRef}>
+        <button 
+          onClick={onMenuClick}
+          className="lg:hidden p-2 text-slate-500 hover:bg-slate-50 rounded-lg transition-colors"
+        >
+          <ChevronDown className="w-5 h-5 -rotate-90" />
+        </button>
+        <div className="relative w-full max-w-[150px] sm:max-w-96" ref={dropdownRef}>
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input 
             type="text" 

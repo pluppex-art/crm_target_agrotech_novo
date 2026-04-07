@@ -166,41 +166,43 @@ export function Profile() {
             </div>
           </div>
 
-          <div className="pt-6 flex justify-end items-center gap-4">
+          <div className="pt-6 flex flex-col sm:flex-row justify-end items-center gap-4">
             {testResult && (
-              <span className={`text-xs font-medium px-3 py-1 rounded-full ${testResult.success ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+              <span className={`text-[10px] sm:text-xs font-medium px-3 py-1 rounded-full ${testResult.success ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'} w-full sm:w-auto text-center`}>
                 {testResult.message}
               </span>
             )}
             {error && (
-              <span className="text-red-500 text-sm font-bold">
+              <span className="text-red-500 text-sm font-bold w-full sm:w-auto text-center">
                 {error}
               </span>
             )}
             {success && (
-              <span className="text-emerald-600 text-sm font-bold flex items-center gap-1">
+              <span className="text-emerald-600 text-sm font-bold flex items-center justify-center gap-1 w-full sm:w-auto text-center">
                 <CheckCircle size={16} />
                 Perfil atualizado!
               </span>
             )}
-            <button 
-              onClick={handleTestConnection}
-              className="px-4 py-2 text-slate-500 hover:text-slate-700 text-sm font-medium transition-colors"
-            >
-              Testar Conexão
-            </button>
-            <button 
-              onClick={handleSave}
-              disabled={loading}
-              className="px-8 py-2.5 bg-emerald-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all flex items-center gap-2 disabled:opacity-50"
-            >
-              {loading ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-              Salvar Alterações
-            </button>
+            <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+              <button 
+                onClick={handleTestConnection}
+                className="w-full sm:w-auto px-4 py-2 text-slate-500 hover:text-slate-700 text-sm font-medium transition-colors"
+              >
+                Testar Conexão
+              </button>
+              <button 
+                onClick={handleSave}
+                disabled={loading}
+                className="w-full sm:w-auto px-8 py-2.5 bg-emerald-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {loading ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+                Salvar Alterações
+              </button>
+            </div>
           </div>
-          <div className="mt-4 pt-4 border-t border-slate-100 flex justify-center">
-            <p className="text-[10px] text-slate-400 font-mono uppercase tracking-widest">
-              Projeto Conectado: {import.meta.env.VITE_SUPABASE_URL?.split('.')[0].replace('https://', '') || 'NÃO CONFIGURADO'}
+          <div className="mt-4 pt-4 border-t border-slate-100 flex justify-center px-4">
+            <p className="text-[9px] sm:text-[10px] text-slate-400 font-mono uppercase tracking-widest text-center truncate">
+              Projeto: {import.meta.env.VITE_SUPABASE_URL?.split('.')[0].replace('https://', '') || 'NÃO CONFIGURADO'}
             </p>
           </div>
         </div>

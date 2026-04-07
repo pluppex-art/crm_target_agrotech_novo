@@ -22,7 +22,7 @@ import { useLeadStore } from '../store/useLeadStore';
 import { Lead, LeadStatus, LeadSubStatus } from '../types/leads';
 import { LeadDetailsModal } from '../components/leads/LeadDetailsModal';
 import { NewLeadModal } from '../components/leads/NewLeadModal';
-import { cn } from '../lib/utils';
+import { cn, getLeadEffectiveValue } from '../lib/utils';
 
 const COLUMNS: { id: LeadStatus; title: string; color: string }[] = [
   { id: 'new', title: 'Em aberto', color: 'bg-blue-500' },
@@ -108,8 +108,8 @@ export const Pipeline: React.FC = () => {
           </h1>
           <p className="text-gray-500 text-sm">Gerencie seu fluxo de vendas e acompanhe o progresso dos leads.</p>
         </div>
-        <div className="flex items-center gap-3">
-          {isLoading && <Loader2 className="w-5 h-5 text-emerald-600 animate-spin" />}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full md:w-auto">
+          {isLoading && <Loader2 className="w-5 h-5 text-emerald-600 animate-spin hidden sm:block" />}
           
           {/* Status Filter */}
           <div className="relative">
@@ -231,49 +231,51 @@ export const Pipeline: React.FC = () => {
             </AnimatePresence>
           </div>
 
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-            <input
-              type="text"
-              placeholder="Buscar lead..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-10 py-2 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all w-64"
-            />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600 transition-colors"
-                title="Limpar busca"
-              >
-                <X size={14} />
-              </button>
-            )}
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <div className="relative flex-1 sm:flex-none">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <input
+                type="text"
+                placeholder="Buscar lead..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-10 py-2 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all w-full sm:w-64"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600 transition-colors"
+                  title="Limpar busca"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+            <button className="p-2 bg-white border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors">
+              <Download size={20} />
+            </button>
+            <button 
+              onClick={() => {
+                setInitialStatusForNewLead('new');
+                setIsNewLeadModalOpen(true);
+              }}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 font-semibold"
+            >
+              <Plus size={20} />
+              <span className="whitespace-nowrap">Novo Lead</span>
+            </button>
           </div>
-          <button className="p-2 bg-white border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors">
-            <Download size={20} />
-          </button>
-          <button 
-            onClick={() => {
-              setInitialStatusForNewLead('new');
-              setIsNewLeadModalOpen(true);
-            }}
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 font-semibold"
-          >
-            <Plus size={20} />
-            Novo Lead
-          </button>
         </div>
       </div>
 
       {/* Kanban Board */}
       <DragDropContext onDragEnd={onDragEnd}>
         <div className={cn(
-          "grid gap-6 overflow-x-auto pb-4",
-          visibleColumns.length === 1 ? "grid-cols-1 max-w-md mx-auto" : 
-          visibleColumns.length === 2 ? "grid-cols-1 md:grid-cols-2" :
-          visibleColumns.length === 3 ? "grid-cols-1 md:grid-cols-3" :
-          "grid-cols-1 md:grid-cols-2 lg:grid-cols-4"
+          "flex lg:grid gap-6 overflow-x-auto pb-4 -mx-6 px-6 lg:mx-0 lg:px-0 scrollbar-hide",
+          visibleColumns.length === 1 ? "lg:grid-cols-1 max-w-md mx-auto" : 
+          visibleColumns.length === 2 ? "lg:grid-cols-2" :
+          visibleColumns.length === 3 ? "lg:grid-cols-3" :
+          "lg:grid-cols-4"
         )}>
           {visibleColumns.map((column) => (
             <div key={column.id} className="flex flex-col min-w-[300px] bg-gray-100/50 rounded-2xl p-4 border border-gray-200">
@@ -376,7 +378,7 @@ export const Pipeline: React.FC = () => {
                                 
                                 <div className="flex items-center justify-between pt-2">
                                   <span className="text-sm font-bold text-slate-800">
-                                    R$ {lead.value.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                                    R$ {getLeadEffectiveValue(lead).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
                                   </span>
                                   
                                 <div className="flex items-center gap-1.5">

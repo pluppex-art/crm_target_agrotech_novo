@@ -94,20 +94,20 @@ export function Leads() {
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Gestão de Leads</h1>
           <p className="text-sm text-slate-500">Visualize e gerencie todos os seus contatos comerciais.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
           {isLoading && <Loader2 className="w-5 h-5 text-emerald-600 animate-spin" />}
-          <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg bg-white text-sm font-medium hover:bg-slate-50 transition-all">
+          <button className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-slate-200 rounded-lg bg-white text-sm font-medium hover:bg-slate-50 transition-all">
             <Download className="w-4 h-4" />
-            Exportar CSV
+            <span className="hidden sm:inline">Exportar</span>
           </button>
           <button 
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-all shadow-sm"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-all shadow-sm whitespace-nowrap"
           >
             <Plus className="w-4 h-4" />
             Novo Lead
@@ -116,8 +116,8 @@ export function Leads() {
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-          <div className="relative w-80">
+        <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-slate-50/50 gap-4">
+          <div className="relative w-full sm:w-80">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input 
               type="text" 
@@ -125,9 +125,10 @@ export function Leads() {
               className="w-full bg-white border border-slate-200 rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-emerald-500 transition-all"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <button className="p-2 border border-slate-200 rounded-lg bg-white hover:bg-slate-50 transition-colors">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button className="flex-1 sm:flex-none flex items-center justify-center gap-2 p-2 border border-slate-200 rounded-lg bg-white hover:bg-slate-50 transition-colors">
               <Filter className="w-4 h-4 text-slate-400" />
+              <span className="sm:hidden text-sm text-slate-600">Filtros</span>
             </button>
           </div>
         </div>

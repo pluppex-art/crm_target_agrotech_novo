@@ -53,20 +53,20 @@ export function Permissions() {
   return (
     <div className="p-6 max-w-6xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+        <div className="flex items-center gap-2 sm:gap-4">
           <button 
             onClick={() => navigate('/settings')}
-            className="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-500"
+            className="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-500 shrink-0"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-              <Shield className="w-6 h-6 text-emerald-600" />
-              Permissões de Acesso
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-800 flex items-center gap-2 truncate">
+              <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600 shrink-0" />
+              Permissões
             </h1>
-            <p className="text-sm text-slate-500">Defina o que cada perfil de usuário pode visualizar e gerenciar.</p>
+            <p className="text-xs sm:text-sm text-slate-500 truncate">Gerencie o acesso de cada perfil.</p>
           </div>
         </div>
       </div>
@@ -118,28 +118,28 @@ export function Permissions() {
           <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
             {/* Role Info Banner */}
             <div className={cn(
-              "p-6 border-b flex items-center justify-between",
+              "p-4 sm:p-6 border-b flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4",
               currentRoleInfo.isAdmin ? "bg-emerald-50/50 border-emerald-100" : "bg-slate-50/50 border-slate-100"
             )}>
               <div className="flex items-center gap-4">
                 <div className={cn(
-                  "w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm",
+                  "w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-sm shrink-0",
                   currentRoleInfo.isAdmin ? "bg-emerald-600 text-white" : "bg-slate-800 text-white"
                 )}>
-                  <Lock className="w-6 h-6" />
+                  <Lock className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-slate-800">Configurações para {currentRoleInfo.label}</h2>
-                  <p className="text-sm text-slate-500">
+                  <h2 className="text-base sm:text-lg font-bold text-slate-800">Acesso: {currentRoleInfo.label}</h2>
+                  <p className="text-[10px] sm:text-sm text-slate-500">
                     {currentRoleInfo.isAdmin 
-                      ? "Este perfil possui acesso total e irrestrito ao sistema." 
-                      : "Personalize as permissões específicas para este perfil abaixo."}
+                      ? "Acesso total ao sistema." 
+                      : "Personalize as permissões abaixo."}
                   </p>
                 </div>
               </div>
               {currentRoleInfo.isAdmin && (
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold">
-                  <Check className="w-4 h-4" />
+                <div className="flex items-center gap-2 px-3 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-[10px] font-bold">
+                  <Check className="w-3.5 h-3.5" />
                   ACESSO TOTAL
                 </div>
               )}

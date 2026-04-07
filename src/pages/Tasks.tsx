@@ -21,37 +21,37 @@ export function Tasks() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Minhas Tarefas</h1>
-          <p className="text-sm text-slate-500">Acompanhe suas atividades diárias e compromissos.</p>
+          <p className="text-sm text-slate-500">Acompanhe suas atividades diárias.</p>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 flex-1 sm:flex-none">
             <button 
               onClick={() => setViewMode('list')}
               className={cn(
-                "p-2 rounded-lg flex items-center gap-2 text-xs font-bold transition-all",
+                "flex-1 sm:flex-none p-2 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-all",
                 viewMode === 'list' ? "bg-white text-emerald-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
               )}
             >
               <LayoutList className="w-4 h-4" />
-              Lista
+              <span className="hidden sm:inline">Lista</span>
             </button>
             <button 
               onClick={() => setViewMode('calendar')}
               className={cn(
-                "p-2 rounded-lg flex items-center gap-2 text-xs font-bold transition-all",
+                "flex-1 sm:flex-none p-2 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-all",
                 viewMode === 'calendar' ? "bg-white text-emerald-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
               )}
             >
               <CalendarIcon className="w-4 h-4" />
-              Calendário
+              <span className="hidden sm:inline">Calendário</span>
             </button>
           </div>
           <button 
             onClick={() => setIsModalOpen(true)}
-            className="bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium hover:bg-emerald-700 transition-all shadow-sm"
+            className="flex-1 sm:flex-none bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium hover:bg-emerald-700 transition-all shadow-sm whitespace-nowrap"
           >
             <Plus className="w-4 h-4" />
             Nova Tarefa

@@ -7,12 +7,13 @@ import {
   LogOut, 
   Leaf,
   ChevronRight,
-  BarChart3,
   DollarSign,
   MessageSquare,
   FileText,
   Package,
-  Megaphone
+  Megaphone,
+  GraduationCap,
+  X,
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { cn } from '../../lib/utils';
@@ -27,13 +28,17 @@ const menuItems = [
   { icon: Package, label: 'Produtos', path: '/products' },
   { icon: Megaphone, label: 'Marketing', path: '/marketing' },
   { icon: Calendar, label: 'Tarefas', path: '/tasks' },
+  { icon: GraduationCap, label: 'Turmas', path: '/turmas' },
   { icon: Settings, label: 'Configurações', path: '/settings' },
 ];
 
-export function Sidebar() {
+export function Sidebar({ isOpen, onClose }: { isOpen?: boolean, onClose?: () => void }) {
   return (
-    <aside className="w-64 bg-white border-r border-slate-200 flex flex-col h-screen sticky top-0">
-      <div className="p-6">
+    <aside className={cn(
+      "fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200 flex flex-col h-screen transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 lg:z-0",
+      isOpen ? "translate-x-0" : "-translate-x-full"
+    )}>
+      <div className="p-6 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
             <Leaf className="w-5 h-5 text-white" />
@@ -43,13 +48,22 @@ export function Sidebar() {
             <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Agrotech</span>
           </div>
         </div>
+        <button 
+          onClick={onClose}
+          className="lg:hidden p-2 -mr-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
+        >
+          <X className="w-5 h-5" />
+        </button>
       </div>
 
-      <nav className="flex-1 px-4 py-4 space-y-1">
+      <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
         {menuItems.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
+            onClick={() => {
+              if (window.innerWidth < 1024 && onClose) onClose();
+            }}
             className={({ isActive }) => cn(
               "flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all group",
               isActive 
@@ -62,8 +76,8 @@ export function Sidebar() {
               {item.label}
             </div>
             <ChevronRight className={cn(
-              "w-4 h-4 opacity-0 transition-all group-hover:opacity-100",
-              "group-[.active]:opacity-100"
+               "w-4 h-4 opacity-0 transition-all group-hover:opacity-100",
+               "group-[.active]:opacity-100"
             )} />
           </NavLink>
         ))}

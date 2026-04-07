@@ -65,17 +65,17 @@ export function Users() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Cadastro de Usuários</h1>
-          <p className="text-sm text-slate-500">Gerencie os membros da sua equipe e suas permissões.</p>
+          <p className="text-sm text-slate-500">Gerencie os membros da sua equipe.</p>
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 font-semibold"
+          className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 font-semibold"
         >
           <UserPlus size={20} />
-          Novo Usuário
+          <span className="whitespace-nowrap">Novo Usuário</span>
         </button>
       </div>
 
@@ -248,17 +248,17 @@ export function Users() {
                 </div>
               </div>
 
-              <div className="pt-4 flex justify-end gap-3">
+              <div className="pt-4 flex flex-col sm:flex-row justify-end gap-3">
                 <button 
                   type="button"
                   onClick={handleCloseModal}
-                  className="px-6 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+                  className="px-6 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors w-full sm:w-auto order-2 sm:order-1"
                 >
                   Cancelar
                 </button>
                 <button 
                   type="submit"
-                  className="px-8 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-lg shadow-emerald-200 transition-all flex items-center gap-2"
+                  className="px-8 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-lg shadow-emerald-200 transition-all flex items-center justify-center gap-2 w-full sm:w-auto order-1 sm:order-2"
                 >
                   <Save size={18} />
                   {editingId ? 'Salvar Alterações' : 'Salvar Usuário'}

@@ -17,6 +17,7 @@ import { AIChat } from './pages/AIChat';
 import { Contracts } from './pages/Contracts';
 import { Products } from './pages/Products';
 import { Marketing } from './pages/Marketing';
+import { Turmas } from './pages/Turmas';
 import { Login } from './pages/Login';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { ResetPassword } from './pages/ResetPassword';
@@ -70,6 +71,7 @@ export default function App() {
           <Route path="/products" element={<Products />} />
           <Route path="/marketing" element={<Marketing />} />
           <Route path="/tasks" element={<Tasks />} />
+          <Route path="/turmas" element={<Turmas />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/settings/permissions" element={<Permissions />} />
           <Route path="/settings/profile" element={<Profile />} />

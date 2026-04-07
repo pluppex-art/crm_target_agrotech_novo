@@ -3,7 +3,9 @@ import { Send, Bot, User, Sparkles, Copy, RefreshCw, MessageSquare } from 'lucid
 import { GoogleGenAI } from "@google/genai";
 import { cn } from '../lib/utils';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY as string | undefined;
+const ai = GEMINI_API_KEY ? new GoogleGenAI({ apiKey: GEMINI_API_KEY }) : null;
+
 
 interface Message {
   role: 'user' | 'model';
@@ -26,6 +28,10 @@ export function AIChat() {
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
+    if (!ai) {
+      setMessages(prev => [...prev, { role: 'model', content: 'IA não configurada. Adicione VITE_GEMINI_API_KEY no arquivo .env e reinicie o servidor.' }]);
+      return;
+    }
 
     const userMessage = input.trim();
     setInput('');
@@ -34,7 +40,7 @@ export function AIChat() {
 
     try {
       const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-2.0-flash",
         contents: [...messages, { role: 'user', content: userMessage }].map(m => ({
           role: m.role,
           parts: [{ text: m.content }]
@@ -56,14 +62,14 @@ export function AIChat() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-64px)] bg-[#f3f6f9]">
-      <div className="p-6 border-b border-slate-200 bg-white">
+      <div className="p-4 sm:p-6 border-b border-slate-200 bg-white">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center">
-            <Bot className="w-6 h-6 text-white" />
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-600 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0">
+            <Bot className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-slate-800">IA Sales Assistant</h1>
-            <p className="text-xs text-slate-500">Criação de mensagens e e-mails de alta conversão.</p>
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-xl font-bold text-slate-800 truncate">IA Sales Assistant</h1>
+            <p className="text-[10px] sm:text-xs text-slate-500 truncate">Mensagens e e-mails de alta conversão.</p>
           </div>
         </div>
       </div>
@@ -119,7 +125,7 @@ export function AIChat() {
         )}
       </div>
 
-      <div className="p-6 bg-white border-t border-slate-200">
+      <div className="p-4 sm:p-6 bg-white border-t border-slate-200">
         <div className="max-w-4xl mx-auto relative">
           <textarea
             value={input}
@@ -130,8 +136,8 @@ export function AIChat() {
                 handleSend();
               }
             }}
-            placeholder="Ex: Crie um e-mail de prospecção para um produtor de soja interessado em tecnologia..."
-            className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 pl-4 pr-14 text-sm focus:ring-2 focus:ring-emerald-500 transition-all resize-none h-24"
+            placeholder="Ex: Crie um e-mail de prospecção..."
+            className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 sm:py-4 pl-4 pr-14 text-sm focus:ring-2 focus:ring-emerald-500 transition-all resize-none h-20 sm:h-24"
           />
           <button 
             onClick={handleSend}
