@@ -13,7 +13,8 @@ import {
   Megaphone,
   X,
   Loader2,
-  ChevronDown
+  ChevronDown,
+  Menu
 } from 'lucide-react';
 import { useLeadStore } from '../../store/useLeadStore';
 import { useTaskStore } from '../../store/useTaskStore';
@@ -33,7 +34,11 @@ type SearchResult = {
   icon: any;
 };
 
-export function Header() {
+interface HeaderProps {
+  onMenuClick?: () => void;
+}
+
+export function Header({ onMenuClick }: HeaderProps) {
   const navigate = useNavigate();
   const { user, signOut } = useAuthStore();
   const [query, setQuery] = useState('');
@@ -166,7 +171,13 @@ export function Header() {
   return (
     <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 sticky top-0 z-40">
       <div className="flex items-center gap-4 flex-1">
-        <div className="relative w-96" ref={dropdownRef}>
+        <button 
+          onClick={onMenuClick}
+          className="lg:hidden p-2 text-slate-400 hover:bg-slate-50 rounded-lg transition-colors"
+        >
+          <Menu size={20} />
+        </button>
+        <div className="relative w-96 hidden md:block" ref={dropdownRef}>
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input 
             type="text" 

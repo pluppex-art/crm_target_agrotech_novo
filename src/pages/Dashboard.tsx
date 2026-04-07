@@ -34,18 +34,21 @@ import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 import { useLeadStore } from '../store/useLeadStore';
 import { useFinanceStore } from '../store/useFinanceStore';
+import { useTurmaStore } from '../store/useTurmaStore';
 import { LeadStatus } from '../types/leads';
 
 export function Dashboard() {
   const [activeView, setActiveView] = useState<'all' | 'sales' | 'finance'>('all');
   const { leads, fetchLeads, isLoading: leadsLoading } = useLeadStore();
   const { transactions, fetchTransactions, isLoading: financeLoading } = useFinanceStore();
+  const { turmas, fetchTurmas } = useTurmaStore();
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchLeads();
     fetchTransactions();
-  }, [fetchLeads, fetchTransactions]);
+    fetchTurmas();
+  }, [fetchLeads, fetchTransactions, fetchTurmas]);
 
   const isLoading = leadsLoading || financeLoading;
 
@@ -144,17 +147,19 @@ export function Dashboard() {
   });
 
   const chartData = last5Months.map((month, index) => {
-    const monthIndex = new Date().getMonth() - (4 - index);
-    const year = new Date().getFullYear();
+    const d = new Date();
+    d.setMonth(d.getMonth() - (4 - index));
+    const targetMonth = d.getMonth();
+    const targetYear = d.getFullYear();
     
     const monthTransactions = transactions.filter(t => {
       const tDate = new Date(t.date);
-      return tDate.getMonth() === monthIndex && tDate.getFullYear() === year;
+      return tDate.getMonth() === targetMonth && tDate.getFullYear() === targetYear;
     });
 
     const monthLeads = leads.filter(l => {
       const lDate = new Date(l.created_at);
-      return lDate.getMonth() === monthIndex && lDate.getFullYear() === year;
+      return lDate.getMonth() === targetMonth && lDate.getFullYear() === targetYear;
     });
 
     return {
@@ -464,7 +469,7 @@ export function Dashboard() {
 
             <div className="space-y-8">
               {salesByResponsible.sort((a, b) => b.value - a.value).map((seller, index) => {
-                const maxValue = Math.max(...salesByResponsible.map(s => s.value));
+                const maxValue = Math.max(...salesByResponsible.map(s => s.value), 1);
                 const percentage = (seller.value / maxValue) * 100;
                 
                 return (
@@ -723,6 +728,75 @@ export function Dashboard() {
                   <p className="text-xs text-slate-500 mt-1">R$ {col.total.toLocaleString('pt-BR')}</p>
                 </div>
               ))}
+            </div>
+          </motion.div>
+        )}
+
+        {/* Turmas Section */}
+        {(activeView === 'all' || activeView === 'sales') && turmas.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-6 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden"
+          >
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div>
+                <h3 className="font-bold text-slate-800">Turmas</h3>
+                <p className="text-xs text-slate-400 mt-0.5">Lista de turmas e desempenho de vendas por vendedor</p>
+              </div>
+              <button onClick={() => navigate('/turmas')} className="text-xs font-bold text-emerald-600 hover:underline">
+                Ver Todas
+              </button>
+            </div>
+            <div className="divide-y divide-slate-50">
+              {turmas.map(turma => {
+                const confirmados = turma.attendees.filter(a => a.status === 'confirmado').length;
+                const totalVendas = turma.attendees.reduce((acc, a) => acc + a.vendas, 0);
+                const topVendedor = [...turma.attendees].sort((a, b) => b.vendas - a.vendas)[0];
+                const STATUS_COLOR: Record<string, string> = {
+                  agendada: 'bg-blue-100 text-blue-700',
+                  em_andamento: 'bg-emerald-100 text-emerald-700',
+                  concluida: 'bg-slate-100 text-slate-600',
+                  cancelada: 'bg-red-100 text-red-600',
+                };
+                const STATUS_LABEL: Record<string, string> = {
+                  agendada: 'Agendada', em_andamento: 'Em Andamento', concluida: 'Concluída', cancelada: 'Cancelada',
+                };
+                return (
+                  <div key={turma.id} className="p-4 flex items-center gap-4 hover:bg-slate-50 transition-colors">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full', STATUS_COLOR[turma.status])}>
+                          {STATUS_LABEL[turma.status]}
+                        </span>
+                        <h4 className="font-bold text-slate-800 text-sm truncate">{turma.name}</h4>
+                      </div>
+                      <p className="text-xs text-slate-500">
+                        {turma.professor_name} · {new Date(turma.date + 'T00:00:00').toLocaleDateString('pt-BR')} · {turma.time}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-6 shrink-0 text-center">
+                      <div>
+                        <p className="text-xs text-slate-400">Confirmados</p>
+                        <p className="text-sm font-bold text-slate-800">{confirmados}/{turma.attendees.length}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-400">Vendas</p>
+                        <p className="text-sm font-bold text-emerald-700">R$ {totalVendas.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}</p>
+                      </div>
+                      {topVendedor && topVendedor.vendas > 0 && (
+                        <div className="flex items-center gap-2">
+                          <img src={topVendedor.photo} alt={topVendedor.name} className="w-7 h-7 rounded-full object-cover border-2 border-emerald-100" referrerPolicy="no-referrer" />
+                          <div className="text-left">
+                            <p className="text-[10px] text-slate-400">Top vendedor</p>
+                            <p className="text-xs font-bold text-slate-700">{topVendedor.name}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </motion.div>
         )}

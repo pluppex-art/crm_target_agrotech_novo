@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Sparkles, Copy, RefreshCw, MessageSquare } from 'lucide-react';
+import { Send, Bot, User, Copy, RefreshCw } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 import { cn } from '../lib/utils';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+const ia = GEMINI_API_KEY ? new GoogleGenAI({ apiKey: GEMINI_API_KEY }) : null;
+
 
 interface Message {
   role: 'user' | 'model';
@@ -26,6 +28,10 @@ export function AIChat() {
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
+    if (!ia) {
+      console.error("IA não configurada");
+      return;
+    }
 
     const userMessage = input.trim();
     setInput('');
@@ -33,8 +39,8 @@ export function AIChat() {
     setIsLoading(true);
 
     try {
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+      const response = await ia.models.generateContent({
+        model: "gemini-2.0-flash",
         contents: [...messages, { role: 'user', content: userMessage }].map(m => ({
           role: m.role,
           parts: [{ text: m.content }]
@@ -87,7 +93,7 @@ export function AIChat() {
               {msg.content}
               {msg.role === 'model' && i > 0 && (
                 <div className="flex items-center gap-2 mt-4 pt-4 border-t border-slate-50">
-                  <button 
+                  <button
                     onClick={() => navigator.clipboard.writeText(msg.content)}
                     className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 hover:text-emerald-600 transition-colors uppercase"
                   >
@@ -133,7 +139,7 @@ export function AIChat() {
             placeholder="Ex: Crie um e-mail de prospecção para um produtor de soja interessado em tecnologia..."
             className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 pl-4 pr-14 text-sm focus:ring-2 focus:ring-emerald-500 transition-all resize-none h-24"
           />
-          <button 
+          <button
             onClick={handleSend}
             disabled={!input.trim() || isLoading}
             className="absolute right-3 bottom-3 p-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50 transition-all shadow-md"

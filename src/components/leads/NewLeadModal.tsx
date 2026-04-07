@@ -16,6 +16,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
   const { addLead } = useLeadStore();
   const { products, fetchProducts } = useProductStore();
   const [loading, setLoading] = useState(false);
+  const [documentType, setDocumentType] = useState<'cnpj' | 'cpf'>('cnpj');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -55,6 +56,8 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
         stars: 0,
         photo: `https://picsum.photos/seed/${formData.name}/200`,
         history: [],
+        cnpj: documentType === 'cnpj' ? formData.cnpj : '',
+        cpf: documentType === 'cpf' ? formData.cnpj : '',
       });
       onClose();
       setFormData({
@@ -188,13 +191,29 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">CNPJ (Opcional)</label>
-                <input 
-                  type="text" 
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    {documentType === 'cnpj' ? 'CNPJ' : 'CPF'} (Opcional)
+                  </label>
+                  <div className="flex text-[10px] font-bold rounded-lg overflow-hidden border border-gray-200">
+                    <button
+                      type="button"
+                      onClick={() => setDocumentType('cpf')}
+                      className={cn('px-2 py-0.5 transition-colors', documentType === 'cpf' ? 'bg-emerald-600 text-white' : 'bg-white text-gray-400 hover:bg-gray-50')}
+                    >CPF</button>
+                    <button
+                      type="button"
+                      onClick={() => setDocumentType('cnpj')}
+                      className={cn('px-2 py-0.5 transition-colors', documentType === 'cnpj' ? 'bg-emerald-600 text-white' : 'bg-white text-gray-400 hover:bg-gray-50')}
+                    >CNPJ</button>
+                  </div>
+                </div>
+                <input
+                  type="text"
                   value={formData.cnpj}
                   onChange={(e) => setFormData({...formData, cnpj: e.target.value})}
                   className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
-                  placeholder="00.000.000/0000-00"
+                  placeholder={documentType === 'cnpj' ? '00.000.000/0000-00' : '000.000.000-00'}
                 />
               </div>
 

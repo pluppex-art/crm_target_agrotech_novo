@@ -121,5 +121,110 @@ export const supabaseService = {
     }
 
     return true;
+  },
+
+  // === Turmas Methods ===
+  async getTurmas(): Promise<any[]> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return [];
+
+    const { data, error } = await supabase
+      .from('turmas')
+      .select('*, turma_attendees(*)')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching turmas:', error);
+      return [];
+    }
+
+    return data || [];
+  },
+
+  async createTurma(turma: any): Promise<any | null> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return null;
+
+    const { data, error } = await supabase
+      .from('turmas')
+      .insert([turma])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating turma:', error);
+      return null;
+    }
+
+    return data;
+  },
+
+  async updateTurma(turmaId: string, turma: any): Promise<boolean> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return false;
+
+    const { error } = await supabase
+      .from('turmas')
+      .update(turma)
+      .eq('id', turmaId);
+
+    if (error) {
+      console.error('Error updating turma:', error);
+      return false;
+    }
+
+    return true;
+  },
+
+  async deleteTurma(turmaId: string): Promise<boolean> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return false;
+
+    const { error } = await supabase
+      .from('turmas')
+      .delete()
+      .eq('id', turmaId);
+
+    if (error) {
+      console.error('Error deleting turma:', error);
+      return false;
+    }
+
+    return true;
+  },
+
+  async addAttendee(turmaId: string, attendee: any): Promise<any | null> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return null;
+
+    const { data, error } = await supabase
+      .from('turma_attendees')
+      .insert([{ ...attendee, turma_id: turmaId }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error adding attendee:', error);
+      return null;
+    }
+
+    return data;
+  },
+
+  async updateAttendeeStatus(attendeeId: string, status: string): Promise<boolean> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return false;
+
+    const { error } = await supabase
+      .from('turma_attendees')
+      .update({ status })
+      .eq('id', attendeeId);
+
+    if (error) {
+      console.error('Error updating attendee status:', error);
+      return false;
+    }
+
+    return true;
   }
 };
