@@ -27,11 +27,11 @@ function getSupabaseAdmin() {
   if (!supabaseAdminClient) {
     const url = process.env.VITE_SUPABASE_URL;
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
+    
     if (!url && !key) throw new Error("Configuração do Supabase ausente: VITE_SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY não encontrados.");
     if (!url) throw new Error("Configuração do Supabase ausente: VITE_SUPABASE_URL não encontrado.");
     if (!key) throw new Error("Configuração do Supabase ausente: SUPABASE_SERVICE_ROLE_KEY não encontrado.");
-
+    
     supabaseAdminClient = createClient(url, key);
   }
   return supabaseAdminClient;
@@ -40,22 +40,6 @@ function getSupabaseAdmin() {
 async function startServer() {
   const app = express();
   const PORT = 3000;
-  const HEART_URL = `http://127.0.0.1:${PORT}/api/health`;
-
-  // avoid crashing when a second "npm run dev "is satrted"
-
-  try {
-    const existingServerResponse = await fetch(HEART_URL);
-    if (existingServerResponse.ok) {
-      const payload = await existingServerResponse.json();
-      if (payload.status === "ok") {
-        console.log("Servidor já está rodando em", PORT);
-        return;
-      }
-    }
-  } catch (error) {
-    // ignore error
-  }
 
   app.use(express.json());
 
@@ -121,16 +105,16 @@ async function startServer() {
 
       if (emailError) {
         console.error(`[DEBUG] Erro no Resend:`, emailError);
-
-        const isValidationError = (emailError as any).name === 'validation_error' ||
-          (emailError as any).name === 'invalid_parameter' ||
-          emailError.message?.includes('testing emails');
+        
+        const isValidationError = (emailError as any).name === 'validation_error' || 
+                                 (emailError as any).name === 'invalid_parameter' ||
+                                 emailError.message?.includes('testing emails');
 
         // Se for erro de sandbox ou validação do Resend, não falhamos a requisição, apenas avisamos
         if (isValidationError) {
           console.warn(`[DEBUG] Resend em modo Sandbox ou Erro de Validação: E-mail não enviado para ${email}.`);
-          return res.json({
-            success: true,
+          return res.json({ 
+            success: true, 
             message: "Aviso do Resend: O e-mail não pôde ser enviado (provavelmente devido ao modo Sandbox ou e-mail inválido).",
             debugLink: recoveryLink,
             isSandbox: true
@@ -140,8 +124,8 @@ async function startServer() {
       }
 
       console.log(`[DEBUG] E-mail enviado com sucesso! ID: ${emailData?.id}`);
-      res.json({
-        success: true,
+      res.json({ 
+        success: true, 
         debugLink: recoveryLink
       });
     } catch (error: any) {
@@ -165,15 +149,15 @@ async function startServer() {
 
       if (error) {
         console.error(`[DEBUG] Erro no Resend (send-email):`, error);
-        const isValidationError = (error as any).name === 'validation_error' ||
-          (error as any).name === 'invalid_parameter' ||
-          error.message?.includes('testing emails');
-
+        const isValidationError = (error as any).name === 'validation_error' || 
+                                 (error as any).name === 'invalid_parameter' ||
+                                 error.message?.includes('testing emails');
+        
         if (isValidationError) {
-          return res.json({
-            success: true,
+          return res.json({ 
+            success: true, 
             message: "Aviso do Resend: E-mail não enviado (Sandbox ou Validação).",
-            isSandbox: true
+            isSandbox: true 
           });
         }
         return res.status(400).json({ error });

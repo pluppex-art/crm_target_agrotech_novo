@@ -20,7 +20,6 @@ export interface Lead {
   status: LeadStatus;
   subStatus?: LeadSubStatus;
   cnpj?: string;
-  cpf?: string;
   city?: string;
   discount?: string;
   responsible?: string;

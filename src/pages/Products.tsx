@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Package, Plus, Edit3, Trash2, MoreHorizontal, Loader2 } from 'lucide-react';
 import { useProductStore } from '../store/useProductStore';
-import { UnifiedTurmaProductForm } from '../components/forms/UnifiedTurmaProductForm';
+import { NewProductModal } from '../components/products/NewProductModal';
 import { Product } from '../services/productService';
 
 export function Products() {
@@ -95,11 +95,10 @@ export function Products() {
         </div>
       )}
 
-      <UnifiedTurmaProductForm 
+      <NewProductModal 
         isOpen={isModalOpen} 
         onClose={handleCloseModal} 
-        initialData={editingProduct}
-        mode="product"
+        product={editingProduct}
       />
     </div>
   );

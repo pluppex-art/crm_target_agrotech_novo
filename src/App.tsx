@@ -17,12 +17,10 @@ import { AIChat } from './pages/AIChat';
 import { Contracts } from './pages/Contracts';
 import { Products } from './pages/Products';
 import { Marketing } from './pages/Marketing';
-import { Turmas } from './pages/Turmas';
 import { Login } from './pages/Login';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { ResetPassword } from './pages/ResetPassword';
 import { useAuthStore } from './store/useAuthStore';
-import { isSupabaseConfigured } from './lib/supabase';
 import { Loader2 } from 'lucide-react';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -45,30 +43,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   const { initialize } = useAuthStore();
-  useEffect(() => {
-    if (isSupabaseConfigured) {
-      initialize();
-    }
-  }, [initialize]);
 
-  if (!isSupabaseConfigured) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="p-8 bg-white rounded-lg shadow-md">
-          <h1 className="text-2xl font-bold mb-4">Configuração do Supabase Ausente</h1>
-          <p className="text-slate-600 mb-4">
-            O Supabase não está configurado. Verifique o arquivo .env e as variáveis de ambiente.
-          </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors"
-          >
-            Recarregar
-          </button>
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    initialize();
+  }, [initialize]);
 
   return (
     <BrowserRouter>
@@ -92,7 +70,6 @@ export default function App() {
           <Route path="/products" element={<Products />} />
           <Route path="/marketing" element={<Marketing />} />
           <Route path="/tasks" element={<Tasks />} />
-          <Route path="/turmas" element={<Turmas />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/settings/permissions" element={<Permissions />} />
           <Route path="/settings/profile" element={<Profile />} />
