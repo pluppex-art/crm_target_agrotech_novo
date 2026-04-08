@@ -1,14 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  MoreHorizontal, 
-  Plus, 
-  Star, 
+import {
+  MoreHorizontal,
+  Plus,
+  Star,
   Trash2,
-  Eye, 
-  Search, 
-  Filter, 
+  Search,
+  Filter,
   Download,
   ChevronDown,
   User,
@@ -16,13 +15,25 @@ import {
   X,
   Phone,
   Edit2,
-  CheckSquare
+  CheckSquare,
+  Bell,
+  AlertTriangle,
+  GraduationCap,
 } from 'lucide-react';
 import { useLeadStore } from '../store/useLeadStore';
+import { useTurmaStore } from '../store/useTurmaStore';
+import { useAuthStore } from '../store/useAuthStore';
 import { Lead, LeadStatus, LeadSubStatus } from '../types/leads';
 import { LeadDetailsModal } from '../components/leads/LeadDetailsModal';
 import { NewLeadModal } from '../components/leads/NewLeadModal';
 import { cn, getLeadEffectiveValue } from '../lib/utils';
+import {
+  checkLeadInactivity,
+  fireAlerts,
+  requestNotificationPermission,
+  getElapsedHours,
+  InactivityAlert,
+} from '../services/alertService';
 
 const COLUMNS: { id: LeadStatus; title: string; color: string }[] = [
   { id: 'new', title: 'Em aberto', color: 'bg-blue-500' },
@@ -31,17 +42,195 @@ const COLUMNS: { id: LeadStatus; title: string; color: string }[] = [
   { id: 'closed', title: 'Fechado', color: 'bg-emerald-600' },
 ];
 
+// ── Enroll-in-turma modal ────────────────────────────────────────────────────
+interface EnrollModalProps {
+  lead: Lead;
+  onConfirm: (turmaId: string) => void;
+  onSkip: () => void;
+}
+
+function EnrollInTurmaModal({ lead, onConfirm, onSkip }: EnrollModalProps) {
+  const { turmas, fetchTurmas } = useTurmaStore();
+
+  useEffect(() => { fetchTurmas(); }, [fetchTurmas]);
+
+  const matchingTurmas = turmas.filter(
+    (t) => t.product.toLowerCase() === lead.product.toLowerCase() && t.status !== 'concluida' && t.status !== 'cancelada'
+  );
+  const otherTurmas = turmas.filter(
+    (t) => !matchingTurmas.some((m) => m.id === t.id) && t.status !== 'concluida' && t.status !== 'cancelada'
+  );
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-[2px] p-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
+            <GraduationCap size={20} className="text-emerald-600" />
+          </div>
+          <div>
+            <h3 className="font-bold text-slate-800">Matricular em Turma</h3>
+            <p className="text-xs text-slate-500">{lead.name} foi fechado — selecione a turma</p>
+          </div>
+        </div>
+
+        {matchingTurmas.length > 0 && (
+          <div>
+            <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider mb-2">
+              Turmas com o produto "{lead.product}"
+            </p>
+            <div className="space-y-2">
+              {matchingTurmas.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => onConfirm(t.id)}
+                  className="w-full text-left px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-xl hover:bg-emerald-100 transition-colors"
+                >
+                  <p className="font-bold text-slate-800 text-sm">{t.name}</p>
+                  <p className="text-xs text-slate-500">{t.date ? new Date(t.date + 'T00:00:00').toLocaleDateString('pt-BR') : 'Sem data'} · {t.location || 'Sem local'}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {otherTurmas.length > 0 && (
+          <div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Outras turmas</p>
+            <div className="space-y-2 max-h-40 overflow-y-auto">
+              {otherTurmas.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => onConfirm(t.id)}
+                  className="w-full text-left px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors"
+                >
+                  <p className="font-bold text-slate-700 text-sm">{t.name}</p>
+                  <p className="text-xs text-slate-400">{t.product} · {t.date ? new Date(t.date + 'T00:00:00').toLocaleDateString('pt-BR') : 'Sem data'}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {matchingTurmas.length === 0 && otherTurmas.length === 0 && (
+          <p className="text-sm text-slate-400 text-center py-4">Nenhuma turma ativa disponível.</p>
+        )}
+
+        <div className="flex justify-end gap-3 pt-2">
+          <button onClick={onSkip} className="px-4 py-2 text-sm font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors">
+            Pular
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+// ── Inactivity alert banner ──────────────────────────────────────────────────
+interface AlertBannerProps {
+  alerts: InactivityAlert[];
+  onDismiss: (leadId: string) => void;
+}
+
+function AlertBanner({ alerts, onDismiss }: AlertBannerProps) {
+  if (alerts.length === 0) return null;
+  return (
+    <div className="space-y-2">
+      {alerts.map(({ lead, hoursElapsed, type }) => (
+        <motion.div
+          key={`alert-${lead.id}-${type}`}
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          className={cn(
+            "flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-medium shadow-sm",
+            hoursElapsed >= 18
+              ? "bg-red-50 border-red-200 text-red-700"
+              : "bg-amber-50 border-amber-200 text-amber-700"
+          )}
+        >
+          <AlertTriangle size={16} className="shrink-0" />
+          <span className="flex-1">
+            <strong>{lead.name}</strong> está sem contato há <strong>{hoursElapsed}h</strong>.
+            Responsável: {lead.responsible || 'Não definido'} · {lead.phone}
+          </span>
+          <button onClick={() => onDismiss(lead.id)} className="p-1 hover:bg-white/50 rounded-lg transition-colors">
+            <X size={14} />
+          </button>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
+// ── Transfer confirmation banner ─────────────────────────────────────────────
+interface TransferBannerProps {
+  leads: Lead[];
+  allLeads: Lead[];
+  onTransfer: (leadId: string, newResponsible: string) => void;
+  onDismiss: (leadId: string) => void;
+}
+
+function TransferBanner({ leads, allLeads, onTransfer, onDismiss }: TransferBannerProps) {
+  if (leads.length === 0) return null;
+  const responsibles = Array.from(new Set(allLeads.map((l) => l.responsible).filter(Boolean))) as string[];
+
+  return (
+    <div className="space-y-2">
+      {leads.map((lead) => {
+        const others = responsibles.filter((r) => r !== lead.responsible);
+        return (
+          <motion.div
+            key={`transfer-${lead.id}`}
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="flex items-center gap-3 px-4 py-3 rounded-xl border bg-red-50 border-red-200 text-red-700 text-sm font-medium shadow-sm"
+          >
+            <AlertTriangle size={16} className="shrink-0" />
+            <span className="flex-1">
+              <strong>{lead.name}</strong> está sem contato há mais de 48h. Transferir para:
+            </span>
+            <select
+              onChange={(e) => { if (e.target.value) onTransfer(lead.id, e.target.value); }}
+              className="text-xs border border-red-200 rounded-lg px-2 py-1 bg-white text-red-700 cursor-pointer"
+              defaultValue=""
+            >
+              <option value="">Selecionar...</option>
+              {others.map((r) => <option key={r} value={r}>{r}</option>)}
+              <option value="__dismiss__">Dispensar aviso</option>
+            </select>
+            <button onClick={() => onDismiss(lead.id)} className="p-1 hover:bg-white/50 rounded-lg transition-colors">
+              <X size={14} />
+            </button>
+          </motion.div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 export const Pipeline: React.FC = () => {
-  const { 
-    leads, 
-    updateLeadStatus, 
-    updateLeadSubStatus, 
-    selectedLead, 
-    setSelectedLead, 
-    fetchLeads, 
+  const {
+    leads,
+    updateLeadStatus,
+    updateLeadSubStatus,
+    updateLead,
+    selectedLead,
+    setSelectedLead,
+    fetchLeads,
     isLoading,
-    deleteLead
+    deleteLead,
   } = useLeadStore();
+
+  const { addAttendee, fetchTurmas } = useTurmaStore();
+  const { user } = useAuthStore();
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedResponsible, setSelectedResponsible] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<LeadStatus | 'all'>('all');
@@ -51,9 +240,20 @@ export const Pipeline: React.FC = () => {
   const [responsibleSearch, setResponsibleSearch] = useState('');
   const responsibleDropdownRef = useRef<HTMLDivElement>(null);
 
+  // Inactivity alert state
+  const [activeAlerts, setActiveAlerts] = useState<InactivityAlert[]>([]);
+  const [toTransfer, setToTransfer] = useState<Lead[]>([]);
+  const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
+  const [dismissedTransfers, setDismissedTransfers] = useState<Set<string>>(new Set());
+
+  // Enroll-in-turma modal state
+  const [enrollLead, setEnrollLead] = useState<Lead | null>(null);
+
   useEffect(() => {
     fetchLeads();
-  }, [fetchLeads]);
+    fetchTurmas();
+    requestNotificationPermission();
+  }, [fetchLeads, fetchTurmas]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -65,38 +265,129 @@ export const Pipeline: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const onDragEnd = (result: DropResult) => {
-// ... (rest of the component)
-    const { destination, source, draggableId } = result;
+  // Inactivity check — runs every 60 seconds
+  const runInactivityCheck = useCallback(() => {
+    if (leads.length === 0) return;
+    const { alerts, toTransfer: transfer } = checkLeadInactivity(leads);
 
+    const visibleAlerts = alerts.filter((a) => !dismissedAlerts.has(a.lead.id + a.type));
+    const visibleTransfers = transfer.filter((l) => !dismissedTransfers.has(l.id));
+
+    if (visibleAlerts.length > 0) {
+      setActiveAlerts(visibleAlerts);
+      const userEmail = user?.email || '';
+      fireAlerts(visibleAlerts, userEmail);
+    }
+    if (visibleTransfers.length > 0) {
+      setToTransfer(visibleTransfers);
+    }
+  }, [leads, dismissedAlerts, dismissedTransfers, user]);
+
+  useEffect(() => {
+    runInactivityCheck();
+    const interval = setInterval(runInactivityCheck, 60_000);
+    return () => clearInterval(interval);
+  }, [runInactivityCheck]);
+
+  const onDragEnd = async (result: DropResult) => {
+    const { destination, source, draggableId } = result;
     if (!destination) return;
     if (destination.droppableId === source.droppableId && destination.index === source.index) return;
 
-    updateLeadStatus(draggableId, destination.droppableId as LeadStatus);
+    const newStatus = destination.droppableId as LeadStatus;
+    await updateLeadStatus(draggableId, newStatus);
+
+    // Update last_contact_at when lead is moved
+    await updateLead(draggableId, { last_contact_at: new Date().toISOString() });
+
+    // When moved to 'closed', offer to enroll in turma
+    if (newStatus === 'closed') {
+      const movedLead = leads.find((l) => l.id === draggableId);
+      if (movedLead) {
+        setEnrollLead(movedLead);
+      }
+    }
+  };
+
+  const handleEnrollConfirm = async (turmaId: string) => {
+    if (!enrollLead) return;
+    await addAttendee(turmaId, {
+      lead_id: enrollLead.id,
+      name: enrollLead.name,
+      photo: enrollLead.photo,
+      responsible: enrollLead.responsible || '',
+      status: 'matriculado',
+      vendas: getLeadEffectiveValue(enrollLead),
+    });
+    setEnrollLead(null);
+  };
+
+  const handleTransfer = async (leadId: string, newResponsible: string) => {
+    if (newResponsible === '__dismiss__') {
+      setDismissedTransfers((prev) => new Set([...prev, leadId]));
+      setToTransfer((prev) => prev.filter((l) => l.id !== leadId));
+      return;
+    }
+    await updateLead(leadId, {
+      responsible: newResponsible,
+      last_contact_at: new Date().toISOString(),
+    });
+    setToTransfer((prev) => prev.filter((l) => l.id !== leadId));
+    setDismissedTransfers((prev) => new Set([...prev, leadId]));
+    fetchLeads();
+  };
+
+  const dismissAlert = (leadId: string) => {
+    setActiveAlerts((prev) => prev.filter((a) => a.lead.id !== leadId));
+    setDismissedAlerts((prev) => new Set([...prev, leadId]));
+  };
+
+  const dismissTransfer = (leadId: string) => {
+    setToTransfer((prev) => prev.filter((l) => l.id !== leadId));
+    setDismissedTransfers((prev) => new Set([...prev, leadId]));
   };
 
   const responsibles = Array.from(new Set(leads.map(l => l.responsible).filter(Boolean))) as string[];
-  const filteredResponsibles = responsibles.filter(name => 
+  const filteredResponsibles = responsibles.filter(name =>
     name.toLowerCase().includes(responsibleSearch.toLowerCase())
   );
 
   const filteredLeads = leads.filter(lead => {
-    const matchesSearch = 
+    const matchesSearch =
       lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lead.product.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (lead.responsible && lead.responsible.toLowerCase().includes(searchTerm.toLowerCase()));
-    
     const matchesResponsible = selectedResponsible === 'all' || lead.responsible === selectedResponsible;
-
     return matchesSearch && matchesResponsible;
   });
 
-  const visibleColumns = selectedStatus === 'all' 
-    ? COLUMNS 
+  const visibleColumns = selectedStatus === 'all'
+    ? COLUMNS
     : COLUMNS.filter(col => col.id === selectedStatus);
 
   return (
-    <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
+    <div className="p-6 space-y-4 bg-gray-50 min-h-screen">
+      {/* Inactivity Alert Banners */}
+      <AnimatePresence>
+        {(activeAlerts.length > 0 || toTransfer.length > 0) && (
+          <motion.div
+            key="alert-section"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="space-y-2 overflow-hidden"
+          >
+            <AlertBanner alerts={activeAlerts} onDismiss={dismissAlert} />
+            <TransferBanner
+              leads={toTransfer}
+              allLeads={leads}
+              onTransfer={handleTransfer}
+              onDismiss={dismissTransfer}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header Actions */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -105,12 +396,17 @@ export const Pipeline: React.FC = () => {
             <span className="text-sm font-normal text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full">
               {leads.length} leads
             </span>
+            {activeAlerts.length > 0 && (
+              <span className="flex items-center gap-1 text-xs font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full">
+                <Bell size={11} /> {activeAlerts.length} alerta{activeAlerts.length > 1 ? 's' : ''}
+              </span>
+            )}
           </h1>
           <p className="text-gray-500 text-sm">Gerencie seu fluxo de vendas e acompanhe o progresso dos leads.</p>
         </div>
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full md:w-auto">
           {isLoading && <Loader2 className="w-5 h-5 text-emerald-600 animate-spin hidden sm:block" />}
-          
+
           {/* Status Filter */}
           <div className="relative">
             <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -157,10 +453,7 @@ export const Pipeline: React.FC = () => {
               </button>
               {selectedResponsible !== 'all' && (
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedResponsible('all');
-                  }}
+                  onClick={(e) => { e.stopPropagation(); setSelectedResponsible('all'); }}
                   className="absolute right-10 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600 transition-colors"
                   title="Limpar filtro"
                 >
@@ -192,11 +485,7 @@ export const Pipeline: React.FC = () => {
                   </div>
                   <div className="max-h-60 overflow-y-auto py-1">
                     <button
-                      onClick={() => {
-                        setSelectedResponsible('all');
-                        setIsResponsibleDropdownOpen(false);
-                        setResponsibleSearch('');
-                      }}
+                      onClick={() => { setSelectedResponsible('all'); setIsResponsibleDropdownOpen(false); setResponsibleSearch(''); }}
                       className={cn(
                         "w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors",
                         selectedResponsible === 'all' ? "text-emerald-600 font-bold bg-emerald-50/50" : "text-gray-700"
@@ -207,11 +496,7 @@ export const Pipeline: React.FC = () => {
                     {filteredResponsibles.map(name => (
                       <button
                         key={name}
-                        onClick={() => {
-                          setSelectedResponsible(name);
-                          setIsResponsibleDropdownOpen(false);
-                          setResponsibleSearch('');
-                        }}
+                        onClick={() => { setSelectedResponsible(name); setIsResponsibleDropdownOpen(false); setResponsibleSearch(''); }}
                         className={cn(
                           "w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors",
                           selectedResponsible === name ? "text-emerald-600 font-bold bg-emerald-50/50" : "text-gray-700"
@@ -254,11 +539,8 @@ export const Pipeline: React.FC = () => {
             <button className="p-2 bg-white border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors">
               <Download size={20} />
             </button>
-            <button 
-              onClick={() => {
-                setInitialStatusForNewLead('new');
-                setIsNewLeadModalOpen(true);
-              }}
+            <button
+              onClick={() => { setInitialStatusForNewLead('new'); setIsNewLeadModalOpen(true); }}
               className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 font-semibold"
             >
               <Plus size={20} />
@@ -272,7 +554,7 @@ export const Pipeline: React.FC = () => {
       <DragDropContext onDragEnd={onDragEnd}>
         <div className={cn(
           "flex lg:grid gap-6 overflow-x-auto pb-4 -mx-6 px-6 lg:mx-0 lg:px-0 scrollbar-hide",
-          visibleColumns.length === 1 ? "lg:grid-cols-1 max-w-md mx-auto" : 
+          visibleColumns.length === 1 ? "lg:grid-cols-1 max-w-md mx-auto" :
           visibleColumns.length === 2 ? "lg:grid-cols-2" :
           visibleColumns.length === 3 ? "lg:grid-cols-3" :
           "lg:grid-cols-4"
@@ -291,11 +573,8 @@ export const Pipeline: React.FC = () => {
                   <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
                     {filteredLeads.filter(l => l.status === column.id).length}
                   </span>
-                  <button 
-                    onClick={() => {
-                      setInitialStatusForNewLead(column.id);
-                      setIsNewLeadModalOpen(true);
-                    }}
+                  <button
+                    onClick={() => { setInitialStatusForNewLead(column.id); setIsNewLeadModalOpen(true); }}
                     className="p-1.5 bg-white border border-gray-200 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-all shadow-sm"
                     title={`Adicionar lead em ${column.title}`}
                   >
@@ -320,124 +599,130 @@ export const Pipeline: React.FC = () => {
                     {filteredLeads
                       .filter((lead) => lead.status === column.id)
                       .map((lead, index) => {
+                        const elapsedHours = getElapsedHours(lead);
+                        const isWarning = elapsedHours >= 12 && elapsedHours < 18 && lead.status !== 'closed';
+                        const isDanger = elapsedHours >= 18 && lead.status !== 'closed';
                         const DraggableAny = Draggable as any;
                         return (
                           <DraggableAny key={lead.id} draggableId={lead.id} index={index}>
                             {(provided: any, snapshot: any) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                              onDoubleClick={() => setSelectedLead(lead)}
-                              className={cn(
-                                "bg-white p-4 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md hover:border-emerald-200 transition-all group relative",
-                                snapshot.isDragging ? "shadow-xl border-emerald-500 rotate-2" : ""
-                              )}
-                            >
-                              {/* Card Header */}
-                              <div className="flex items-start justify-between mb-4">
-                                <div className="flex items-center gap-3">
-                                  <div className="relative">
-                                    <img
-                                      src={lead.photo}
-                                      alt={lead.name}
-                                      className="w-12 h-12 rounded-full object-cover border-2 border-slate-50 shadow-sm"
-                                      referrerPolicy="no-referrer"
-                                    />
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                {...provided.dragHandleProps}
+                                onDoubleClick={() => setSelectedLead(lead)}
+                                className={cn(
+                                  "bg-white p-4 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition-all group relative",
+                                  snapshot.isDragging ? "shadow-xl border-emerald-500 rotate-2" : "",
+                                  isDanger ? "border-red-200 hover:border-red-300" : isWarning ? "border-amber-200 hover:border-amber-300" : "hover:border-emerald-200"
+                                )}
+                              >
+                                {/* Inactivity badge */}
+                                {(isWarning || isDanger) && (
+                                  <div className={cn(
+                                    "absolute top-2 right-2 flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full",
+                                    isDanger ? "bg-red-100 text-red-600" : "bg-amber-100 text-amber-600"
+                                  )}>
+                                    <AlertTriangle size={9} />
+                                    {elapsedHours}h
                                   </div>
-                                  <div className="space-y-0.5">
-                                    <h4 className="font-bold text-slate-800 text-sm leading-tight">{lead.name}</h4>
-                                    <div className="flex gap-0.5">
-                                      {[...Array(5)].map((_, i) => (
-                                        <Star
-                                          key={i}
-                                          size={10}
-                                          className={cn(
-                                            i < lead.stars ? "fill-yellow-400 text-yellow-400" : "text-slate-200"
-                                          )}
-                                        />
-                                      ))}
+                                )}
+
+                                {/* Card Header */}
+                                <div className="flex items-start justify-between mb-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className="relative">
+                                      <img
+                                        src={lead.photo}
+                                        alt={lead.name}
+                                        className="w-12 h-12 rounded-full object-cover border-2 border-slate-50 shadow-sm"
+                                        referrerPolicy="no-referrer"
+                                      />
+                                    </div>
+                                    <div className="space-y-0.5">
+                                      <h4 className="font-bold text-slate-800 text-sm leading-tight">{lead.name}</h4>
+                                      <div className="flex gap-0.5">
+                                        {[...Array(5)].map((_, i) => (
+                                          <Star
+                                            key={i}
+                                            size={10}
+                                            className={cn(
+                                              i < lead.stars ? "fill-yellow-400 text-yellow-400" : "text-slate-200"
+                                            )}
+                                          />
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <button className="p-1 text-slate-300 hover:text-slate-500 transition-colors">
+                                    <MoreHorizontal size={18} />
+                                  </button>
+                                </div>
+
+                                {/* Card Body */}
+                                <div className="space-y-2.5">
+                                  <div className="flex items-center gap-2 text-slate-500">
+                                    <Phone size={14} className="text-emerald-500" />
+                                    <span className="text-xs font-medium">{lead.phone}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-slate-500">
+                                    <Plus size={14} className="text-slate-300" />
+                                    <span className="text-xs font-medium">{lead.product}</span>
+                                  </div>
+
+                                  <div className="flex items-center justify-between pt-2">
+                                    <span className="text-sm font-bold text-slate-800">
+                                      R$ {getLeadEffectiveValue(lead).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                                    </span>
+
+                                    <div className="flex items-center gap-1.5">
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); deleteLead(lead.id); }}
+                                        className="p-1.5 bg-slate-50 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all border border-slate-100"
+                                        title="Excluir lead"
+                                      >
+                                        <Trash2 size={14} />
+                                      </button>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); setSelectedLead(lead); }}
+                                        className="p-1.5 bg-slate-50 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all border border-slate-100"
+                                      >
+                                        <Edit2 size={14} />
+                                      </button>
+                                      <button className="p-1.5 bg-slate-50 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all border border-slate-100">
+                                        <CheckSquare size={14} />
+                                      </button>
                                     </div>
                                   </div>
                                 </div>
-                                <button className="p-1 text-slate-300 hover:text-slate-500 transition-colors">
-                                  <MoreHorizontal size={18} />
-                                </button>
-                              </div>
 
-                              {/* Card Body */}
-                              <div className="space-y-2.5">
-                                <div className="flex items-center gap-2 text-slate-500">
-                                  <Phone size={14} className="text-emerald-500" />
-                                  <span className="text-xs font-medium">{lead.phone}</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-slate-500">
-                                  <Plus size={14} className="text-slate-300" />
-                                  <span className="text-xs font-medium">{lead.product}</span>
-                                </div>
-                                
-                                <div className="flex items-center justify-between pt-2">
-                                  <span className="text-sm font-bold text-slate-800">
-                                    R$ {getLeadEffectiveValue(lead).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
-                                  </span>
-                                  
-                                <div className="flex items-center gap-1.5">
-                                  <button 
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      deleteLead(lead.id);
-                                    }}
-                                    className="p-1.5 bg-slate-50 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all border border-slate-100"
-                                    title="Excluir lead"
-                                  >
-                                    <Trash2 size={14} />
-                                  </button>
-                                  <button 
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedLead(lead);
-                                    }}
-                                    className="p-1.5 bg-slate-50 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all border border-slate-100"
-                                  >
-                                    <Edit2 size={14} />
-                                  </button>
-                                  <button className="p-1.5 bg-slate-50 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all border border-slate-100">
-                                    <CheckSquare size={14} />
-                                  </button>
-                                </div>
-                                </div>
+                                {lead.status === 'qualified' && (
+                                  <div className="mt-4 pt-3 border-t border-slate-50 flex flex-wrap gap-2">
+                                    {[
+                                      { id: 'qualified', label: 'Qualificado', color: 'bg-emerald-50 text-emerald-600 border-emerald-100' },
+                                      { id: 'warming', label: 'Aquecimento', color: 'bg-amber-50 text-amber-600 border-amber-100' },
+                                      { id: 'disqualified', label: 'Desqualificado', color: 'bg-red-50 text-red-600 border-red-100' }
+                                    ].map((sub) => (
+                                      <button
+                                        key={sub.id}
+                                        onClick={(e) => { e.stopPropagation(); updateLeadSubStatus(lead.id, sub.id as LeadSubStatus); }}
+                                        className={cn(
+                                          "text-[10px] font-bold px-2 py-1 rounded-full border transition-all",
+                                          lead.subStatus === sub.id
+                                            ? sub.color
+                                            : "bg-white text-slate-400 border-slate-100 hover:border-slate-200"
+                                        )}
+                                      >
+                                        {sub.label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
-
-                              {lead.status === 'qualified' && (
-                                <div className="mt-4 pt-3 border-t border-slate-50 flex flex-wrap gap-2">
-                                  {[
-                                    { id: 'qualified', label: 'Qualificado', color: 'bg-emerald-50 text-emerald-600 border-emerald-100' },
-                                    { id: 'warming', label: 'Aquecimento', color: 'bg-amber-50 text-amber-600 border-amber-100' },
-                                    { id: 'disqualified', label: 'Desqualificado', color: 'bg-red-50 text-red-600 border-red-100' }
-                                  ].map((sub) => (
-                                    <button
-                                      key={sub.id}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        updateLeadSubStatus(lead.id, sub.id as LeadSubStatus);
-                                      }}
-                                      className={cn(
-                                        "text-[10px] font-bold px-2 py-1 rounded-full border transition-all",
-                                        lead.subStatus === sub.id 
-                                          ? sub.color 
-                                          : "bg-white text-slate-400 border-slate-100 hover:border-slate-200"
-                                      )}
-                                    >
-                                      {sub.label}
-                                    </button>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </DraggableAny>
-                      );
-                    })}
+                            )}
+                          </DraggableAny>
+                        );
+                      })}
                     {provided.placeholder}
                   </div>
                 )}
@@ -462,6 +747,17 @@ export const Pipeline: React.FC = () => {
         onClose={() => setIsNewLeadModalOpen(false)}
         initialStatus={initialStatusForNewLead}
       />
+
+      {/* Enroll in Turma Modal */}
+      <AnimatePresence>
+        {enrollLead && (
+          <EnrollInTurmaModal
+            lead={enrollLead}
+            onConfirm={handleEnrollConfirm}
+            onSkip={() => setEnrollLead(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

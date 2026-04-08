@@ -1,9 +1,10 @@
 import { getSupabaseClient } from '../lib/supabase';
 
-export type AttendanceStatus = 'confirmado' | 'indeciso' | 'cancelado';
+export type AttendanceStatus = 'matriculado' | 'confirmado' | 'indeciso' | 'cancelado';
 
 export interface TurmaAttendee {
   id: string;
+  lead_id?: string;
   name: string;
   photo: string;
   responsible: string;
@@ -43,6 +44,7 @@ export const turmaService = {
       product: t.product_name ?? t.product ?? '',
       attendees: (t.turma_attendees || []).map((a: any) => ({
         id: a.id,
+        lead_id: a.lead_id ?? undefined,
         name: a.name ?? '',
         photo: a.photo ?? `https://i.pravatar.cc/150?u=${a.id}`,
         responsible: a.responsible ?? '',
@@ -110,5 +112,74 @@ export const turmaService = {
 
     if (error) { console.error('Error updating attendee:', error.message, error.details); return false; }
     return true;
+  },
+
+  async addAttendee(turmaId: string, attendee: Omit<TurmaAttendee, 'id'>): Promise<TurmaAttendee | null> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return null;
+
+    const payload = {
+      turma_id: turmaId,
+      lead_id: attendee.lead_id ?? null,
+      name: attendee.name,
+      photo: attendee.photo,
+      responsible: attendee.responsible,
+      status: attendee.status,
+      vendas: attendee.vendas ?? 0,
+    };
+
+    const { data, error } = await supabase
+      .from('turma_attendees')
+      .insert([payload])
+      .select()
+      .single();
+
+    if (error) { console.error('Error adding attendee:', error.message, error.details); return null; }
+
+    return {
+      id: data.id,
+      lead_id: data.lead_id ?? undefined,
+      name: data.name ?? '',
+      photo: data.photo ?? `https://i.pravatar.cc/150?u=${data.id}`,
+      responsible: data.responsible ?? '',
+      status: data.status as AttendanceStatus,
+      vendas: Number(data.vendas) || 0,
+    };
+  },
+
+  async getTurmasByLeadId(leadId: string): Promise<{ turma: Turma; attendee: TurmaAttendee }[]> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return [];
+
+    const { data, error } = await supabase
+      .from('turma_attendees')
+      .select('*, turmas(*)')
+      .eq('lead_id', leadId);
+
+    if (error) { console.error('Error fetching turmas by lead:', error.message); return []; }
+
+    return (data || []).map((row: any) => ({
+      turma: {
+        id: row.turmas.id,
+        name: row.turmas.name,
+        professor_name: row.turmas.professor_name,
+        professor_email: row.turmas.professor_email,
+        date: row.turmas.date,
+        time: row.turmas.time,
+        product: row.turmas.product_name ?? row.turmas.product ?? '',
+        location: row.turmas.location,
+        status: row.turmas.status,
+        attendees: [],
+      },
+      attendee: {
+        id: row.id,
+        lead_id: row.lead_id ?? undefined,
+        name: row.name ?? '',
+        photo: row.photo ?? '',
+        responsible: row.responsible ?? '',
+        status: row.status as AttendanceStatus,
+        vendas: Number(row.vendas) || 0,
+      },
+    }));
   },
 };

@@ -12,6 +12,7 @@ interface TurmaState {
   updateTurma: (turmaId: string, turma: Partial<Omit<Turma, 'id' | 'attendees'>>) => Promise<void>;
   removeTurma: (turmaId: string) => Promise<void>;
   updateAttendeeStatus: (turmaId: string, attendeeId: string, status: AttendanceStatus) => Promise<void>;
+  addAttendee: (turmaId: string, attendee: Omit<TurmaAttendee, 'id'>) => Promise<TurmaAttendee | null>;
 }
 
 export const useTurmaStore = create<TurmaState>((set, get) => ({
@@ -72,5 +73,19 @@ export const useTurmaStore = create<TurmaState>((set, get) => ({
           : t
       ),
     }));
+  },
+
+  addAttendee: async (turmaId, attendeeData) => {
+    const newAttendee = await turmaService.addAttendee(turmaId, attendeeData);
+    if (newAttendee) {
+      set((state) => ({
+        turmas: state.turmas.map((t) =>
+          t.id === turmaId
+            ? { ...t, attendees: [...t.attendees, newAttendee] }
+            : t
+        ),
+      }));
+    }
+    return newAttendee;
   },
 }));

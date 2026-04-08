@@ -24,5 +24,6 @@ export interface Lead {
   discount?: string;
   responsible?: string;
   created_at: string;
+  last_contact_at?: string;
   history?: LeadHistory[];
 }

@@ -9,7 +9,6 @@ import {
   MapPin,
   Package,
   Users,
-  ChevronRight,
   DollarSign,
   CheckCircle2,
   HelpCircle,
@@ -17,18 +16,23 @@ import {
   Trash2,
   Edit2,
   Loader2,
+  BookOpen,
 } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { useLeadStore } from '../store/useLeadStore';
 import { useTurmaStore, Turma, TurmaAttendee, AttendanceStatus } from '../store/useTurmaStore';
 import { UnifiedTurmaProductForm } from '../components/forms/UnifiedTurmaProductForm';
+import { LeadDetailsModal } from '../components/leads/LeadDetailsModal';
+import { Lead } from '../types/leads';
+import { getSupabaseClient } from '../lib/supabase';
 import { cn } from '../lib/utils';
 import { useEffect } from 'react';
 
+// ── Column definitions — order: matriculado → cancelado → indeciso → confirmado ──
 const STATUS_COLUMNS: { id: AttendanceStatus; label: string; color: string; bg: string; icon: React.ReactNode }[] = [
-  { id: 'confirmado', label: 'Confirmado', color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200', icon: <CheckCircle2 size={14} className="text-emerald-600" /> },
-  { id: 'indeciso', label: 'Indeciso', color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200', icon: <HelpCircle size={14} className="text-amber-600" /> },
+  { id: 'matriculado', label: 'Matriculado', color: 'text-blue-600', bg: 'bg-blue-50 border-blue-200', icon: <BookOpen size={14} className="text-blue-600" /> },
   { id: 'cancelado', label: 'Cancelado', color: 'text-red-500', bg: 'bg-red-50 border-red-200', icon: <XCircle size={14} className="text-red-500" /> },
+  { id: 'indeciso', label: 'Indeciso', color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200', icon: <HelpCircle size={14} className="text-amber-600" /> },
+  { id: 'confirmado', label: 'Confirmado', color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200', icon: <CheckCircle2 size={14} className="text-emerald-600" /> },
 ];
 
 const TURMA_STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -38,12 +42,25 @@ const TURMA_STATUS_LABELS: Record<string, { label: string; color: string }> = {
   cancelada: { label: 'Cancelada', color: 'bg-red-100 text-red-600' },
 };
 
+// ── Fetch a full Lead from Supabase by id ────────────────────────────────────
+async function fetchLeadById(leadId: string): Promise<Lead | null> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+  const { data, error } = await supabase.from('leads').select('*').eq('id', leadId).single();
+  if (error) { console.error('Error fetching lead:', error); return null; }
+  return data as Lead;
+}
+
 export function Turmas() {
   const { turmas, fetchTurmas, updateAttendeeStatus, removeTurma, isLoading } = useTurmaStore();
   const [selectedTurma, setSelectedTurma] = useState<Turma | null>(null);
   const [isNewTurmaOpen, setIsNewTurmaOpen] = useState(false);
   const [editingTurma, setEditingTurma] = useState<Turma | null>(null);
-  const [setupRequired, setSetupRequired] = useState(false);
+  const [setupRequired] = useState(false);
+
+  // Attendee detail modal
+  const [selectedAttendeeLead, setSelectedAttendeeLead] = useState<Lead | null>(null);
+  const [loadingAttendeeDetail, setLoadingAttendeeDetail] = useState(false);
 
   useEffect(() => {
     fetchTurmas();
@@ -55,7 +72,6 @@ export function Turmas() {
     if (destination.droppableId === source.droppableId) return;
     if (!selectedTurma) return;
     updateAttendeeStatus(selectedTurma.id, draggableId, destination.droppableId as AttendanceStatus);
-    // refresh selected turma from store
     setSelectedTurma(prev => {
       if (!prev) return null;
       return {
@@ -65,6 +81,14 @@ export function Turmas() {
         ),
       };
     });
+  };
+
+  const handleAttendeeClick = async (attendee: TurmaAttendee) => {
+    if (!attendee.lead_id) return;
+    setLoadingAttendeeDetail(true);
+    const lead = await fetchLeadById(attendee.lead_id);
+    setLoadingAttendeeDetail(false);
+    if (lead) setSelectedAttendeeLead(lead);
   };
 
   const liveSelectedTurma = selectedTurma
@@ -77,13 +101,13 @@ export function Turmas() {
   return (
     <div className="flex flex-col lg:flex-row h-full bg-[#f3f6f9] overflow-hidden relative">
       {/* Left Panel — Turmas Cards */}
-        <div 
-          key="left-panel"
-          className={cn(
-            'flex flex-col transition-all duration-300 h-full overflow-hidden',
-            liveSelectedTurma ? 'lg:w-[420px] lg:min-w-[420px] hidden lg:flex' : 'flex-1'
-          )}
-        >
+      <div
+        key="left-panel"
+        className={cn(
+          'flex flex-col transition-all duration-300 h-full overflow-hidden',
+          liveSelectedTurma ? 'lg:w-[420px] lg:min-w-[420px] hidden lg:flex' : 'flex-1'
+        )}
+      >
         {/* Header */}
         <div className="p-4 sm:p-6 pb-4 bg-white border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -94,10 +118,7 @@ export function Turmas() {
             </div>
           </div>
           <button
-            onClick={() => {
-              setEditingTurma(null);
-              setIsNewTurmaOpen(true);
-            }}
+            onClick={() => { setEditingTurma(null); setIsNewTurmaOpen(true); }}
             className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 font-semibold text-sm"
           >
             <Plus size={18} />
@@ -120,7 +141,7 @@ export function Turmas() {
                 </div>
                 <h3 className="text-lg font-bold text-amber-900 mb-2">Configuração Necessária</h3>
                 <p className="text-sm text-amber-700 max-w-md mb-6">
-                  A tabela de turmas ainda não foi criada no seu banco de dados Supabase. 
+                  A tabela de turmas ainda não foi criada no seu banco de dados Supabase.
                   Para corrigir isso e ativar este módulo, siga as instruções abaixo:
                 </p>
                 <div className="bg-white border border-amber-100 rounded-xl p-4 text-left w-full max-w-lg mb-6 shadow-sm">
@@ -131,7 +152,7 @@ export function Turmas() {
                     <li>Cole o código e clique em <strong>Run</strong>.</li>
                   </ol>
                 </div>
-                <button 
+                <button
                   onClick={() => fetchTurmas()}
                   className="px-6 py-2 bg-amber-600 text-white rounded-xl font-bold text-sm hover:bg-amber-700 transition-all shadow-md"
                 >
@@ -149,7 +170,7 @@ export function Turmas() {
               const confirmados = (turma.attendees || []).filter(a => a.status === 'confirmado').length;
               const st = TURMA_STATUS_LABELS[turma.status] || TURMA_STATUS_LABELS.agendada;
               const isSelected = liveSelectedTurma?.id === turma.id;
-              
+
               return (
                 <div
                   key={turma.id}
@@ -244,8 +265,8 @@ export function Turmas() {
                   <div className="hidden sm:flex items-center gap-1"><MapPin size={11} className="text-emerald-500" />{liveSelectedTurma.location || '--'}</div>
                 </div>
               </div>
-              <button 
-                onClick={() => setSelectedTurma(null)} 
+              <button
+                onClick={() => setSelectedTurma(null)}
                 className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors shadow-sm bg-white shrink-0"
               >
                 <X size={20} />
@@ -253,15 +274,15 @@ export function Turmas() {
             </div>
 
             {/* Stats Row */}
-            <div className="px-4 sm:px-6 py-3 bg-slate-50/50 border-b border-slate-100 grid grid-cols-3 gap-2 sm:gap-4">
+            <div className="px-4 sm:px-6 py-3 bg-slate-50/50 border-b border-slate-100 grid grid-cols-4 gap-2 sm:gap-3">
               {STATUS_COLUMNS.map(col => {
                 const count = (liveSelectedTurma.attendees || []).filter(a => a.status === col.id).length;
                 const total = (liveSelectedTurma.attendees || []).filter(a => a.status === col.id).reduce((s, a) => s + (a.vendas || 0), 0);
                 return (
-                  <div key={col.id} className={cn('rounded-xl p-3 border transition-colors', col.bg)}>
-                    <div className="flex items-center gap-1.5 mb-1">
+                  <div key={col.id} className={cn('rounded-xl p-2.5 border transition-colors', col.bg)}>
+                    <div className="flex items-center gap-1 mb-1">
                       {col.icon}
-                      <span className={cn('text-xs font-bold', col.color)}>{col.label}</span>
+                      <span className={cn('text-[10px] font-bold hidden sm:block', col.color)}>{col.label}</span>
                     </div>
                     <p className="text-xl font-bold text-slate-800">{count}</p>
                     <p className="text-[10px] text-slate-500 mt-0.5">R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}</p>
@@ -275,19 +296,19 @@ export function Turmas() {
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4 px-2">
                 Lista de Presença
               </p>
-              
+
               <DragDropContext onDragEnd={onDragEnd}>
                 <div className="flex lg:flex-row flex-col gap-4 h-full min-h-[300px]">
                   {STATUS_COLUMNS.map(col => {
-                    const attendeesCount = (liveSelectedTurma.attendees || []).filter(a => a.status === col.id).length;
+                    const attendeesInCol = (liveSelectedTurma.attendees || []).filter(a => a.status === col.id);
                     return (
-                      <div key={col.id} className="flex flex-col flex-1 min-w-[200px]">
+                      <div key={col.id} className="flex flex-col flex-1 min-w-[180px]">
                         <div className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl border mb-3 shadow-sm', col.bg)}>
                           {col.icon}
                           <span className={cn('text-xs font-bold', col.color)}>{col.label}</span>
-                          <span className="ml-auto text-xs font-bold text-slate-400">{attendeesCount}</span>
+                          <span className="ml-auto text-xs font-bold text-slate-400">{attendeesInCol.length}</span>
                         </div>
-                        
+
                         <Droppable droppableId={col.id}>
                           {(provided, snapshot) => (
                             <div
@@ -298,24 +319,23 @@ export function Turmas() {
                                 snapshot.isDraggingOver ? 'bg-emerald-50/50 ring-2 ring-emerald-100 ring-inset' : 'bg-slate-50/30'
                               )}
                             >
-                              {(liveSelectedTurma.attendees || [])
-                                .filter(a => a.status === col.id)
-                                .map((att, index) => {
-                                  const DraggableAny = Draggable as any;
-                                  return (
-                                    <DraggableAny key={att.id} draggableId={att.id} index={index}>
-                                      {(prov: any, snap: any) => (
-                                        <AttendeeCard
-                                          attendee={att}
-                                          innerRef={prov.innerRef}
-                                          draggableProps={prov.draggableProps}
-                                          dragHandleProps={prov.dragHandleProps}
-                                          isDragging={snap.isDragging}
-                                        />
-                                      )}
-                                    </DraggableAny>
-                                  );
-                                })}
+                              {attendeesInCol.map((att, index) => {
+                                const DraggableAny = Draggable as any;
+                                return (
+                                  <DraggableAny key={att.id} draggableId={att.id} index={index}>
+                                    {(prov: any, snap: any) => (
+                                      <AttendeeCard
+                                        attendee={att}
+                                        innerRef={prov.innerRef}
+                                        draggableProps={prov.draggableProps}
+                                        dragHandleProps={prov.dragHandleProps}
+                                        isDragging={snap.isDragging}
+                                        onViewDetails={att.lead_id ? () => handleAttendeeClick(att) : undefined}
+                                      />
+                                    )}
+                                  </DraggableAny>
+                                );
+                              })}
                               {provided.placeholder}
                             </div>
                           )}
@@ -336,13 +356,20 @@ export function Turmas() {
                   Total R$ {totalVendasTurma(liveSelectedTurma).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
                 </div>
               </div>
-              
+
               <div className="space-y-2 max-h-[180px] overflow-y-auto custom-scrollbar pr-1">
                 {(liveSelectedTurma.attendees || [])
                   .slice()
                   .sort((a, b) => (b.vendas || 0) - (a.vendas || 0))
                   .map(att => (
-                    <div key={att.id} className="flex items-center gap-3 px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl hover:border-slate-200 transition-colors">
+                    <div
+                      key={att.id}
+                      onClick={() => att.lead_id && handleAttendeeClick(att)}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl hover:border-slate-200 transition-colors",
+                        att.lead_id ? "cursor-pointer hover:bg-emerald-50 hover:border-emerald-200" : ""
+                      )}
+                    >
                       <img src={att.photo} alt={att.name} className="w-8 h-8 rounded-full object-cover border-2 border-white shadow-sm" referrerPolicy="no-referrer" />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-bold text-slate-700 truncate">{att.name}</p>
@@ -351,13 +378,13 @@ export function Turmas() {
                       <div className="text-right">
                         <p className="text-xs font-bold text-emerald-700">R$ {(att.vendas || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}</p>
                         <div className="w-20 h-1 bg-slate-200 rounded-full mt-1 overflow-hidden">
-                          <div 
-                            className="h-full bg-emerald-500 rounded-full" 
-                            style={{ 
-                              width: totalVendasTurma(liveSelectedTurma) > 0 
-                                ? `${((att.vendas || 0) / totalVendasTurma(liveSelectedTurma)) * 100}%` 
-                                : '0%' 
-                            }} 
+                          <div
+                            className="h-full bg-emerald-500 rounded-full"
+                            style={{
+                              width: totalVendasTurma(liveSelectedTurma) > 0
+                                ? `${((att.vendas || 0) / totalVendasTurma(liveSelectedTurma)) * 100}%`
+                                : '0%'
+                            }}
                           />
                         </div>
                       </div>
@@ -376,27 +403,50 @@ export function Turmas() {
         mode="turma"
         initialData={editingTurma ?? undefined}
       />
+
+      {/* Loading overlay for attendee detail */}
+      {loadingAttendeeDetail && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/20 backdrop-blur-[1px]">
+          <div className="bg-white rounded-2xl p-6 shadow-xl flex items-center gap-3">
+            <Loader2 className="animate-spin text-emerald-600" size={20} />
+            <span className="text-sm font-medium text-slate-700">Carregando dados do cliente...</span>
+          </div>
+        </div>
+      )}
+
+      {/* Attendee Lead Detail Modal */}
+      {selectedAttendeeLead && (
+        <LeadDetailsModal
+          isOpen={!!selectedAttendeeLead}
+          onClose={() => setSelectedAttendeeLead(null)}
+          lead={selectedAttendeeLead}
+        />
+      )}
     </div>
   );
 }
 
-/* ---- Attendee Card ---- */
+/* ── Attendee Card ─────────────────────────────────────────────────────────── */
 interface AttendeeCardProps {
   attendee: TurmaAttendee;
   innerRef: React.Ref<HTMLDivElement>;
   draggableProps: any;
   dragHandleProps: any;
   isDragging: boolean;
+  onViewDetails?: () => void;
 }
-function AttendeeCard({ attendee, innerRef, draggableProps, dragHandleProps, isDragging }: AttendeeCardProps) {
+
+function AttendeeCard({ attendee, innerRef, draggableProps, dragHandleProps, isDragging, onViewDetails }: AttendeeCardProps) {
   return (
     <div
       ref={innerRef}
       {...draggableProps}
       {...dragHandleProps}
+      onClick={onViewDetails}
       className={cn(
         'bg-white rounded-xl border border-slate-100 p-3 shadow-sm flex items-center gap-3 transition-all',
-        isDragging ? 'shadow-xl border-emerald-300 rotate-1' : 'hover:border-emerald-200'
+        isDragging ? 'shadow-xl border-emerald-300 rotate-1' : 'hover:border-emerald-200',
+        onViewDetails ? 'cursor-pointer hover:bg-emerald-50/30' : ''
       )}
     >
       <img src={attendee.photo} alt={attendee.name} className="w-8 h-8 rounded-full object-cover border-2 border-slate-100 shrink-0" referrerPolicy="no-referrer" />
@@ -412,4 +462,3 @@ function AttendeeCard({ attendee, innerRef, draggableProps, dragHandleProps, isD
     </div>
   );
 }
-
