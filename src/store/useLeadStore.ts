@@ -7,9 +7,10 @@ interface LeadStore {
   selectedLead: Lead | null;
   isLoading: boolean;
   error: string | null;
-  fetchLeads: () => Promise<void>;
+  fetchLeads: (pipelineId?: string) => Promise<void>;
   setLeads: (leads: Lead[]) => void;
   setSelectedLead: (lead: Lead | null) => void;
+  updateLeadStage: (leadId: string, stageId: string) => Promise<void>;
   updateLeadStatus: (leadId: string, status: LeadStatus) => Promise<void>;
   updateLeadSubStatus: (leadId: string, subStatus: LeadSubStatus | null) => Promise<void>;
   updateLead: (leadId: string, lead: Partial<Omit<Lead, 'id' | 'created_at'>>) => Promise<void>;
@@ -23,10 +24,10 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
   isLoading: false,
   error: null,
 
-  fetchLeads: async () => {
+  fetchLeads: async (pipelineId?: string) => {
     set({ isLoading: true, error: null });
     try {
-      const leads = await supabaseService.getLeads();
+      const leads = await supabaseService.getLeads(pipelineId);
       set({ leads, isLoading: false });
     } catch (err) {
       set({ error: 'Failed to fetch leads from Supabase', isLoading: false });
@@ -48,21 +49,37 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
     }
   },
 
-  updateLeadStatus: async (leadId, status) => {
-    // Optimistic update
+  updateLeadStage: async (leadId: string, stageId: string) => {
     const previousLeads = get().leads;
     set((state) => ({
-      leads: state.leads.map(lead => lead.id === leadId ? { ...lead, status, subStatus: status === 'qualified' ? lead.subStatus : undefined } : lead)
+      leads: state.leads.map(lead => lead.id === leadId ? { ...lead, stage_id: stageId } : lead)
+    }));
+
+    try {
+      const success = await supabaseService.updateLeadStage(leadId, stageId);
+      if (!success) {
+        set({ leads: previousLeads, error: 'Failed to update lead stage' });
+      }
+    } catch (err) {
+      set({ leads: previousLeads, error: 'Failed to update lead stage' });
+    }
+  },
+
+  updateLeadStatus: async (leadId, status) => {
+    // Legacy - will be deprecated
+    const previousLeads = get().leads;
+    set((state) => ({
+      leads: state.leads.map(lead => lead.id === leadId ? { ...lead, status, subStatus: status === 'qualified' ? lead.subStatus ?? null : null } : lead)
+
     }));
 
     try {
       const success = await supabaseService.updateLeadStatus(leadId, status);
       if (!success) {
-        // Revert on failure
-        set({ leads: previousLeads, error: 'Failed to update lead status in Supabase' });
+        set({ leads: previousLeads, error: 'Failed to update lead status' });
       }
     } catch (err) {
-      set({ leads: previousLeads, error: 'Failed to update lead status in Supabase' });
+      set({ leads: previousLeads, error: 'Failed to update lead status' });
     }
   },
 
@@ -70,7 +87,7 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
     // Optimistic update
     const previousLeads = get().leads;
     set((state) => ({
-      leads: state.leads.map(lead => lead.id === leadId ? { ...lead, subStatus } : lead)
+      leads: state.leads.map(lead => lead.id === leadId ? { ...lead, subStatus: subStatus ?? null } : lead)
     }));
 
     try {

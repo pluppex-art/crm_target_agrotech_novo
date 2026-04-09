@@ -22,73 +22,91 @@ const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
   { icon: Kanban, label: 'Pipeline', path: '/pipeline' },
   { icon: Users, label: 'Leads', path: '/leads' },
-  { icon: DollarSign, label: 'Financeiro', path: '/finance' },
-  { icon: MessageSquare, label: 'IA Sales Chat', path: '/ai-chat' },
-  { icon: FileText, label: 'Contratos', path: '/contracts' },
-  { icon: Package, label: 'Produtos', path: '/products' },
+  { icon: DollarSign, label: 'Finance', path: '/finance' },
+  { icon: MessageSquare, label: 'AI Sales Chat', path: '/ai-chat' },
+  { icon: FileText, label: 'Contracts', path: '/contracts' },
+  { icon: Package, label: 'Products', path: '/products' },
   { icon: Megaphone, label: 'Marketing', path: '/marketing' },
-  { icon: Calendar, label: 'Tarefas', path: '/tasks' },
-  { icon: GraduationCap, label: 'Turmas', path: '/turmas' },
-  { icon: Settings, label: 'Configurações', path: '/settings' },
+  { icon: Calendar, label: 'Tasks', path: '/tasks' },
+  { icon: GraduationCap, label: 'Classes', path: '/turmas' },
+  { icon: Settings, label: 'Settings', path: '/settings' },
 ];
 
-export function Sidebar({ isOpen, onClose }: { isOpen?: boolean, onClose?: () => void }) {
+export function Sidebar({ collapsed = false, onToggle, isOpen, onClose }: { collapsed?: boolean, onToggle?: () => void, isOpen?: boolean, onClose?: () => void }) {
   return (
-    <aside className={cn(
-      "fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200 flex flex-col h-screen transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 lg:z-0",
-      isOpen ? "translate-x-0" : "-translate-x-full"
-    )}>
-      <div className="p-6 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
-            <Leaf className="w-5 h-5 text-white" />
+    <div className="flex flex-col h-full w-full">
+      {/* Header */}
+      <div className={cn("p-4 border-b border-slate-100 flex-shrink-0", collapsed && "p-3 justify-center")}>
+        <div className={cn("flex items-center gap-3", collapsed && "gap-0 justify-center")}>
+          <button
+            onClick={onToggle}
+            className="p-1.5 hover:bg-slate-100 rounded-lg transition-all -ml-1 group"
+            title={collapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+          >
+            <ChevronRight className={cn("w-5 h-5 transition-transform duration-200", collapsed && "rotate-180")} />
+          </button>
+          <div className={cn(
+            "w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg drop-shadow-sm",
+            collapsed && "w-9 h-9"
+          )}>
+            <Leaf className="w-4.5 h-4.5 text-white" />
           </div>
-          <div className="flex flex-col leading-none">
-            <span className="text-lg font-bold tracking-tight text-slate-800">Target</span>
-            <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Agrotech</span>
-          </div>
+          {!collapsed && (
+            <div className="min-w-0 flex flex-col leading-tight">
+              <span className="text-lg font-black tracking-tight text-slate-900 bg-gradient-to-r from-slate-900/90 to-slate-800/90 bg-clip-text">Target</span>
+              <span className="text-xs font-bold text-emerald-600 uppercase tracking-widest">Agrotech CRM</span>
+            </div>
+          )}
         </div>
-        <button 
-          onClick={onClose}
-          className="lg:hidden p-2 -mr-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </button>
       </div>
 
-      <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-1">
         {menuItems.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
+            className={({ isActive }) => cn(
+              "group flex items-center rounded-xl p-3 text-sm font-medium transition-all duration-200 h-12 overflow-hidden relative",
+              isActive 
+                ? "bg-gradient-to-r from-emerald-500/10 to-emerald-600/10 text-emerald-700 border border-emerald-200 shadow-sm" 
+                : "text-slate-600 hover:bg-slate-50/50 hover:text-slate-900 hover:shadow-sm border border-transparent"
+            )}
             onClick={() => {
               if (window.innerWidth < 1024 && onClose) onClose();
             }}
-            className={({ isActive }) => cn(
-              "flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all group",
-              isActive 
-                ? "bg-emerald-50 text-emerald-600 shadow-sm" 
-                : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
-            )}
           >
-            <div className="flex items-center gap-3">
-              <item.icon className="w-5 h-5" />
-              {item.label}
-            </div>
-            <ChevronRight className={cn(
-               "w-4 h-4 opacity-0 transition-all group-hover:opacity-100",
-               "group-[.active]:opacity-100"
-            )} />
+            <item.icon className={cn("w-5 h-5 flex-shrink-0 opacity-90", collapsed && "opacity-100")} />
+            {!collapsed && (
+              <span className="ml-3 truncate font-medium">{item.label}</span>
+            )}
+            {!collapsed && (
+              <button 
+                className="ml-auto p-1 opacity-0 group-hover:opacity-100 transition-all rounded hover:bg-slate-200"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onToggle?.();
+                }}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            )}
           </NavLink>
         ))}
       </nav>
 
-      <div className="p-4 border-t border-slate-100">
-        <button className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition-all">
-          <LogOut className="w-5 h-5" />
-          Sair do Sistema
+      {/* Footer */}
+      <div className="p-3 border-t border-slate-100 flex-shrink-0">
+        <button className={cn(
+          "flex items-center gap-3 w-full rounded-xl text-sm font-medium transition-all group px-3 py-2.5",
+          collapsed ? "justify-center" : ""
+        )}>
+          <LogOut className="w-4.5 h-4.5 text-red-500 flex-shrink-0" />
+          {!collapsed && <span className="font-semibold text-red-600">Sign Out</span>}
         </button>
       </div>
-    </aside>
+    </div>
   );
 }
+

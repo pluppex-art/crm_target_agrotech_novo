@@ -4,6 +4,7 @@
 CREATE TABLE IF NOT EXISTS leads (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+
     name TEXT NOT NULL,
     phone TEXT,
     email TEXT,
@@ -16,7 +17,10 @@ CREATE TABLE IF NOT EXISTS leads (
     city TEXT,
     discount TEXT,
     responsible TEXT,
-    history JSONB DEFAULT '[]'::jsonb
+    history JSONB DEFAULT '[]'::jsonb,
+    pipeline_id UUID REFERENCES pipelines(id) ON DELETE SET NULL,
+    stage_id UUID REFERENCES pipeline_stages(id) ON DELETE SET NULL
+
 );
 
 -- 2. Transactions Table

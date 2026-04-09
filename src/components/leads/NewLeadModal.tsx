@@ -1,21 +1,26 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, User, Phone, Mail, Tag, DollarSign, MapPin, Save, Loader2, ChevronDown } from 'lucide-react';
+import { X, User, Phone, Mail, DollarSign, MapPin, Save, Loader2, ChevronDown, AlertCircle } from 'lucide-react';
 import { useLeadStore } from '../../store/useLeadStore';
 import { useProductStore } from '../../store/useProductStore';
+import { supabaseService } from '../../services/supabaseService';
 import { LeadStatus, LeadSubStatus } from '../../types/leads';
-import { cn, parseBRNumber } from '../../lib/utils';
+import { cn, parseBRNumber, formatCPFCNPJ } from '../../lib/utils';
 
 interface NewLeadModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialStatus?: LeadStatus;
+  pipelineId?: string;
+  initialStageId?: string;
 }
 
-export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, initialStatus = 'new' }) => {
+export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, initialStatus = 'new', pipelineId, initialStageId }) => {
   const { addLead } = useLeadStore();
   const { products, fetchProducts } = useProductStore();
   const [loading, setLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{ phone?: string; email?: string }>({});
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -53,8 +58,20 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFieldErrors({});
     setLoading(true);
     try {
+      const dupes = await supabaseService.checkDuplicateLead({
+        phone: formData.phone,
+        email: formData.email,
+      });
+      if (dupes.phone || dupes.email) {
+        setFieldErrors({
+          phone: dupes.phone ? 'Já existe um lead com este número de telefone.' : undefined,
+          email: dupes.email ? 'Já existe um lead com este e-mail.' : undefined,
+        });
+        return;
+      }
       await addLead({
         name: formData.name,
         email: formData.email,
@@ -65,11 +82,13 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
         cnpj: formData.cnpj,
         responsible: formData.responsible,
         status: initialStatus as LeadStatus,
-        subStatus: initialStatus === 'qualified' ? formData.subStatus : undefined,
+        subStatus: initialStatus === 'qualified' ? formData.subStatus : null,
         stars: 0,
         photo: `https://picsum.photos/seed/${formData.name}/200`,
         history: [],
         discount: formData.isDiscountApplied ? formData.discountValue : '',
+        pipeline_id: pipelineId,
+        stage_id: initialStageId || undefined,
       });
       onClose();
       setFormData({
@@ -94,8 +113,8 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
 
   if (!isOpen) return null;
 
-  return (
-    <AnimatePresence>
+  return createPortal(
+<AnimatePresence mode="wait">
       <div key="overlay-new" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
         <motion.div
           key="modal-new"
@@ -106,8 +125,13 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
         >
           <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-10">
             <h2 className="text-xl font-bold text-gray-800">Novo Lead</h2>
-            <button 
-              key="btn-close-new"
+              {!pipelineId && (
+                <div className="ml-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg text-xs font-bold text-amber-800 flex items-center gap-1 mt-1">
+                  <AlertCircle size={12} />
+                  Pipeline não selecionado - lead será criado sem pipeline
+                </div>
+              )}
+              <button 
               onClick={onClose}
               className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 transition-colors"
             >
@@ -135,29 +159,39 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Telefone</label>
                 <div className="relative">
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
+                    onChange={(e) => { setFormData({...formData, phone: e.target.value}); setFieldErrors(p => ({...p, phone: undefined})); }}
+                    className={cn("w-full px-4 py-2.5 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700", fieldErrors.phone ? "border-red-400 bg-red-50" : "border-gray-200")}
                     placeholder="(00) 00000-0000"
                   />
                   <Phone size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 </div>
+                {fieldErrors.phone && (
+                  <p className="flex items-center gap-1 text-xs text-red-600 font-medium">
+                    <AlertCircle size={12} /> {fieldErrors.phone}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">E-mail</label>
                 <div className="relative">
-                  <input 
-                    type="email" 
+                  <input
+                    type="email"
                     value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
+                    onChange={(e) => { setFormData({...formData, email: e.target.value}); setFieldErrors(p => ({...p, email: undefined})); }}
+                    className={cn("w-full px-4 py-2.5 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700", fieldErrors.email ? "border-red-400 bg-red-50" : "border-gray-200")}
                     placeholder="email@exemplo.com"
                   />
                   <Mail size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 </div>
+                {fieldErrors.email && (
+                  <p className="flex items-center gap-1 text-xs text-red-600 font-medium">
+                    <AlertCircle size={12} /> {fieldErrors.email}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-1.5">
@@ -208,20 +242,21 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">CNPJ (Opcional)</label>
-                <input 
-                  type="text" 
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">CPF / CNPJ (Opcional)</label>
+                <input
+                  type="text"
                   value={formData.cnpj}
-                  onChange={(e) => setFormData({...formData, cnpj: e.target.value})}
+                  onChange={(e) => setFormData({...formData, cnpj: formatCPFCNPJ(e.target.value)})}
                   className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
-                  placeholder="00.000.000/0000-00"
+                  placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                  maxLength={18}
                 />
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Responsável</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={formData.responsible}
                   onChange={(e) => setFormData({...formData, responsible: e.target.value})}
                   className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
@@ -313,13 +348,16 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                 disabled={loading}
                 className="px-8 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-lg shadow-emerald-200 transition-all flex items-center gap-2 disabled:opacity-50"
               >
-                {loading ? <Loader2 key="loader-new" size={18} className="animate-spin" /> : <Save key="save-new" size={18} />}
+{loading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
                 Criar Lead
               </button>
             </div>
           </form>
         </motion.div>
       </div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
+
+

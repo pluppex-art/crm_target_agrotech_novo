@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Star, Trash2, Plus, Phone, Save, MessageSquare, CheckSquare, Loader2, ChevronDown, GraduationCap, Calendar, Clock, MapPin } from 'lucide-react';
+import { X, Star, Trash2, Plus, Phone, Save, MessageSquare, CheckSquare, Loader2, ChevronDown, GraduationCap, Calendar, Clock, MapPin, Trophy, ThumbsDown, AlertCircle } from 'lucide-react';
 import { Lead } from '../../types/leads';
 import { useLeadStore } from '../../store/useLeadStore';
 import { useTaskStore } from '../../store/useTaskStore';
@@ -8,13 +9,27 @@ import { useProductStore } from '../../store/useProductStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { noteService, Note } from '../../services/noteService';
 import { turmaService, Turma, TurmaAttendee, AttendanceStatus } from '../../services/turmaService';
+import { supabaseService } from '../../services/supabaseService';
 import { resetLeadAlerts } from '../../services/alertService';
-import { cn, parseBRNumber } from '../../lib/utils';
+import { cn, parseBRNumber, formatCPFCNPJ } from '../../lib/utils';
+
+export interface PipelineStageOption {
+  id: string;
+  title: string;
+  color: string;
+}
 
 interface LeadDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   lead: Lead;
+  // Pipeline context
+  pipelineStages?: PipelineStageOption[];
+  currentStageId?: string;
+  onStageChange?: (stageId: string) => void;
+  // Turma context
+  turmaAttendee?: { turmaId: string; attendeeId: string; currentStatus: AttendanceStatus };
+  onTurmaStatusChange?: (turmaId: string, attendeeId: string, status: AttendanceStatus) => void;
 }
 
 type TabType = 'info' | 'history' | 'notes' | 'tasks' | 'turma';
@@ -26,7 +41,11 @@ const ATTENDANCE_STATUS_LABELS: Record<AttendanceStatus, { label: string; color:
   cancelado: { label: 'Cancelado', color: 'bg-red-100 text-red-600' },
 };
 
-export const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({ isOpen, onClose, lead }) => {
+export const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({
+  isOpen, onClose, lead,
+  pipelineStages, currentStageId, onStageChange,
+  turmaAttendee, onTurmaStatusChange,
+}) => {
   const [activeTab, setActiveTab] = useState<TabType>('info');
   const [notes, setNotes] = useState<Note[]>([]);
   const [newNote, setNewNote] = useState('');
@@ -51,6 +70,10 @@ export const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({ isOpen, onCl
   });
   const [isSaving, setIsSaving] = useState(false);
   const [hoverStars, setHoverStars] = useState(0);
+  const [fieldErrors, setFieldErrors] = useState<{ phone?: string; email?: string }>({});
+  const whatsappUrl = lead.phone
+    ? `https://wa.me/55${lead.phone.replace(/\D/g, '')}`
+    : null;
 
   const { updateLead, deleteLead } = useLeadStore();
   const { fetchTasksByLeadId, addTask, updateTaskStatus } = useTaskStore();
@@ -59,10 +82,12 @@ export const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({ isOpen, onCl
 
   useEffect(() => {
     if (isOpen && lead.id) {
-      loadNotes();
-      loadTasks();
-      loadTurmas();
-      fetchProducts();
+      Promise.allSettled([
+        loadNotes(),
+        loadTasks(),
+        loadTurmas(),
+        fetchProducts()
+      ]);
       setFormData({
         name: lead.name,
         email: lead.email,
@@ -86,8 +111,21 @@ export const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({ isOpen, onCl
   };
 
   const handleSave = async () => {
+    setFieldErrors({});
     setIsSaving(true);
     try {
+      const dupes = await supabaseService.checkDuplicateLead({
+        phone: formData.phone,
+        email: formData.email,
+        excludeId: lead.id,
+      });
+      if (dupes.phone || dupes.email) {
+        setFieldErrors({
+          phone: dupes.phone ? 'Já existe um lead com este número de telefone.' : undefined,
+          email: dupes.email ? 'Já existe um lead com este e-mail.' : undefined,
+        });
+        return;
+      }
       await updateLead(lead.id, {
         name: formData.name,
         email: formData.email,
@@ -133,9 +171,15 @@ export const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({ isOpen, onCl
 
   const loadTurmas = async () => {
     setLoadingTurmas(true);
-    const result = await turmaService.getTurmasByLeadId(lead.id);
-    setLeadTurmas(result);
-    setLoadingTurmas(false);
+    try {
+      const result = await turmaService.getTurmasByLeadId(lead.id);
+      setLeadTurmas(result);
+    } catch (error) {
+      console.error('Error loading turmas for lead:', error);
+      setLeadTurmas([]);
+    } finally {
+      setLoadingTurmas(false);
+    }
   };
 
   const handleAddNote = async () => {
@@ -183,8 +227,8 @@ export const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({ isOpen, onCl
 
   if (!isOpen) return null;
 
-  return (
-    <AnimatePresence>
+  return createPortal(
+<AnimatePresence mode="wait">
       <div key="overlay" className="fixed inset-0 z-50 flex items-center justify-end p-4 bg-black/20 backdrop-blur-[2px]">
         <motion.div
           key="modal"
@@ -194,54 +238,126 @@ export const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({ isOpen, onCl
           className="bg-white rounded-[32px] shadow-2xl w-full max-w-xl overflow-hidden flex flex-col h-[95vh] mr-4 border border-white/20"
         >
           {/* Top Bar with Actions */}
-          <div className="px-8 py-6 flex items-center justify-between bg-white border-b border-slate-50">
-            <div className="flex items-center gap-3">
-              <h2 className="text-2xl font-bold text-slate-800">{lead.name}</h2>
-              <div className="flex gap-0.5">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <button
-                    key={`star-${i}`}
-                    onClick={() => setFormData({ ...formData, stars: i })}
-                    onMouseEnter={() => setHoverStars(i)}
-                    onMouseLeave={() => setHoverStars(0)}
-                    className="focus:outline-none transition-transform hover:scale-110"
-                  >
-                    <Star
-                      size={18}
-                      className={cn(
-                        "transition-colors",
-                        i <= (hoverStars || formData.stars)
-                          ? "fill-yellow-400 text-yellow-400"
-                          : "text-slate-200"
-                      )}
-                    />
-                  </button>
-                ))}
-              </div>
-            </div>
+          <div className="px-6 py-4 flex items-center justify-between bg-white border-b border-slate-50 gap-3">
             <div className="flex items-center gap-2">
+              {/* Ganho */}
+              {turmaAttendee ? (
+                <button
+                  onClick={() => onTurmaStatusChange?.(turmaAttendee.turmaId, turmaAttendee.attendeeId, 'confirmado')}
+                  disabled={turmaAttendee.currentStatus === 'confirmado'}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-xs font-bold hover:bg-emerald-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Trophy size={13} />
+                  Ganho
+                </button>
+              ) : (() => {
+                const ganhoStage = pipelineStages?.find(s => {
+                  const t = s.title.toLowerCase();
+                  return t.includes('ganho') || t.includes('aprovado') || t.includes('concluído') || t.includes('fechado') || s.id === 'closed';
+                });
+                return (
+                  <button
+                    onClick={() => ganhoStage && onStageChange?.(ganhoStage.id)}
+                    disabled={!ganhoStage || currentStageId === ganhoStage?.id}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-xs font-bold hover:bg-emerald-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Trophy size={13} />
+                    Ganho
+                  </button>
+                );
+              })()}
+              {/* Perdido */}
+              {turmaAttendee ? (
+                <button
+                  onClick={() => onTurmaStatusChange?.(turmaAttendee.turmaId, turmaAttendee.attendeeId, 'cancelado')}
+                  disabled={turmaAttendee.currentStatus === 'cancelado'}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 border border-red-200 rounded-xl text-red-600 text-xs font-bold hover:bg-red-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <ThumbsDown size={13} />
+                  Perdido
+                </button>
+              ) : (() => {
+                const perdidoStage = pipelineStages?.find(s => {
+                  const t = s.title.toLowerCase();
+                  return t.includes('perdido') || t.includes('desqualificado');
+                });
+                return (
+                  <button
+                    onClick={() => perdidoStage && onStageChange?.(perdidoStage.id)}
+                    disabled={!perdidoStage || currentStageId === perdidoStage?.id}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 border border-red-200 rounded-xl text-red-600 text-xs font-bold hover:bg-red-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <ThumbsDown size={13} />
+                    Perdido
+                  </button>
+                );
+              })()}
+            </div>
+            <div className="flex items-center gap-2 ml-auto">
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="px-4 py-2 hover:bg-emerald-50 border border-emerald-100 rounded-xl text-emerald-600 transition-colors flex items-center gap-2 text-sm font-bold shadow-sm disabled:opacity-50"
+                className="px-3 py-1.5 hover:bg-emerald-50 border border-emerald-100 rounded-xl text-emerald-600 transition-colors flex items-center gap-1.5 text-xs font-bold shadow-sm disabled:opacity-50"
               >
-                {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                 Salvar
               </button>
               <button
                 onClick={handleDelete}
-                className="p-2 hover:bg-red-50 border border-red-100 rounded-xl text-red-400 transition-colors shadow-sm"
+                className="p-1.5 hover:bg-red-50 border border-red-100 rounded-xl text-red-400 transition-colors shadow-sm"
               >
-                <Trash2 size={18} />
+                <Trash2 size={16} />
               </button>
               <button
                 onClick={onClose}
-                className="p-2 hover:bg-slate-50 border border-slate-100 rounded-xl text-slate-400 transition-colors shadow-sm"
+                className="p-1.5 hover:bg-slate-50 border border-slate-100 rounded-xl text-slate-400 transition-colors shadow-sm"
               >
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
           </div>
+
+          {/* Stage navigation bar — Pipeline context (above tabs) */}
+          {pipelineStages && pipelineStages.length > 0 && (
+            <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex gap-1.5 overflow-x-auto scrollbar-hide">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider self-center mr-1 shrink-0">Etapa:</span>
+              {pipelineStages.map((stage) => (
+                <button
+                  key={stage.id}
+                  onClick={() => onStageChange?.(stage.id)}
+                  className={cn(
+                    "px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all border",
+                    currentStageId === stage.id
+                      ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                      : "bg-white text-slate-500 border-slate-200 hover:border-emerald-300 hover:text-emerald-600"
+                  )}
+                >
+                  {stage.title}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Turma attendance status bar (above tabs) */}
+          {turmaAttendee && (
+            <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex gap-1.5 overflow-x-auto scrollbar-hide">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider self-center mr-1 shrink-0">Status:</span>
+              {(['matriculado', 'confirmado', 'indeciso', 'cancelado'] as AttendanceStatus[]).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => onTurmaStatusChange?.(turmaAttendee.turmaId, turmaAttendee.attendeeId, s)}
+                  className={cn(
+                    "px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all border capitalize",
+                    turmaAttendee.currentStatus === s
+                      ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                      : "bg-white text-slate-500 border-slate-200 hover:border-emerald-300 hover:text-emerald-600"
+                  )}
+                >
+                  {{ matriculado: 'Matriculado', confirmado: 'Confirmado', indeciso: 'Indeciso', cancelado: 'Cancelado' }[s]}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Primary Tabs */}
           <div className="px-8 flex gap-6 border-b border-slate-100 bg-white overflow-x-auto">
@@ -261,16 +377,17 @@ export const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({ isOpen, onCl
                 )}
               >
                 {tab.label}
-                {activeTab === tab.id && (
-                  <motion.div layoutId="activeTabTop" className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-600 rounded-t-full" />
-                )}
+                <div className={cn(
+                  "absolute bottom-0 left-0 right-0 h-1 bg-emerald-600 rounded-t-full transition-opacity duration-200",
+                  activeTab === tab.id ? "opacity-100" : "opacity-0"
+                )} />
               </button>
             ))}
           </div>
 
           {/* Content Area */}
           <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50/30">
-            <AnimatePresence mode="wait">
+            <>
               {activeTab === 'info' && (
                 <motion.div
                   key="tab-info"
@@ -280,37 +397,56 @@ export const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({ isOpen, onCl
                   className="p-8 space-y-6"
                 >
                   {/* Profile Header Section */}
-                  <div className="flex items-center gap-6 pb-6 border-b border-slate-100">
-                    <div className="relative">
-                      <img
-                        src={lead.photo}
-                        alt={lead.name}
-                        className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-sm"
-                        referrerPolicy="no-referrer"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <h3 className="text-xl font-bold text-slate-800">{lead.name}</h3>
-                      <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-5 pb-6 border-b border-slate-100">
+                    <img
+                      src={lead.photo}
+                      alt={lead.name}
+                      className="w-16 h-16 rounded-full object-cover border-4 border-white shadow-sm shrink-0"
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-lg font-bold text-slate-800 truncate">{lead.name}</h3>
+                        {whatsappUrl && (
+                          <a
+                            href={whatsappUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="p-1.5 bg-green-50 border border-green-200 rounded-lg text-green-600 hover:bg-green-100 transition-colors shrink-0"
+                            title="Abrir WhatsApp"
+                          >
+                            <MessageSquare size={14} />
+                          </a>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-0.5">
                         {[1, 2, 3, 4, 5].map((i) => (
-                          <Star
+                          <button
                             key={`header-star-${i}`}
-                            size={16}
-                            className={cn(i <= formData.stars ? "fill-yellow-400 text-yellow-400" : "text-slate-200")}
-                          />
+                            onClick={() => setFormData({ ...formData, stars: i })}
+                            onMouseEnter={() => setHoverStars(i)}
+                            onMouseLeave={() => setHoverStars(0)}
+                            className="focus:outline-none transition-transform hover:scale-110"
+                          >
+                            <Star
+                              size={15}
+                              className={cn(
+                                "transition-colors",
+                                i <= (hoverStars || formData.stars) ? "fill-yellow-400 text-yellow-400" : "text-slate-200"
+                              )}
+                            />
+                          </button>
                         ))}
                       </div>
-                      <div className="flex items-center gap-4 pt-1">
-                        <span className="text-xs font-medium text-slate-400">
-                          CNPJ: {formData.cnpj || 'Não informado'}
-                        </span>
-                        <div className="flex flex-col items-end">
+                      <div className="flex items-center gap-3 pt-0.5">
+                        <span className="text-xs text-slate-400">CNPJ: {formData.cnpj || '—'}</span>
+                        <div className="flex items-center gap-1">
                           {formData.isDiscountApplied && (
                             <span className="text-[10px] font-bold text-slate-400 line-through">
                               R$ {parseBRNumber(formData.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                             </span>
                           )}
-                          <span className="text-base font-bold text-emerald-600">
+                          <span className="text-sm font-bold text-emerald-600">
                             R$ {calculateFinalValue().toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                           </span>
                         </div>
@@ -337,11 +473,16 @@ export const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({ isOpen, onCl
                           <input
                             type="text"
                             value={formData.phone}
-                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                            className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 font-medium pr-10 shadow-sm"
+                            onChange={(e) => { setFormData({ ...formData, phone: e.target.value }); setFieldErrors(p => ({ ...p, phone: undefined })); }}
+                            className={cn("w-full px-4 py-2.5 bg-white border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 font-medium pr-10 shadow-sm", fieldErrors.phone ? "border-red-400 bg-red-50" : "border-slate-200")}
                           />
                           <Phone size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500" />
                         </div>
+                        {fieldErrors.phone && (
+                          <p className="flex items-center gap-1 text-xs text-red-600 font-medium">
+                            <AlertCircle size={12} /> {fieldErrors.phone}
+                          </p>
+                        )}
                       </div>
 
                       <div className="flex flex-col gap-1.5">
@@ -349,9 +490,14 @@ export const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({ isOpen, onCl
                         <input
                           type="email"
                           value={formData.email}
-                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                          className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 font-medium shadow-sm"
+                          onChange={(e) => { setFormData({ ...formData, email: e.target.value }); setFieldErrors(p => ({ ...p, email: undefined })); }}
+                          className={cn("w-full px-4 py-2.5 bg-white border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 font-medium shadow-sm", fieldErrors.email ? "border-red-400 bg-red-50" : "border-slate-200")}
                         />
+                        {fieldErrors.email && (
+                          <p className="flex items-center gap-1 text-xs text-red-600 font-medium">
+                            <AlertCircle size={12} /> {fieldErrors.email}
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -404,12 +550,14 @@ export const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({ isOpen, onCl
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">CNPJ</label>
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">CPF / CNPJ</label>
                         <input
                           type="text"
                           value={formData.cnpj}
-                          onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
+                          onChange={(e) => setFormData({ ...formData, cnpj: formatCPFCNPJ(e.target.value) })}
                           className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 font-medium shadow-sm"
+                          placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                          maxLength={18}
                         />
                       </div>
                     </div>
@@ -603,7 +751,7 @@ export const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({ isOpen, onCl
                         onChange={(e) => setNewTaskTitle(e.target.value)}
                         placeholder="O que precisa ser feito?"
                         className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm shadow-sm"
-                        onKeyPress={(e) => e.key === 'Enter' && handleAddTask()}
+                        onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
                       />
                       <button
                         onClick={handleAddTask}
@@ -711,7 +859,7 @@ export const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({ isOpen, onCl
                   )}
                 </motion.div>
               )}
-            </AnimatePresence>
+            </>
           </div>
 
           {/* Footer Actions */}
@@ -742,6 +890,9 @@ export const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({ isOpen, onCl
           </div>
         </motion.div>
       </div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
+
+

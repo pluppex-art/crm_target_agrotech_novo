@@ -118,15 +118,32 @@ export const turmaService = {
     const supabase = getSupabaseClient();
     if (!supabase) return null;
 
+    // Block duplicate enrollment
+    if (attendee.lead_id) {
+      const { data: existing } = await supabase
+        .from('turma_attendees')
+        .select('id')
+        .eq('turma_id', turmaId)
+        .eq('lead_id', attendee.lead_id);
+      if (existing && existing.length > 0) {
+        throw new Error('ALREADY_ENROLLED');
+      }
+    }
+
+    const validStatuses: AttendanceStatus[] = ['matriculado', 'confirmado', 'indeciso', 'cancelado'];
+    const status = validStatuses.includes(attendee.status) ? attendee.status : 'indeciso';
+
     const payload = {
       turma_id: turmaId,
       lead_id: attendee.lead_id ?? null,
-      name: attendee.name,
-      photo: attendee.photo,
-      responsible: attendee.responsible,
-      status: attendee.status,
-      vendas: attendee.vendas ?? 0,
+      name: attendee.name || '',
+      photo: attendee.photo || '',
+      responsible: attendee.responsible || '',
+      status: status,
+      vendas: Number(attendee.vendas) || 0,
     };
+
+    console.log('Adding attendee with payload:', payload);
 
     const { data, error } = await supabase
       .from('turma_attendees')
@@ -134,7 +151,7 @@ export const turmaService = {
       .select()
       .single();
 
-    if (error) { console.error('Error adding attendee:', error.message, error.details); return null; }
+    if (error) { console.error('Error adding attendee:', error.message, error.details, 'Payload:', payload); return null; }
 
     return {
       id: data.id,
@@ -145,6 +162,19 @@ export const turmaService = {
       status: data.status as AttendanceStatus,
       vendas: Number(data.vendas) || 0,
     };
+  },
+
+  async removeAttendee(attendeeId: string): Promise<boolean> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return false;
+
+    const { error } = await supabase
+      .from('turma_attendees')
+      .delete()
+      .eq('id', attendeeId);
+
+    if (error) { console.error('Error removing attendee:', error.message, error.details); return false; }
+    return true;
   },
 
   async getTurmasByLeadId(leadId: string): Promise<{ turma: Turma; attendee: TurmaAttendee }[]> {

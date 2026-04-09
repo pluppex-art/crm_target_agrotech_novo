@@ -52,7 +52,7 @@ async function fetchLeadById(leadId: string): Promise<Lead | null> {
 }
 
 export function Turmas() {
-  const { turmas, fetchTurmas, updateAttendeeStatus, removeTurma, isLoading } = useTurmaStore();
+  const { turmas, fetchTurmas, updateAttendeeStatus, removeTurma, removeAttendee, isLoading } = useTurmaStore();
   const [selectedTurma, setSelectedTurma] = useState<Turma | null>(null);
   const [isNewTurmaOpen, setIsNewTurmaOpen] = useState(false);
   const [editingTurma, setEditingTurma] = useState<Turma | null>(null);
@@ -60,6 +60,7 @@ export function Turmas() {
 
   // Attendee detail modal
   const [selectedAttendeeLead, setSelectedAttendeeLead] = useState<Lead | null>(null);
+  const [selectedAttendeeInfo, setSelectedAttendeeInfo] = useState<{ turmaId: string; attendeeId: string; currentStatus: AttendanceStatus } | null>(null);
   const [loadingAttendeeDetail, setLoadingAttendeeDetail] = useState(false);
 
   useEffect(() => {
@@ -83,12 +84,15 @@ export function Turmas() {
     });
   };
 
-  const handleAttendeeClick = async (attendee: TurmaAttendee) => {
+  const handleAttendeeClick = async (attendee: TurmaAttendee, turmaId: string) => {
     if (!attendee.lead_id) return;
     setLoadingAttendeeDetail(true);
     const lead = await fetchLeadById(attendee.lead_id);
     setLoadingAttendeeDetail(false);
-    if (lead) setSelectedAttendeeLead(lead);
+    if (lead) {
+      setSelectedAttendeeLead(lead);
+      setSelectedAttendeeInfo({ turmaId, attendeeId: attendee.id, currentStatus: attendee.status });
+    }
   };
 
   const liveSelectedTurma = selectedTurma
@@ -330,7 +334,8 @@ export function Turmas() {
                                         draggableProps={prov.draggableProps}
                                         dragHandleProps={prov.dragHandleProps}
                                         isDragging={snap.isDragging}
-                                        onViewDetails={att.lead_id ? () => handleAttendeeClick(att) : undefined}
+                                        onViewDetails={att.lead_id ? () => handleAttendeeClick(att, liveSelectedTurma.id) : undefined}
+                                        onRemove={() => removeAttendee(liveSelectedTurma.id, att.id)}
                                       />
                                     )}
                                   </DraggableAny>
@@ -364,7 +369,7 @@ export function Turmas() {
                   .map(att => (
                     <div
                       key={att.id}
-                      onClick={() => att.lead_id && handleAttendeeClick(att)}
+                      onClick={() => att.lead_id && handleAttendeeClick(att, liveSelectedTurma.id)}
                       className={cn(
                         "flex items-center gap-3 px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl hover:border-slate-200 transition-colors",
                         att.lead_id ? "cursor-pointer hover:bg-emerald-50 hover:border-emerald-200" : ""
@@ -418,8 +423,13 @@ export function Turmas() {
       {selectedAttendeeLead && (
         <LeadDetailsModal
           isOpen={!!selectedAttendeeLead}
-          onClose={() => setSelectedAttendeeLead(null)}
+          onClose={() => { setSelectedAttendeeLead(null); setSelectedAttendeeInfo(null); }}
           lead={selectedAttendeeLead}
+          turmaAttendee={selectedAttendeeInfo ?? undefined}
+          onTurmaStatusChange={(turmaId, attendeeId, status) => {
+            updateAttendeeStatus(turmaId, attendeeId, status);
+            setSelectedAttendeeInfo(prev => prev ? { ...prev, currentStatus: status } : null);
+          }}
         />
       )}
     </div>
@@ -434,23 +444,28 @@ interface AttendeeCardProps {
   dragHandleProps: any;
   isDragging: boolean;
   onViewDetails?: () => void;
+  onRemove?: () => void;
 }
 
-function AttendeeCard({ attendee, innerRef, draggableProps, dragHandleProps, isDragging, onViewDetails }: AttendeeCardProps) {
+function AttendeeCard({ attendee, innerRef, draggableProps, dragHandleProps, isDragging, onViewDetails, onRemove }: AttendeeCardProps) {
   return (
     <div
       ref={innerRef}
       {...draggableProps}
       {...dragHandleProps}
-      onClick={onViewDetails}
       className={cn(
-        'bg-white rounded-xl border border-slate-100 p-3 shadow-sm flex items-center gap-3 transition-all',
+        'bg-white rounded-xl border border-slate-100 p-3 shadow-sm flex items-center gap-3 transition-all group/card',
         isDragging ? 'shadow-xl border-emerald-300 rotate-1' : 'hover:border-emerald-200',
-        onViewDetails ? 'cursor-pointer hover:bg-emerald-50/30' : ''
       )}
     >
-      <img src={attendee.photo} alt={attendee.name} className="w-8 h-8 rounded-full object-cover border-2 border-slate-100 shrink-0" referrerPolicy="no-referrer" />
-      <div className="flex-1 min-w-0">
+      <img
+        src={attendee.photo}
+        alt={attendee.name}
+        onClick={onViewDetails}
+        className={cn('w-8 h-8 rounded-full object-cover border-2 border-slate-100 shrink-0', onViewDetails && 'cursor-pointer')}
+        referrerPolicy="no-referrer"
+      />
+      <div className="flex-1 min-w-0" onClick={onViewDetails} style={onViewDetails ? { cursor: 'pointer' } : {}}>
         <p className="text-xs font-bold text-slate-700 truncate">{attendee.name}</p>
         <p className="text-[10px] text-slate-400 truncate">{attendee.responsible}</p>
       </div>
@@ -458,6 +473,15 @@ function AttendeeCard({ attendee, innerRef, draggableProps, dragHandleProps, isD
         <span className="text-[10px] font-bold text-emerald-700 shrink-0">
           R$ {attendee.vendas.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
         </span>
+      )}
+      {onRemove && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onRemove(); }}
+          className="p-1 rounded-lg text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors opacity-0 group-hover/card:opacity-100 shrink-0"
+          title="Remover da turma"
+        >
+          <X size={13} />
+        </button>
       )}
     </div>
   );

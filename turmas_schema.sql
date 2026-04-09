@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS turma_attendees (
     name TEXT NOT NULL,
     photo TEXT,
     responsible TEXT,
-    status TEXT DEFAULT 'indeciso' CHECK (status IN ('confirmado', 'indeciso', 'cancelado')),
+    status TEXT DEFAULT 'indeciso' CHECK (status IN ('matriculado', 'confirmado', 'indeciso', 'cancelado')),
     vendas NUMERIC DEFAULT 0
 );
 
@@ -30,5 +30,14 @@ ALTER TABLE turmas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE turma_attendees ENABLE ROW LEVEL SECURITY;
 
 -- Create policies
-CREATE POLICY "Allow all access to turmas" ON turmas FOR ALL USING (true);
-CREATE POLICY "Allow all access to turma_attendees" ON turma_attendees FOR ALL USING (true);
+DROP POLICY IF EXISTS "Allow all access to turmas" ON turmas;
+DROP POLICY IF EXISTS "Allow all access to turma_attendees" ON turma_attendees;
+
+CREATE POLICY "Allow all access to turmas" ON turmas FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all access to turma_attendees" ON turma_attendees FOR ALL USING (true) WITH CHECK (true);
+
+-- Fix: Add missing lead_id column for lead-turma relationship
+ALTER TABLE turma_attendees 
+ADD COLUMN IF NOT EXISTS lead_id UUID REFERENCES leads(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS idx_turma_attendees_lead_id ON turma_attendees(lead_id);

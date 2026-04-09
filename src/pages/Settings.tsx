@@ -8,6 +8,7 @@ const sections = [
   { icon: Lock, label: 'Segurança', description: 'Altere sua senha e autenticação.', path: '/settings/security' },
   { icon: Globe, label: 'Integrações', description: 'Conecte com outras ferramentas.', path: '/settings/integrations' },
   { icon: Shield, label: 'Permissões', description: 'Gerencie o que cada perfil de usuário pode ver.', path: '/settings/permissions' },
+  { icon: SettingsIcon, label: 'Pipelines', description: 'Gerencie tipos de pipeline, status e seções.', path: '/settings/pipelines' },
 ];
 
 export function Settings() {

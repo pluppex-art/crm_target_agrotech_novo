@@ -12,6 +12,7 @@ import { Notifications } from './pages/settings/Notifications';
 import { Security } from './pages/settings/Security';
 import { Integrations } from './pages/settings/Integrations';
 import { Users } from './pages/settings/Users';
+import { ManagePipelines } from './pages/settings/ManagePipelines';
 import { Finance } from './pages/Finance';
 import { AIChat } from './pages/AIChat';
 import { Contracts } from './pages/Contracts';
@@ -79,6 +80,7 @@ export default function App() {
           <Route path="/settings/notifications" element={<Notifications />} />
           <Route path="/settings/security" element={<Security />} />
           <Route path="/settings/integrations" element={<Integrations />} />
+          <Route path="/settings/pipelines" element={<ManagePipelines />} />
           <Route path="/analytics" element={<Dashboard />} /> {/* Placeholder */}
         </Route>
       </Routes>
