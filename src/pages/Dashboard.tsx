@@ -1,4 +1,4 @@
-import { useEffect, useState, type ComponentType } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   TrendingUp, TrendingDown, DollarSign, Users, CheckCircle2,
@@ -7,104 +7,11 @@ import {
 import { useLeadStore } from '../store/useLeadStore';
 import { useFinanceStore } from '../store/useFinanceStore';
 import { cn, getLeadEffectiveValue } from '../lib/utils';
+import { MetricCard } from '../components/dashboard/MetricCard';
+import { CSSBarChart } from '../components/dashboard/CSSBarChart';
+import { HorizontalBar } from '../components/dashboard/HorizontalBar';
 
 type View = 'all' | 'sales' | 'finance';
-
-function MetricCard({
-  label, value, sub, icon: Icon, color,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  icon: ComponentType<{ className?: string }>;
-  color: string;
-  key?: string | number;
-}) {
-  return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <span className={cn('w-10 h-10 rounded-xl flex items-center justify-center', color)}>
-          <Icon className="w-5 h-5" />
-        </span>
-      </div>
-      <div>
-        <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">{label}</p>
-        <p className="text-2xl font-bold text-slate-800">{value}</p>
-        {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
-      </div>
-    </div>
-  );
-}
-
-function CSSBarChart({
-  data,
-  color = 'bg-emerald-500',
-  emptyLabel = 'Sem dados ainda',
-}: {
-  data: { label: string; value: number }[];
-  color?: string;
-  emptyLabel?: string;
-  key?: string | number;
-}) {
-  const max = Math.max(...data.map(d => d.value), 1);
-  const hasData = data.some(d => d.value > 0);
-
-  if (!hasData) {
-    return (
-      <div className="flex flex-col items-center justify-center h-40 text-slate-300">
-        <BarChart2 className="w-10 h-10 mb-2 opacity-30" />
-        <p className="text-xs font-medium">{emptyLabel}</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex items-end gap-2 h-40 w-full">
-      {data.map((d, i) => {
-        const pct = max > 0 ? (d.value / max) * 100 : 0;
-        return (
-          <div key={`${d.label}-${i}`} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
-            <span className="text-[9px] font-bold text-slate-500">
-              {d.value > 0 ? (d.value >= 1000 ? `${(d.value / 1000).toFixed(0)}k` : d.value) : ''}
-            </span>
-            <div
-              className={cn('w-full rounded-t-md transition-all', color)}
-              style={{ height: `${Math.max(pct, 4)}%` }}
-            />
-            <span className="text-[9px] text-slate-400 truncate w-full text-center">{d.label}</span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function HorizontalBar({
-  label, value, max, color, rank,
-}: {
-  label: string; value: number; max: number; color: string; rank: number;
-  key?: string | number;
-}) {
-  const pct = max > 0 ? (value / max) * 100 : 0;
-  const medal = rank === 0 ? '🥇' : rank === 1 ? '🥈' : rank === 2 ? '🥉' : `${rank + 1}º`;
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-1.5">
-        <div className="flex items-center gap-2">
-          <span className="text-sm">{medal}</span>
-          <span className="text-sm font-semibold text-slate-700">{label}</span>
-        </div>
-        <span className="text-xs font-bold text-slate-400">{value} leads</span>
-      </div>
-      <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
-        <div
-          className={cn('h-full rounded-full', color)}
-          style={{ width: `${Math.max(pct, 2)}%` }}
-        />
-      </div>
-    </div>
-  );
-}
 
 export function Dashboard() {
   const [view, setView] = useState<View>('all');
@@ -253,7 +160,7 @@ export function Dashboard() {
             <MetricCard label="Leads Ativos" value={String(leads.length)} icon={Users} color="bg-emerald-50 text-emerald-600" />
             <MetricCard label="Fechados" value={String(closedLeads.length)} icon={CheckCircle2} color="bg-blue-50 text-blue-600" />
             <MetricCard label="Conversão" value={`${conversionRate.toFixed(1)}%`} icon={Percent} color="bg-purple-50 text-purple-600" />
-            <MetricCard label="Ticket Médio" value={`R$ ${fmt(avgTicket)}`} icon={DollarSign} color="bg-amber-50 text-amber-600" />
+
             <MetricCard label="Total Vendas" value={`R$ ${fmt(totalSalesValue)}`} icon={TrendingUp} color="bg-emerald-50 text-emerald-600" />
             <MetricCard
               label="Em Proposta"
@@ -306,11 +213,11 @@ export function Dashboard() {
               </button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-100">
-                {pipeline.map(col => {
-                  const colLeads = leads.filter(l => l.status === col.id);
-                  const total = colLeads.reduce((s, l) => s + getLeadEffectiveValue(l), 0);
-                  return (
-                   <div key={col.id} className="p-4 sm:p-6">
+              {pipeline.map(col => {
+                const colLeads = leads.filter(l => l.status === col.id);
+                const total = colLeads.reduce((s, l) => s + getLeadEffectiveValue(l), 0);
+                return (
+                  <div key={col.id} className="p-4 sm:p-6">
                     <div className={cn('inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold mb-3', col.light)}>
                       <span className={cn('w-1.5 h-1.5 rounded-full', col.color)} />
                       {col.label}
@@ -372,3 +279,4 @@ export function Dashboard() {
     </div>
   );
 }
+

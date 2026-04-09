@@ -32,7 +32,7 @@ export function Layout() {
 
       <div className="flex-1 flex flex-col">
         <Header onMenuClick={() => setIsMobileSidebarOpen(true)} />
-        <main className="flex-1 overflow-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
           <Outlet />
         </main>
       </div>
