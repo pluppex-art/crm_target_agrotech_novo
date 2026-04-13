@@ -1,898 +1,332 @@
-import React, { useState, useEffect } from 'react';
+
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'motion/react';
-import { X, Star, Trash2, Plus, Phone, Save, MessageSquare, CheckSquare, Loader2, ChevronDown, GraduationCap, Calendar, Clock, MapPin, Trophy, ThumbsDown, AlertCircle } from 'lucide-react';
-import { Lead } from '../../types/leads';
-import { useLeadStore } from '../../store/useLeadStore';
-import { useTaskStore } from '../../store/useTaskStore';
+import { motion, AnimatePresence } from 'framer-motion';
+
+import { LeadInfoTab } from './tabs/LeadInfoTab';
+import { LeadHistoryTab } from './tabs/LeadHistoryTab';
+import { LeadNotesTab } from './tabs/LeadNotesTab';
+import { LeadTasksTab } from './tabs/LeadTasksTab';
+import { LeadTurmaTab } from './tabs/LeadTurmaTab';
+import { useLeadForm } from '../../hooks/useLeadForm';
+import { useLeadNotes } from '../../hooks/useLeadNotes';
+import { useLeadTasks } from '../../hooks/useLeadTasks';
+import { useLeadTurmas } from '../../hooks/useLeadTurmas';
 import { useProductStore } from '../../store/useProductStore';
-import { useAuthStore } from '../../store/useAuthStore';
-import { noteService, Note } from '../../services/noteService';
-import { turmaService, Turma, TurmaAttendee, AttendanceStatus } from '../../services/turmaService';
-import { supabaseService } from '../../services/supabaseService';
-import { resetLeadAlerts } from '../../services/alertService';
-import { cn, parseBRNumber, formatCPFCNPJ } from '../../lib/utils';
+import { useProfileStore } from '../../store/useProfileStore';
+import type { Lead } from '../../types/leads';
 
-export interface PipelineStageOption {
-  id: string;
-  title: string;
-  color: string;
-}
+import {
+  X,
+  Trophy,
+  ThumbsDown,
+  MessageSquare,
+  CheckSquare,
+  GraduationCap,
+} from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { LeadDetailsModalProps, TabType } from './types';
+import { cn } from '@/lib/utils';
+import { getSupabaseClient } from '@/lib/supabase';
 
-interface LeadDetailsModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  lead: Lead;
-  // Pipeline context
-  pipelineStages?: PipelineStageOption[];
-  currentStageId?: string;
-  onStageChange?: (stageId: string) => void;
-  // Turma context
-  turmaAttendee?: { turmaId: string; attendeeId: string; currentStatus: AttendanceStatus };
-  onTurmaStatusChange?: (turmaId: string, attendeeId: string, status: AttendanceStatus) => void;
-}
-
-type TabType = 'info' | 'history' | 'notes' | 'tasks' | 'turma';
-
-const ATTENDANCE_STATUS_LABELS: Record<AttendanceStatus, { label: string; color: string }> = {
-  matriculado: { label: 'Matriculado', color: 'bg-blue-100 text-blue-700' },
-  confirmado: { label: 'Confirmado', color: 'bg-emerald-100 text-emerald-700' },
-  indeciso: { label: 'Indeciso', color: 'bg-amber-100 text-amber-700' },
-  cancelado: { label: 'Cancelado', color: 'bg-red-100 text-red-600' },
+// Maps Tailwind bg-* classes to hex colors for inline styling
+const STAGE_COLOR_MAP: Record<string, string> = {
+  'bg-slate-500': '#64748b', 'bg-gray-500': '#6b7280',
+  'bg-red-500': '#ef4444', 'bg-orange-500': '#f97316',
+  'bg-amber-500': '#f59e0b', 'bg-yellow-500': '#eab308',
+  'bg-lime-500': '#84cc16', 'bg-green-500': '#22c55e',
+  'bg-emerald-500': '#10b981', 'bg-teal-500': '#14b8a6',
+  'bg-cyan-500': '#06b6d4', 'bg-sky-500': '#0ea5e9',
+  'bg-blue-500': '#3b82f6', 'bg-indigo-500': '#6366f1',
+  'bg-violet-500': '#8b5cf6', 'bg-purple-500': '#a855f7',
+  'bg-fuchsia-500': '#d946ef', 'bg-pink-500': '#ec4899',
+  'bg-rose-500': '#f43f5e',
 };
 
-export const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({
-  isOpen, onClose, lead,
-  pipelineStages, currentStageId, onStageChange,
-  turmaAttendee, onTurmaStatusChange,
+const TURMA_STAGES = [
+  { id: 'matriculado' as const, name: 'Matriculado', color: 'bg-blue-500' },
+  { id: 'cancelado' as const, name: 'Cancelado', color: 'bg-red-500' },
+  { id: 'indeciso' as const, name: 'Indeciso', color: 'bg-amber-500' },
+  { id: 'confirmado' as const, name: 'Confirmado', color: 'bg-emerald-500' }
+];
+
+function getStageClasses(colorClass: string): { active: string; inactive: string } {
+  const baseColor = colorClass.replace('bg-', '');
+  return {
+    active: `bg-emerald-500 text-white border-emerald-500 shadow-md ring-2 ring-emerald-500/30`,
+    inactive: `border-emerald-500 text-emerald-600 hover:text-emerald-700 hover:border-emerald-600`
+  };
+}
+
+
+
+const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({
+  isOpen,
+  onClose,
+  lead,
+  pipelineStages,
+  currentStageId,
+  onStageChange,
+  turmaAttendee,
+  onTurmaStatusChange,
+  responsibles,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('info');
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [newNote, setNewNote] = useState('');
-  const [loadingNotes, setLoadingNotes] = useState(false);
-  const [leadTasks, setLeadTasks] = useState<any[]>([]);
-  const [loadingTasks, setLoadingTasks] = useState(false);
-  const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [leadTurmas, setLeadTurmas] = useState<{ turma: Turma; attendee: TurmaAttendee }[]>([]);
-  const [loadingTurmas, setLoadingTurmas] = useState(false);
-  const [formData, setFormData] = useState({
-    name: lead.name,
-    email: lead.email,
-    phone: lead.phone,
-    product: lead.product,
-    value: lead.value.toString(),
-    city: lead.city || '',
-    cnpj: lead.cnpj || '',
-    responsible: lead.responsible || '',
-    stars: lead.stars || 0,
-    isDiscountApplied: !!lead.discount,
-    discountValue: lead.discount || '',
+  const form = useLeadForm({ lead, onClose });
+  const { products } = useProductStore();
+  const { profiles, fetchProfiles } = useProfileStore();
+  const leadNotes = useLeadNotes({ leadId: lead?.id ?? '' });
+  const leadTasks = useLeadTasks({ leadId: lead?.id ?? '' });
+  const leadTurmas = useLeadTurmas({ leadId: lead?.id ?? '' });
+
+  // Build vendedores list from profiles
+  const vendedores = useMemo(() => {
+    if (profiles.length === 0) fetchProfiles();
+    const sellers = profiles.filter(p => {
+      const cargoName = (p.cargos?.name || p.cargo_name || '').toLowerCase();
+      return cargoName.includes('vendedor');
+    });
+    // Fallback: all active profiles
+    const list = sellers.length > 0
+      ? sellers
+      : profiles.filter(p => p.status === 'active' || !p.status);
+    // Always include the lead's current responsible even if not in list
+    const names = list.map(p => p.name as string).filter(Boolean);
+    if (lead?.responsible && !names.includes(lead.responsible)) {
+      return [lead.responsible, ...names];
+    }
+    return names;
+  }, [profiles, lead?.responsible]);
+  const isTurmaMode = !!turmaAttendee;
+  const stages = isTurmaMode ? TURMA_STAGES : pipelineStages;
+  const currentStageData = stages?.find(s => s.id === currentStageId);
+  const currentStageName = ((currentStageData as any)?.title || (currentStageData as any)?.name || '') as string;
+  const isGanhoStage = currentStageName.toLowerCase().includes('ganho');
+  const isPerdidoStage = currentStageName.toLowerCase().includes('perdido');
+
+  // Show confirmations in all stages except Won and Lost
+  const showConfirmations = !isGanhoStage && !isPerdidoStage;
+
+  // Unified stage change handler: delegates to turma or pipeline handler
+  const handleStageChange = (stageId: string) => {
+    if (isTurmaMode && turmaAttendee && onTurmaStatusChange) {
+      onTurmaStatusChange(turmaAttendee.turmaId, turmaAttendee.attendeeId, stageId as any);
+    } else {
+      onStageChange?.(stageId);
+    }
+  };
+
+  // Must ALWAYS have confirmations to move to Ganho
+  if (!lead) return null;
+
+  const currentProduct = products.find(p => p.name === form.formData.product);
+  const isServiceProduct = (currentProduct?.category || '').toLowerCase().startsWith('serviço') || (currentProduct?.category || '').toLowerCase().startsWith('servico');
+
+  const canMoveToGanho = isServiceProduct || (form.formData.pix_completed && form.formData.contract_signed);
+  const totalSteps = isServiceProduct ? 0 : 2;
+  const completedSteps = isServiceProduct ? 0 : [form.formData.pix_completed, form.formData.contract_signed].filter(Boolean).length;
+
+  const ganhoStage = pipelineStages?.find(s => {
+    const n = ((s as any).title || (s as any).name || '').toLowerCase();
+    return n.includes('ganho');
   });
-  const [isSaving, setIsSaving] = useState(false);
-  const [hoverStars, setHoverStars] = useState(0);
-  const [fieldErrors, setFieldErrors] = useState<{ phone?: string; email?: string }>({});
-  const whatsappUrl = lead.phone
-    ? `https://wa.me/55${lead.phone.replace(/\D/g, '')}`
-    : null;
-
-  const { updateLead, deleteLead } = useLeadStore();
-  const { fetchTasksByLeadId, addTask, updateTaskStatus } = useTaskStore();
-  const { products, fetchProducts } = useProductStore();
-  const { user } = useAuthStore();
-
-  useEffect(() => {
-    if (isOpen && lead.id) {
-      Promise.allSettled([
-        loadNotes(),
-        loadTasks(),
-        loadTurmas(),
-        fetchProducts()
-      ]);
-      setFormData({
-        name: lead.name,
-        email: lead.email,
-        phone: lead.phone,
-        product: lead.product,
-        value: lead.value.toString(),
-        city: lead.city || '',
-        cnpj: lead.cnpj || '',
-        responsible: lead.responsible || '',
-        stars: lead.stars || 0,
-        isDiscountApplied: !!lead.discount,
-        discountValue: lead.discount || '',
-      });
-    }
-  }, [isOpen, lead.id]);
-
-  const calculateFinalValue = () => {
-    const val = parseBRNumber(formData.value);
-    const discount = parseBRNumber(formData.discountValue);
-    return val * (1 - discount / 100);
-  };
-
-  const handleSave = async () => {
-    setFieldErrors({});
-    setIsSaving(true);
-    try {
-      const dupes = await supabaseService.checkDuplicateLead({
-        phone: formData.phone,
-        email: formData.email,
-        excludeId: lead.id,
-      });
-      if (dupes.phone || dupes.email) {
-        setFieldErrors({
-          phone: dupes.phone ? 'Já existe um lead com este número de telefone.' : undefined,
-          email: dupes.email ? 'Já existe um lead com este e-mail.' : undefined,
-        });
-        return;
-      }
-      await updateLead(lead.id, {
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        product: formData.product,
-        value: parseBRNumber(formData.value),
-        stars: formData.stars,
-        city: formData.city,
-        cnpj: formData.cnpj,
-        responsible: formData.responsible,
-        discount: formData.isDiscountApplied ? formData.discountValue : '',
-      });
-      onClose();
-    } catch (error) {
-      console.error('Error saving lead:', error);
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  const perdidoStage = pipelineStages?.find(s => {
+    const n = ((s as any).title || (s as any).name || '').toLowerCase();
+    return n.includes('perdido');
+  });
 
   const handleDelete = async () => {
-    try {
-      await deleteLead(lead.id);
-      onClose();
-    } catch (error) {
+    if (!confirm('Tem certeza que deseja excluir este lead? Esta ação não pode ser desfeita.')) return;
+    const supabase = getSupabaseClient();
+    if (!supabase) return;
+    const { error } = await supabase.from('leads').delete().eq('id', lead.id);
+    if (error) {
       console.error('Error deleting lead:', error);
+      alert('Erro ao excluir lead');
+      return;
     }
+    onClose();
   };
 
-  const loadNotes = async () => {
-    setLoadingNotes(true);
-    const fetchedNotes = await noteService.getNotesByLeadId(lead.id);
-    setNotes(fetchedNotes);
-    setLoadingNotes(false);
-  };
+  if (!isOpen || !lead) return null;
 
-  const loadTasks = async () => {
-    setLoadingTasks(true);
-    const fetchedTasks = await fetchTasksByLeadId(lead.id);
-    setLeadTasks(fetchedTasks);
-    setLoadingTasks(false);
-  };
-
-  const loadTurmas = async () => {
-    setLoadingTurmas(true);
-    try {
-      const result = await turmaService.getTurmasByLeadId(lead.id);
-      setLeadTurmas(result);
-    } catch (error) {
-      console.error('Error loading turmas for lead:', error);
-      setLeadTurmas([]);
-    } finally {
-      setLoadingTurmas(false);
-    }
-  };
-
-  const handleAddNote = async () => {
-    if (!newNote.trim()) return;
-    const authorName = user?.user_metadata?.full_name || user?.email || 'Usuário';
-    const note = await noteService.createNote({
-      content: newNote,
-      lead_id: lead.id,
-      author_name: authorName,
-    });
-    if (note) {
-      setNotes([note, ...notes]);
-      setNewNote('');
-      // Reset inactivity alert since contact was made
-      resetLeadAlerts(lead.id);
-    }
-  };
-
-  const handleAddTask = async () => {
-    if (!newTaskTitle.trim()) return;
-    await addTask({
-      title: newTaskTitle,
-      lead_id: lead.id,
-      status: 'pending',
-      priority: 'medium'
-    });
-    setNewTaskTitle('');
-    loadTasks();
-    // Reset inactivity alert since contact was made
-    resetLeadAlerts(lead.id);
-  };
-
-  const handleDeleteNote = async (noteId: string) => {
-    const success = await noteService.deleteNote(noteId);
-    if (success) {
-      setNotes(notes.filter(n => n.id !== noteId));
-    }
-  };
-
-  const handleToggleTask = async (taskId: string, currentStatus: string) => {
-    const newStatus = currentStatus === 'pending' ? 'completed' : 'pending';
-    await updateTaskStatus(taskId, newStatus);
-    loadTasks();
-  };
-
-  if (!isOpen) return null;
-
-  return createPortal(
-<AnimatePresence mode="wait">
-      <div key="overlay" className="fixed inset-0 z-50 flex items-center justify-end p-4 bg-black/20 backdrop-blur-[2px]">
+  return (
+      <div className="fixed inset-0 z-[100] flex justify-end overflow-hidden isolation-auto">
+        {/* Backdrop */}
         <motion.div
-          key="modal"
-          initial={{ opacity: 0, x: 100 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: 100 }}
-          className="bg-white rounded-[32px] shadow-2xl w-full max-w-xl overflow-hidden flex flex-col h-[95vh] mr-4 border border-white/20"
+          key="modal-backdrop"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]"
+        />
+        <motion.div
+          key="modal-content"
+          initial={{ x: '100%' }}
+          animate={{ x: 0 }}
+          exit={{ x: '100%' }}
+          transition={{ type: 'spring', damping: 30, stiffness: 280 }}
+          className="bg-white shadow-2xl w-full max-w-[680px] h-full flex flex-col overflow-hidden border-l border-slate-200 relative"
+          onClick={(e) => e.stopPropagation()}
         >
-          {/* Top Bar with Actions */}
-          <div className="px-6 py-4 flex items-center justify-between bg-white border-b border-slate-50 gap-3">
-            <div className="flex items-center gap-2">
-              {/* Ganho */}
-              {turmaAttendee ? (
-                <button
-                  onClick={() => onTurmaStatusChange?.(turmaAttendee.turmaId, turmaAttendee.attendeeId, 'confirmado')}
-                  disabled={turmaAttendee.currentStatus === 'confirmado'}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-xs font-bold hover:bg-emerald-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  <Trophy size={13} />
-                  Ganho
-                </button>
-              ) : (() => {
-                const ganhoStage = pipelineStages?.find(s => {
-                  const t = s.title.toLowerCase();
-                  return t.includes('ganho') || t.includes('aprovado') || t.includes('concluído') || t.includes('fechado') || s.id === 'closed';
-                });
-                return (
-                  <button
-                    onClick={() => ganhoStage && onStageChange?.(ganhoStage.id)}
-                    disabled={!ganhoStage || currentStageId === ganhoStage?.id}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-xs font-bold hover:bg-emerald-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    <Trophy size={13} />
-                    Ganho
-                  </button>
-                );
-              })()}
-              {/* Perdido */}
-              {turmaAttendee ? (
-                <button
-                  onClick={() => onTurmaStatusChange?.(turmaAttendee.turmaId, turmaAttendee.attendeeId, 'cancelado')}
-                  disabled={turmaAttendee.currentStatus === 'cancelado'}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 border border-red-200 rounded-xl text-red-600 text-xs font-bold hover:bg-red-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  <ThumbsDown size={13} />
-                  Perdido
-                </button>
-              ) : (() => {
-                const perdidoStage = pipelineStages?.find(s => {
-                  const t = s.title.toLowerCase();
-                  return t.includes('perdido') || t.includes('desqualificado');
-                });
-                return (
-                  <button
-                    onClick={() => perdidoStage && onStageChange?.(perdidoStage.id)}
-                    disabled={!perdidoStage || currentStageId === perdidoStage?.id}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 border border-red-200 rounded-xl text-red-600 text-xs font-bold hover:bg-red-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    <ThumbsDown size={13} />
-                    Perdido
-                  </button>
-                );
-              })()}
-            </div>
-            <div className="flex items-center gap-2 ml-auto">
-              <button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="px-3 py-1.5 hover:bg-emerald-50 border border-emerald-100 rounded-xl text-emerald-600 transition-colors flex items-center gap-1.5 text-xs font-bold shadow-sm disabled:opacity-50"
-              >
-                {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                Salvar
-              </button>
-              <button
-                onClick={handleDelete}
-                className="p-1.5 hover:bg-red-50 border border-red-100 rounded-xl text-red-400 transition-colors shadow-sm"
-              >
-                <Trash2 size={16} />
-              </button>
+          {/* Header */}
+          <div className="pt-5 pb-2 px-5 flex flex-col gap-3 border-b border-slate-100">
+            {/* Top bar: Ganho / Perdido + close */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {!isTurmaMode && (
+                  <>
+                    <button
+                      onClick={() => {
+                        if (!canMoveToGanho) return;
+                        handleStageChange(ganhoStage?.id || '');
+                      }}
+                      disabled={!canMoveToGanho || currentStageId === ganhoStage?.id}
+                      title={!canMoveToGanho ? 'Marque PIX realizado e Contrato assinado para avançar para Ganho' : undefined}
+                      className={cn(
+                        "flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-xs font-bold transition-all shadow-sm",
+                        currentStageId === ganhoStage?.id
+                          ? "bg-emerald-600 border-emerald-600 text-white"
+                          : canMoveToGanho
+                            ? "border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
+                            : "border-slate-200 text-slate-400 bg-white cursor-not-allowed"
+                      )}
+                    >
+                      <Trophy size={14} className={currentStageId === ganhoStage?.id ? "text-white" : canMoveToGanho ? "text-emerald-500" : "text-slate-400"} />
+                      <span key="label">Ganho</span>
+                      {showConfirmations && !isServiceProduct && (
+                        <span key="conf" className={cn(
+                          "ml-1 text-[10px] px-1.5 py-0.5 rounded-full font-bold transition-colors",
+                          canMoveToGanho
+                            ? "bg-emerald-100 text-emerald-600"
+                            : "bg-amber-100 text-amber-600"
+                        )}>
+                          {completedSteps}/{totalSteps}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => handleStageChange(perdidoStage?.id || '')}
+                      className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-red-200 text-red-700 bg-red-50 hover:bg-red-100 text-xs font-bold transition-colors shadow-sm"
+                    >
+                      <ThumbsDown size={14} className="text-red-500" />
+                      <span key="label">Perdido</span>
+                    </button>
+                  </>
+                )}
+              </div>
               <button
                 onClick={onClose}
-                className="p-1.5 hover:bg-slate-50 border border-slate-100 rounded-xl text-slate-400 transition-colors shadow-sm"
+                className="p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 rounded-full transition-colors"
               >
                 <X size={18} />
               </button>
             </div>
+
+            {/* Stage buttons */}
+            <div className="flex items-center gap-2 w-full">
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest shrink-0">Etapa:</span>
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 flex-1" style={{ scrollbarWidth: 'thin' }}>
+                {(stages || []).map(stage => {
+                  const stageName = (stage as any).title || (stage as any).name;
+                  const { active, inactive } = getStageClasses(stage.color);
+                  const isActive = currentStageId === stage.id;
+                  return (
+                    <button
+                      key={stage.id}
+                      onClick={() => handleStageChange(stage.id)}
+                      className={cn(
+                        "px-3 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all border shadow-sm",
+                        isActive ? active : inactive,
+                        isActive ? "hover:shadow-md" : "bg-white hover:shadow-sm"
+                      )}
+                    >
+                      {stageName}
+                    </button>
+
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
-          {/* Stage navigation bar — Pipeline context (above tabs) */}
-          {pipelineStages && pipelineStages.length > 0 && (
-            <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex gap-1.5 overflow-x-auto scrollbar-hide">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider self-center mr-1 shrink-0">Etapa:</span>
-              {pipelineStages.map((stage) => (
-                <button
-                  key={stage.id}
-                  onClick={() => onStageChange?.(stage.id)}
-                  className={cn(
-                    "px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all border",
-                    currentStageId === stage.id
-                      ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
-                      : "bg-white text-slate-500 border-slate-200 hover:border-emerald-300 hover:text-emerald-600"
-                  )}
-                >
-                  {stage.title}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Turma attendance status bar (above tabs) */}
-          {turmaAttendee && (
-            <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex gap-1.5 overflow-x-auto scrollbar-hide">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider self-center mr-1 shrink-0">Status:</span>
-              {(['matriculado', 'confirmado', 'indeciso', 'cancelado'] as AttendanceStatus[]).map((s) => (
-                <button
-                  key={s}
-                  onClick={() => onTurmaStatusChange?.(turmaAttendee.turmaId, turmaAttendee.attendeeId, s)}
-                  className={cn(
-                    "px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all border capitalize",
-                    turmaAttendee.currentStatus === s
-                      ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
-                      : "bg-white text-slate-500 border-slate-200 hover:border-emerald-300 hover:text-emerald-600"
-                  )}
-                >
-                  {{ matriculado: 'Matriculado', confirmado: 'Confirmado', indeciso: 'Indeciso', cancelado: 'Cancelado' }[s]}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Primary Tabs */}
-          <div className="px-8 flex gap-6 border-b border-slate-100 bg-white overflow-x-auto">
-            {[
-              { id: 'info', label: 'Informações' },
-              { id: 'notes', label: 'Notas' },
-              { id: 'history', label: 'Histórico' },
-              { id: 'tasks', label: 'Tarefas' },
-              { id: 'turma', label: 'Turma' },
-            ].map((tab) => (
+          {/* Tabs */}
+          <div className="flex gap-5 px-5 border-b border-slate-200">
+            {(['info', 'notes', 'history', 'tasks', 'turma'] as TabType[]).map((tab) => (
               <button
-                key={`tab-btn-${tab.id}`}
-                onClick={() => setActiveTab(tab.id as TabType)}
+                key={tab}
+                onClick={() => setActiveTab(tab)}
                 className={cn(
-                  "py-4 text-sm font-bold transition-colors relative whitespace-nowrap",
-                  activeTab === tab.id ? "text-emerald-600" : "text-slate-400 hover:text-slate-600"
+                  'pb-3 pt-2 font-bold text-xs transition-colors border-b-[2px] uppercase tracking-wider',
+                  activeTab === tab
+                    ? 'border-emerald-500 text-emerald-600'
+                    : 'border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-200'
                 )}
               >
-                {tab.label}
-                <div className={cn(
-                  "absolute bottom-0 left-0 right-0 h-1 bg-emerald-600 rounded-t-full transition-opacity duration-200",
-                  activeTab === tab.id ? "opacity-100" : "opacity-0"
-                )} />
+                {tab === 'info' && 'Informações'}
+                {tab === 'notes' && 'Notas'}
+                {tab === 'history' && 'Histórico'}
+                {tab === 'tasks' && 'Tarefas'}
+                {tab === 'turma' && 'Turma'}
               </button>
             ))}
           </div>
 
-          {/* Content Area */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50/30">
-            <>
-              {activeTab === 'info' && (
-                <motion.div
-                  key="tab-info"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="p-8 space-y-6"
-                >
-                  {/* Profile Header Section */}
-                  <div className="flex items-center gap-5 pb-6 border-b border-slate-100">
-                    <img
-                      src={lead.photo}
-                      alt={lead.name}
-                      className="w-16 h-16 rounded-full object-cover border-4 border-white shadow-sm shrink-0"
-                      referrerPolicy="no-referrer"
-                    />
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-lg font-bold text-slate-800 truncate">{lead.name}</h3>
-                        {whatsappUrl && (
-                          <a
-                            href={whatsappUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="p-1.5 bg-green-50 border border-green-200 rounded-lg text-green-600 hover:bg-green-100 transition-colors shrink-0"
-                            title="Abrir WhatsApp"
-                          >
-                            <MessageSquare size={14} />
-                          </a>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-0.5">
-                        {[1, 2, 3, 4, 5].map((i) => (
-                          <button
-                            key={`header-star-${i}`}
-                            onClick={() => setFormData({ ...formData, stars: i })}
-                            onMouseEnter={() => setHoverStars(i)}
-                            onMouseLeave={() => setHoverStars(0)}
-                            className="focus:outline-none transition-transform hover:scale-110"
-                          >
-                            <Star
-                              size={15}
-                              className={cn(
-                                "transition-colors",
-                                i <= (hoverStars || formData.stars) ? "fill-yellow-400 text-yellow-400" : "text-slate-200"
-                              )}
-                            />
-                          </button>
-                        ))}
-                      </div>
-                      <div className="flex items-center gap-3 pt-0.5">
-                        <span className="text-xs text-slate-400">CNPJ: {formData.cnpj || '—'}</span>
-                        <div className="flex items-center gap-1">
-                          {formData.isDiscountApplied && (
-                            <span className="text-[10px] font-bold text-slate-400 line-through">
-                              R$ {parseBRNumber(formData.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                            </span>
-                          )}
-                          <span className="text-sm font-bold text-emerald-600">
-                            R$ {calculateFinalValue().toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Form Fields */}
-                  <div className="grid grid-cols-1 gap-5">
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Nome Completo</label>
-                      <input
-                        type="text"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 font-medium shadow-sm"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-5">
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Telefone</label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            value={formData.phone}
-                            onChange={(e) => { setFormData({ ...formData, phone: e.target.value }); setFieldErrors(p => ({ ...p, phone: undefined })); }}
-                            className={cn("w-full px-4 py-2.5 bg-white border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 font-medium pr-10 shadow-sm", fieldErrors.phone ? "border-red-400 bg-red-50" : "border-slate-200")}
-                          />
-                          <Phone size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500" />
-                        </div>
-                        {fieldErrors.phone && (
-                          <p className="flex items-center gap-1 text-xs text-red-600 font-medium">
-                            <AlertCircle size={12} /> {fieldErrors.phone}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">E-mail</label>
-                        <input
-                          type="email"
-                          value={formData.email}
-                          onChange={(e) => { setFormData({ ...formData, email: e.target.value }); setFieldErrors(p => ({ ...p, email: undefined })); }}
-                          className={cn("w-full px-4 py-2.5 bg-white border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 font-medium shadow-sm", fieldErrors.email ? "border-red-400 bg-red-50" : "border-slate-200")}
-                        />
-                        {fieldErrors.email && (
-                          <p className="flex items-center gap-1 text-xs text-red-600 font-medium">
-                            <AlertCircle size={12} /> {fieldErrors.email}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-5">
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Produto / Serviço</label>
-                        <div className="relative">
-                          <select
-                            value={formData.product}
-                            onChange={(e) => {
-                              const selectedProduct = products.find(p => p.name === e.target.value);
-                              setFormData({
-                                ...formData,
-                                product: e.target.value,
-                                value: selectedProduct ? selectedProduct.price.toString() : formData.value
-                              });
-                            }}
-                            className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 font-medium appearance-none cursor-pointer shadow-sm"
-                          >
-                            <option value="">Selecione um produto</option>
-                            {products.map(product => (
-                              <option key={product.id} value={product.name}>
-                                {product.name}
-                              </option>
-                            ))}
-                          </select>
-                          <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Valor (R$)</label>
-                        <input
-                          type="text"
-                          value={formData.value}
-                          onChange={(e) => setFormData({ ...formData, value: e.target.value })}
-                          className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 font-medium shadow-sm"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-5">
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Cidade</label>
-                        <input
-                          type="text"
-                          value={formData.city}
-                          onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                          className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 font-medium shadow-sm"
-                        />
-                      </div>
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">CPF / CNPJ</label>
-                        <input
-                          type="text"
-                          value={formData.cnpj}
-                          onChange={(e) => setFormData({ ...formData, cnpj: formatCPFCNPJ(e.target.value) })}
-                          className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 font-medium shadow-sm"
-                          placeholder="000.000.000-00 ou 00.000.000/0000-00"
-                          maxLength={18}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Responsável</label>
-                      <input
-                        type="text"
-                        value={formData.responsible}
-                        onChange={(e) => setFormData({ ...formData, responsible: e.target.value })}
-                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 font-medium shadow-sm"
-                      />
-                    </div>
-
-                    <div className="pt-2">
-                      <label className="flex items-center gap-3 cursor-pointer group w-fit">
-                        <div className="relative">
-                          <input
-                            type="checkbox"
-                            checked={formData.isDiscountApplied}
-                            onChange={(e) => setFormData({ ...formData, isDiscountApplied: e.target.checked })}
-                            className="sr-only peer"
-                          />
-                          <div className="w-5 h-5 border-2 border-slate-200 rounded-md bg-white peer-checked:bg-emerald-600 peer-checked:border-emerald-600 transition-all flex items-center justify-center">
-                            <CheckSquare size={12} className={cn("text-white transition-opacity", formData.isDiscountApplied ? "opacity-100" : "opacity-0")} />
-                          </div>
-                        </div>
-                        <span className="text-sm font-bold text-slate-700">Aplicar desconto?</span>
-                      </label>
-
-                      <AnimatePresence>
-                        {formData.isDiscountApplied && (
-                          <motion.div
-                            key="discount-controls"
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            className="overflow-hidden"
-                          >
-                            <div className="pt-3 space-y-3">
-                              <div className="flex gap-4">
-                                <div className="flex-1 relative">
-                                  <input
-                                    type="text"
-                                    placeholder="0"
-                                    value={formData.discountValue}
-                                    onChange={(e) => {
-                                      const val = e.target.value.replace(/[^0-9.]/g, '');
-                                      setFormData({ ...formData, discountValue: val });
-                                    }}
-                                    className="w-full px-4 py-2.5 bg-emerald-50/50 border border-emerald-100 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-emerald-700 font-bold text-sm text-right pr-8"
-                                  />
-                                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-400 font-bold text-sm">%</span>
-                                </div>
-                                <div className="flex-[2] px-4 py-2.5 bg-white border border-slate-200 rounded-xl flex items-center justify-between shadow-sm">
-                                  <span className="text-[10px] font-bold text-slate-400 uppercase">Valor Final</span>
-                                  <span className="text-sm font-bold text-emerald-600">
-                                    R$ {calculateFinalValue().toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                  </span>
-                                </div>
-                              </div>
-                              <p className="text-[10px] text-slate-400 font-medium px-1">
-                                O desconto será aplicado sobre o valor bruto de R$ {parseBRNumber(formData.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                              </p>
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {activeTab === 'notes' && (
-                <motion.div
-                  key="tab-notes"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="p-8 space-y-6"
-                >
-                  <div className="flex flex-col gap-3">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Nova Nota</label>
-                    <div className="relative">
-                      <textarea
-                        value={newNote}
-                        onChange={(e) => setNewNote(e.target.value)}
-                        placeholder="Adicione uma observação sobre este lead..."
-                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm min-h-[100px] resize-none shadow-sm"
-                      />
-                      <button
-                        onClick={handleAddNote}
-                        className="absolute bottom-3 right-3 p-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all"
-                      >
-                        <Plus size={18} />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    {loadingNotes ? (
-                      <div className="flex justify-center p-8"><Loader2 className="animate-spin text-emerald-600" /></div>
-                    ) : notes.length > 0 ? (
-                      notes.map((note) => {
-                        const noteDate = new Date(note.created_at);
-                        const dateStr = noteDate.toLocaleDateString('pt-BR');
-                        const timeStr = noteDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                        return (
-                          <div key={note.id} className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm relative group">
-                            <div className="flex items-start justify-between mb-2">
-                              <div className="flex flex-col gap-1">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full uppercase">
-                                    {dateStr} às {timeStr}
-                                  </span>
-                                </div>
-                                {note.author_name && (
-                                  <span className="text-[10px] font-semibold text-slate-500 px-1">
-                                    por {note.author_name}
-                                  </span>
-                                )}
-                              </div>
-                              <button
-                                onClick={() => handleDeleteNote(note.id)}
-                                className="text-slate-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
-                            <p className="text-sm text-slate-700 leading-relaxed">{note.content}</p>
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <div className="text-center py-12 text-slate-400 border border-dashed border-slate-200 rounded-2xl">
-                        <MessageSquare className="w-10 h-10 mx-auto mb-3 opacity-20" />
-                        <p className="text-sm">Nenhuma nota registrada.</p>
-                      </div>
-                    )}
-                  </div>
-                </motion.div>
-              )}
-
-              {activeTab === 'history' && (
-                <motion.div
-                  key="tab-history"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="p-8 space-y-4"
-                >
-                  {lead.history && lead.history.length > 0 ? (
-                    lead.history.map((item) => (
-                      <div key={item.id} className="bg-white border border-slate-100 rounded-2xl p-4 flex gap-4 shadow-sm">
-                        <div className="flex flex-col items-center gap-2 min-w-[80px]">
-                          <div className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full flex items-center gap-1">
-                            <Calendar size={10} /> {item.date}
-                          </div>
-                          <div className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full flex items-center gap-1">
-                            <Clock size={10} /> {item.time}
-                          </div>
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm text-slate-700 leading-relaxed font-medium">{item.description}</p>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-12 text-slate-400 border border-dashed border-slate-200 rounded-2xl">
-                      <Calendar className="w-10 h-10 mx-auto mb-3 opacity-20" />
-                      <p className="text-sm">Sem histórico disponível.</p>
-                    </div>
-                  )}
-                </motion.div>
-              )}
-
-              {activeTab === 'tasks' && (
-                <motion.div
-                  key="tab-tasks"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="p-8 space-y-6"
-                >
-                  <div className="flex flex-col gap-3">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Nova Tarefa</label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={newTaskTitle}
-                        onChange={(e) => setNewTaskTitle(e.target.value)}
-                        placeholder="O que precisa ser feito?"
-                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm shadow-sm"
-                        onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
-                      />
-                      <button
-                        onClick={handleAddTask}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
-                      >
-                        <Plus size={16} />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    {loadingTasks ? (
-                      <div className="flex justify-center p-8"><Loader2 className="animate-spin text-emerald-600" /></div>
-                    ) : leadTasks.length > 0 ? (
-                      leadTasks.map((task) => (
-                        <div
-                          key={task.id}
-                          className={cn(
-                            "flex items-center gap-4 p-4 rounded-2xl border transition-all cursor-pointer group",
-                            task.status === 'completed'
-                              ? "bg-slate-50 border-slate-100 opacity-60"
-                              : "bg-white border-slate-100 hover:border-emerald-200 shadow-sm"
-                          )}
-                          onClick={() => handleToggleTask(task.id, task.status)}
-                        >
-                          <div className={cn(
-                            "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
-                            task.status === 'completed'
-                              ? "bg-emerald-500 border-emerald-500"
-                              : "border-slate-200 group-hover:border-emerald-300"
-                          )}>
-                            {task.status === 'completed' && <CheckSquare size={14} className="text-white" />}
-                          </div>
-                          <span className={cn(
-                            "text-sm font-medium flex-1",
-                            task.status === 'completed' ? "line-through text-slate-400" : "text-slate-700"
-                          )}>
-                            {task.title}
-                          </span>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-center py-12 text-slate-400 border border-dashed border-slate-200 rounded-2xl">
-                        <CheckSquare className="w-10 h-10 mx-auto mb-3 opacity-20" />
-                        <p className="text-sm">Nenhuma tarefa pendente.</p>
-                      </div>
-                    )}
-                  </div>
-                </motion.div>
-              )}
-
-              {activeTab === 'turma' && (
-                <motion.div
-                  key="tab-turma"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="p-8 space-y-4"
-                >
-                  {loadingTurmas ? (
-                    <div className="flex justify-center p-8"><Loader2 className="animate-spin text-emerald-600" /></div>
-                  ) : leadTurmas.length > 0 ? (
-                    leadTurmas.map(({ turma, attendee }) => {
-                      const statusInfo = ATTENDANCE_STATUS_LABELS[attendee.status] ?? { label: attendee.status, color: 'bg-slate-100 text-slate-600' };
-                      return (
-                        <div key={turma.id} className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-3">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <h4 className="font-bold text-slate-800 text-base">{turma.name}</h4>
-                              <p className="text-xs text-slate-500 mt-0.5">{turma.professor_name || 'Sem professor'}</p>
-                            </div>
-                            <span className={cn('text-[10px] font-bold px-2 py-1 rounded-full', statusInfo.color)}>
-                              {statusInfo.label}
-                            </span>
-                          </div>
-                          <div className="space-y-1.5 text-xs text-slate-500">
-                            <div className="flex items-center gap-2">
-                              <Calendar size={12} className="text-emerald-500 shrink-0" />
-                              {turma.date
-                                ? new Date(turma.date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })
-                                : 'Data não definida'}
-                              <Clock size={12} className="text-emerald-500 ml-1 shrink-0" />
-                              {turma.time || '--:--'}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <MapPin size={12} className="text-emerald-500 shrink-0" />
-                              {turma.location || 'Sem localização'}
-                            </div>
-                          </div>
-                          {attendee.vendas > 0 && (
-                            <div className="pt-2 border-t border-slate-50">
-                              <span className="text-xs font-bold text-emerald-700">
-                                Vendas: R$ {attendee.vendas.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div className="text-center py-12 text-slate-400 border border-dashed border-slate-200 rounded-2xl">
-                      <GraduationCap className="w-10 h-10 mx-auto mb-3 opacity-20" />
-                      <p className="text-sm">Este lead não está matriculado em nenhuma turma.</p>
-                    </div>
-                  )}
-                </motion.div>
-              )}
-            </>
-          </div>
-
-          {/* Footer Actions */}
-          <div className="px-8 py-6 border-t border-slate-100 bg-white flex items-center justify-between shadow-[0_-10px_30px_rgba(0,0,0,0.02)]">
-            <button
-              onClick={handleDelete}
-              className="p-3 hover:bg-red-50 rounded-2xl text-red-400 transition-all hover:scale-105 active:scale-95 border border-transparent hover:border-red-100"
-              title="Excluir Lead"
-            >
-              <Trash2 size={20} />
-            </button>
-            <div className="flex gap-4">
-              <button
-                onClick={onClose}
-                className="px-8 py-3 text-sm font-bold text-slate-500 hover:bg-slate-50 rounded-2xl transition-all border border-slate-100 shadow-sm"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="px-10 py-3 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-2xl shadow-lg shadow-emerald-200 transition-all flex items-center gap-2 disabled:opacity-50 hover:scale-105 active:scale-95"
-              >
-                {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                Salvar Alterações
-              </button>
-            </div>
+          {/* Tab Content */}
+          <div className="flex-1 overflow-auto px-5 py-4">
+            {activeTab === 'info' && (
+              <div>
+                <LeadInfoTab
+                  lead={lead}
+                  formData={form.formData}
+                  products={products}
+                  fieldErrors={form.fieldErrors}
+                  whatsappUrl={form.whatsappUrl}
+                  calculateFinalValue={form.calculateFinalValue}
+                  hoverStars={form.hoverStars}
+                  setHoverStars={form.setHoverStars}
+                  updateFormField={form.updateFormField}
+                  toggleField={form.toggleField}
+                  handleSave={form.handleSave}
+                  isSaving={form.isSaving}
+                  onDelete={handleDelete}
+                  onCancel={onClose}
+                  currentStageName={currentStageName}
+                  showConfirmations={showConfirmations}
+                  responsibles={vendedores}
+                  pixCompleted={form.formData.pix_completed}
+                  contractSigned={form.formData.contract_signed}
+                  onPixComplete={(v) => form.toggleField('pix_completed', v)}
+                  onContractSign={(v) => form.toggleField('contract_signed', v)}
+                />
+              </div>
+            )}
+            {activeTab === 'history' && (
+              <div className="space-y-4">
+                <LeadHistoryTab lead={lead} />
+              </div>
+            )}
+            {activeTab === 'notes' && (
+              <LeadNotesTab {...leadNotes} />
+            )}
+            {activeTab === 'tasks' && (
+              <LeadTasksTab
+                {...leadTasks}
+                leadId={lead.id}
+                leadName={lead.name}
+              />
+            )}
+            {activeTab === 'turma' && (
+              <LeadTurmaTab
+                {...leadTurmas}
+                leadId={lead.id}
+                leadName={lead.name}
+              />
+            )}
           </div>
         </motion.div>
       </div>
-    </AnimatePresence>,
-    document.body
   );
 };
 
-
+export { LeadDetailsModal };

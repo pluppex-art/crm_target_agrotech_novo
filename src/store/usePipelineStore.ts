@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { pipelineService } from '../services/pipelineService';
 import { PipelineWithStages, PipelineStage, Pipeline } from '../types/pipelines';
+import { getSupabaseClient } from '../lib/supabase';
 
 interface PipelineState {
   pipelines: PipelineWithStages[];
@@ -16,6 +17,7 @@ interface PipelineState {
   deleteStage: (id: string) => Promise<void>;
   reorderStages: (pipelineId: string, stageIds: string[]) => Promise<void>;
   getStages: (pipelineId: string) => PipelineStage[];
+  subscribe: () => () => void;
 }
 
 export const usePipelineStore = create<PipelineState>((set, get) => ({
@@ -139,8 +141,8 @@ export const usePipelineStore = create<PipelineState>((set, get) => ({
       const success = await pipelineService.reorderStages(pipelineId, stageIds);
       if (success) {
         set((state) => ({
-          pipelines: state.pipelines.map(p => 
-            p.id === pipelineId 
+          pipelines: state.pipelines.map(p =>
+            p.id === pipelineId
               ? { ...p, stages: stageIds.map(id => p.stages.find(s => s.id === id)! ) }
               : p
           )
@@ -149,6 +151,57 @@ export const usePipelineStore = create<PipelineState>((set, get) => ({
     } catch (error) {
       console.error('Error reordering stages:', error);
     }
-  }
-}));
+  },
 
+  subscribe: () => {
+    const supabase = getSupabaseClient();
+
+    const channelId = `realtime:pipelines-${Math.random().toString(36).substring(7)}`;
+    const channel = supabase
+      .channel(channelId)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pipelines' }, (payload) => {
+        console.log('Realtime Pipeline Event:', payload.eventType);
+        const { eventType, new: newRecord, old: oldRecord } = payload;
+        set((state) => {
+          let updated = [...state.pipelines];
+          if (eventType === 'INSERT') {
+            if (!updated.some(p => p.id === (newRecord as Pipeline).id)) {
+              updated = [{ ...(newRecord as Pipeline), stages: [] }, ...updated];
+            }
+          } else if (eventType === 'UPDATE') {
+            updated = updated.map(p => p.id === (newRecord as Pipeline).id ? { ...p, ...newRecord } : p);
+          } else if (eventType === 'DELETE') {
+            updated = updated.filter(p => p.id !== (oldRecord as any).id);
+          }
+          return { pipelines: updated };
+        });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pipeline_stages' }, (payload) => {
+        const { eventType, new: newRecord, old: oldRecord } = payload;
+        set((state) => ({
+          pipelines: state.pipelines.map(p => {
+            if (eventType === 'INSERT') {
+              const stage = newRecord as PipelineStage;
+              if (p.id !== stage.pipeline_id) return p;
+              if (p.stages.some(s => s.id === stage.id)) return p;
+              return { ...p, stages: [...p.stages, stage].sort((a, b) => a.position - b.position) };
+            } else if (eventType === 'UPDATE') {
+              const stage = newRecord as PipelineStage;
+              if (p.id !== stage.pipeline_id) return p;
+              return { ...p, stages: p.stages.map(s => s.id === stage.id ? { ...s, ...stage } : s).sort((a, b) => a.position - b.position) };
+            } else if (eventType === 'DELETE') {
+              return { ...p, stages: p.stages.filter(s => s.id !== (oldRecord as any).id) };
+            }
+            return p;
+          })
+        }));
+      })
+      .subscribe((status) => {
+        console.log(`Realtime Pipeline Status (${channelId}):`, status);
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  },
+}));

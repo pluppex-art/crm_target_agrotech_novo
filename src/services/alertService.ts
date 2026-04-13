@@ -1,9 +1,9 @@
 import { Lead } from '../types/leads';
 import { emailService } from './emailService';
+import { useNotificationStore } from '../store/useNotificationStore';
 
 const ALERT_12H_MS = 12 * 60 * 60 * 1000;
 const ALERT_18H_MS = 18 * 60 * 60 * 1000;
-const AUTO_TRANSFER_48H_MS = 48 * 60 * 60 * 1000;
 
 const SENT_ALERTS_KEY = 'crm_sent_alerts';
 
@@ -49,7 +49,7 @@ function sendOSNotification(title: string, body: string) {
   }
 }
 
-function openWhatsApp(phone: string, message: string) {
+export function openWhatsApp(phone: string, message: string) {
   const cleaned = phone.replace(/\D/g, '');
   const number = cleaned.startsWith('55') ? cleaned : `55${cleaned}`;
   const url = `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
@@ -90,7 +90,8 @@ export interface InactivityCheckResult {
   toTransfer: Lead[];
 }
 
-export function checkLeadInactivity(leads: Lead[]): InactivityCheckResult {
+export function checkLeadInactivity(leads: Lead[], autoTransferHours: number = 48): InactivityCheckResult {
+  const autoTransferMs = autoTransferHours * 60 * 60 * 1000;
   const sentAlerts = getSentAlerts();
   const alerts: InactivityAlert[] = [];
   const toTransfer: Lead[] = [];
@@ -102,7 +103,7 @@ export function checkLeadInactivity(leads: Lead[]): InactivityCheckResult {
     const elapsed = getMsWithoutContact(lead);
     const leadSent = sentAlerts[lead.id] || {};
 
-    if (elapsed >= AUTO_TRANSFER_48H_MS) {
+    if (elapsed >= autoTransferMs) {
       toTransfer.push(lead);
     } else if (elapsed >= ALERT_18H_MS && !leadSent.h18) {
       alerts.push({ lead, hoursElapsed: 18, type: '18h' });
@@ -140,6 +141,21 @@ export async function fireAlerts(
 
     // Mark as sent
     markAlertSent(lead.id, type === '12h' ? 'h12' : 'h18');
+
+    // Add to in-app notification feed with lead details
+    useNotificationStore.getState().addNotification({
+      title,
+      message: body,
+      type: 'urgent',
+      category: 'alerts',
+      link: `/pipeline?lead=${lead.id}`,
+      meta: JSON.stringify({
+        leadId: lead.id,
+        phone: lead.phone,
+        product: lead.product,
+        responsible: lead.responsible || 'Não definido'
+      })
+    });
   }
 }
 

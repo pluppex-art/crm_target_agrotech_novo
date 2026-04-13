@@ -32,7 +32,11 @@ export interface Lead {
   cnpj?: string;
   city?: string;
   discount?: string;
+  discount_type?: 'percent' | 'money';
+  discount_applied?: boolean;
   responsible?: string;
+  pix_completed?: boolean;
+  contract_signed?: boolean;
   created_at: string;
   last_contact_at?: string;
   history?: LeadHistory[];

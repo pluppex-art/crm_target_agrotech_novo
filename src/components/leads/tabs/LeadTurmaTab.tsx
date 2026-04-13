@@ -1,0 +1,99 @@
+import React, { useState } from 'react';
+import { GraduationCap, Calendar, Clock, MapPin, Plus, Activity } from 'lucide-react';
+import { NewActivityModal } from '../../tasks/NewActivityModal';
+
+interface LeadTurmaTabProps {
+  leadTurmas: any[];
+  loadingTurmas: boolean;
+  leadId?: string;
+  leadName?: string;
+  onActivityCreated?: () => void;
+}
+
+export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
+  leadTurmas,
+  loadingTurmas,
+  leadId,
+  leadName,
+  onActivityCreated,
+}) => {
+  const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
+
+  return (
+    <div className="space-y-4">
+      {/* Header with Nova Atividade button */}
+      <div className="flex items-center justify-between py-2">
+        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Turmas vinculadas</h3>
+        <button
+          onClick={() => setIsActivityModalOpen(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-all shadow-sm"
+        >
+          <Plus size={14} />
+          Nova Atividade
+        </button>
+      </div>
+
+      {loadingTurmas ? (
+        <div className="flex justify-center p-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600" />
+        </div>
+      ) : leadTurmas.length > 0 ? (
+        leadTurmas.map(({ turma, attendee }: any) => (
+          <div key={turma.id} className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-3">
+            <div className="flex items-start justify-between">
+              <div>
+                <h4 className="font-bold text-slate-800 text-base">{turma.name}</h4>
+                <p className="text-xs text-slate-500 mt-0.5">{turma.professor_name || 'Sem professor'}</p>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-blue-100 text-blue-700 capitalize">
+                {attendee.status}
+              </span>
+            </div>
+            <div className="space-y-1.5 text-xs text-slate-500">
+              <div className="flex items-center gap-2">
+                <Calendar size={12} className="text-emerald-500 shrink-0" />
+                {turma.date
+                  ? new Date(turma.date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })
+                  : 'Data não definida'}
+                <Clock size={12} className="text-emerald-500 ml-1 shrink-0" />
+                {turma.time || '--:--'}
+              </div>
+              <div className="flex items-center gap-2">
+                <MapPin size={12} className="text-emerald-500 shrink-0" />
+                {turma.location || 'Sem localização'}
+              </div>
+            </div>
+            {attendee.vendas > 0 && (
+              <div className="pt-2 border-t border-slate-50">
+                <span className="text-xs font-bold text-emerald-700">
+                  Vendas: R$ {attendee.vendas.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                </span>
+              </div>
+            )}
+          </div>
+        ))
+      ) : (
+        <div className="text-center py-10 text-slate-400 border border-dashed border-slate-200 rounded-2xl">
+          <GraduationCap className="w-10 h-10 mx-auto mb-3 opacity-20" />
+          <p className="text-sm">Este lead não está matriculado em nenhuma turma.</p>
+        </div>
+      )}
+
+      {/* Empty state for activities hint */}
+      <div className="border border-dashed border-blue-100 rounded-2xl p-4 flex items-start gap-3 bg-blue-50/40">
+        <Activity size={16} className="text-blue-400 mt-0.5 shrink-0" />
+        <p className="text-xs text-blue-600 leading-relaxed">
+          Registre atividades relacionadas a este lead — ligações, visitas, reuniões — clicando em <strong>Nova Atividade</strong>. Elas também aparecem na página de Tarefas e no Calendário.
+        </p>
+      </div>
+
+      <NewActivityModal
+        isOpen={isActivityModalOpen}
+        onClose={() => setIsActivityModalOpen(false)}
+        leadId={leadId}
+        leadName={leadName}
+        onCreated={onActivityCreated}
+      />
+    </div>
+  );
+};

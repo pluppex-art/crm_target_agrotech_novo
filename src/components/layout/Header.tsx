@@ -22,7 +22,9 @@ import { useContractStore } from '../../store/useContractStore';
 import { useProductStore } from '../../store/useProductStore';
 import { useMarketingStore } from '../../store/useMarketingStore';
 import { useAuthStore } from '../../store/useAuthStore';
-import { cn } from '../../lib/utils';
+import { useProfileStore } from '../../store/useProfileStore';
+import { useNotificationStore } from '../../store/useNotificationStore';
+import { cn, formatRelativeTime } from '../../lib/utils';
 import { LogOut } from 'lucide-react';
 
 type SearchResult = {
@@ -46,17 +48,20 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
   const notificationsRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
-  const notifications = [
-    { id: 1, title: 'Lead Urgente', message: 'João Silva solicitou contato imediato.', time: '5 min atrás', type: 'urgent' },
-    { id: 2, title: 'Tarefa Pendente', message: 'Contrato da Fazenda Boa Vista vence hoje.', time: '1 hora atrás', type: 'pending' },
-    { id: 3, title: 'Nova Proposta', message: 'Proposta enviada para Maria Oliveira.', time: '2 horas atrás', type: 'info' },
-  ];
+  const { 
+    notifications, 
+    unreadCount, 
+    markAsRead 
+  } = useNotificationStore();
 
   const { leads, fetchLeads } = useLeadStore();
   const { tasks, fetchTasks } = useTaskStore();
   const { contracts, fetchContracts } = useContractStore();
   const { products, fetchProducts } = useProductStore();
   const { campaigns, fetchCampaigns } = useMarketingStore();
+  const { profiles } = useProfileStore();
+  const profile = profiles.find(p => p.id === user?.id);
+
 
   useEffect(() => {
     fetchLeads();
@@ -104,7 +109,7 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
     // Tasks
     tasks.filter(t => 
       t.title.toLowerCase().includes(q) || 
-      t.description.toLowerCase().includes(q)
+      (t.description || '').toLowerCase().includes(q)
     ).slice(0, 5).forEach(t => results.push({
       id: t.id,
       type: 'Tarefa',
@@ -129,7 +134,7 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
     // Products
     products.filter(p => 
       p.name.toLowerCase().includes(q) || 
-      p.category.toLowerCase().includes(q)
+      (p.category || '').toLowerCase().includes(q)
     ).slice(0, 5).forEach(p => results.push({
       id: p.id,
       type: 'Produto',
@@ -245,7 +250,9 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
             title="Notificações"
           >
             <Bell className="w-5 h-5" />
-            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
+            {unreadCount > 0 && (
+              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white animate-pulse" />
+            )}
           </button>
 
           {/* Notifications Dropdown */}
@@ -259,43 +266,65 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
               >
                 <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                   <h3 className="font-bold text-slate-800 text-sm">Notificações</h3>
-                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full uppercase">
-                    {notifications.length} Novas
-                  </span>
+                  {unreadCount > 0 && (
+                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full uppercase">
+                      {unreadCount} Novas
+                    </span>
+                  )}
                 </div>
                 <div className="max-h-96 overflow-y-auto">
-                  {notifications.map((notif) => (
-                    <button
-                      key={notif.id}
-                      className="w-full p-4 text-left hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0 group"
-                    >
-                      <div className="flex gap-3">
-                        <div className={cn(
-                          "w-2 h-2 rounded-full mt-1.5 shrink-0",
-                          notif.type === 'urgent' ? "bg-red-500" : 
-                          notif.type === 'pending' ? "bg-amber-500" : "bg-blue-500"
-                        )} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-bold text-slate-800 mb-0.5 group-hover:text-emerald-600 transition-colors">
-                            {notif.title}
-                          </p>
-                          <p className="text-[11px] text-slate-500 leading-relaxed mb-1.5">
-                            {notif.message}
-                          </p>
-                          <p className="text-[10px] text-slate-400 font-medium">
-                            {notif.time}
-                          </p>
+                  {notifications.length > 0 ? (
+                    notifications.slice(0, 5).map((notif) => (
+                      <button
+                        key={notif.id}
+                        onClick={() => {
+                          markAsRead(notif.id);
+                          if (notif.link) navigate(notif.link);
+                          setIsNotificationsOpen(false);
+                        }}
+                        className="w-full p-4 text-left hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0 group"
+                      >
+                        <div className="flex gap-3">
+                          <div className={cn(
+                            "w-2 h-2 rounded-full mt-1.5 shrink-0",
+                            !notif.read ? (
+                              notif.type === 'urgent' ? "bg-red-500" : 
+                              notif.type === 'pending' ? "bg-amber-500" : "bg-emerald-500"
+                            ) : "bg-slate-200"
+                          )} />
+                          <div className="flex-1 min-w-0">
+                            <p className={cn(
+                              "text-xs font-bold mb-0.5 group-hover:text-emerald-600 transition-colors",
+                              notif.read ? "text-slate-400" : "text-slate-800"
+                            )}>
+                              {notif.title}
+                            </p>
+                            <p className={cn(
+                              "text-[11px] leading-relaxed mb-1.5",
+                              notif.read ? "text-slate-400" : "text-slate-500"
+                            )}>
+                              {notif.message}
+                            </p>
+                            <p className="text-[10px] text-slate-400 font-medium">
+                              {formatRelativeTime(notif.created_at)}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    </button>
-                  ))}
+                      </button>
+                    ))
+                  ) : (
+                    <div className="p-8 text-center">
+                      <Bell className="w-8 h-8 text-slate-200 mx-auto mb-2" />
+                      <p className="text-sm text-slate-500">Nenhuma notificação</p>
+                    </div>
+                  )}
                 </div>
                 <button 
                   onClick={() => {
-                    navigate('/settings/notifications');
+                    navigate('/notifications');
                     setIsNotificationsOpen(false);
                   }}
-                  className="w-full py-3 text-center text-xs font-bold text-emerald-600 hover:bg-emerald-50 transition-colors border-t border-slate-100"
+                  className="w-full py-3 text-center text-xs font-bold text-emerald-600 hover:bg-emerald-50 transition-colors border-t border-slate-100 uppercase tracking-wider"
                 >
                   Ver todas as notificações
                 </button>
@@ -327,13 +356,12 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
           >
             <div className="text-right hidden sm:block">
               <p className="text-sm font-bold text-slate-800">{user?.email?.split('@')[0] || 'Usuário'}</p>
-              <p className="text-[10px] text-slate-400 font-bold uppercase">Administrador</p>
             </div>
             <div className="relative">
-              <img 
-                src={`https://i.pravatar.cc/150?u=${user?.id}`} 
-                alt="User" 
-                className="w-9 h-9 rounded-full border-2 border-white shadow-sm"
+            <img 
+                src={profile?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.name || user?.email?.split('@')[0] || 'User')}&size=150&background=6b7280&color=ffffff`} 
+                alt="Avatar" 
+                className="w-9 h-9 rounded-full border-2 border-white shadow-sm object-cover"
                 referrerPolicy="no-referrer"
               />
               <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />

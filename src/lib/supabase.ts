@@ -17,3 +17,10 @@ export const supabase = createClient(
 export function getSupabaseClient(): SupabaseClient {
   return supabase;
 }
+
+const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+export const serviceSupabase = supabaseServiceKey ? createClient(supabaseUrl || '', supabaseServiceKey) : null;
+
+export function getServiceSupabaseClient(): SupabaseClient | null {
+  return serviceSupabase;
+}

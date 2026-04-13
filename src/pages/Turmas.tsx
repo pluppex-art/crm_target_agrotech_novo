@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   GraduationCap,
   Plus,
@@ -15,17 +15,27 @@ import {
   XCircle,
   Trash2,
   Edit2,
-  Loader2,
   BookOpen,
 } from 'lucide-react';
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import { DndContext, useSensors, useSensor, PointerSensor, closestCenter, Active, Over } from '@dnd-kit/core';
+import {
+  useDroppable,
+  useDraggable,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  CSS,
+  Transform
+} from '@dnd-kit/utilities';
 import { useTurmaStore, Turma, TurmaAttendee, AttendanceStatus } from '../store/useTurmaStore';
+import { Loader2 } from 'lucide-react';
 import { UnifiedTurmaProductForm } from '../components/forms/UnifiedTurmaProductForm';
 import { LeadDetailsModal } from '../components/leads/LeadDetailsModal';
 import { Lead } from '../types/leads';
 import { getSupabaseClient } from '../lib/supabase';
 import { cn } from '../lib/utils';
 import { useEffect } from 'react';
+import { usePermissions } from '../hooks/usePermissions';
 
 // ── Column definitions — order: matriculado → cancelado → indeciso → confirmado ──
 const STATUS_COLUMNS: { id: AttendanceStatus; label: string; color: string; bg: string; icon: React.ReactNode }[] = [
@@ -52,11 +62,13 @@ async function fetchLeadById(leadId: string): Promise<Lead | null> {
 }
 
 export function Turmas() {
-  const { turmas, fetchTurmas, updateAttendeeStatus, removeTurma, removeAttendee, isLoading } = useTurmaStore();
+  const { hasPermission } = usePermissions();
+  const { turmas, fetchTurmas, updateAttendeeStatus, removeTurma, removeAttendee, isLoading, subscribe } = useTurmaStore();
   const [selectedTurma, setSelectedTurma] = useState<Turma | null>(null);
   const [isNewTurmaOpen, setIsNewTurmaOpen] = useState(false);
   const [editingTurma, setEditingTurma] = useState<Turma | null>(null);
   const [setupRequired] = useState(false);
+  const [responsibles, setResponsibles] = useState<string[]>([]);
 
   // Attendee detail modal
   const [selectedAttendeeLead, setSelectedAttendeeLead] = useState<Lead | null>(null);
@@ -67,18 +79,64 @@ export function Turmas() {
     fetchTurmas();
   }, [fetchTurmas]);
 
-  const onDragEnd = (result: DropResult) => {
-    const { destination, source, draggableId } = result;
-    if (!destination) return;
-    if (destination.droppableId === source.droppableId) return;
-    if (!selectedTurma) return;
-    updateAttendeeStatus(selectedTurma.id, draggableId, destination.droppableId as AttendanceStatus);
+  // Fetch distinct responsibles directly from the database
+  useEffect(() => {
+    const fetchResponsibles = async () => {
+      const supabase = getSupabaseClient();
+      if (!supabase) return;
+      const { data } = await supabase
+        .from('leads')
+        .select('responsible')
+        .not('responsible', 'is', null)
+        .neq('responsible', '');
+      if (data) {
+        const unique = Array.from(new Set(data.map((r: any) => r.responsible).filter(Boolean))) as string[];
+        setResponsibles(unique);
+      }
+    };
+    fetchResponsibles();
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = subscribe();
+    return unsubscribe;
+  }, []); // Subscribe once
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
+
+  if (!hasPermission('turmas.view')) {
+    return (
+      <div className="p-6 flex flex-col items-center justify-center min-h-[600px] text-center">
+        <div className="w-24 h-24 bg-slate-100 rounded-2xl flex items-center justify-center mb-6 shadow-sm">
+          <GraduationCap className="w-12 h-12 text-slate-400" />
+        </div>
+        <h2 className="text-2xl font-bold text-slate-800 mb-3">Acesso Bloqueado</h2>
+        <p className="text-slate-500 max-w-md mb-4 leading-relaxed">
+          Você precisa da permissão <code className="bg-slate-100 px-2 py-1 rounded-lg text-sm font-mono text-slate-700">turmas.view</code> para acessar as turmas.
+        </p>
+        <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Contate o administrador</p>
+      </div>
+    );
+  }
+
+  const onDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || !selectedTurma) return;
+    const newStatus = over.id as AttendanceStatus;
+    const attendeeId = active.id as string;
+    updateAttendeeStatus(selectedTurma.id, attendeeId, newStatus);
     setSelectedTurma(prev => {
       if (!prev) return null;
       return {
         ...prev,
         attendees: prev.attendees.map(a =>
-          a.id === draggableId ? { ...a, status: destination.droppableId as AttendanceStatus } : a
+          a.id === attendeeId ? { ...a, status: newStatus } : a
         ),
       };
     });
@@ -101,6 +159,8 @@ export function Turmas() {
 
   const totalVendasTurma = (t: Turma) =>
     t.attendees.reduce((acc, a) => acc + a.vendas, 0);
+
+
 
   return (
     <div className="flex flex-col lg:flex-row h-full bg-[#f3f6f9] overflow-hidden relative">
@@ -219,7 +279,7 @@ export function Turmas() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Package size={12} className="text-emerald-500 shrink-0" />
-                      {turma.product}
+                      {turma.product_name}
                     </div>
                   </div>
 
@@ -301,55 +361,24 @@ export function Turmas() {
                 Lista de Presença
               </p>
 
-              <DragDropContext onDragEnd={onDragEnd}>
+              <DndContext 
+                key={`dnd-${liveSelectedTurma.id}`} 
+                sensors={sensors} 
+                collisionDetection={closestCenter} 
+                onDragEnd={onDragEnd}
+              >
                 <div className="flex lg:flex-row flex-col gap-4 h-full min-h-[300px]">
-                  {STATUS_COLUMNS.map(col => {
-                    const attendeesInCol = (liveSelectedTurma.attendees || []).filter(a => a.status === col.id);
-                    return (
-                      <div key={col.id} className="flex flex-col flex-1 min-w-[180px]">
-                        <div className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl border mb-3 shadow-sm', col.bg)}>
-                          {col.icon}
-                          <span className={cn('text-xs font-bold', col.color)}>{col.label}</span>
-                          <span className="ml-auto text-xs font-bold text-slate-400">{attendeesInCol.length}</span>
-                        </div>
-
-                        <Droppable droppableId={col.id}>
-                          {(provided, snapshot) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.droppableProps}
-                              className={cn(
-                                'flex-1 space-y-2.5 p-2 rounded-xl min-h-[150px] transition-colors',
-                                snapshot.isDraggingOver ? 'bg-emerald-50/50 ring-2 ring-emerald-100 ring-inset' : 'bg-slate-50/30'
-                              )}
-                            >
-                              {attendeesInCol.map((att, index) => {
-                                const DraggableAny = Draggable as any;
-                                return (
-                                  <DraggableAny key={att.id} draggableId={att.id} index={index}>
-                                    {(prov: any, snap: any) => (
-                                      <AttendeeCard
-                                        attendee={att}
-                                        innerRef={prov.innerRef}
-                                        draggableProps={prov.draggableProps}
-                                        dragHandleProps={prov.dragHandleProps}
-                                        isDragging={snap.isDragging}
-                                        onViewDetails={att.lead_id ? () => handleAttendeeClick(att, liveSelectedTurma.id) : undefined}
-                                        onRemove={() => removeAttendee(liveSelectedTurma.id, att.id)}
-                                      />
-                                    )}
-                                  </DraggableAny>
-                                );
-                              })}
-                              {provided.placeholder}
-                            </div>
-                          )}
-                        </Droppable>
-                      </div>
-                    );
-                  })}
+                  {STATUS_COLUMNS.map(col => (
+                    <TurmaColumn
+                      key={`col-${col.id}-${liveSelectedTurma.id}`}
+                      column={col}
+                      attendees={liveSelectedTurma.attendees || []}
+                      onAttendeeClick={(att) => handleAttendeeClick(att, liveSelectedTurma.id)}
+                      onRemoveAttendee={(attId) => removeAttendee(liveSelectedTurma.id, attId)}
+                    />
+                  ))}
                 </div>
-              </DragDropContext>
+              </DndContext>
             </div>
 
             {/* Vendor Sales Table */}
@@ -426,7 +455,9 @@ export function Turmas() {
           onClose={() => { setSelectedAttendeeLead(null); setSelectedAttendeeInfo(null); }}
           lead={selectedAttendeeLead}
           turmaAttendee={selectedAttendeeInfo ?? undefined}
-          onTurmaStatusChange={(turmaId, attendeeId, status) => {
+          currentStageId={selectedAttendeeInfo?.currentStatus}
+          responsibles={responsibles}
+          onTurmaStatusChange={(turmaId: string, attendeeId: string, status: AttendanceStatus) => {
             updateAttendeeStatus(turmaId, attendeeId, status);
             setSelectedAttendeeInfo(prev => prev ? { ...prev, currentStatus: status } : null);
           }}
@@ -436,36 +467,88 @@ export function Turmas() {
   );
 }
 
+/* ── Turma Column Component ────────────────────────────────────────────────── */
+interface TurmaColumnProps {
+  column: typeof STATUS_COLUMNS[number];
+  attendees: TurmaAttendee[];
+  onAttendeeClick: (att: TurmaAttendee) => void;
+  onRemoveAttendee: (attId: string) => void;
+}
+
+function TurmaColumn({ column, attendees, onAttendeeClick, onRemoveAttendee }: TurmaColumnProps) {
+  const attendeesInCol = attendees.filter(a => a.status === column.id);
+  const { isOver, setNodeRef } = useDroppable({ id: column.id });
+
+  return (
+    <div className="flex flex-col flex-1 min-w-[180px]">
+      <div className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl border mb-3 shadow-sm', column.bg)}>
+        {column.icon}
+        <span className={cn('text-xs font-bold', column.color)}>{column.label}</span>
+        <span className="ml-auto text-xs font-bold text-slate-400">{attendeesInCol.length}</span>
+      </div>
+
+      <div className="flex-1 space-y-2.5 p-2 rounded-xl min-h-[150px]">
+        <div ref={setNodeRef} className={cn(
+          'min-h-[150px]',
+          isOver ? 'bg-emerald-50/50 ring-2 ring-emerald-100 ring-inset' : 'bg-slate-50/30'
+        )}>
+          {attendeesInCol.map((att) => (
+            <AttendeeCard
+              key={att.id}
+              attendee={att}
+              id={att.id}
+              onViewDetails={att.lead_id ? () => onAttendeeClick(att) : undefined}
+              onRemove={() => onRemoveAttendee(att.id)}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Attendee Card ─────────────────────────────────────────────────────────── */
 interface AttendeeCardProps {
   attendee: TurmaAttendee;
-  innerRef: React.Ref<HTMLDivElement>;
-  draggableProps: any;
-  dragHandleProps: any;
-  isDragging: boolean;
+  id: string;
   onViewDetails?: () => void;
   onRemove?: () => void;
 }
 
-function AttendeeCard({ attendee, innerRef, draggableProps, dragHandleProps, isDragging, onViewDetails, onRemove }: AttendeeCardProps) {
+function AttendeeCard({ attendee, id, onViewDetails, onRemove }: AttendeeCardProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    isDragging
+  } = useDraggable({
+    id,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+  };
+
   return (
     <div
-      ref={innerRef}
-      {...draggableProps}
-      {...dragHandleProps}
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
       className={cn(
         'bg-white rounded-xl border border-slate-100 p-3 shadow-sm flex items-center gap-3 transition-all group/card',
-        isDragging ? 'shadow-xl border-emerald-300 rotate-1' : 'hover:border-emerald-200',
+        isDragging ? 'shadow-xl border-emerald-300 rotate-1 cursor-grabbing scale-[1.02]' : 'hover:border-emerald-200 cursor-grab',
       )}
     >
       <img
         src={attendee.photo}
         alt={attendee.name}
-        onClick={onViewDetails}
-        className={cn('w-8 h-8 rounded-full object-cover border-2 border-slate-100 shrink-0', onViewDetails && 'cursor-pointer')}
+        onClick={(e) => { e.stopPropagation(); onViewDetails?.(); }}
+        className={cn('w-8 h-8 rounded-full object-cover border-2 border-slate-100 shrink-0', onViewDetails && 'cursor-pointer hover:opacity-80')}
         referrerPolicy="no-referrer"
       />
-      <div className="flex-1 min-w-0" onClick={onViewDetails} style={onViewDetails ? { cursor: 'pointer' } : {}}>
+      <div className="flex-1 min-w-0" onClick={(e) => { e.stopPropagation(); onViewDetails?.(); }}>
         <p className="text-xs font-bold text-slate-700 truncate">{attendee.name}</p>
         <p className="text-[10px] text-slate-400 truncate">{attendee.responsible}</p>
       </div>

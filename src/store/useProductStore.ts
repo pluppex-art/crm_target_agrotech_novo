@@ -1,14 +1,16 @@
 import { create } from 'zustand';
 import { productService, Product } from '../services/productService';
+import { getSupabaseClient } from '../lib/supabase';
 
 interface ProductState {
   products: Product[];
   loading: boolean;
   error: string | null;
   fetchProducts: () => Promise<void>;
-  addProduct: (product: Omit<Product, 'id' | 'created_at'>) => Promise<void>;
+  addProduct: (product: Omit<Product, 'id' | 'created_at'>) => Promise<Product | null>;
   updateProduct: (productId: string, product: Partial<Omit<Product, 'id' | 'created_at'>>) => Promise<void>;
   deleteProduct: (productId: string) => Promise<void>;
+  subscribe: () => () => void;
 }
 
 export const useProductStore = create<ProductState>((set) => ({
@@ -32,11 +34,14 @@ export const useProductStore = create<ProductState>((set) => ({
       const newProduct = await productService.createProduct(product);
       if (newProduct) {
         set((state) => ({ products: [...state.products, newProduct], loading: false }));
+        return newProduct;
       } else {
         set({ error: 'Failed to create product', loading: false });
+        return null;
       }
     } catch (error) {
       set({ error: 'Failed to create product', loading: false });
+      return null;
     }
   },
 
@@ -64,5 +69,32 @@ export const useProductStore = create<ProductState>((set) => ({
     } catch (error) {
       console.error('Error deleting product:', error);
     }
+  },
+
+  subscribe: () => {
+    const supabase = getSupabaseClient();
+
+    const channelId = `realtime:products-${Math.random().toString(36).substring(7)}`;
+    const channel = supabase
+      .channel(channelId)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, (payload) => {
+        const { eventType, new: newRecord, old: oldRecord } = payload;
+        set((state) => {
+          let updated = [...state.products];
+          if (eventType === 'INSERT') {
+            if (!updated.some(p => p.id === (newRecord as Product).id)) {
+              updated = [...updated, newRecord as Product];
+            }
+          } else if (eventType === 'UPDATE') {
+            updated = updated.map(p => p.id === (newRecord as Product).id ? { ...p, ...newRecord } : p);
+          } else if (eventType === 'DELETE') {
+            updated = updated.filter(p => p.id !== (oldRecord as any).id);
+          }
+          return { products: updated };
+        });
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   },
 }));

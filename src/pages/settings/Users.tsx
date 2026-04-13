@@ -1,65 +1,83 @@
 import React, { useState, useEffect } from 'react';
 import { UserPlus, Mail, Shield, Save, X, Trash2, Edit2, Loader2 } from 'lucide-react';
 import { useProfileStore } from '../../store/useProfileStore';
+import { useCargoStore } from '../../store/useCargoStore';
 import { UserProfile } from '../../services/profileService';
 
 export function Users() {
-  const { profiles, loading, fetchProfiles, addProfile, updateProfile, deleteProfile } = useProfileStore();
+  const { profiles, loading, fetchProfiles, addProfile: addNewProfile, updateProfile, deleteProfile, subscribe } = useProfileStore();
+  const { cargos, fetchCargos } = useCargoStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
-    role: 'Consultor',
+    role_id: '',
     department: 'Comercial',
     cpf: '',
+    password: '',
+    status: 'active' as const,
   });
 
   useEffect(() => {
     fetchProfiles();
-  }, [fetchProfiles]);
+    fetchCargos();
+    const unsubscribe = subscribe();
+    return () => unsubscribe();
+  }, [fetchProfiles, fetchCargos, subscribe]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
-    
-    if (editingId) {
-      await updateProfile(editingId, formData);
-    } else {
-      const newProfile: UserProfile = {
-        id: Math.random().toString(36).substr(2, 9), // In a real app, this would be the Supabase Auth ID
-        ...formData,
-        status: 'active',
-      };
-      await addProfile(newProfile);
+    setSubmitting(true);
+    setFormError(null);
+    try {
+      if (editingId) {
+        const { password, ...updateData } = formData;
+        await updateProfile(editingId, updateData);
+        fetchProfiles(); // Refresh list realtime
+      } else {
+        await addNewProfile(formData);
+        fetchProfiles(); // Refresh list realtime
+      }
+      handleCloseModal();
+    } catch (err: any) {
+      const msg = err?.message || err?.details || 'Erro ao salvar usuário.';
+      setFormError(msg);
+    } finally {
+      setSubmitting(false);
     }
-    
-    handleCloseModal();
   };
 
   const handleEdit = (profile: UserProfile) => {
     setEditingId(profile.id);
     setFormData({
-      name: profile.name,
-      email: profile.email,
-      phone: profile.phone,
-      role: profile.role,
+      name: profile.name ?? '',
+      email: profile.email ?? '',
+      phone: profile.phone ?? '',
+      role_id: profile.role_id ?? '',
       department: profile.department,
-      cpf: profile.cpf,
-    });
+      cpf: profile.cpf ?? '',
+      password: '',
+      status: profile.status
+    } as unknown as typeof formData);
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingId(null);
-    setFormData({ 
-      name: '', 
-      email: '', 
+    setFormData({
+      name: '',
+      email: '',
       phone: '',
-      role: 'Consultor', 
+      role_id: '',
       department: 'Comercial',
-      cpf: ''
+      cpf: '',
+      password: '',
+      status: 'active' as const
     });
   };
 
@@ -104,10 +122,10 @@ export function Users() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center font-bold text-xs">
-                        {user.name.charAt(0)}
+{(user.name || '?').charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <div className="font-medium text-slate-700">{user.name}</div>
+                        <div className="font-medium text-slate-700">{user.name ?? 'Sem nome'}</div>
                         <div className="text-[10px] text-slate-400 uppercase font-bold">{user.department}</div>
                       </div>
                     </div>
@@ -205,15 +223,29 @@ export function Users() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">CPF</label>
-                  <input 
-                    type="text" 
-                    value={formData.cpf}
-                    onChange={(e) => setFormData({...formData, cpf: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700"
-                    placeholder="000.000.000-00"
-                  />
-                </div>
+          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">CPF</label>
+          <input 
+            type="text" 
+            value={formData.cpf}
+            onChange={(e) => setFormData({...formData, cpf: e.target.value})}
+            className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700"
+            placeholder="000.000.000-00"
+          />
+        </div>
+
+        {!editingId && (
+          <div className="space-y-1.5 md:col-span-2">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Senha</label>
+            <input 
+              required
+              type="password" 
+              value={formData.password}
+              onChange={(e) => setFormData({...formData, password: e.target.value})}
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700"
+              placeholder="Senha segura"
+            />
+          </div>
+        )}
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Departamento</label>
@@ -233,34 +265,43 @@ export function Users() {
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Cargo / Permissão</label>
                   <div className="relative">
-                    <select 
-                      value={formData.role}
-                      onChange={(e) => setFormData({...formData, role: e.target.value})}
+<select 
+                      value={formData.role_id}
+                      onChange={(e) => setFormData({...formData, role_id: e.target.value})}
                       className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 appearance-none"
                     >
-                      <option value="Consultor">Consultor</option>
-                      <option value="Gerente">Gerente</option>
-                      <option value="Administrador">Administrador</option>
-                      <option value="Financeiro">Financeiro</option>
+                      {cargos.map((cargo) => (
+                        <option key={cargo.id} value={cargo.id}>
+                          {cargo.name}
+                        </option>
+                      ))}
                     </select>
                     <Shield size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                   </div>
                 </div>
               </div>
 
+              {formError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
+                  {formError}
+                </div>
+              )}
+
               <div className="pt-4 flex flex-col sm:flex-row justify-end gap-3">
-                <button 
+                <button
                   type="button"
                   onClick={handleCloseModal}
-                  className="px-6 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors w-full sm:w-auto order-2 sm:order-1"
+                  disabled={submitting}
+                  className="px-6 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors w-full sm:w-auto order-2 sm:order-1 disabled:opacity-50"
                 >
                   Cancelar
                 </button>
-                <button 
+                <button
                   type="submit"
-                  className="px-8 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-lg shadow-emerald-200 transition-all flex items-center justify-center gap-2 w-full sm:w-auto order-1 sm:order-2"
+                  disabled={submitting}
+                  className="px-8 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-lg shadow-emerald-200 transition-all flex items-center justify-center gap-2 w-full sm:w-auto order-1 sm:order-2 disabled:opacity-60"
                 >
-                  <Save size={18} />
+                  {submitting ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
                   {editingId ? 'Salvar Alterações' : 'Salvar Usuário'}
                 </button>
               </div>

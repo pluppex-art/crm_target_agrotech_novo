@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, User, Phone, Mail, DollarSign, MapPin, Save, Loader2, ChevronDown, AlertCircle } from 'lucide-react';
 import { useLeadStore } from '../../store/useLeadStore';
 import { useProductStore } from '../../store/useProductStore';
+import { useProfileStore } from '../../store/useProfileStore';
+import { useAuthStore } from '../../store/useAuthStore';
 import { supabaseService } from '../../services/supabaseService';
 import { LeadStatus, LeadSubStatus } from '../../types/leads';
 import { cn, parseBRNumber, formatCPFCNPJ } from '../../lib/utils';
@@ -19,6 +21,21 @@ interface NewLeadModalProps {
 export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, initialStatus = 'new', pipelineId, initialStageId }) => {
   const { addLead } = useLeadStore();
   const { products, fetchProducts } = useProductStore();
+  const { profiles, fetchProfiles } = useProfileStore();
+  const { user } = useAuthStore();
+
+  // Filter only vendedores (profiles with cargo name containing 'vendedor')
+  const vendedores = useMemo(() => {
+    const sellers = profiles.filter(p => {
+      const cargoName = (p.cargos?.name || p.cargo_name || '').toLowerCase();
+      return cargoName.includes('vendedor') || cargoName.includes('vendedor');
+    });
+    // Fallback: show all active profiles if no vendedores found
+    return sellers.length > 0
+      ? sellers
+      : profiles.filter(p => p.status === 'active' || !p.status);
+  }, [profiles]);
+
   const [loading, setLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ phone?: string; email?: string }>({});
   const [formData, setFormData] = useState({
@@ -38,8 +55,14 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
   useEffect(() => {
     if (isOpen) {
       fetchProducts();
+      fetchProfiles();
+      
+      const consultantName = user?.user_metadata?.full_name || user?.user_metadata?.name || '';
+      if (!formData.responsible && consultantName) {
+        setFormData(prev => ({ ...prev, responsible: consultantName }));
+      }
     }
-  }, [isOpen, fetchProducts]);
+  }, [isOpen, fetchProducts, fetchProfiles, user, formData.responsible]);
 
   const calculateFinalValue = () => {
     const val = parseBRNumber(formData.value);
@@ -56,7 +79,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
     });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     setFieldErrors({});
     setLoading(true);
@@ -84,7 +107,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
         status: initialStatus as LeadStatus,
         subStatus: initialStatus === 'qualified' ? formData.subStatus : null,
         stars: 0,
-        photo: `https://picsum.photos/seed/${formData.name}/200`,
+        photo: `https://tfwclxxcgnmndcnbklkx.supabase.co/storage/v1/object/public/icones/5.png`,
         history: [],
         discount: formData.isDiscountApplied ? formData.discountValue : '',
         pipeline_id: pipelineId,
@@ -124,11 +147,11 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
           className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]"
         >
           <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-10">
-            <h2 className="text-xl font-bold text-gray-800">Novo Lead</h2>
+            <h2 className="text-xl font-bold text-gray-800">Novo Cliente</h2>
               {!pipelineId && (
                 <div className="ml-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg text-xs font-bold text-amber-800 flex items-center gap-1 mt-1">
                   <AlertCircle size={12} />
-                  Pipeline não selecionado - lead será criado sem pipeline
+                  Pipeline não selecionado - cliente será criado em um estado padrão
                 </div>
               )}
               <button 
@@ -142,7 +165,9 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
           <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Nome do Cliente</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                  Nome do Cliente <span className="text-red-500">*</span>
+                </label>
                 <div className="relative">
                   <input 
                     required
@@ -157,7 +182,9 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Telefone</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                  Telefone <span className="text-red-500">*</span>
+                </label>
                 <div className="relative">
                   <input
                     type="text"
@@ -195,7 +222,9 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Produto de Interesse</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                  Produto de Interesse <span className="text-red-500">*</span>
+                </label>
                 <div className="relative">
                   <select 
                     value={formData.product}
@@ -254,14 +283,25 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Responsável</label>
-                <input
-                  type="text"
-                  value={formData.responsible}
-                  onChange={(e) => setFormData({...formData, responsible: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
-                  placeholder="Nome do consultor"
-                />
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                  Responsável <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <select
+                    required
+                    value={formData.responsible}
+                    onChange={(e) => setFormData({...formData, responsible: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 appearance-none cursor-pointer"
+                  >
+                    <option value="">Selecione o responsável</option>
+                    {vendedores.map(p => (
+                      <option key={`resp-${p.id}`} value={p.name}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                </div>
               </div>
 
               {initialStatus === 'qualified' && (
@@ -349,7 +389,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                 className="px-8 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-lg shadow-emerald-200 transition-all flex items-center gap-2 disabled:opacity-50"
               >
 {loading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-                Criar Lead
+                Criar Cliente
               </button>
             </div>
           </form>

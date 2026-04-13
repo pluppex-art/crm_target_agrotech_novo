@@ -1,5 +1,4 @@
 import React from 'react';
-import { DraggableProvided, DraggableStateSnapshot } from '@hello-pangea/dnd';
 import { Star, Phone, Plus, Trash2, Edit2, CheckSquare, AlertTriangle, MoreHorizontal } from 'lucide-react';
 import { Lead, LeadSubStatus } from '../../types/leads';
 import { cn, getLeadEffectiveValue } from '../../lib/utils';
@@ -10,13 +9,12 @@ import { getElapsedHours } from '../../services/alertService';
 interface LeadCardProps {
   lead: Lead;
   index: number;
-  provided: DraggableProvided;
-  snapshot: DraggableStateSnapshot;
   onDoubleClick: () => void;
   columnId: string;
+  isDragging?: boolean;
 }
 
-export function LeadCard({ lead, index, provided, snapshot, onDoubleClick, columnId }: LeadCardProps) {
+export function LeadCard({ lead, index, onDoubleClick, columnId, isDragging }: LeadCardProps) {
   const { updateLeadSubStatus, deleteLead, setSelectedLead } = useLeadStore();
   const elapsedHours = getElapsedHours(lead);
   const isWarning = elapsedHours >= 12 && elapsedHours < 18 && lead.status !== 'closed';
@@ -24,13 +22,10 @@ export function LeadCard({ lead, index, provided, snapshot, onDoubleClick, colum
 
   return (
     <div
-      ref={provided.innerRef}
-      {...provided.draggableProps}
-      {...provided.dragHandleProps}
       onDoubleClick={onDoubleClick}
       className={cn(
         "bg-white p-4 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition-all group relative",
-        snapshot.isDragging ? "shadow-xl border-emerald-500 rotate-2" : "",
+        isDragging ? "shadow-xl border-emerald-500 rotate-2" : "",
         isDanger ? "border-red-200 hover:border-red-300" : isWarning ? "border-amber-200 hover:border-amber-300" : "hover:border-emerald-200"
       )}
     >

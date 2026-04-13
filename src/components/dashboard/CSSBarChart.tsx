@@ -15,7 +15,7 @@ export function CSSBarChart({ data, color = 'bg-emerald-500', emptyLabel = 'Sem 
   if (!hasData) {
     return (
       <div className="flex flex-col items-center justify-center h-40 text-slate-300">
-        <BarChart2 className="w-10 h-10 mb-2 opacity Ascendancy -30" />
+        <BarChart2 className="w-10 h-10 mb-2 opacity-30" />
         <p className="text-xs font-medium">{emptyLabel}</p>
       </div>
     );

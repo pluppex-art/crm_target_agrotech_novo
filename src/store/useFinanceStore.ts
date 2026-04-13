@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { Transaction, financeService } from '../services/financeService';
+import { getSupabaseClient } from '../lib/supabase';
 
 interface FinanceStore {
   transactions: Transaction[];
@@ -8,6 +9,7 @@ interface FinanceStore {
   fetchTransactions: () => Promise<void>;
   addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
+  subscribe: () => () => void;
 }
 
 export const useFinanceStore = create<FinanceStore>((set, get) => ({
@@ -56,5 +58,32 @@ export const useFinanceStore = create<FinanceStore>((set, get) => ({
     } catch (err) {
       set({ transactions: previousTransactions, error: 'Failed to delete transaction' });
     }
+  },
+
+  subscribe: () => {
+    const supabase = getSupabaseClient();
+
+    const channelId = `finance-${Math.random().toString(36).substring(7)}`;
+    const channel = supabase
+      .channel(channelId)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, (payload) => {
+        const { eventType, new: newRecord, old: oldRecord } = payload;
+        set((state) => {
+          let updated = [...state.transactions];
+          if (eventType === 'INSERT') {
+            if (!updated.some(t => t.id === (newRecord as Transaction).id)) {
+              updated = [newRecord as Transaction, ...updated];
+            }
+          } else if (eventType === 'UPDATE') {
+            updated = updated.map(t => t.id === (newRecord as Transaction).id ? { ...t, ...newRecord } : t);
+          } else if (eventType === 'DELETE') {
+            updated = updated.filter(t => t.id !== (oldRecord as any).id);
+          }
+          return { transactions: updated };
+        });
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   },
 }));

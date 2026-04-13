@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Package, DollarSign, Tag, Save, Loader2, Image as ImageIcon } from 'lucide-react';
 import { useProductStore } from '../../store/useProductStore';
-
+import { useCategoryStore } from '../../store/useCategoryStore';
 import { Product } from '../../services/productService';
 
 interface NewProductModalProps {
@@ -13,6 +13,7 @@ interface NewProductModalProps {
 
 export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClose, product }) => {
   const { addProduct, updateProduct } = useProductStore();
+  const { categories, fetchCategories } = useCategoryStore();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -22,6 +23,12 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
     image_url: '',
     stock: '0',
   });
+
+  React.useEffect(() => {
+    if (isOpen) {
+      fetchCategories();
+    }
+  }, [isOpen, fetchCategories]);
 
   React.useEffect(() => {
     if (product) {
@@ -136,15 +143,18 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Categoria</label>
                 <div className="relative">
-                  <input 
+                  <select 
                     required
-                    type="text" 
                     value={formData.category}
                     onChange={(e) => setFormData({...formData, category: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
-                    placeholder="Ex: Insumos"
-                  />
-                  <Tag size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 appearance-none"
+                  >
+                    <option value="">Selecionar...</option>
+                    {categories.map(cat => (
+                      <option key={cat.id} value={cat.name}>{cat.name}</option>
+                    ))}
+                  </select>
+                  <Tag size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                 </div>
               </div>
             </div>

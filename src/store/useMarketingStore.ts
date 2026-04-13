@@ -21,6 +21,7 @@ interface MarketingState {
   fetchCampaigns: () => Promise<void>;
   addCampaign: (campaign: Omit<Campaign, 'id' | 'created_at'>) => Promise<void>;
   deleteCampaign: (id: string) => Promise<void>;
+  subscribe: () => () => void;
 }
 
 export const useMarketingStore = create<MarketingState>((set, get) => ({
@@ -84,5 +85,32 @@ export const useMarketingStore = create<MarketingState>((set, get) => ({
     } catch (error) {
       set({ campaigns: previousCampaigns, error: 'Failed to delete campaign' });
     }
+  },
+
+  subscribe: () => {
+    const supabase = getSupabaseClient();
+
+    const channelId = `marketing-${Math.random().toString(36).substring(7)}`;
+    const channel = supabase
+      .channel(channelId)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'marketing_campaigns' }, (payload) => {
+        const { eventType, new: newRecord, old: oldRecord } = payload;
+        set((state) => {
+          let updated = [...state.campaigns];
+          if (eventType === 'INSERT') {
+            if (!updated.some(c => c.id === (newRecord as Campaign).id)) {
+              updated = [newRecord as Campaign, ...updated];
+            }
+          } else if (eventType === 'UPDATE') {
+            updated = updated.map(c => c.id === (newRecord as Campaign).id ? { ...c, ...newRecord } : c);
+          } else if (eventType === 'DELETE') {
+            updated = updated.filter(c => c.id !== (oldRecord as any).id);
+          }
+          return { campaigns: updated };
+        });
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   },
 }));

@@ -18,6 +18,7 @@ interface ContractState {
   fetchContracts: () => Promise<void>;
   addContract: (contract: Omit<Contract, 'id' | 'created_at'>) => Promise<void>;
   deleteContract: (id: string) => Promise<void>;
+  subscribe: () => () => void;
 }
 
 export const useContractStore = create<ContractState>((set, get) => ({
@@ -81,5 +82,32 @@ export const useContractStore = create<ContractState>((set, get) => ({
     } catch (error) {
       set({ contracts: previousContracts, error: 'Failed to delete contract' });
     }
+  },
+
+  subscribe: () => {
+    const supabase = getSupabaseClient();
+
+    const channelId = `contracts-${Math.random().toString(36).substring(7)}`;
+    const channel = supabase
+      .channel(channelId)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'contracts' }, (payload) => {
+        const { eventType, new: newRecord, old: oldRecord } = payload;
+        set((state) => {
+          let updated = [...state.contracts];
+          if (eventType === 'INSERT') {
+            if (!updated.some(c => c.id === (newRecord as Contract).id)) {
+              updated = [newRecord as Contract, ...updated];
+            }
+          } else if (eventType === 'UPDATE') {
+            updated = updated.map(c => c.id === (newRecord as Contract).id ? { ...c, ...newRecord } : c);
+          } else if (eventType === 'DELETE') {
+            updated = updated.filter(c => c.id !== (oldRecord as any).id);
+          }
+          return { contracts: updated };
+        });
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   },
 }));

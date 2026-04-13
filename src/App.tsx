@@ -13,6 +13,11 @@ import { Security } from './pages/settings/Security';
 import { Integrations } from './pages/settings/Integrations';
 import { Users } from './pages/settings/Users';
 import { ManagePipelines } from './pages/settings/ManagePipelines';
+import { ManageCargos } from './pages/settings/ManageCargos';
+
+
+import { ManageCategories } from './pages/settings/ManageCategories';
+import { ManageActivityCategories } from './pages/settings/ManageActivityCategories';
 import { Finance } from './pages/Finance';
 import { AIChat } from './pages/AIChat';
 import { Contracts } from './pages/Contracts';
@@ -22,6 +27,7 @@ import { Turmas } from './pages/Turmas';
 import { Login } from './pages/Login';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { ResetPassword } from './pages/ResetPassword';
+import { NotificationsPage } from './pages/NotificationsPage';
 import { useAuthStore } from './store/useAuthStore';
 import { Loader2 } from 'lucide-react';
 
@@ -73,6 +79,7 @@ export default function App() {
           <Route path="/marketing" element={<Marketing />} />
           <Route path="/tasks" element={<Tasks />} />
           <Route path="/turmas" element={<Turmas />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/settings/permissions" element={<Permissions />} />
           <Route path="/settings/profile" element={<Profile />} />
@@ -81,7 +88,10 @@ export default function App() {
           <Route path="/settings/security" element={<Security />} />
           <Route path="/settings/integrations" element={<Integrations />} />
           <Route path="/settings/pipelines" element={<ManagePipelines />} />
-          <Route path="/analytics" element={<Dashboard />} /> {/* Placeholder */}
+<Route path="/settings/cargos" element={<ManageCargos />} />
+  <Route path="/settings/categories" element={<ManageCategories />} />
+  <Route path="/settings/activity-categories" element={<ManageActivityCategories />} />
+  <Route path="/analytics" element={<Dashboard />} /> {/* Placeholder */}
         </Route>
       </Routes>
     </BrowserRouter>

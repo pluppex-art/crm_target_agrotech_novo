@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   TrendingUp, TrendingDown, DollarSign, Users, CheckCircle2,
-  BarChart2, ArrowRight, Loader2, ShoppingBag, Percent
+  BarChart2, ArrowRight, Loader2, ShoppingBag, Percent, ShieldAlert
 } from 'lucide-react';
+import { usePermissions } from '../hooks/usePermissions';
 import { useLeadStore } from '../store/useLeadStore';
 import { useFinanceStore } from '../store/useFinanceStore';
 import { cn, getLeadEffectiveValue } from '../lib/utils';
@@ -14,100 +15,145 @@ import { HorizontalBar } from '../components/dashboard/HorizontalBar';
 type View = 'all' | 'sales' | 'finance';
 
 export function Dashboard() {
+  const { hasPermission, loading: permissionsLoading } = usePermissions();
   const [view, setView] = useState<View>('all');
   const navigate = useNavigate();
-  const { leads, fetchLeads, isLoading: leadsLoading } = useLeadStore();
-  const { transactions, fetchTransactions, isLoading: financeLoading } = useFinanceStore();
 
+  const { transactions, fetchTransactions, isLoading: financeLoading, subscribe: subscribeFinance } = useFinanceStore();
+  const { leads, fetchLeads, isLoading: leadsLoading, subscribeToLeads } = useLeadStore();
+
+  // Use refs to run fetch only once — avoids infinite loop caused by
+  // Zustand functions being recreated on every store update
+  const didFetch = useRef(false);
   useEffect(() => {
+    if (didFetch.current) return;
+    didFetch.current = true;
     fetchLeads();
     fetchTransactions();
-  }, [fetchLeads, fetchTransactions]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Realtime subscriptions — run once on mount
+  useEffect(() => {
+    const unsubLeads = subscribeToLeads();
+    const unsubFinance = subscribeFinance();
+    return () => {
+      unsubLeads?.();
+      unsubFinance?.();
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isLoading = leadsLoading || financeLoading;
 
   // ── Finance metrics ──────────────────────────────────────────────
-  const totalIncome = transactions
-    .filter(t => t.type === 'income')
-    .reduce((s, t) => s + Math.abs(t.amount), 0);
+  const totalIncome = useMemo(
+    () => transactions.filter(t => t.type === 'income').reduce((s, t) => s + Math.abs(t.amount), 0),
+    [transactions]
+  );
 
-  const totalExpense = transactions
-    .filter(t => t.type === 'expense')
-    .reduce((s, t) => s + Math.abs(t.amount), 0);
+  const totalExpense = useMemo(
+    () => transactions.filter(t => t.type === 'expense').reduce((s, t) => s + Math.abs(t.amount), 0),
+    [transactions]
+  );
 
   const netProfit = totalIncome - totalExpense;
   const margin = totalIncome > 0 ? (netProfit / totalIncome) * 100 : 0;
 
-  const incomeTransactions = transactions.filter(t => t.type === 'income');
+  const incomeTransactions = useMemo(() => transactions.filter(t => t.type === 'income'), [transactions]);
   const avgIncome = incomeTransactions.length > 0 ? totalIncome / incomeTransactions.length : 0;
 
   // ── Sales metrics ────────────────────────────────────────────────
-  const closedLeads = leads.filter(l => l.status === 'closed');
+  const closedLeads = useMemo(() => leads.filter(l => l.status === 'closed'), [leads]);
   const conversionRate = leads.length > 0 ? (closedLeads.length / leads.length) * 100 : 0;
-  const avgTicket = closedLeads.length > 0
-    ? closedLeads.reduce((s, l) => s + getLeadEffectiveValue(l), 0) / closedLeads.length
-    : 0;
-  const totalSalesValue = closedLeads.reduce((s, l) => s + getLeadEffectiveValue(l), 0);
+  const avgTicket = useMemo(
+    () => closedLeads.length > 0
+      ? closedLeads.reduce((s, l) => s + getLeadEffectiveValue(l), 0) / closedLeads.length
+      : 0,
+    [closedLeads]
+  );
+  const totalSalesValue = useMemo(
+    () => closedLeads.reduce((s, l) => s + getLeadEffectiveValue(l), 0),
+    [closedLeads]
+  );
 
   // ── Chart data ───────────────────────────────────────────────────
-  const last6Months = Array.from({ length: 6 }, (_, i) => {
-    const d = new Date();
-    d.setMonth(d.getMonth() - (5 - i));
-    return {
-      label: d.toLocaleString('pt-BR', { month: 'short' }),
-      month: d.getMonth(),
-      year: d.getFullYear(),
-    };
-  });
-
-  const monthlyIncome = last6Months.map(({ label, month, year }) => ({
-    label,
-    value: transactions
-      .filter(t => t.type === 'income' && new Date(t.date).getMonth() === month && new Date(t.date).getFullYear() === year)
-      .reduce((s, t) => s + t.amount, 0),
-  }));
-
-  const monthlyExpense = last6Months.map(({ label, month, year }) => ({
-    label,
-    value: transactions
-      .filter(t => t.type === 'expense' && new Date(t.date).getMonth() === month && new Date(t.date).getFullYear() === year)
-      .reduce((s, t) => s + Math.abs(t.amount), 0),
-  }));
-
-  const salesByProduct = Object.values(
-    closedLeads.filter(l => l.product).reduce((acc: Record<string, { label: string; value: number }>, l) => {
-      const key = l.product;
-      acc[key] = acc[key] || { label: key, value: 0 };
-      acc[key].value += getLeadEffectiveValue(l);
-      return acc;
-    }, {})
+  const last6Months = useMemo(() =>
+    Array.from({ length: 6 }, (_, i) => {
+      const d = new Date();
+      d.setMonth(d.getMonth() - (5 - i));
+      return {
+        label: d.toLocaleString('pt-BR', { month: 'short' }),
+        month: d.getMonth(),
+        year: d.getFullYear(),
+      };
+    }), []
   );
 
-  const salesByResponsible = Object.values(
-    leads.filter(l => l.responsible).reduce((acc: Record<string, { label: string; value: number }>, l) => {
-      const key = l.responsible!;
-      acc[key] = acc[key] || { label: key, value: 0 };
-      acc[key].value += 1;
-      return acc;
-    }, {})
-  ).sort((a, b) => b.value - a.value);
-
-  const incomeByCategory = Object.values(
-    transactions.filter(t => t.type === 'income' && t.category).reduce((acc: Record<string, { label: string; value: number }>, t) => {
-      const key = t.category!;
-      acc[key] = acc[key] || { label: key, value: 0 };
-      acc[key].value += t.amount;
-      return acc;
-    }, {})
+  const monthlyIncome = useMemo(() =>
+    last6Months.map(({ label, month, year }) => ({
+      label,
+      value: transactions
+        .filter(t => t.type === 'income' && new Date(t.date).getMonth() === month && new Date(t.date).getFullYear() === year)
+        .reduce((s, t) => s + t.amount, 0),
+    })),
+    [last6Months, transactions]
   );
 
-  const expenseByCategory = Object.values(
-    transactions.filter(t => t.type === 'expense' && t.category).reduce((acc: Record<string, { label: string; value: number }>, t) => {
-      const key = t.category!;
-      acc[key] = acc[key] || { label: key, value: 0 };
-      acc[key].value += Math.abs(t.amount);
-      return acc;
-    }, {})
+  const monthlyExpense = useMemo(() =>
+    last6Months.map(({ label, month, year }) => ({
+      label,
+      value: transactions
+        .filter(t => t.type === 'expense' && new Date(t.date).getMonth() === month && new Date(t.date).getFullYear() === year)
+        .reduce((s, t) => s + Math.abs(t.amount), 0),
+    })),
+    [last6Months, transactions]
+  );
+
+  const salesByProduct = useMemo(() =>
+    Object.values(
+      closedLeads.filter(l => l.product).reduce((acc: Record<string, { label: string; value: number }>, l) => {
+        const key = l.product;
+        acc[key] = acc[key] || { label: key, value: 0 };
+        acc[key].value += getLeadEffectiveValue(l);
+        return acc;
+      }, {})
+    ),
+    [closedLeads]
+  );
+
+  const salesByResponsible = useMemo(() =>
+    Object.values(
+      closedLeads.filter(l => l.responsible).reduce((acc: Record<string, { label: string; value: number }>, l) => {
+        const key = l.responsible!;
+        acc[key] = acc[key] || { label: key, value: 0 };
+        acc[key].value += getLeadEffectiveValue(l);
+        return acc;
+      }, {})
+    ).sort((a, b) => b.value - a.value),
+    [closedLeads]
+  );
+
+  const incomeByCategory = useMemo(() =>
+    Object.values(
+      transactions.filter(t => t.type === 'income' && t.category).reduce((acc: Record<string, { label: string; value: number }>, t) => {
+        const key = t.category!;
+        acc[key] = acc[key] || { label: key, value: 0 };
+        acc[key].value += t.amount;
+        return acc;
+      }, {})
+    ),
+    [transactions]
+  );
+
+  const expenseByCategory = useMemo(() =>
+    Object.values(
+      transactions.filter(t => t.type === 'expense' && t.category).reduce((acc: Record<string, { label: string; value: number }>, t) => {
+        const key = t.category!;
+        acc[key] = acc[key] || { label: key, value: 0 };
+        acc[key].value += Math.abs(t.amount);
+        return acc;
+      }, {})
+    ),
+    [transactions]
   );
 
   const fmt = (n: number) =>
@@ -120,6 +166,21 @@ export function Dashboard() {
     { id: 'proposal', label: 'Proposta', color: 'bg-purple-500', light: 'bg-purple-50 text-purple-600' },
     { id: 'closed', label: 'Fechados', color: 'bg-rose-500', light: 'bg-rose-50 text-rose-600' },
   ] as const;
+
+  if (permissionsLoading) return null;
+
+  if (!hasPermission('dashboard.view') && !hasPermission('admin.all')) {
+    return (
+      <div className="flex-1 p-6 flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+        <div className="w-28 h-28 bg-slate-200 rounded-3xl flex items-center justify-center mb-8 shadow-xl">
+          <ShieldAlert className="w-16 h-16 text-slate-400" />
+        </div>
+        <h2 className="text-3xl font-bold text-slate-800 mb-4">Dashboard Privado</h2>
+        <p className="text-xl text-slate-500 max-w-lg mb-8 leading-relaxed">Você precisa da permissão <code className="bg-slate-100 px-3 py-1.5 rounded-xl text-lg font-mono text-slate-700 shadow-sm border">dashboard.view</code> para acessar.</p>
+        <p className="text-sm text-slate-400 uppercase tracking-widest font-bold">Contate o administrador</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 overflow-y-auto p-6 bg-[#f3f6f9] min-h-full">
@@ -154,13 +215,12 @@ export function Dashboard() {
 
       {/* ── VENDAS view ─────────────────────────────────────────── */}
       {(view === 'all' || view === 'sales') && (
-        <div key="dashboard-sales-section">
+        <div>
           {/* Sales metrics */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
             <MetricCard label="Leads Ativos" value={String(leads.length)} icon={Users} color="bg-emerald-50 text-emerald-600" />
             <MetricCard label="Fechados" value={String(closedLeads.length)} icon={CheckCircle2} color="bg-blue-50 text-blue-600" />
             <MetricCard label="Conversão" value={`${conversionRate.toFixed(1)}%`} icon={Percent} color="bg-purple-50 text-purple-600" />
-
             <MetricCard label="Total Vendas" value={`R$ ${fmt(totalSalesValue)}`} icon={TrendingUp} color="bg-emerald-50 text-emerald-600" />
             <MetricCard
               label="Em Proposta"
@@ -168,6 +228,7 @@ export function Dashboard() {
               icon={ShoppingBag}
               color="bg-rose-50 text-rose-600"
             />
+            <MetricCard label="Ticket Médio" value={`R$ ${fmt(avgTicket)}`} icon={DollarSign} color="bg-amber-50 text-amber-600" />
           </div>
 
           {/* Ranking + Sales by product */}
@@ -188,6 +249,7 @@ export function Dashboard() {
                       value={s.value}
                       max={salesByResponsible[0]?.value || 1}
                       rank={i}
+                      isCurrency={true}
                       color={i === 0 ? 'bg-emerald-500' : i === 1 ? 'bg-blue-400' : 'bg-slate-300'}
                     />
                   ))}
@@ -234,7 +296,7 @@ export function Dashboard() {
 
       {/* ── FINANCEIRO view ─────────────────────────────────────── */}
       {(view === 'all' || view === 'finance') && (
-        <div key="dashboard-finance-section">
+        <div>
           {/* Finance metrics */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
             <MetricCard label="Receita Total" value={`R$ ${fmt(totalIncome)}`} icon={TrendingUp} color="bg-emerald-50 text-emerald-600" />
@@ -279,4 +341,3 @@ export function Dashboard() {
     </div>
   );
 }
-

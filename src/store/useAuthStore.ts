@@ -58,10 +58,23 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   initialize: async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    set({ user: session?.user ?? null, loading: false, initialized: true });
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) {
+        throw error;
+      }
+      set({ user: session?.user ?? null, loading: false, initialized: true });
+    } catch (err: any) {
+      console.error('Falha ao inicializar sessão Supabase:', err?.message ?? err);
+      await supabase.auth.signOut();
+      set({ user: null, loading: false, initialized: true });
+    }
 
-    supabase.auth.onAuthStateChange((_event, session) => {
+    supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'TOKEN_REFRESH_FAILED' || event === 'SIGNED_OUT') {
+        set({ user: null, loading: false });
+        return;
+      }
       set({ user: session?.user ?? null, loading: false });
     });
   },

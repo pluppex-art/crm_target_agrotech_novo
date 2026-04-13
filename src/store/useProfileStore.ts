@@ -1,13 +1,15 @@
 import { create } from 'zustand';
-import { UserProfile, profileService } from '../services/profileService';
+import { UserProfile, CreateProfilePayload, profileService } from '../services/profileService';
+import { getSupabaseClient } from '../lib/supabase';
 
 interface ProfileState {
   profiles: UserProfile[];
   loading: boolean;
   fetchProfiles: () => Promise<void>;
-  addProfile: (profile: UserProfile) => Promise<void>;
+  addProfile: (profile: CreateProfilePayload) => Promise<void>;
   updateProfile: (id: string, profile: Partial<UserProfile>) => Promise<boolean>;
   deleteProfile: (id: string) => Promise<void>;
+  subscribe: () => () => void;
 }
 
 export const useProfileStore = create<ProfileState>((set, get) => ({
@@ -20,14 +22,15 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
     set({ profiles, loading: false });
   },
 
-  addProfile: async (profile) => {
-    const newProfile = await profileService.createProfile(profile);
+  addProfile: async (profile: CreateProfilePayload) => {
+    const { data: newProfile, error } = await profileService.createProfile(profile);
+    if (error) throw error;
     if (newProfile) {
       set({ profiles: [...get().profiles, newProfile] });
     }
   },
 
-  updateProfile: async (id, profile) => {
+  updateProfile: async (id: string, profile: Partial<UserProfile>) => {
     const { data: updatedProfile, error } = await profileService.updateProfile(id, profile);
     
     if (error) {
@@ -58,5 +61,32 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
     if (success) {
       set({ profiles: get().profiles.filter((p) => p.id !== id) });
     }
+  },
+
+  subscribe: () => {
+    const supabase = getSupabaseClient();
+
+    const channelId = `profiles-${Math.random().toString(36).substring(7)}`;
+    const channel = supabase
+      .channel(channelId)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'perfis' }, (payload) => {
+        const { eventType, new: newRecord, old: oldRecord } = payload;
+        set((state) => {
+          let updated = [...state.profiles];
+          if (eventType === 'INSERT') {
+            if (!updated.some(p => p.id === (newRecord as UserProfile).id)) {
+              updated = [...updated, newRecord as UserProfile];
+            }
+          } else if (eventType === 'UPDATE') {
+            updated = updated.map(p => p.id === (newRecord as UserProfile).id ? { ...p, ...newRecord } : p);
+          } else if (eventType === 'DELETE') {
+            updated = updated.filter(p => p.id !== (oldRecord as any).id);
+          }
+          return { profiles: updated };
+        });
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   },
 }));

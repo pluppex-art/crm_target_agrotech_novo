@@ -13,9 +13,10 @@ const columnHelper = createColumnHelper<Lead>();
 
 interface LeadsTableProps {
   leads: Lead[];
+  totalCount: number;
 }
 
-export function LeadsTable({ leads }: LeadsTableProps) {
+export function LeadsTable({ leads, totalCount }: LeadsTableProps) {
   const { deleteLead } = useLeadStore();
 
   const columns = [
@@ -24,7 +25,7 @@ export function LeadsTable({ leads }: LeadsTableProps) {
       cell: info => (
         <img 
           src={info.getValue()} 
-          alt="Lead" 
+          alt="Cliente" 
           className="w-8 h-8 rounded-full border border-slate-100"
           referrerPolicy="no-referrer"
         />
@@ -75,7 +76,7 @@ export function LeadsTable({ leads }: LeadsTableProps) {
             deleteLead(info.row.original.id);
           }}
           className="p-2 text-slate-300 hover:text-red-600 transition-colors"
-          title="Excluir lead"
+          title="Excluir cliente"
         >
           <Trash2 className="w-4 h-4" />
         </button>
@@ -91,23 +92,7 @@ export function LeadsTable({ leads }: LeadsTableProps) {
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-      <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-slate-50/50 gap-4">
-        <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input 
-            type="text" 
-            placeholder="Filtrar por nome ou produto..." 
-            className="w-full bg-white border border-slate-200 rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-emerald-500 transition-all"
-          />
-        </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <button className="flex-1 sm:flex-none flex items-center justify-center gap-2 p-2 border border-slate-200 rounded-lg bg-white hover:bg-slate-50 transition-colors">
-            <Filter className="w-4 h-4 text-slate-400" />
-            <span className="sm:hidden text-sm text-slate-600">Filtros</span>
-          </button>
-        </div>
-      </div>
-
+      {/* Removed Redundant Search Bar */}
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
@@ -141,7 +126,7 @@ export function LeadsTable({ leads }: LeadsTableProps) {
       </div>
       
       <div className="p-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/50">
-        <span className="text-xs text-slate-500">Mostrando {leads.length} de {leads.length} leads</span>
+        <span className="text-xs text-slate-500">Mostrando {leads.length} de {totalCount} clientes</span>
         <div className="flex items-center gap-2">
           <button className="px-3 py-1 border border-slate-200 rounded-md text-xs bg-white disabled:opacity-50" disabled>Anterior</button>
           <button className="px-3 py-1 border border-slate-200 rounded-md text-xs bg-white disabled:opacity-50" disabled>Próximo</button>

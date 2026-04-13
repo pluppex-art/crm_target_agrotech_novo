@@ -19,13 +19,13 @@ export interface Turma {
   professor_email: string | null;
   date: string;
   time: string;
-  product: string;
+  product_id: string;
+  product_name: string; // From join
+  category: string;     // From join
   location: string;
   status: 'agendada' | 'em_andamento' | 'concluida' | 'cancelada';
   attendees: TurmaAttendee[];
 }
-
-// ─── Supabase helpers ────────────────────────────────────────────────────────
 
 export const turmaService = {
   async getAll(): Promise<Turma[]> {
@@ -34,14 +34,26 @@ export const turmaService = {
 
     const { data, error } = await supabase
       .from('turmas')
-      .select('*, turma_attendees(*)')
+      .select('*, products(*), turma_attendees(*)')
       .order('created_at', { ascending: false });
 
-    if (error) { console.error('Error fetching turmas:', error.message, error.details); return []; }
+    if (error) { 
+        console.error('Error fetching turmas:', error.message); 
+        return []; 
+    }
 
     return (data || []).map((t: any) => ({
-      ...t,
-      product: t.product_name ?? t.product ?? '',
+      id: t.id,
+      name: t.name,
+      professor_name: t.professor_name,
+      professor_email: t.professor_email,
+      date: t.date,
+      time: t.time,
+      product_id: t.product_id,
+      product_name: t.products?.name ?? 'Produto não encontrado',
+      category: t.products?.category ?? 'Geral',
+      location: t.location,
+      status: t.status,
       attendees: (t.turma_attendees || []).map((a: any) => ({
         id: a.id,
         lead_id: a.lead_id ?? undefined,
@@ -54,64 +66,48 @@ export const turmaService = {
     }));
   },
 
-  async create(turma: Omit<Turma, 'id' | 'attendees'>): Promise<Turma | null> {
+  async getAttendeeHistory(leadId: string): Promise<{ turma: Turma; attendee: TurmaAttendee }[]> {
     const supabase = getSupabaseClient();
-    if (!supabase) return null;
-
-    const payload = {
-      name: turma.name,
-      professor_name: turma.professor_name || null,
-      professor_email: turma.professor_email || null,
-      date: turma.date || null,
-      time: turma.time || null,
-      product_name: turma.product,
-      location: turma.location || null,
-      status: turma.status ?? 'agendada',
-    };
+    if (!supabase) return [];
 
     const { data, error } = await supabase
-      .from('turmas')
-      .insert([payload])
-      .select()
-      .single();
-
-    if (error) { console.error('Error creating turma:', error.message, error.details); return null; }
-
-    return { ...data, product: data.product_name ?? '', attendees: [] };
-  },
-
-  async update(turmaId: string, turma: Partial<Omit<Turma, 'id' | 'attendees'>>): Promise<boolean> {
-    const supabase = getSupabaseClient();
-    if (!supabase) return false;
-
-    const payload: any = { ...turma };
-    if (turma.product !== undefined) { payload.product_name = turma.product; delete payload.product; }
-
-    const { error } = await supabase.from('turmas').update(payload).eq('id', turmaId);
-    if (error) { console.error('Error updating turma:', error.message, error.details); return false; }
-    return true;
-  },
-
-  async remove(turmaId: string): Promise<boolean> {
-    const supabase = getSupabaseClient();
-    if (!supabase) return false;
-
-    const { error } = await supabase.from('turmas').delete().eq('id', turmaId);
-    if (error) { console.error('Error deleting turma:', error.message, error.details); return false; }
-    return true;
-  },
-
-  async updateAttendeeStatus(attendeeId: string, status: AttendanceStatus): Promise<boolean> {
-    const supabase = getSupabaseClient();
-    if (!supabase) return false;
-
-    const { error } = await supabase
       .from('turma_attendees')
-      .update({ status })
-      .eq('id', attendeeId);
+      .select('*, turmas(*, products(*))')
+      .eq('lead_id', leadId);
 
-    if (error) { console.error('Error updating attendee:', error.message, error.details); return false; }
-    return true;
+    if (error) {
+      console.error('Error fetching attendee history:', error);
+      return [];
+    }
+
+    return (data || []).filter(item => item.turmas).map((item: any) => {
+      const t = item.turmas;
+      return {
+        turma: {
+          id: t.id,
+          name: t.name,
+          professor_name: t.professor_name,
+          professor_email: t.professor_email,
+          date: t.date,
+          time: t.time,
+          product_id: t.product_id,
+          product_name: t.products?.name ?? 'Produto não encontrado',
+          category: t.products?.category ?? 'Geral',
+          location: t.location,
+          status: t.status,
+          attendees: [],
+        },
+        attendee: {
+          id: item.id,
+          lead_id: item.lead_id,
+          name: item.name,
+          photo: item.photo ?? `https://i.pravatar.cc/150?u=${item.id}`,
+          responsible: item.responsible,
+          status: item.status as AttendanceStatus,
+          vendas: Number(item.vendas) || 0,
+        }
+      };
+    });
   },
 
   async addAttendee(turmaId: string, attendee: Omit<TurmaAttendee, 'id'>): Promise<TurmaAttendee | null> {
@@ -125,91 +121,71 @@ export const turmaService = {
         .select('id')
         .eq('turma_id', turmaId)
         .eq('lead_id', attendee.lead_id);
+      
       if (existing && existing.length > 0) {
         throw new Error('ALREADY_ENROLLED');
       }
     }
 
-    const validStatuses: AttendanceStatus[] = ['matriculado', 'confirmado', 'indeciso', 'cancelado'];
-    const status = validStatuses.includes(attendee.status) ? attendee.status : 'indeciso';
-
-    const payload = {
-      turma_id: turmaId,
-      lead_id: attendee.lead_id ?? null,
-      name: attendee.name || '',
-      photo: attendee.photo || '',
-      responsible: attendee.responsible || '',
-      status: status,
-      vendas: Number(attendee.vendas) || 0,
-    };
-
-    console.log('Adding attendee with payload:', payload);
-
     const { data, error } = await supabase
       .from('turma_attendees')
-      .insert([payload])
+      .insert([{
+        turma_id: turmaId,
+        lead_id: attendee.lead_id ?? null,
+        name: attendee.name || '',
+        photo: attendee.photo || '',
+        responsible: attendee.responsible || '',
+        status: attendee.status || 'indeciso',
+        vendas: Number(attendee.vendas) || 0,
+      }])
       .select()
       .single();
 
-    if (error) { console.error('Error adding attendee:', error.message, error.details, 'Payload:', payload); return null; }
+    if (error) {
+      console.error('Error adding attendee:', error);
+      return null;
+    }
 
     return {
       id: data.id,
-      lead_id: data.lead_id ?? undefined,
-      name: data.name ?? '',
-      photo: data.photo ?? `https://i.pravatar.cc/150?u=${data.id}`,
-      responsible: data.responsible ?? '',
+      lead_id: data.lead_id,
+      name: data.name,
+      photo: data.photo,
+      responsible: data.responsible,
       status: data.status as AttendanceStatus,
-      vendas: Number(data.vendas) || 0,
+      vendas: data.vendas,
     };
   },
 
-  async removeAttendee(attendeeId: string): Promise<boolean> {
+  async updateAttendeeStatus(attendeeId: string, status: AttendanceStatus): Promise<boolean> {
     const supabase = getSupabaseClient();
     if (!supabase) return false;
 
     const { error } = await supabase
       .from('turma_attendees')
-      .delete()
+      .update({ status })
       .eq('id', attendeeId);
 
-    if (error) { console.error('Error removing attendee:', error.message, error.details); return false; }
+    if (error) {
+      console.error('Error updating attendee:', error);
+      return false;
+    }
     return true;
   },
 
-  async getTurmasByLeadId(leadId: string): Promise<{ turma: Turma; attendee: TurmaAttendee }[]> {
+  async deleteTurma(id: string): Promise<boolean> {
     const supabase = getSupabaseClient();
-    if (!supabase) return [];
+    if (!supabase) return false;
 
-    const { data, error } = await supabase
-      .from('turma_attendees')
-      .select('*, turmas(*)')
-      .eq('lead_id', leadId);
+    const { error } = await supabase
+      .from('turmas')
+      .delete()
+      .eq('id', id);
 
-    if (error) { console.error('Error fetching turmas by lead:', error.message); return []; }
-
-    return (data || []).map((row: any) => ({
-      turma: {
-        id: row.turmas.id,
-        name: row.turmas.name,
-        professor_name: row.turmas.professor_name,
-        professor_email: row.turmas.professor_email,
-        date: row.turmas.date,
-        time: row.turmas.time,
-        product: row.turmas.product_name ?? row.turmas.product ?? '',
-        location: row.turmas.location,
-        status: row.turmas.status,
-        attendees: [],
-      },
-      attendee: {
-        id: row.id,
-        lead_id: row.lead_id ?? undefined,
-        name: row.name ?? '',
-        photo: row.photo ?? '',
-        responsible: row.responsible ?? '',
-        status: row.status as AttendanceStatus,
-        vendas: Number(row.vendas) || 0,
-      },
-    }));
-  },
+    if (error) {
+      console.error('Error deleting turma:', error);
+      return false;
+    }
+    return true;
+  }
 };

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Bell, Mail, MessageSquare, Save, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Bell, Mail, MessageSquare, Save, CheckCircle2, Clock, Zap } from 'lucide-react';
+import { useSettingsStore } from '../../store/useSettingsStore';
 
 export function Notifications() {
   const [saved, setSaved] = useState(false);
@@ -15,7 +16,19 @@ export function Notifications() {
     messages: true,
   });
 
-  const handleSave = () => {
+  const { autoTransferHours, fetchSettings, updateSetting } = useSettingsStore();
+  const [localHours, setLocalHours] = useState(autoTransferHours);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
+  useEffect(() => {
+    setLocalHours(autoTransferHours);
+  }, [autoTransferHours]);
+
+  const handleSave = async () => {
+    await updateSetting('auto_transfer_hours', localHours);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
@@ -80,6 +93,32 @@ export function Notifications() {
                   </label>
                 </div>
               ))}
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest flex items-center gap-2">
+              <Zap size={14} className="text-amber-500" />
+              Automação de Leads
+            </h3>
+            <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-slate-800">Transferência Automática</p>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    Tempo de inatividade (sem contato) necessário para que o lead seja sinalizado para transferência.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
+                  <input 
+                    type="number" 
+                    value={localHours}
+                    onChange={(e) => setLocalHours(Number(e.target.value))}
+                    className="w-16 text-center text-sm font-bold bg-transparent border-none focus:ring-0"
+                  />
+                  <span className="text-[10px] font-bold text-slate-400 uppercase pr-2">Horas</span>
+                </div>
+              </div>
             </div>
           </div>
 

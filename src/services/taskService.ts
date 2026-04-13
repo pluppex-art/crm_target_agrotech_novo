@@ -6,9 +6,12 @@ export interface Task {
   title: string;
   description?: string;
   due_date?: string;
+  scheduled_time?: string;
   status: 'pending' | 'completed';
   priority: 'low' | 'medium' | 'high';
+  category?: string;
   lead_id?: string;
+  lead_name?: string;
 }
 
 export const taskService = {

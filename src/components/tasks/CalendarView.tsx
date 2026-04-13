@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, CheckCircle2, Clock } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Task } from '../../services/taskService';
 
@@ -54,31 +54,42 @@ export function CalendarView({ tasks, onToggleStatus }: CalendarViewProps) {
           </span>
           {dayTasks.length > 0 && (
             <span className="text-[10px] font-bold text-slate-400">
-              {dayTasks.length} {dayTasks.length === 1 ? 'tarefa' : 'tarefas'}
+              {dayTasks.length} {dayTasks.length === 1 ? 'item' : 'itens'}
             </span>
           )}
         </div>
         <div className="space-y-1">
-          {dayTasks.map(task => (
-            <div 
-              key={task.id}
-              onClick={() => onToggleStatus(task.id, task.status)}
-              className={cn(
-                "text-[10px] p-1 rounded border cursor-pointer truncate transition-all",
-                task.status === 'completed' 
-                  ? "bg-slate-100 border-slate-200 text-slate-400 line-through" 
-                  : cn(
-                      "border-l-4",
-                      task.priority === 'high' ? "bg-red-50 border-red-500 text-red-700" :
-                      task.priority === 'medium' ? "bg-amber-50 border-amber-500 text-amber-700" :
-                      "bg-blue-50 border-blue-500 text-blue-700"
-                    )
-              )}
-              title={task.title}
-            >
-              {task.title}
-            </div>
-          ))}
+          {dayTasks.map(task => {
+            const isActivity = task.category && task.category !== 'Geral';
+            return (
+              <div
+                key={task.id}
+                onClick={() => onToggleStatus(task.id, task.status)}
+                className={cn(
+                  "text-[10px] p-1 rounded border cursor-pointer truncate transition-all",
+                  task.status === 'completed'
+                    ? "bg-slate-100 border-slate-200 text-slate-400 line-through"
+                    : isActivity
+                      ? "bg-blue-50 border-l-4 border-blue-500 text-blue-700"
+                      : cn(
+                          "border-l-4",
+                          task.priority === 'high' ? "bg-red-50 border-red-500 text-red-700" :
+                          task.priority === 'medium' ? "bg-amber-50 border-amber-500 text-amber-700" :
+                          "bg-blue-50 border-blue-500 text-blue-700"
+                        )
+                )}
+                title={`${task.title}${task.scheduled_time ? ' às ' + task.scheduled_time : ''}${task.lead_name ? ' — ' + task.lead_name : ''}`}
+              >
+                {task.scheduled_time && (
+                  <span className="font-bold mr-1">{task.scheduled_time}</span>
+                )}
+                {isActivity && task.category && (
+                  <span className="font-bold mr-1">[{task.category}]</span>
+                )}
+                {task.title}
+              </div>
+            );
+          })}
         </div>
       </div>
     );
@@ -91,19 +102,19 @@ export function CalendarView({ tasks, onToggleStatus }: CalendarViewProps) {
           {monthNames[month]} {year}
         </h2>
         <div className="flex items-center gap-2">
-          <button 
+          <button
             onClick={prevMonth}
             className="p-2 hover:bg-white rounded-lg border border-transparent hover:border-slate-200 transition-all"
           >
             <ChevronLeft className="w-5 h-5 text-slate-600" />
           </button>
-          <button 
+          <button
             onClick={() => setCurrentDate(new Date())}
             className="px-3 py-1 text-xs font-bold text-slate-600 hover:bg-white rounded-lg border border-transparent hover:border-slate-200 transition-all"
           >
             Hoje
           </button>
-          <button 
+          <button
             onClick={nextMonth}
             className="p-2 hover:bg-white rounded-lg border border-transparent hover:border-slate-200 transition-all"
           >
@@ -111,7 +122,7 @@ export function CalendarView({ tasks, onToggleStatus }: CalendarViewProps) {
           </button>
         </div>
       </div>
-      
+
       <div className="grid grid-cols-7 bg-slate-50 border-b border-slate-100">
         {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
           <div key={day} className="py-2 text-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
@@ -119,9 +130,29 @@ export function CalendarView({ tasks, onToggleStatus }: CalendarViewProps) {
           </div>
         ))}
       </div>
-      
+
       <div className="grid grid-cols-7">
         {days}
+      </div>
+
+      {/* Legend */}
+      <div className="p-3 border-t border-slate-100 bg-slate-50/50 flex items-center gap-4 text-[10px] font-bold text-slate-400 flex-wrap">
+        <span className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded border-l-4 border-blue-500 bg-blue-50 inline-block" />
+          Atividade
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded border-l-4 border-red-500 bg-red-50 inline-block" />
+          Alta prioridade
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded border-l-4 border-amber-500 bg-amber-50 inline-block" />
+          Média prioridade
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded border-l-4 border-blue-500 bg-blue-50 inline-block" />
+          Baixa prioridade
+        </span>
       </div>
     </div>
   );

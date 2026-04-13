@@ -7,11 +7,17 @@ interface HorizontalBarProps {
   max: number;
   color: string;
   rank: number;
+  isCurrency?: boolean;
 }
 
-export function HorizontalBar({ label, value, max, color, rank }: HorizontalBarProps) {
+export function HorizontalBar({ label, value, max, color, rank, isCurrency }: HorizontalBarProps) {
   const pct = max > 0 ? (value / max) * 100 : 0;
-  const medal = rank === 0 ? '🥇 Ascendancy ' : rank === 1 ? '🥈' : rank === 2 ? '🥉' : `${rank + 1}º`;
+  const medal = rank === 0 ? '🥇' : rank === 1 ? '🥈' : rank === 2 ? '🥉' : `${rank + 1}º`;
+  
+  const formattedValue = isCurrency 
+    ? `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+    : `${value} leads`;
+
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5">
@@ -19,11 +25,11 @@ export function HorizontalBar({ label, value, max, color, rank }: HorizontalBarP
           <span className="text-sm">{medal}</span>
           <span className="text-sm font-semibold text-slate-700">{label}</span>
         </div>
-        <span className="text-xs font-bold text-slate-400">{value} leads</span>
+        <span className="text-xs font-bold text-slate-400">{formattedValue}</span>
       </div>
-      <div className="h Ascendancy -3 bg-slate-100 rounded-full overflow-hidden">
+      <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
         <div
-          className={cn('h-full rounded-full', color)}
+          className={cn('h-full rounded-full transition-all duration-1000 ease-out', color)}
           style={{ width: `${Math.max(pct, 2)}%` }}
         />
       </div>

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { taskService, Task } from '../services/taskService';
+import { getSupabaseClient } from '../lib/supabase';
 
 interface TaskState {
   tasks: Task[];
@@ -10,6 +11,7 @@ interface TaskState {
   addTask: (task: Omit<Task, 'id' | 'created_at'>) => Promise<void>;
   updateTaskStatus: (taskId: string, status: 'pending' | 'completed') => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
+  subscribe: () => () => void;
 }
 
 export const useTaskStore = create<TaskState>((set) => ({
@@ -74,5 +76,32 @@ export const useTaskStore = create<TaskState>((set) => ({
     } catch (error) {
       console.error('Error deleting task:', error);
     }
+  },
+
+  subscribe: () => {
+    const supabase = getSupabaseClient();
+
+    const channelId = `realtime:tasks-${Math.random().toString(36).substring(7)}`;
+    const channel = supabase
+      .channel(channelId)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, (payload) => {
+        const { eventType, new: newRecord, old: oldRecord } = payload;
+        set((state) => {
+          let updated = [...state.tasks];
+          if (eventType === 'INSERT') {
+            if (!updated.some(t => t.id === (newRecord as Task).id)) {
+              updated = [...updated, newRecord as Task];
+            }
+          } else if (eventType === 'UPDATE') {
+            updated = updated.map(t => t.id === (newRecord as Task).id ? { ...t, ...newRecord } : t);
+          } else if (eventType === 'DELETE') {
+            updated = updated.filter(t => t.id !== (oldRecord as any).id);
+          }
+          return { tasks: updated };
+        });
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   },
 }));

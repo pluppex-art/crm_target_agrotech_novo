@@ -1,15 +1,28 @@
 import { create } from 'zustand';
-import { Role, RolePermission, ROLES, PERMISSIONS } from '../types/permissions';
+import { PERMISSIONS } from '../types/permissions';
+
+const ROLES = [
+  { id: 'admin', name: 'Admin', isAdmin: true },
+  { id: 'manager', name: 'Gerente', isAdmin: false },
+  { id: 'consultor', name: 'Consultor', isAdmin: false },
+];
+
+type RolePermission = {
+  role: string;
+  permissions: string[];
+};
+
+
 
 interface PermissionState {
   rolePermissions: RolePermission[];
-  updateRolePermission: (role: Role, permissionId: string, enabled: boolean) => void;
+  updateRolePermission: (role: string, permissionId: string, enabled: boolean) => void;
   resetToDefaults: () => void;
 }
 
 const INITIAL_PERMISSIONS: RolePermission[] = ROLES.map(role => ({
   role: role.id,
-  permissions: role.isAdmin ? PERMISSIONS.map(p => p.id) : []
+  permissions: role.isAdmin ? Array.from(PERMISSIONS) : []
 }));
 
 export const usePermissionStore = create<PermissionState>((set) => ({

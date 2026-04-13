@@ -1,11 +1,11 @@
-import { 
-  LayoutDashboard, 
+import {
+  LayoutDashboard,
   Kanban,
-  Users, 
-  Calendar, 
-  Settings, 
-  LogOut, 
-  Leaf,
+  Users,
+  Calendar,
+  Settings,
+  LogOut,
+  Bell,
   ChevronRight,
   DollarSign,
   MessageSquare,
@@ -13,100 +13,122 @@ import {
   Package,
   Megaphone,
   GraduationCap,
-  X,
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 
 const menuItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
-  { icon: Kanban, label: 'Pipeline', path: '/pipeline' },
-  { icon: Users, label: 'Leads', path: '/leads' },
-  { icon: DollarSign, label: 'Finance', path: '/finance' },
-  { icon: MessageSquare, label: 'AI Sales Chat', path: '/ai-chat' },
-  { icon: FileText, label: 'Contracts', path: '/contracts' },
-  { icon: Package, label: 'Products', path: '/products' },
-  { icon: Megaphone, label: 'Marketing', path: '/marketing' },
-  { icon: Calendar, label: 'Tasks', path: '/tasks' },
-  { icon: GraduationCap, label: 'Classes', path: '/turmas' },
-  { icon: Settings, label: 'Settings', path: '/settings' },
+  { icon: LayoutDashboard, label: 'Dashboard',      path: '/' },
+  { icon: Kanban,          label: 'Pipeline',        path: '/pipeline' },
+  { icon: Users,           label: 'Clientes',        path: '/leads' },
+  { icon: DollarSign,      label: 'Financeiro',      path: '/finance' },
+  { icon: MessageSquare,   label: 'AI Sales Chat',   path: '/ai-chat' },
+  { icon: FileText,        label: 'Contratos',       path: '/contracts' },
+  { icon: Package,         label: 'Produtos',        path: '/products' },
+  { icon: Megaphone,       label: 'Marketing',       path: '/marketing' },
+  { icon: Calendar,        label: 'Tarefas',         path: '/tasks' },
+  { icon: GraduationCap,   label: 'Turmas',          path: '/turmas' },
+  { icon: Bell,            label: 'Notificações',    path: '/notifications' },
+  { icon: Settings,        label: 'Configurações',   path: '/settings' },
 ];
 
-export function Sidebar({ collapsed = false, onToggle, isOpen, onClose }: { collapsed?: boolean, onToggle?: () => void, isOpen?: boolean, onClose?: () => void }) {
+interface SidebarProps {
+  collapsed?: boolean;
+  onToggle?: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export function Sidebar({ collapsed = false, onToggle, onClose }: SidebarProps) {
+  const handleNavClick = () => {
+    if (window.innerWidth < 1024 && onClose) onClose();
+  };
+
   return (
     <div className="flex flex-col h-full w-full">
-      {/* Header */}
-      <div className={cn("p-4 border-b border-slate-100 flex-shrink-0", collapsed && "p-3 justify-center")}>
-        <div className={cn("flex items-center gap-3", collapsed && "gap-0 justify-center")}>
-          <button
-            onClick={onToggle}
-            className="p-1.5 hover:bg-slate-100 rounded-lg transition-all -ml-1 group"
-            title={collapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-          >
-            <ChevronRight className={cn("w-5 h-5 transition-transform duration-200", collapsed && "rotate-180")} />
-          </button>
-          <div className={cn(
-            "w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg drop-shadow-sm",
-            collapsed && "w-9 h-9"
-          )}>
-            <Leaf className="w-4.5 h-4.5 text-white" />
-          </div>
-          {!collapsed && (
-            <div className="min-w-0 flex flex-col leading-tight">
-              <span className="text-lg font-black tracking-tight text-slate-900 bg-gradient-to-r from-slate-900/90 to-slate-800/90 bg-clip-text">Target</span>
-              <span className="text-xs font-bold text-emerald-600 uppercase tracking-widest">Agrotech CRM</span>
-            </div>
-          )}
-        </div>
-      </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-1">
-        {menuItems.map((item) => (
+      {/* ── Header ─────────────────────────────────────────── */}
+      <header className={cn(
+        "flex items-center gap-3 border-b border-slate-100 flex-shrink-0 p-4",
+        collapsed && "justify-center gap-0 p-3"
+      )}>
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
+          className="p-1.5 rounded-lg transition-colors hover:bg-slate-100 -ml-1 flex-shrink-0"
+        >
+          <ChevronRight
+            aria-hidden="true"
+            className={cn(
+              "w-5 h-5 text-slate-500 transition-transform duration-200",
+              !collapsed && "rotate-180"
+            )}
+          />
+        </button>
+
+        <div className={cn(
+          "rounded-xl overflow-hidden shadow-md flex-shrink-0",
+          collapsed ? "w-9 h-9" : "w-10 h-10"
+        )}>
+          <img
+            src="https://tfwclxxcgnmndcnbklkx.supabase.co/storage/v1/object/public/icones/5.png"
+            alt=""
+            aria-hidden="true"
+            className="w-full h-full object-cover"
+          />
+        </div>
+
+        {!collapsed && (
+          <div className="min-w-0 flex items-center">
+            <img
+              src="https://tfwclxxcgnmndcnbklkx.supabase.co/storage/v1/object/public/icones/Logotipo%20da%20TARGET%20AGROTECH.png"
+              alt="Target Agrotech CRM"
+              className="h-32 w-auto object-contain"
+            />
+          </div>
+        )}
+      </header>
+
+      {/* ── Navigation ─────────────────────────────────────── */}
+      <nav aria-label="Menu principal" className="flex-1 overflow-y-auto px-2 py-4 space-y-1">
+        {menuItems.map(({ icon: Icon, label, path }) => (
           <NavLink
-            key={item.path}
-            to={item.path}
+            key={path}
+            to={path}
+            end={path === '/'}
+            onClick={handleNavClick}
+            title={collapsed ? label : undefined}
             className={({ isActive }) => cn(
-              "group flex items-center rounded-xl p-3 text-sm font-medium transition-all duration-200 h-12 overflow-hidden relative",
-              isActive 
-                ? "bg-gradient-to-r from-emerald-500/10 to-emerald-600/10 text-emerald-700 border border-emerald-200 shadow-sm" 
-                : "text-slate-600 hover:bg-slate-50/50 hover:text-slate-900 hover:shadow-sm border border-transparent"
+              "flex items-center rounded-xl px-3 h-12 text-sm font-medium transition-all duration-200 overflow-hidden border",
+              collapsed ? "justify-center" : "gap-3",
+              isActive
+                ? "bg-gradient-to-r from-emerald-500/10 to-emerald-600/10 text-emerald-700 border-emerald-200 shadow-sm"
+                : "text-slate-600 border-transparent hover:bg-slate-50 hover:text-slate-900 hover:border-slate-100"
             )}
-            onClick={() => {
-              if (window.innerWidth < 1024 && onClose) onClose();
-            }}
           >
-            <item.icon className={cn("w-5 h-5 flex-shrink-0 opacity-90", collapsed && "opacity-100")} />
-            {!collapsed && (
-              <span className="ml-3 truncate font-medium">{item.label}</span>
-            )}
-            {!collapsed && (
-              <button 
-                className="ml-auto p-1 opacity-0 group-hover:opacity-100 transition-all rounded hover:bg-slate-200"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onToggle?.();
-                }}
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            )}
+            <Icon aria-hidden="true" className="w-5 h-5 flex-shrink-0" />
+            {!collapsed && <span className="truncate">{label}</span>}
           </NavLink>
         ))}
       </nav>
 
-      {/* Footer */}
-      <div className="p-3 border-t border-slate-100 flex-shrink-0">
-        <button className={cn(
-          "flex items-center gap-3 w-full rounded-xl text-sm font-medium transition-all group px-3 py-2.5",
-          collapsed ? "justify-center" : ""
-        )}>
-          <LogOut className="w-4.5 h-4.5 text-red-500 flex-shrink-0" />
-          {!collapsed && <span className="font-semibold text-red-600">Sign Out</span>}
+      {/* ── Footer ─────────────────────────────────────────── */}
+      <footer className="p-3 border-t border-slate-100 flex-shrink-0">
+        <button
+          type="button"
+          title={collapsed ? "Sair" : undefined}
+          className={cn(
+            "flex items-center w-full rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+            "hover:bg-red-50 text-red-500 hover:text-red-600",
+            collapsed ? "justify-center" : "gap-3"
+          )}
+        >
+          <LogOut aria-hidden="true" className="w-5 h-5 flex-shrink-0" />
+          {!collapsed && <span>Sair</span>}
         </button>
-      </div>
+      </footer>
+
     </div>
   );
 }
-

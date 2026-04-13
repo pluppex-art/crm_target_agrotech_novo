@@ -1,4 +1,5 @@
-import { Package, Edit3, Trash2, MoreHorizontal } from 'lucide-react';
+import { Package, Edit3, Trash2, MoreHorizontal, ShieldAlert } from 'lucide-react';
+import { usePermissions } from '../../hooks/usePermissions';
 import { useProductStore } from '../../store/useProductStore';
 import { Product } from '../../services/productService';
 
@@ -8,7 +9,22 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, onEdit }: ProductCardProps) {
+  const { hasPermission, loading: permissionsLoading } = usePermissions();
   const { deleteProduct } = useProductStore();
+
+  if (permissionsLoading) {
+    return (
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-md transition-all animate-pulse">
+        <div className="h-32 bg-slate-100" />
+        <div className="p-5 space-y-3">
+          <div className="h-4 bg-slate-100 rounded w-20" />
+          <div className="h-6 bg-slate-100 rounded w-3/4" />
+          <div className="h-8 bg-slate-100 rounded-full w-1/2" />
+          <div className="h-4 bg-slate-100 rounded w-24" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-md transition-all group">
@@ -32,20 +48,24 @@ export function ProductCard({ product, onEdit }: ProductCardProps) {
         <div className="flex items-center justify-between pt-4 border-t border-slate-50">
           <span className="text-[10px] text-slate-400 font-bold uppercase">Estoque: {product.stock || 0}</span>
           <div className="flex items-center gap-2">
-            <button 
-              onClick={() => onEdit(product)}
-              className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
-            >
-              <Edit3 className="w-3.5 h-3.5" />
-            </button>
-            <button 
-              onClick={() => {
-                deleteProduct(product.id);
-              }}
-              className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
+            {hasPermission('products.edit') && (
+              <button 
+                onClick={() => onEdit(product)}
+                className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {hasPermission('products.delete') && (
+              <button 
+                onClick={() => {
+                  deleteProduct(product.id);
+                }}
+                className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         </div>
       </div>

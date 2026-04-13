@@ -1,5 +1,4 @@
-import { Settings as SettingsIcon, User, Bell, Lock, Globe, Shield, UserPlus } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Settings as SettingsIcon, User, Bell, Lock, Globe, Shield, UserPlus, Tag, Activity } from 'lucide-react';
 
 const sections = [
   { icon: User, label: 'Perfil', description: 'Gerencie suas informações pessoais e foto.', path: '/settings/profile' },
@@ -8,7 +7,10 @@ const sections = [
   { icon: Lock, label: 'Segurança', description: 'Altere sua senha e autenticação.', path: '/settings/security' },
   { icon: Globe, label: 'Integrações', description: 'Conecte com outras ferramentas.', path: '/settings/integrations' },
   { icon: Shield, label: 'Permissões', description: 'Gerencie o que cada perfil de usuário pode ver.', path: '/settings/permissions' },
+  { icon: Tag, label: 'Cargos', description: 'Gerencie cargos e permissões da equipe.', path: '/settings/cargos' },
   { icon: SettingsIcon, label: 'Pipelines', description: 'Gerencie tipos de pipeline, status e seções.', path: '/settings/pipelines' },
+  { icon: Tag, label: 'Categorias de Produto', description: 'Gerencie categorias e regras para cursos e serviços.', path: '/settings/categories' },
+  { icon: Activity, label: 'Categorias de Atividade', description: 'Gerencie os tipos de atividade (ligação, visita, reunião…).', path: '/settings/activity-categories' },
 ];
 
 interface SettingsSectionProps {
