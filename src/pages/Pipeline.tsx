@@ -125,24 +125,36 @@ export const Pipeline: React.FC = () => {
     if (sourceStageId === newStageId) return;
 
     const targetStage = currentPipeline?.stages.find(s => s.id === newStageId);
-
-    await updateLeadStage(draggableId, newStageId);
-
-    // Sincroniza status legado + last_contact_at em uma única chamada
-    await updateLead(draggableId, {
-      last_contact_at: new Date().toISOString(),
-      status: targetStage?.name ?? '',
-    });
-
-    // Quando movido para "Ganho" / "Fechado" / "Aprovado", oferece matrícula em turma
     const stageLower = targetStage?.name.toLowerCase() ?? '';
-    if (stageLower.includes('ganho') || stageLower.includes('fechado') || stageLower.includes('aprovado')) {
+    const isGanhoTarget = stageLower.includes('ganho') || stageLower.includes('fechado') || stageLower.includes('aprovado');
+
+    // Bloqueia arrastar para Ganho sem confirmações
+    if (isGanhoTarget) {
       const movedLead = leads.find((l) => l.id === draggableId);
       if (movedLead) {
         const productObj = products.find(p => p.name === movedLead.product);
         const categoryName = (productObj?.category || '').toLowerCase();
         const isService = categoryName.startsWith('serviço') || categoryName.startsWith('servico');
+        if (!isService && !(movedLead.pix_completed && movedLead.contract_signed)) {
+          alert('Para mover para Ganho, marque PIX realizado e Contrato assinado no lead.');
+          return;
+        }
+      }
+    }
 
+    await updateLeadStage(draggableId, newStageId);
+
+    await updateLead(draggableId, {
+      last_contact_at: new Date().toISOString(),
+      status: targetStage?.name ?? '',
+    });
+
+    if (isGanhoTarget) {
+      const movedLead = leads.find((l) => l.id === draggableId);
+      if (movedLead) {
+        const productObj = products.find(p => p.name === movedLead.product);
+        const categoryName = (productObj?.category || '').toLowerCase();
+        const isService = categoryName.startsWith('serviço') || categoryName.startsWith('servico');
         if (!isService) {
           setEnrollLead(movedLead);
         }

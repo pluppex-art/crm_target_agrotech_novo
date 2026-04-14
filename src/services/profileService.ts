@@ -122,7 +122,8 @@ export const profileService = {
     
     const insertData: UserProfile = {
       id: userId,
-      ...profile
+      ...profile,
+      must_change_password: true,
     };
     delete (insertData as any).password;
 

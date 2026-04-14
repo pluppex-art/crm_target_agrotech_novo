@@ -231,19 +231,23 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({
                   const stageName = (stage as any).title || (stage as any).name;
                   const { active, inactive } = getStageClasses(stage.color);
                   const isActive = currentStageId === stage.id;
+                  const isGanhoBtn = !isTurmaMode && (stageName as string)?.toLowerCase().includes('ganho');
+                  const isDisabled = isGanhoBtn && !canMoveToGanho;
                   return (
                     <button
                       key={stage.id}
-                      onClick={() => handleStageChange(stage.id)}
+                      onClick={() => !isDisabled && handleStageChange(stage.id)}
+                      disabled={isDisabled}
+                      title={isDisabled ? 'Marque PIX realizado e Contrato assinado para avançar para Ganho' : undefined}
                       className={cn(
                         "px-3 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all border shadow-sm",
                         isActive ? active : inactive,
-                        isActive ? "hover:shadow-md" : "bg-white hover:shadow-sm"
+                        isActive ? "hover:shadow-md" : "bg-white hover:shadow-sm",
+                        isDisabled && "opacity-40 cursor-not-allowed"
                       )}
                     >
                       {stageName}
                     </button>
-
                   );
                 })}
               </div>

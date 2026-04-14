@@ -12,7 +12,7 @@ interface HorizontalBarProps {
 
 export function HorizontalBar({ label, value, max, color, rank, isCurrency }: HorizontalBarProps) {
   const pct = max > 0 ? (value / max) * 100 : 0;
-  const medal = rank === 0 ? '🥇' : rank === 1 ? '🥈' : rank === 2 ? '🥉' : `${rank + 1}º`;
+  const medal = rank === 0 ? '🥇 🚀' : rank === 1 ? '🥈' : rank === 2 ? '🥉' : `${rank + 1}º`;
   
   const formattedValue = isCurrency 
     ? `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`

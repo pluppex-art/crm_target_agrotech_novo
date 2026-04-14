@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/layout/Layout';
 import { Dashboard } from './pages/Dashboard';
@@ -14,8 +14,6 @@ import { Integrations } from './pages/settings/Integrations';
 import { Users } from './pages/settings/Users';
 import { ManagePipelines } from './pages/settings/ManagePipelines';
 import { ManageCargos } from './pages/settings/ManageCargos';
-
-
 import { ManageCategories } from './pages/settings/ManageCategories';
 import { ManageActivityCategories } from './pages/settings/ManageActivityCategories';
 import { Finance } from './pages/Finance';
@@ -29,10 +27,27 @@ import { ForgotPassword } from './pages/ForgotPassword';
 import { ResetPassword } from './pages/ResetPassword';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { useAuthStore } from './store/useAuthStore';
+import { supabase } from './lib/supabase';
+import { ChangePasswordModal } from './components/auth/ChangePasswordModal';
 import { Loader2 } from 'lucide-react';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading, initialized } = useAuthStore();
+  const [mustChangePassword, setMustChangePassword] = useState(false);
+  const [profileChecked, setProfileChecked] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from('perfis')
+      .select('must_change_password')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => {
+        setMustChangePassword(data?.must_change_password === true);
+        setProfileChecked(true);
+      });
+  }, [user?.id]);
 
   if (!initialized || loading) {
     return (
@@ -46,7 +61,17 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace />;
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      {profileChecked && mustChangePassword && (
+        <ChangePasswordModal
+          userId={user.id}
+          onSuccess={() => setMustChangePassword(false)}
+        />
+      )}
+    </>
+  );
 }
 
 export default function App() {

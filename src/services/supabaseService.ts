@@ -169,7 +169,13 @@ export const supabaseService = {
     const supabase = getSupabaseClient();
     if (!supabase) return false;
 
-    // Delete associated tasks first
+    // Delete associated turma attendees first
+    await supabase
+      .from('turma_attendees')
+      .delete()
+      .eq('lead_id', leadId);
+
+    // Delete associated tasks
     await supabase
       .from('tasks')
       .delete()
