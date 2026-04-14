@@ -1,16 +1,26 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { Lead } from '../types/leads';
+import { useProfileStore } from '../store/useProfileStore';
 
 export const usePipelineFilters = (leads: Lead[]) => {
+  const { profiles, fetchProfiles } = useProfileStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedResponsible, setSelectedResponsible] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string | 'all'>('all');
   const [selectedProduct, setSelectedProduct] = useState<string>('all');
   const [selectedStars, setSelectedStars] = useState<number | 'all'>('all');
 
-  const responsibles = useMemo(() => 
-    Array.from(new Set(leads.map(l => l.responsible).filter(Boolean))) as string[]
-  , [leads]);
+  useEffect(() => {
+    fetchProfiles();
+  }, [fetchProfiles]);
+
+  // Apenas usuários ativos do departamento Comercial (vendedores)
+  const responsibles = useMemo(() =>
+    profiles
+      .filter(p => p.department === 'Comercial' && p.status === 'active')
+      .map(p => p.name)
+      .filter(Boolean) as string[]
+  , [profiles]);
 
   const filteredLeads = useMemo(() => leads.filter(lead => {
     const matchesSearch =
