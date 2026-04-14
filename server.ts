@@ -216,6 +216,74 @@ async function startServer() {
     res.json({ message: "Leads API ready" });
   });
 
+  // Create auth user (requires service role)
+  app.post("/api/create-user", async (req, res) => {
+    const { email, password, name } = req.body;
+    try {
+      if (!email || !password) {
+        return res.status(400).json({ error: "email e password são obrigatórios." });
+      }
+      const supabaseAdmin = getSupabaseAdmin();
+      const { data, error } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { name },
+      });
+      if (error) {
+        console.error("[create-user] Erro:", error.message);
+        return res.status(400).json({ error: error.message });
+      }
+      return res.json({ id: data.user?.id });
+    } catch (err: any) {
+      console.error("[create-user] Erro fatal:", err.message);
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Update auth user email/password (requires service role)
+  app.post("/api/update-user", async (req, res) => {
+    const { id, email, password } = req.body;
+    try {
+      if (!id) {
+        return res.status(400).json({ error: "id é obrigatório." });
+      }
+      const supabaseAdmin = getSupabaseAdmin();
+      const attrs: Record<string, any> = {};
+      if (email) { attrs.email = email; attrs.email_confirm = true; }
+      if (password) attrs.password = password;
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(id, attrs);
+      if (error) {
+        console.error("[update-user] Erro:", error.message);
+        return res.status(400).json({ error: error.message });
+      }
+      return res.json({ success: true });
+    } catch (err: any) {
+      console.error("[update-user] Erro fatal:", err.message);
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Delete auth user (requires service role)
+  app.post("/api/delete-user", async (req, res) => {
+    const { id } = req.body;
+    try {
+      if (!id) {
+        return res.status(400).json({ error: "id é obrigatório." });
+      }
+      const supabaseAdmin = getSupabaseAdmin();
+      const { error } = await supabaseAdmin.auth.admin.deleteUser(id);
+      if (error) {
+        console.error("[delete-user] Erro:", error.message);
+        return res.status(400).json({ error: error.message });
+      }
+      return res.json({ success: true });
+    } catch (err: any) {
+      console.error("[delete-user] Erro fatal:", err.message);
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
   const distPath = path.join(process.cwd(), "dist");
   app.use(express.static(distPath));
 

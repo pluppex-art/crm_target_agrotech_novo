@@ -1,4 +1,4 @@
-import { getSupabaseClient, getServiceSupabaseClient } from '../lib/supabase';
+import { getSupabaseClient } from '../lib/supabase';
 
 export interface CreateProfilePayload {
   name?: string;
@@ -59,7 +59,6 @@ export const profileService = {
 
   async updateProfile(id: string, profile: Partial<UserProfile>): Promise<{ data: UserProfile | null; error: any }> {
     const supabase = getSupabaseClient();
-    const serviceSupabase = getServiceSupabaseClient();
     if (!supabase) return { data: null, error: 'Supabase client not initialized' };
 
     const originalEmail = profile.email;
@@ -79,14 +78,16 @@ export const profileService = {
       return { data: null, error: perfisError };
     }
 
-    // Update auth user email if changed
-    if (serviceSupabase && originalEmail && data) {
-      const { error: authError } = await serviceSupabase.auth.admin.updateUserById(
-        id, 
-        { email: originalEmail, email_confirm: true }
-      );
-      if (authError) {
-        console.warn('Auth email update failed (perfis updated anyway):', authError);
+    // Update auth user email via backend (service role required)
+    if (originalEmail && data) {
+      const resp = await fetch('/api/update-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, email: originalEmail }),
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        console.warn('Auth email update failed (perfis updated anyway):', err);
       }
     }
 
@@ -97,26 +98,22 @@ export const profileService = {
     const supabase = getSupabaseClient();
     if (!supabase) return { data: null, error: 'Supabase client not initialized' };
 
-    // Create auth user first using service role if available
-    const serviceSupabase = getServiceSupabaseClient();
+    // Create auth user via backend (service role required)
     let userId: string = crypto.randomUUID();
-    
-    if (serviceSupabase && profile.email) {
-      // Create auth user
-      const { data: authUser, error: authError } = await serviceSupabase.auth.admin.createUser({
-        email: profile.email,
-        password: profile.password,
-        email_confirm: true,
-        user_metadata: { name: profile.name }
+
+    if (profile.email) {
+      const resp = await fetch('/api/create-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: profile.email, password: profile.password, name: profile.name }),
       });
-      
-      if (authError) {
-        console.error('Auth user creation failed:', authError);
-        return { data: null, error: authError };
+      const result = await resp.json();
+      if (!resp.ok) {
+        console.error('Auth user creation failed:', result.error);
+        return { data: null, error: result.error };
       }
-      
-      if (authUser.user) {
-        userId = authUser.user.id;
+      if (result.id) {
+        userId = result.id;
       }
     }
     
