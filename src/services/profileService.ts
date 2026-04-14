@@ -69,8 +69,9 @@ export const profileService = {
     // Update perfis
     const { data, error: perfisError } = await supabase
       .from('perfis')
-      .upsert(finalUpdateData)
-      .select()
+      .update(finalUpdateData)
+      .eq('id', id)
+      .select('*, cargos:role_id(*)')
       .single();
 
     if (perfisError) {
@@ -127,7 +128,7 @@ export const profileService = {
     const { data, error } = await supabase
       .from('perfis')
       .insert([insertData])
-      .select()
+      .select('*, cargos:role_id(*)')
       .single();
 
     if (error) {

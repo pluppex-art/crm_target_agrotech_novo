@@ -143,7 +143,7 @@ export function Users() {
                   </td>
                   <td className="px-6 py-4">
                     <span className="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-medium border border-slate-200">
-                      {user.role}
+                      {user.cargos?.name ?? user.role ?? '—'}
                     </span>
                   </td>
                   <td className="px-6 py-4">
