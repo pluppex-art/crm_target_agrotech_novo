@@ -1,5 +1,4 @@
-import { getSupabaseClient } from '../lib/supabase';
-import { useNotificationStore } from '../store/useNotificationStore';
+import { supabase } from '../lib/supabase';
 
 export interface Notification {
   id: string;
@@ -15,15 +14,15 @@ export interface Notification {
 
 export const notificationService = {
   async addNotification(notification: Omit<Notification, 'id' | 'read' | 'created_at'>): Promise<void> {
-    const supabase = getSupabaseClient();
-    if (!supabase) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('notifications')
       .insert([{
         ...notification,
+        user_id: user.id,
         read: false,
-        created_at: new Date().toISOString(),
       }]);
 
     if (error) console.error('Notification error:', error);
@@ -48,4 +47,3 @@ export const notificationService = {
   },
 };
 
-export const sendNotification = notificationService.addNotification;
