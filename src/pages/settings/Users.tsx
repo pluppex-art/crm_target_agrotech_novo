@@ -29,6 +29,13 @@ export function Users() {
     return () => unsubscribe();
   }, [fetchProfiles, fetchCargos, subscribe]);
 
+  // When cargos load, default role_id to the first cargo for new users
+  useEffect(() => {
+    if (cargos.length > 0 && !editingId && !formData.role_id) {
+      setFormData(prev => ({ ...prev, role_id: cargos[0].id }));
+    }
+  }, [cargos, editingId]);
+
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -73,7 +80,7 @@ export function Users() {
       name: '',
       email: '',
       phone: '',
-      role_id: '',
+      role_id: cargos[0]?.id ?? '',
       department: 'Comercial',
       cpf: '',
       password: '',
@@ -265,11 +272,13 @@ export function Users() {
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Cargo / Permissão</label>
                   <div className="relative">
-<select 
+<select
+                      required
                       value={formData.role_id}
                       onChange={(e) => setFormData({...formData, role_id: e.target.value})}
                       className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 appearance-none"
                     >
+                      <option value="" disabled>Selecione um cargo</option>
                       {cargos.map((cargo) => (
                         <option key={cargo.id} value={cargo.id}>
                           {cargo.name}
