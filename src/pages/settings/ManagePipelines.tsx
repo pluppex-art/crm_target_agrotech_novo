@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Plus, Trash2, X, Check, Pencil, ChevronDown, Settings2 } from 'lucide-react';
+import { Plus, Trash2, X, Check, Pencil, ChevronDown, Settings2, GripVertical } from 'lucide-react';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { usePipelineStore } from '../../store/usePipelineStore';
-import { PipelineStage, PipelineWithStages } from '../../types/pipelines';
+import { PipelineStage } from '../../types/pipelines';
 import { cn } from '../../lib/utils';
 
 const PRESET_COLORS = [
@@ -34,9 +35,10 @@ interface StageColumnProps {
   stage: PipelineStage;
   onUpdate: (id: string, updates: Partial<PipelineStage>) => void;
   onDelete: (id: string) => void;
+  dragHandleProps?: object | null;
 }
 
-function StageColumn({ stage, onUpdate, onDelete }: StageColumnProps) {
+function StageColumn({ stage, onUpdate, onDelete, dragHandleProps }: StageColumnProps) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(stage.name);
   const [color, setColor] = useState(stage.color);
@@ -90,6 +92,13 @@ function StageColumn({ stage, onUpdate, onDelete }: StageColumnProps) {
           {/* Header */}
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
+              <div
+                {...(dragHandleProps as any)}
+                className="cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-400 shrink-0 -ml-1"
+                title="Arrastar para reordenar"
+              >
+                <GripVertical size={14} />
+              </div>
               <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: color }} />
               <span className="text-sm font-bold text-slate-700 leading-tight">{stage.name}</span>
             </div>
@@ -204,6 +213,7 @@ export function ManagePipelines() {
     createStage,
     updateStage,
     deleteStage,
+    reorderStages,
   } = usePipelineStore();
 
   const [activePipelineId, setActivePipelineId] = useState<string | null>(null);
@@ -400,24 +410,59 @@ export function ManagePipelines() {
 
               {/* Kanban columns */}
               <div className="p-6 overflow-x-auto scrollbar-hide">
-                <div className="flex gap-4 min-h-[240px]">
-                  {activePipeline.stages
-                    .slice()
-                    .sort((a, b) => a.position - b.position)
-                    .map((stage) => (
-                      <StageColumn
-                        key={stage.id}
-                        stage={stage}
-                        onUpdate={updateStage}
-                        onDelete={handleDeleteStage}
-                      />
-                    ))}
-                  <AddColumn
-                    pipelineId={activePipeline.id}
-                    count={activePipeline.stages.length}
-                    onAdd={createStage}
-                  />
-                </div>
+                <DragDropContext
+                  onDragEnd={(result: DropResult) => {
+                    if (!result.destination) return;
+                    const { source, destination } = result;
+                    if (source.index === destination.index) return;
+                    const sorted = activePipeline.stages.slice().sort((a, b) => a.position - b.position);
+                    const reordered = Array.from(sorted);
+                    const [moved] = reordered.splice(source.index, 1);
+                    reordered.splice(destination.index, 0, moved);
+                    reorderStages(activePipeline.id, reordered.map(s => s.id));
+                  }}
+                >
+                  <Droppable droppableId="stages" direction="horizontal">
+                    {(provided) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.droppableProps}
+                        className="flex gap-4 min-h-[240px]"
+                      >
+                        {activePipeline.stages
+                          .slice()
+                          .sort((a, b) => a.position - b.position)
+                          .map((stage, index) => (
+                            <Draggable key={stage.id} draggableId={stage.id} index={index}>
+                              {(provided, snapshot) => (
+                                <div
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  style={{
+                                    ...provided.draggableProps.style,
+                                    opacity: snapshot.isDragging ? 0.85 : 1,
+                                  }}
+                                >
+                                  <StageColumn
+                                    stage={stage}
+                                    onUpdate={updateStage}
+                                    onDelete={handleDeleteStage}
+                                    dragHandleProps={provided.dragHandleProps}
+                                  />
+                                </div>
+                              )}
+                            </Draggable>
+                          ))}
+                        {provided.placeholder}
+                        <AddColumn
+                          pipelineId={activePipeline.id}
+                          count={activePipeline.stages.length}
+                          onAdd={createStage}
+                        />
+                      </div>
+                    )}
+                  </Droppable>
+                </DragDropContext>
               </div>
             </div>
           )}
