@@ -7,7 +7,7 @@ import {
 import { usePermissions } from '../hooks/usePermissions';
 import { useLeadStore } from '../store/useLeadStore';
 import { useFinanceStore } from '../store/useFinanceStore';
-import { cn, getLeadEffectiveValue } from '../lib/utils';
+import { cn, getLeadEffectiveValue, stageNameToStatus } from '../lib/utils';
 import { MetricCard } from '../components/dashboard/MetricCard';
 import { CSSBarChart } from '../components/dashboard/CSSBarChart';
 import { HorizontalBar } from '../components/dashboard/HorizontalBar';
@@ -62,7 +62,7 @@ export function Dashboard() {
   const avgIncome = incomeTransactions.length > 0 ? totalIncome / incomeTransactions.length : 0;
 
   // ── Sales metrics ────────────────────────────────────────────────
-  const closedLeads = useMemo(() => leads.filter(l => l.status === 'closed'), [leads]);
+  const closedLeads = useMemo(() => leads.filter(l => stageNameToStatus(l.status) === 'closed'), [leads]);
   const conversionRate = leads.length > 0 ? (closedLeads.length / leads.length) * 100 : 0;
   const avgTicket = useMemo(
     () => closedLeads.length > 0
@@ -224,7 +224,7 @@ export function Dashboard() {
             <MetricCard label="Total Vendas" value={`R$ ${fmt(totalSalesValue)}`} icon={TrendingUp} color="bg-emerald-50 text-emerald-600" />
             <MetricCard
               label="Em Proposta"
-              value={String(leads.filter(l => l.status === 'proposal').length)}
+              value={String(leads.filter(l => stageNameToStatus(l.status) === 'proposal').length)}
               icon={ShoppingBag}
               color="bg-rose-50 text-rose-600"
             />
@@ -276,7 +276,7 @@ export function Dashboard() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-100">
               {pipeline.map(col => {
-                const colLeads = leads.filter(l => l.status === col.id);
+                const colLeads = leads.filter(l => stageNameToStatus(l.status) === col.id);
                 const total = colLeads.reduce((s, l) => s + getLeadEffectiveValue(l), 0);
                 return (
                   <div key={col.id} className="p-4 sm:p-6">

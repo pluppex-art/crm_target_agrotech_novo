@@ -1,4 +1,4 @@
-export type LeadStatus = 'new' | 'qualified' | 'proposal' | 'closed';
+export type LeadStatus = string;
 export type LeadSubStatus = 'qualified' | 'warming' | 'disqualified';
 
 export interface LeadHistory {

@@ -18,7 +18,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import type { Lead } from '../types/leads';
 import { LeadDetailsModal } from '../components/leads/LeadDetailsModal';
 import { NewLeadModal } from '../components/leads/NewLeadModal';
-import { cn, getLeadEffectiveValue, stageNameToStatus } from '../lib/utils';
+import { cn, getLeadEffectiveValue } from '../lib/utils';
 import { requestNotificationPermission } from '../services/alertService';
 import { EnrollInTurmaModal } from '../components/pipeline/EnrollInTurmaModal';
 import { LeadCard } from '../components/pipeline/LeadCard';
@@ -131,7 +131,7 @@ export const Pipeline: React.FC = () => {
     // Sincroniza status legado + last_contact_at em uma única chamada
     await updateLead(draggableId, {
       last_contact_at: new Date().toISOString(),
-      status: stageNameToStatus(targetStage?.name ?? ''),
+      status: targetStage?.name ?? '',
     });
 
     // Quando movido para "Ganho" / "Fechado" / "Aprovado", oferece matrícula em turma
@@ -253,8 +253,7 @@ export const Pipeline: React.FC = () => {
           onStageChange={(stageId: string) => {
             const targetStage = currentPipeline?.stages.find(s => s.id === stageId);
             updateLeadStage(selectedLead.id, stageId);
-            // Sincroniza status legado com a nova etapa
-            updateLead(selectedLead.id, { status: stageNameToStatus(targetStage?.name ?? '') });
+            updateLead(selectedLead.id, { status: targetStage?.name ?? '' });
             const stageLower = targetStage?.name.toLowerCase() ?? '';
             if (stageLower.includes('ganho') || stageLower.includes('fechado') || stageLower.includes('aprovado')) {
               const productObj = products.find(p => p.name === selectedLead.product);
