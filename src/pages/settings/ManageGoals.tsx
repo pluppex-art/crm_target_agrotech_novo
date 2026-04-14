@@ -1,12 +1,74 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Target, Save, Loader2, Building2, User } from 'lucide-react';
-import { goalService, Goal } from '../../services/goalService';
+import { useState, useEffect, useCallback } from 'react';
+import { Save, Loader2, Building2, User } from 'lucide-react';
+import { goalService } from '../../services/goalService';
 import { useProfileStore } from '../../store/useProfileStore';
+import type { UserProfile } from '../../services/profileService';
 
-function formatBR(value: string): string {
-  const num = value.replace(/\D/g, '');
-  if (!num) return '';
-  return Number(num).toLocaleString('pt-BR');
+interface SellerGoalsListProps {
+  sellers: UserProfile[];
+  sellerGoals: Record<string, { revenue: string; leads: string }>;
+  savingSeller: string | null;
+  savedSeller: string | null;
+  updateSeller: (name: string, field: 'revenue' | 'leads', value: string) => void;
+  handleSaveSeller: (name: string) => void;
+}
+
+function SellerGoalsList({ sellers, sellerGoals, savingSeller, savedSeller, updateSeller, handleSaveSeller }: SellerGoalsListProps) {
+  if (sellers.length === 0) {
+    return (
+      <p className="text-sm text-slate-400 text-center py-8">
+        Nenhum usuário com cargo de vendedor cadastrado.
+      </p>
+    );
+  }
+  return (
+    <div className="space-y-6">
+      {sellers.map(profile => {
+        const name = profile.name || profile.email || '?';
+        const g = sellerGoals[name] || { revenue: '', leads: '' };
+        const isSaving = savingSeller === name;
+        const isSaved = savedSeller === name;
+        return (
+          <div key={profile.id} className="border border-slate-100 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-7 h-7 bg-slate-100 rounded-full flex items-center justify-center text-xs font-bold text-slate-500">
+                {name.charAt(0).toUpperCase()}
+              </div>
+              <span className="font-semibold text-slate-700 text-sm">{name}</span>
+              {profile.department && (
+                <span className="text-[10px] uppercase font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md">
+                  {profile.department}
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+              <GoalInput
+                label="Receita (R$)"
+                prefix="R$"
+                value={g.revenue}
+                onChange={v => updateSeller(name, 'revenue', v)}
+              />
+              <GoalInput
+                label="Leads fechados"
+                value={g.leads}
+                onChange={v => updateSeller(name, 'leads', v.replace(/\D/g, ''))}
+              />
+            </div>
+            <div className="flex justify-end">
+              <button
+                onClick={() => handleSaveSeller(name)}
+                disabled={isSaving}
+                className="flex items-center gap-1.5 px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-sm transition-all disabled:opacity-60"
+              >
+                {isSaving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+                {isSaved ? 'Salvo!' : 'Salvar'}
+              </button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function parseBR(value: string): number {
@@ -175,59 +237,14 @@ export function ManageGoals() {
           </div>
         </div>
 
-        {profiles.length === 0 ? (
-          <p className="text-sm text-slate-400 text-center py-8">Nenhum usuário cadastrado ainda.</p>
-        ) : (
-          <div className="space-y-6">
-            {profiles.map(profile => {
-              const name = profile.name || profile.email || '?';
-              const g = sellerGoals[name] || { revenue: '', leads: '' };
-              const isSaving = savingSeller === name;
-              const isSaved = savedSeller === name;
-
-              return (
-                <div key={profile.id} className="border border-slate-100 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-7 h-7 bg-slate-100 rounded-full flex items-center justify-center text-xs font-bold text-slate-500">
-                      {name.charAt(0).toUpperCase()}
-                    </div>
-                    <span className="font-semibold text-slate-700 text-sm">{name}</span>
-                    {profile.department && (
-                      <span className="text-[10px] uppercase font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md">
-                        {profile.department}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                    <GoalInput
-                      label="Receita (R$)"
-                      prefix="R$"
-                      value={g.revenue}
-                      onChange={v => updateSeller(name, 'revenue', v)}
-                    />
-                    <GoalInput
-                      label="Leads fechados"
-                      value={g.leads}
-                      onChange={v => updateSeller(name, 'leads', v.replace(/\D/g, ''))}
-                    />
-                  </div>
-
-                  <div className="flex justify-end">
-                    <button
-                      onClick={() => handleSaveSeller(name)}
-                      disabled={isSaving}
-                      className="flex items-center gap-1.5 px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-sm transition-all disabled:opacity-60"
-                    >
-                      {isSaving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
-                      {isSaved ? 'Salvo!' : 'Salvar'}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <SellerGoalsList
+          sellers={profiles.filter(p => p.cargos?.name?.toLowerCase().includes('vend'))}
+          sellerGoals={sellerGoals}
+          savingSeller={savingSeller}
+          savedSeller={savedSeller}
+          updateSeller={updateSeller}
+          handleSaveSeller={handleSaveSeller}
+        />
       </div>
     </div>
   );

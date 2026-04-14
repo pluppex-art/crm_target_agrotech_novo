@@ -137,9 +137,12 @@ export function Dashboard() {
   );
 
   const allSellersRanking = useMemo(() => {
+    const isVendedor = (p: { cargos?: { name?: string } | null }) =>
+      p.cargos?.name?.toLowerCase().includes('vend') ?? false;
+
     const byName: Record<string, { label: string; value: number; count: number }> = {};
     salesByResponsible.forEach(s => { byName[s.label] = s; });
-    profiles.filter(p => p.name).forEach(p => {
+    profiles.filter(p => p.name && isVendedor(p)).forEach(p => {
       if (!byName[p.name!]) byName[p.name!] = { label: p.name!, value: 0, count: 0 };
     });
     return Object.values(byName).sort((a, b) => b.value - a.value);
