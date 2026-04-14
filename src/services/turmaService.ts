@@ -182,11 +182,11 @@ export const turmaService = {
       .insert([{
         name: turmaData.name,
         product_id: turmaData.product_id,
-        professor_name: turmaData.professor_name ?? null,
-        professor_email: turmaData.professor_email ?? null,
-        date: turmaData.date,
-        time: turmaData.time,
-        location: turmaData.location,
+        professor_name: turmaData.professor_name || null,
+        professor_email: turmaData.professor_email || null,
+        date: turmaData.date || null,
+        time: turmaData.time || null,
+        location: turmaData.location || null,
         status: turmaData.status,
       }])
       .select('*, products(*), turma_attendees(*)')
@@ -217,9 +217,18 @@ export const turmaService = {
     const supabase = getSupabaseClient();
     if (!supabase) return false;
 
+    const sanitized = {
+      ...turmaData,
+      date: turmaData.date || null,
+      time: turmaData.time || null,
+      location: turmaData.location || null,
+      professor_name: turmaData.professor_name || null,
+      professor_email: turmaData.professor_email || null,
+    };
+
     const { error } = await supabase
       .from('turmas')
-      .update(turmaData)
+      .update(sanitized)
       .eq('id', id);
 
     if (error) {
