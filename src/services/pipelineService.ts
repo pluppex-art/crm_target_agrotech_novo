@@ -12,9 +12,9 @@ export const pipelineService = {
     const { data: pipelines, error: pipelineError } = await supabase
       .from('pipelines')
       .select(`
-        *, 
+        *,
         pipeline_stages (
-          id, name, color, position, is_active
+          id, pipeline_id, name, color, position, is_active
         )
       `)
       .eq('is_active', true)
@@ -27,7 +27,9 @@ export const pipelineService = {
 
     return (pipelines || []).map((p: any) => ({
       ...p,
-      stages: (p.pipeline_stages || []).sort((a: any, b: any) => a.position - b.position)
+      stages: (p.pipeline_stages || [])
+        .filter((s: any) => s.is_active !== false)
+        .sort((a: any, b: any) => a.position - b.position),
     }));
   },
 
@@ -143,8 +145,8 @@ export const pipelineService = {
 
     const { error } = await supabase
       .from('pipeline_stages')
-      .update({ is_active: false, updated_at: new Date().toISOString() })
-      .eq('id', id); // Soft delete
+      .delete()
+      .eq('id', id);
 
     if (error) {
       console.error('Error deleting stage:', error);
@@ -154,7 +156,7 @@ export const pipelineService = {
     return true;
   },
 
-  async reorderStages(pipelineId: string, stageIds: string[]): Promise<boolean> {
+  async reorderStages(_pipelineId: string, stageIds: string[]): Promise<boolean> {
     const supabase = getSupabaseClient();
     if (!supabase) return false;
 
