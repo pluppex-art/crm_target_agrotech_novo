@@ -173,7 +173,63 @@ export const turmaService = {
     return true;
   },
 
-  async deleteTurma(id: string): Promise<boolean> {
+  async create(turmaData: Omit<Turma, 'id' | 'attendees' | 'product_name' | 'category'>): Promise<Turma | null> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return null;
+
+    const { data, error } = await supabase
+      .from('turmas')
+      .insert([{
+        name: turmaData.name,
+        product_id: turmaData.product_id,
+        professor_name: turmaData.professor_name ?? null,
+        professor_email: turmaData.professor_email ?? null,
+        date: turmaData.date,
+        time: turmaData.time,
+        location: turmaData.location,
+        status: turmaData.status,
+      }])
+      .select('*, products(*), turma_attendees(*)')
+      .single();
+
+    if (error) {
+      console.error('Error creating turma:', error);
+      return null;
+    }
+
+    return {
+      id: data.id,
+      name: data.name,
+      professor_name: data.professor_name,
+      professor_email: data.professor_email,
+      date: data.date,
+      time: data.time,
+      product_id: data.product_id,
+      product_name: data.products?.name ?? 'Produto não encontrado',
+      category: data.products?.category ?? 'Geral',
+      location: data.location,
+      status: data.status,
+      attendees: [],
+    };
+  },
+
+  async update(id: string, turmaData: Partial<Omit<Turma, 'id' | 'attendees' | 'product_name' | 'category'>>): Promise<boolean> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return false;
+
+    const { error } = await supabase
+      .from('turmas')
+      .update(turmaData)
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error updating turma:', error);
+      return false;
+    }
+    return true;
+  },
+
+  async remove(id: string): Promise<boolean> {
     const supabase = getSupabaseClient();
     if (!supabase) return false;
 
@@ -184,6 +240,26 @@ export const turmaService = {
 
     if (error) {
       console.error('Error deleting turma:', error);
+      return false;
+    }
+    return true;
+  },
+
+  async deleteTurma(id: string): Promise<boolean> {
+    return turmaService.remove(id);
+  },
+
+  async removeAttendee(attendeeId: string): Promise<boolean> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return false;
+
+    const { error } = await supabase
+      .from('turma_attendees')
+      .delete()
+      .eq('id', attendeeId);
+
+    if (error) {
+      console.error('Error removing attendee:', error);
       return false;
     }
     return true;
