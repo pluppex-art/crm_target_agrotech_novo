@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { ArrowRight, ArrowUp, ChevronDown, CheckCircle2, Loader2, Leaf } from 'lucide-react';
+import { ArrowRight, ArrowUp, ChevronDown, CheckCircle2, Loader2, Leaf, MessageCircle } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 
 // ── Supabase anon client (só leitura de produtos) ──────────────────────────
@@ -9,6 +9,8 @@ const supabaseAnon = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 const supabase = supabaseUrl && supabaseAnon
   ? createClient(supabaseUrl, supabaseAnon)
   : null;
+
+const WHATSAPP_URL = 'https://api.whatsapp.com/send/?phone=5566999763455&text&type=phone_number&app_absent=0';
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
 interface Step {
@@ -37,7 +39,8 @@ const variants = {
 // ── Componente ─────────────────────────────────────────────────────────────
 export function PublicForm() {
   const [products, setProducts] = useState<string[]>([]);
-  const [currentStep, setCurrentStep] = useState(-1); // -1 = tela de boas-vindas
+  const [productPrices, setProductPrices] = useState<Record<string, number>>({});
+  const [currentStep, setCurrentStep] = useState(0);
   const [direction, setDirection] = useState(1);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [inputValue, setInputValue] = useState('');
@@ -52,10 +55,13 @@ export function PublicForm() {
       if (!supabase) return;
       const { data } = await supabase
         .from('products')
-        .select('name, category')
+        .select('name, price')
         .order('name', { ascending: true });
       if (data) {
         setProducts(data.map((p: any) => p.name));
+        const priceMap: Record<string, number> = {};
+        data.forEach((p: any) => { priceMap[p.name] = Number(p.price) || 0; });
+        setProductPrices(priceMap);
       }
     }
     loadProducts();
@@ -71,19 +77,19 @@ export function PublicForm() {
       required: true,
     },
     {
-      id: 'email',
-      question: 'Qual é o seu melhor e-mail?',
-      hint: 'Usaremos para entrar em contato.',
-      type: 'email',
-      placeholder: 'exemplo@email.com',
-      required: true,
-    },
-    {
       id: 'phone',
       question: 'Qual é o seu WhatsApp?',
       hint: 'Com DDD. Ex: (11) 99999-9999',
       type: 'tel',
       placeholder: '(00) 00000-0000',
+      required: true,
+    },
+    {
+      id: 'email',
+      question: 'Qual é o seu melhor e-mail?',
+      hint: 'Usaremos para entrar em contato.',
+      type: 'email',
+      placeholder: 'exemplo@email.com',
       required: true,
     },
     {
@@ -104,14 +110,12 @@ export function PublicForm() {
     },
   ];
 
-  const step = currentStep >= 0 ? steps[currentStep] : null;
-  const progress = currentStep < 0 ? 0 : ((currentStep + 1) / steps.length) * 100;
+  const step = steps[currentStep];
+  const progress = ((currentStep + 1) / steps.length) * 100;
 
   // Foca o input ao trocar de etapa
   useEffect(() => {
-    if (currentStep >= 0) {
-      setTimeout(() => inputRef.current?.focus(), 350);
-    }
+    setTimeout(() => inputRef.current?.focus(), 350);
   }, [currentStep]);
 
   // Pré-preenche o input com a resposta já salva (ao voltar)
@@ -140,8 +144,11 @@ export function PublicForm() {
 
   const goPrev = () => {
     if (currentStep <= 0) {
-      setDirection(-1);
-      setCurrentStep(-1);
+      // Reinicia o formulário ao invés de sair para o CRM
+      setAnswers({});
+      setInputValue('');
+      setError(null);
+      setCurrentStep(0);
       return;
     }
     setDirection(-1);
@@ -159,6 +166,7 @@ export function PublicForm() {
     setSubmitting(true);
     setError(null);
     try {
+      const productValue = data.product ? (productPrices[data.product] ?? 0) : 0;
       const resp = await fetch('/api/submit-lead', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -168,6 +176,7 @@ export function PublicForm() {
           phone: data.phone,
           city: data.city ?? '',
           product: data.product,
+          value: productValue,
         }),
       });
       const result = await resp.json();
@@ -194,57 +203,21 @@ export function PublicForm() {
             <CheckCircle2 className="w-10 h-10 text-emerald-400" />
           </div>
           <h2 className="text-3xl font-bold text-white mb-3">Recebemos!</h2>
-          <p className="text-emerald-200 text-lg leading-relaxed">
+          <p className="text-emerald-200 text-lg leading-relaxed mb-8">
             Obrigado, <strong className="text-white">{answers.name?.split(' ')[0]}</strong>! Nossa equipe entrará em contato em breve pelo WhatsApp.
           </p>
-          <p className="text-emerald-400/60 text-sm mt-8">Target Agrotech • CRM</p>
-        </motion.div>
-      </div>
-    );
-  }
 
-  // ── Tela de boas-vindas ──────────────────────────────────────────────────
-  if (currentStep === -1) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 flex flex-col items-center justify-center p-6 relative overflow-hidden">
-        {/* Decoração de fundo */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-32 -right-32 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl" />
-          <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl" />
-        </div>
-
-        <motion.div
-          initial={{ y: 30, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.6 }}
-          className="relative z-10 text-center max-w-lg"
-        >
-          <div className="flex items-center justify-center gap-2 mb-8">
-            <div className="w-10 h-10 bg-emerald-400/20 border border-emerald-400/40 rounded-xl flex items-center justify-center">
-              <Leaf className="w-5 h-5 text-emerald-400" />
-            </div>
-            <span className="text-emerald-300 font-semibold text-lg tracking-wide">Target Agrotech</span>
-          </div>
-
-          <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4 leading-tight">
-            Pronto para dar o<br />
-            <span className="text-emerald-400">próximo passo?</span>
-          </h1>
-          <p className="text-emerald-200/80 text-lg mb-10 leading-relaxed">
-            Responda algumas perguntas rápidas e nossa equipe entrará em contato com as melhores opções para você.
-          </p>
-
-          <button
-            onClick={() => { setDirection(1); setCurrentStep(0); }}
-            className="group inline-flex items-center gap-3 px-8 py-4 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-lg rounded-2xl transition-all duration-200 shadow-xl shadow-emerald-900/50"
+          <a
+            href={WHATSAPP_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-3 px-8 py-4 bg-green-500 hover:bg-green-400 text-white font-bold text-lg rounded-2xl transition-all duration-200 shadow-xl shadow-green-900/50"
           >
-            Começar agora
-            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </button>
+            <MessageCircle className="w-5 h-5" />
+            Falar no WhatsApp
+          </a>
 
-          <p className="text-emerald-500/60 text-sm mt-6">
-            Leva menos de 2 minutos • {steps.length} perguntas
-          </p>
+          <p className="text-emerald-400/60 text-sm mt-8">Target Agrotech • CRM</p>
         </motion.div>
       </div>
     );
@@ -387,7 +360,7 @@ export function PublicForm() {
           className="flex items-center gap-1.5 text-emerald-500/60 hover:text-emerald-400 text-sm font-medium transition-colors"
         >
           <ArrowUp className="w-4 h-4 -rotate-90" />
-          Voltar
+          {currentStep === 0 ? 'Recomeçar' : 'Voltar'}
         </button>
         <div className="flex gap-1.5">
           {steps.map((_, i) => (

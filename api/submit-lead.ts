@@ -13,7 +13,7 @@ export default async function handler(req: any, res: any) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { name, email, phone, city, product } = req.body ?? {};
+  const { name, email, phone, city, product, value } = req.body ?? {};
 
   if (!name || !email || !phone || !product) {
     return res.status(400).json({ error: 'Campos obrigatórios: name, email, phone, product.' });
@@ -42,7 +42,7 @@ export default async function handler(req: any, res: any) {
       stage_id: STAGE_ID,
       status: 'Novos Leads',
       stars: 1,
-      value: 0,
+      value: Number(value) || 0,
       substatus: null,
       photo: `https://ui-avatars.com/api/?name=${encodeURIComponent(name.trim())}&background=059669&color=fff&size=128`,
     }])
