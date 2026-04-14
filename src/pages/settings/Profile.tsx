@@ -176,10 +176,13 @@ export function Profile() {
             </div>
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="absolute -bottom-3 p-2 bg-white border-4 border-emerald-600 rounded-full shadow-lg hover:shadow-xl transition-all"
+              disabled={imageLoading}
+              className="absolute -bottom-3 p-2 bg-white border-4 border-emerald-600 rounded-full shadow-lg hover:shadow-xl transition-all disabled:opacity-60"
               title="Adicionar foto"
             >
-              <Camera className="w-6 h-6 text-emerald-600" />
+              {imageLoading
+                ? <Loader2 className="w-6 h-6 text-emerald-600 animate-spin" />
+                : <Camera className="w-6 h-6 text-emerald-600" />}
             </button>
             <input
               ref={fileInputRef}
@@ -208,9 +211,9 @@ export function Profile() {
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">E-mail</label>
               <input
                 type="email"
-                readOnly
                 value={formData.email}
-                className="w-full px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-xl outline-none text-slate-500 cursor-not-allowed"
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700"
               />
             </div>
             <div className="space-y-1.5">
