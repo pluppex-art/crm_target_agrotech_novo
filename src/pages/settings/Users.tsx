@@ -38,6 +38,10 @@ export function Users() {
 
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
+    if (!formData.role_id) {
+      setFormError('Selecione um cargo antes de salvar.');
+      return;
+    }
     setSubmitting(true);
     setFormError(null);
     try {

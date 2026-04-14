@@ -62,11 +62,15 @@ export const profileService = {
     if (!supabase) return { data: null, error: 'Supabase client not initialized' };
 
     const originalEmail = profile.email;
-    // Remove email and joined/computed fields that don't exist as columns in perfis
-    const { email, role_id, cargos, cargo_name, ...updateData } = profile as any;
-    const finalUpdateData = { id, ...updateData, role_id: role_id || null };
+    // Strip fields that are not columns in perfis or must not appear in SET clause
+    const { email, role_id, cargos, cargo_name, id: _id, ...rest } = profile as any;
 
-    // Update perfis
+    const finalUpdateData: Record<string, any> = {
+      ...rest,
+      role_id: role_id && role_id !== '' ? role_id : null,
+    };
+
+    // Update perfis — do NOT include id in the SET payload
     const { data, error: perfisError } = await supabase
       .from('perfis')
       .update(finalUpdateData)
@@ -118,12 +122,18 @@ export const profileService = {
       }
     }
     
-    const insertData: UserProfile = {
+    const insertData = {
       id: userId,
-      ...profile,
+      name: profile.name ?? null,
+      email: profile.email,
+      phone: profile.phone ?? null,
+      department: profile.department,
+      status: profile.status,
+      cpf: profile.cpf ?? null,
+      avatar_url: profile.avatar_url ?? null,
+      role_id: profile.role_id && profile.role_id !== '' ? profile.role_id : null,
       must_change_password: true,
     };
-    delete (insertData as any).password;
 
     const { data, error } = await supabase
       .from('perfis')
