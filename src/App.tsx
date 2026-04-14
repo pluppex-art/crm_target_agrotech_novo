@@ -26,6 +26,7 @@ import { Turmas } from './pages/Turmas';
 import { Login } from './pages/Login';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { ResetPassword } from './pages/ResetPassword';
+import { PublicForm } from './pages/PublicForm';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { useAuthStore } from './store/useAuthStore';
 import { supabase } from './lib/supabase';
@@ -88,6 +89,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/formulario" element={<PublicForm />} />
         <Route
           element={
             <ProtectedRoute>
