@@ -61,16 +61,15 @@ export const profileService = {
     const supabase = getSupabaseClient();
     if (!supabase) return { data: null, error: 'Supabase client not initialized' };
 
-    const originalEmail = profile.email;
-    // Strip fields that are not columns in perfis or must not appear in SET clause
-    const { email, role_id, cargos, cargo_name, id: _id, ...rest } = profile as any;
+    // Strip fields that are not direct columns or must not appear in the SET clause
+    const { role_id, cargos, cargo_name, id: _id, ...rest } = profile as any;
 
     const finalUpdateData: Record<string, any> = {
       ...rest,
       role_id: role_id && role_id !== '' ? role_id : null,
     };
 
-    // Update perfis — do NOT include id in the SET payload
+    // Update perfis (includes email so the column stays in sync with auth)
     const { data, error: perfisError } = await supabase
       .from('perfis')
       .update(finalUpdateData)
@@ -83,16 +82,22 @@ export const profileService = {
       return { data: null, error: perfisError };
     }
 
-    // Update auth user email via backend (service role required)
-    if (originalEmail && data) {
-      const resp = await fetch('/api/update-user', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, email: originalEmail }),
-      });
-      if (!resp.ok) {
-        const err = await resp.json().catch(() => ({}));
-        console.warn('Auth email update failed (perfis updated anyway):', err);
+    // Sync email and name to auth user via backend (service role required)
+    if (data) {
+      const authPayload: Record<string, any> = { id };
+      if (profile.email) authPayload.email = profile.email;
+      if (profile.name !== undefined) authPayload.name = profile.name;
+
+      if (authPayload.email || authPayload.name !== undefined) {
+        const resp = await fetch('/api/update-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(authPayload),
+        });
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          console.warn('Auth user sync failed (perfis updated anyway):', err);
+        }
       }
     }
 

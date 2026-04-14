@@ -5,7 +5,7 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { id, email, password } = req.body;
+  const { id, email, password, name } = req.body;
 
   if (!id) {
     return res.status(400).json({ error: 'id é obrigatório.' });
@@ -25,6 +25,7 @@ export default async function handler(req: any, res: any) {
   const attrs: Record<string, any> = {};
   if (email) { attrs.email = email; attrs.email_confirm = true; }
   if (password) attrs.password = password;
+  if (name !== undefined) attrs.user_metadata = { name };
 
   const { error } = await supabaseAdmin.auth.admin.updateUserById(id, attrs);
 
