@@ -49,6 +49,16 @@ export function PublicForm() {
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | HTMLSelectElement>(null);
 
+  // Bloqueia o botão "voltar" do navegador
+  useEffect(() => {
+    window.history.pushState(null, '', window.location.href);
+    const handlePopState = () => {
+      window.history.pushState(null, '', window.location.href);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   // Busca produtos do banco
   useEffect(() => {
     async function loadProducts() {
