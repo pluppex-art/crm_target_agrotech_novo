@@ -18,7 +18,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import type { Lead } from '../types/leads';
 import { LeadDetailsModal } from '../components/leads/LeadDetailsModal';
 import { NewLeadModal } from '../components/leads/NewLeadModal';
-import { cn, getLeadEffectiveValue } from '../lib/utils';
+import { cn, getLeadEffectiveValue, stageNameToStatus } from '../lib/utils';
 import { requestNotificationPermission } from '../services/alertService';
 import { EnrollInTurmaModal } from '../components/pipeline/EnrollInTurmaModal';
 import { LeadCard } from '../components/pipeline/LeadCard';
@@ -124,17 +124,21 @@ export const Pipeline: React.FC = () => {
 
     if (sourceStageId === newStageId) return;
 
+    const targetStage = currentPipeline?.stages.find(s => s.id === newStageId);
+
     await updateLeadStage(draggableId, newStageId);
 
-    // Update last_contact_at when lead is moved
-    await updateLead(draggableId, { last_contact_at: new Date().toISOString() });
+    // Sincroniza status legado + last_contact_at em uma única chamada
+    await updateLead(draggableId, {
+      last_contact_at: new Date().toISOString(),
+      status: stageNameToStatus(targetStage?.name ?? ''),
+    });
 
-    // When moved to a stage that looks like 'closed'/'ganho', offer to enroll in turma
-    const targetStage = currentPipeline?.stages.find(s => s.id === newStageId);
-    if (targetStage?.name.toLowerCase().includes('ganho') || targetStage?.name.toLowerCase().includes('fechado') || targetStage?.name.toLowerCase().includes('aprovado')) {
+    // Quando movido para "Ganho" / "Fechado" / "Aprovado", oferece matrícula em turma
+    const stageLower = targetStage?.name.toLowerCase() ?? '';
+    if (stageLower.includes('ganho') || stageLower.includes('fechado') || stageLower.includes('aprovado')) {
       const movedLead = leads.find((l) => l.id === draggableId);
       if (movedLead) {
-        // Check product category: if it starts with "Serviço" or "Servico", don't offer to enroll in turma
         const productObj = products.find(p => p.name === movedLead.product);
         const categoryName = (productObj?.category || '').toLowerCase();
         const isService = categoryName.startsWith('serviço') || categoryName.startsWith('servico');
@@ -247,9 +251,12 @@ export const Pipeline: React.FC = () => {
           currentStageId={selectedLead.stage_id || (filteredColumns[0]?.id || COLUMNS[0]?.id)}
           responsibles={filters.responsibles}
           onStageChange={(stageId: string) => {
-            updateLeadStage(selectedLead.id, stageId);
             const targetStage = currentPipeline?.stages.find(s => s.id === stageId);
-            if (targetStage?.name.toLowerCase().includes('ganho') || targetStage?.name.toLowerCase().includes('fechado') || targetStage?.name.toLowerCase().includes('aprovado')) {
+            updateLeadStage(selectedLead.id, stageId);
+            // Sincroniza status legado com a nova etapa
+            updateLead(selectedLead.id, { status: stageNameToStatus(targetStage?.name ?? '') });
+            const stageLower = targetStage?.name.toLowerCase() ?? '';
+            if (stageLower.includes('ganho') || stageLower.includes('fechado') || stageLower.includes('aprovado')) {
               const productObj = products.find(p => p.name === selectedLead.product);
               const categoryName = (productObj?.category || '').toLowerCase();
               const isService = categoryName.startsWith('serviço') || categoryName.startsWith('servico');

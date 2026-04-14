@@ -1,8 +1,42 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import type { LeadStatus } from '../types/leads';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
+}
+
+/**
+ * Mapeia o nome de uma etapa do pipeline para o status legado do lead.
+ * Usado para manter o campo `status` em sincronia com o `stage_id`.
+ */
+export function stageNameToStatus(stageName: string): LeadStatus {
+  const n = stageName
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  if (
+    n.includes('ganho') ||
+    n.includes('aprovado') ||
+    n.includes('fechado') ||
+    n.includes('conclu')
+  ) return 'closed';
+  if (
+    n.includes('proposta') ||
+    n.includes('negociacao') ||
+    n.includes('contrato') ||
+    n.includes('orcamento') ||
+    n.includes('execucao') ||
+    n.includes('manutencao')
+  ) return 'proposal';
+  if (
+    n.includes('qualificado') ||
+    n.includes('diagnostico') ||
+    n.includes('pronto venda') ||
+    n.includes('pre-auditoria') ||
+    n.includes('auditoria')
+  ) return 'qualified';
+  return 'new';
 }
 
 export function parseBRNumber(val: string | number | undefined | null): number {
