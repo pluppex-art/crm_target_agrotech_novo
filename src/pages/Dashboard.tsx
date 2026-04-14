@@ -7,6 +7,7 @@ import {
 import { usePermissions } from '../hooks/usePermissions';
 import { useLeadStore } from '../store/useLeadStore';
 import { useFinanceStore } from '../store/useFinanceStore';
+import { useProfileStore } from '../store/useProfileStore';
 import { cn, getLeadEffectiveValue, stageNameToStatus } from '../lib/utils';
 import { MetricCard } from '../components/dashboard/MetricCard';
 import { CSSBarChart } from '../components/dashboard/CSSBarChart';
@@ -21,6 +22,7 @@ export function Dashboard() {
 
   const { transactions, fetchTransactions, isLoading: financeLoading, subscribe: subscribeFinance } = useFinanceStore();
   const { leads, fetchLeads, isLoading: leadsLoading, subscribeToLeads } = useLeadStore();
+  const { profiles, fetchProfiles } = useProfileStore();
 
   // Use refs to run fetch only once — avoids infinite loop caused by
   // Zustand functions being recreated on every store update
@@ -30,6 +32,7 @@ export function Dashboard() {
     didFetch.current = true;
     fetchLeads();
     fetchTransactions();
+    fetchProfiles();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Realtime subscriptions — run once on mount
@@ -122,15 +125,25 @@ export function Dashboard() {
 
   const salesByResponsible = useMemo(() =>
     Object.values(
-      closedLeads.filter(l => l.responsible).reduce((acc: Record<string, { label: string; value: number }>, l) => {
+      closedLeads.filter(l => l.responsible).reduce((acc: Record<string, { label: string; value: number; count: number }>, l) => {
         const key = l.responsible!;
-        acc[key] = acc[key] || { label: key, value: 0 };
+        acc[key] = acc[key] || { label: key, value: 0, count: 0 };
         acc[key].value += getLeadEffectiveValue(l);
+        acc[key].count += 1;
         return acc;
       }, {})
     ).sort((a, b) => b.value - a.value),
     [closedLeads]
   );
+
+  const allSellersRanking = useMemo(() => {
+    const byName: Record<string, { label: string; value: number; count: number }> = {};
+    salesByResponsible.forEach(s => { byName[s.label] = s; });
+    profiles.filter(p => p.name).forEach(p => {
+      if (!byName[p.name!]) byName[p.name!] = { label: p.name!, value: 0, count: 0 };
+    });
+    return Object.values(byName).sort((a, b) => b.value - a.value);
+  }, [salesByResponsible, profiles]);
 
   const incomeByCategory = useMemo(() =>
     Object.values(
@@ -235,22 +248,23 @@ export function Dashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
               <h3 className="font-bold text-slate-800 mb-6">Ranking de Vendedores</h3>
-              {salesByResponsible.length === 0 ? (
+              {allSellersRanking.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-40 text-slate-300">
                   <Users className="w-10 h-10 mb-2 opacity-30" />
                   <p className="text-xs font-medium">Sem dados ainda</p>
                 </div>
               ) : (
                 <div className="space-y-5">
-                  {salesByResponsible.slice(0, 5).map((s, i) => (
+                  {allSellersRanking.slice(0, 7).map((s, i) => (
                     <HorizontalBar
                       key={`rank-${s.label}-${i}`}
                       label={s.label}
                       value={s.value}
-                      max={salesByResponsible[0]?.value || 1}
+                      max={allSellersRanking[0]?.value || 1}
                       rank={i}
                       isCurrency={true}
-                      color={i === 0 ? 'bg-emerald-500' : i === 1 ? 'bg-blue-400' : 'bg-slate-300'}
+                      count={s.count}
+                      color={i === 0 ? 'bg-emerald-500' : i === 1 ? 'bg-blue-400' : i === 2 ? 'bg-purple-400' : 'bg-slate-300'}
                     />
                   ))}
                 </div>

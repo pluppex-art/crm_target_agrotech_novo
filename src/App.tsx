@@ -16,6 +16,7 @@ import { ManagePipelines } from './pages/settings/ManagePipelines';
 import { ManageCargos } from './pages/settings/ManageCargos';
 import { ManageCategories } from './pages/settings/ManageCategories';
 import { ManageActivityCategories } from './pages/settings/ManageActivityCategories';
+import { ManageGoals } from './pages/settings/ManageGoals';
 import { Finance } from './pages/Finance';
 import { AIChat } from './pages/AIChat';
 import { Contracts } from './pages/Contracts';
@@ -116,6 +117,7 @@ export default function App() {
 <Route path="/settings/cargos" element={<ManageCargos />} />
   <Route path="/settings/categories" element={<ManageCategories />} />
   <Route path="/settings/activity-categories" element={<ManageActivityCategories />} />
+  <Route path="/settings/goals" element={<ManageGoals />} />
   <Route path="/analytics" element={<Dashboard />} /> {/* Placeholder */}
         </Route>
       </Routes>

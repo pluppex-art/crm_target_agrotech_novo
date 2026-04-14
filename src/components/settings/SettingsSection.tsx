@@ -1,8 +1,9 @@
-import { Settings as SettingsIcon, User, Bell, Lock, Globe, Shield, UserPlus, Tag, Activity } from 'lucide-react';
+import { Settings as SettingsIcon, User, Bell, Lock, Globe, Shield, UserPlus, Tag, Activity, Target } from 'lucide-react';
 
 const sections = [
   { icon: User, label: 'Perfil', description: 'Gerencie suas informações pessoais e foto.', path: '/settings/profile' },
   { icon: UserPlus, label: 'Cadastro de Usuário', description: 'Adicione novos membros à sua equipe.', path: '/settings/users' },
+  { icon: Target, label: 'Metas', description: 'Defina metas de receita e leads para a empresa e vendedores.', path: '/settings/goals' },
   { icon: Bell, label: 'Notificações', description: 'Configure como você quer ser avisado.', path: '/settings/notifications' },
   { icon: Lock, label: 'Segurança', description: 'Altere sua senha e autenticação.', path: '/settings/security' },
   { icon: Globe, label: 'Integrações', description: 'Conecte com outras ferramentas.', path: '/settings/integrations' },
