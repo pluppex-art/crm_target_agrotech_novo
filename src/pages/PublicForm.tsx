@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { ArrowRight, ArrowUp, ChevronDown, CheckCircle2, Loader2, Leaf, MessageCircle } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
+import { useBlocker } from 'react-router-dom';
 
 // ── Supabase anon client (só leitura de produtos) ──────────────────────────
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
@@ -49,15 +50,8 @@ export function PublicForm() {
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | HTMLSelectElement>(null);
 
-  // Bloqueia o botão "voltar" do navegador
-  useEffect(() => {
-    window.history.pushState(null, '', window.location.href);
-    const handlePopState = () => {
-      window.history.pushState(null, '', window.location.href);
-    };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
+  // Bloqueia o botão "voltar" do navegador via React Router
+  useBlocker(() => !submitted);
 
   // Busca produtos do banco
   useEffect(() => {
