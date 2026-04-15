@@ -99,5 +99,81 @@ export const checklistService = {
 
     return true;
   },
+
+  async getChecklistsForStage(stageId: string): Promise<ChecklistItem[]> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return [];
+
+    const { data, error } = await supabase
+      .from('stage_checklists')
+      .select('*')
+      .eq('stage_id', stageId)
+      .order('position');
+
+    if (error) {
+      console.error('Error fetching stage checklists:', error);
+      return [];
+    }
+
+    return (data || []).map((item: any) => ({
+      id: item.id,
+      stage_id: item.stage_id,
+      name: item.name,
+      position: item.position || 0,
+      required: item.required ?? true,
+      created_at: item.created_at,
+    }));
+  },
+
+  async getCompletionsForLead(leadId: string, stageId: string): Promise<string[]> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return [];
+
+    // Get all checklist item IDs for this stage first
+    const { data: items, error: itemsError } = await supabase
+      .from('stage_checklists')
+      .select('id')
+      .eq('stage_id', stageId);
+
+    if (itemsError || !items?.length) return [];
+
+    const itemIds = items.map((i: any) => i.id);
+
+    const { data, error } = await supabase
+      .from('lead_checklist_completions')
+      .select('checklist_item_id')
+      .eq('lead_id', leadId)
+      .in('checklist_item_id', itemIds);
+
+    if (error) {
+      console.error('Error fetching lead checklist completions:', error);
+      return [];
+    }
+
+    return (data || []).map((c: any) => c.checklist_item_id as string);
+  },
+
+  async toggleCompletion(leadId: string, checklistItemId: string, currentlyCompleted: boolean): Promise<boolean> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return false;
+
+    if (currentlyCompleted) {
+      const { error } = await supabase
+        .from('lead_checklist_completions')
+        .delete()
+        .eq('lead_id', leadId)
+        .eq('checklist_item_id', checklistItemId);
+
+      if (error) { console.error('Error removing completion:', error); return false; }
+    } else {
+      const { error } = await supabase
+        .from('lead_checklist_completions')
+        .insert([{ lead_id: leadId, checklist_item_id: checklistItemId }]);
+
+      if (error) { console.error('Error adding completion:', error); return false; }
+    }
+
+    return true;
+  },
 };
 
