@@ -226,24 +226,41 @@ export const Pipeline: React.FC = () => {
     ? COLUMNS
     : COLUMNS.filter((col: { id: string }) => col.id === filters.selectedStatus);
 
-  const ganhoTotalValue = useMemo(() => {
-    const ganhoStageIds = new Set(
+  const caixaTotalValue = useMemo(() => {
+    const caixaStageIds = new Set(
       (currentPipeline?.stages ?? [])
         .filter(s => {
           const n = s.name.toLowerCase();
-          return n.includes('ganho') || n.includes('fechado') || n.includes('aprovado');
+          return n.includes('matricula') || n.includes('curso');
         })
         .map(s => s.id)
     );
     return filters.filteredLeads
-      .filter(lead => ganhoStageIds.has(lead.stage_id ?? ''))
-      .reduce((sum, lead) => sum + (getLeadEffectiveValue(lead) || 0), 0);
+      .filter(lead => caixaStageIds.has(lead.stage_id ?? ''))
+      .reduce((sum, lead) => sum + getLeadEffectiveValue(lead), 0);
   }, [filters.filteredLeads, currentPipeline?.stages]);
+
+  const competenciaTotalValue = useMemo(() => {
+    const competenciaStageIds = new Set(
+      (currentPipeline?.stages ?? [])
+        .filter(s => {
+          const n = s.name.toLowerCase();
+          return n.includes('competencia') || n.includes('professor');
+        })
+        .map(s => s.id)
+    );
+    return filters.filteredLeads
+      .filter(lead => competenciaStageIds.has(lead.stage_id ?? ''))
+      .reduce((sum, lead) => sum + getLeadEffectiveValue(lead) * 0.3, 0); // 30% for professor
+  }, [filters.filteredLeads, currentPipeline?.stages]);
+
+
 
   return (
     <div className="p-6 space-y-4 bg-gray-50 flex-1 min-h-0 w-full flex flex-col overflow-hidden min-w-0 max-w-full">
       <PipelineHeader
-        ganhoTotalValue={ganhoTotalValue}
+        caixaTotalValue={caixaTotalValue}
+        competenciaTotalValue={competenciaTotalValue}
         leadsCount={filters.filteredLeads.length}
         currentPipelineId={currentPipelineId ?? null}
         pipelines={pipelines}
@@ -259,6 +276,7 @@ export const Pipeline: React.FC = () => {
           setIsNewLeadModalOpen(true);
         }}
       />
+
 
       <PipelineFilters
         searchTerm={filters.searchTerm}

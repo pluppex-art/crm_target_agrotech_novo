@@ -1,10 +1,12 @@
 import React from 'react';
-import { Loader2, Download, Plus, Trophy } from 'lucide-react';
+import { Loader2, Download, Plus, Trophy, UserCheck } from 'lucide-react';
+
 import { PipelineSelect } from './PipelineSelect';
 import { cn } from '../../lib/utils';
 
 interface PipelineHeaderProps {
-  ganhoTotalValue: number;
+  caixaTotalValue: number;
+  competenciaTotalValue: number;
   leadsCount: number;
   currentPipelineId: string | null;
   pipelines: any[];
@@ -15,8 +17,10 @@ interface PipelineHeaderProps {
   onNewLeadClick: () => void;
 }
 
+
 export const PipelineHeader: React.FC<PipelineHeaderProps> = ({
-  ganhoTotalValue,
+  caixaTotalValue,
+  competenciaTotalValue,
   leadsCount,
   currentPipelineId,
   pipelines,
@@ -26,6 +30,7 @@ export const PipelineHeader: React.FC<PipelineHeaderProps> = ({
   hasPermissionCreate,
   onNewLeadClick,
 }) => {
+
   return (
     <div className="flex flex-col gap-3">
       {/* Row 1: title + actions */}
@@ -41,21 +46,33 @@ export const PipelineHeader: React.FC<PipelineHeaderProps> = ({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-  {/* Valor total */}
-  <div className="flex flex-wrap items-center gap-3 px-4 py-2 bg-emerald-50 border border-emerald-100 rounded-2xl shadow-sm">
-            <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center shadow-sm">
-              <Trophy size={16} className="text-emerald-600" />
-            </div>
-            <div>
-              <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest leading-none">Ganho Total</p>
+          {/* Valores */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Caixa */}
+            <div className="px-4 py-2 bg-emerald-50 border border-emerald-100 rounded-2xl shadow-sm">
+              <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center shadow-sm mb-1">
+                <Trophy size={16} className="text-emerald-600" />
+              </div>
+              <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest leading-none">Ganho Caixa</p>
               <p className="text-sm font-black text-emerald-700 mt-0.5">
-                R$ {ganhoTotalValue.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                R$ {caixaTotalValue.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+              </p>
+            </div>
+            {/* Professor */}
+            <div className="px-4 py-2 bg-blue-50 border border-blue-100 rounded-2xl shadow-sm">
+              <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center shadow-sm mb-1">
+                <UserCheck size={16} className="text-blue-600" />
+              </div>
+              <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest leading-none">Professor</p>
+              <p className="text-sm font-black text-blue-700 mt-0.5">
+                R$ {competenciaTotalValue.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
               </p>
             </div>
           </div>
 
           {/* Refresh */}
           <button
+
             onClick={() => currentPipelineId && fetchLeads(currentPipelineId!)}
             className="p-2 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors shadow-sm"
             title="Sincronizar"
