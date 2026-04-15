@@ -20,8 +20,10 @@ export interface Turma {
   date: string;
   time: string;
   product_id: string;
-  product_name: string; // From join
-  category: string;     // From join
+  product_name: string;   // From join
+  product_price?: number; // From join
+  enrollment_fee?: number; // From join
+  category: string;       // From join
   location: string;
   status: 'agendada' | 'em_andamento' | 'concluida' | 'cancelada';
   attendees: TurmaAttendee[];
@@ -51,6 +53,8 @@ export const turmaService = {
       time: t.time,
       product_id: t.product_id,
       product_name: t.products?.name ?? 'Produto não encontrado',
+      product_price: t.products?.price ?? 0,
+      enrollment_fee: t.products?.enrollment_fee ?? 0,
       category: t.products?.category ?? 'Geral',
       location: t.location,
       status: t.status,

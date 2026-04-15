@@ -343,6 +343,7 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({
                 {...leadTurmas}
                 leadId={lead.id}
                 leadName={lead.name}
+                valorRecebido={form.formData.valor_recebido}
               />
             )}
             {activeTab === 'checklist' && (

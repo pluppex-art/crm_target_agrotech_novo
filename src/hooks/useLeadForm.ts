@@ -27,7 +27,8 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
     discount_type: lead.discount_type || 'percent',
     pix_completed: lead.pix_completed || false,
     contract_signed: lead.contract_signed || false,
-    valor_recebido: lead.valor_recebido || false,
+    valor_recebido: lead.valor_recebido ?? null,
+    forma_pagamento: lead.forma_pagamento || '',
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -52,7 +53,8 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
       discount_type: lead.discount_type || 'percent',
       pix_completed: lead.pix_completed || false,
       contract_signed: lead.contract_signed || false,
-      valor_recebido: lead.valor_recebido || false,
+      valor_recebido: lead.valor_recebido ?? null,
+      forma_pagamento: lead.forma_pagamento || '',
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lead.id]);
@@ -129,7 +131,8 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
         discount_applied: formData.discount_applied,
         pix_completed: formData.pix_completed,
         contract_signed: formData.contract_signed,
-        valor_recebido: formData.valor_recebido,
+        valor_recebido: formData.valor_recebido ?? undefined,
+        forma_pagamento: formData.forma_pagamento || undefined,
       };
 
 

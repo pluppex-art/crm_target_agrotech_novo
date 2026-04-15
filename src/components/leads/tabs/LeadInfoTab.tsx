@@ -382,24 +382,39 @@ const baseValue = parseBRNumber(formData.value);
           </div>
         </div>
 
-        {/* Valor Recebido */}
-        <label className="flex items-center gap-3 cursor-pointer w-fit">
-          <div className="relative">
+        {/* Valor Recebido + Forma de Pagamento */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Valor Recebido (R$)</label>
             <input
-              type="checkbox"
-              checked={formData.valor_recebido || false}
-              onChange={(e) => toggleField?.('valor_recebido', e.target.checked)}
-              className="sr-only peer"
+              type="number"
+              step="0.01"
+              min="0"
+              value={formData.valor_recebido ?? ''}
+              onChange={(e) => updateFormField({ valor_recebido: e.target.value ? parseFloat(e.target.value) : null })}
+              onBlur={(e) => toggleField?.('valor_recebido', e.target.value ? parseFloat(e.target.value) : null)}
+              placeholder="0,00"
+              className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm"
             />
-            <div className={cn(
-              "w-5 h-5 border-2 rounded-md transition-all flex items-center justify-center",
-              formData.valor_recebido ? "bg-emerald-600 border-emerald-600" : "bg-white border-slate-200 hover:border-slate-300"
-            )}>
-              {formData.valor_recebido && <CheckSquare size={12} className="text-white" />}
-            </div>
           </div>
-          <span className="text-sm font-bold text-slate-700">Valor recebido</span>
-        </label>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Forma de Pagamento</label>
+            <select
+              value={formData.forma_pagamento || ''}
+              onChange={(e) => { updateFormField({ forma_pagamento: e.target.value }); toggleField?.('forma_pagamento', e.target.value); }}
+              className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"
+            >
+              <option value="">Selecione...</option>
+              <option value="PIX">PIX</option>
+              <option value="Cartão de Crédito">Cartão de Crédito</option>
+              <option value="Cartão de Débito">Cartão de Débito</option>
+              <option value="Boleto Bancário">Boleto Bancário</option>
+              <option value="Dinheiro">Dinheiro</option>
+              <option value="Transferência Bancária">Transferência Bancária</option>
+              <option value="Cheque">Cheque</option>
+            </select>
+          </div>
+        </div>
 
 
       </div>

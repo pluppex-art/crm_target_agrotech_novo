@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { GraduationCap, Calendar, Clock, MapPin, Plus, Activity } from 'lucide-react';
+import { GraduationCap, Calendar, Clock, MapPin, Plus, Activity, DollarSign } from 'lucide-react';
 import { NewActivityModal } from '../../tasks/NewActivityModal';
 
 interface LeadTurmaTabProps {
@@ -7,6 +7,7 @@ interface LeadTurmaTabProps {
   loadingTurmas: boolean;
   leadId?: string;
   leadName?: string;
+  valorRecebido?: number | null;
   onActivityCreated?: () => void;
 }
 
@@ -15,6 +16,7 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
   loadingTurmas,
   leadId,
   leadName,
+  valorRecebido,
   onActivityCreated,
 }) => {
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
@@ -63,11 +65,34 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
                 {turma.location || 'Sem localização'}
               </div>
             </div>
-            {attendee.vendas > 0 && (
-              <div className="pt-2 border-t border-slate-50">
-                <span className="text-xs font-bold text-emerald-700">
-                  Vendas: R$ {attendee.vendas.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
-                </span>
+            {valorRecebido != null && (
+              <div className="pt-3 border-t border-slate-100 space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-500 flex items-center gap-1.5">
+                    <DollarSign size={11} className="text-emerald-500" />
+                    Valor Recebido
+                  </span>
+                  <span className="font-bold text-slate-700">
+                    R$ {Number(valorRecebido).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                {(turma.product_price ?? 0) > 0 && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-500 flex items-center gap-1.5">
+                      <DollarSign size={11} className="text-amber-500" />
+                      Preço do Curso
+                    </span>
+                    <span className="font-bold text-amber-600">
+                      − R$ {Number(turma.product_price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
+                  <span className="font-bold text-slate-600">Valor a Receber (Professor)</span>
+                  <span className="font-bold text-emerald-600">
+                    R$ {(Number(valorRecebido) - (turma.product_price ?? 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
               </div>
             )}
           </div>
