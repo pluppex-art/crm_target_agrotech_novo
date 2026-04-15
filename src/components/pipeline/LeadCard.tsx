@@ -129,9 +129,22 @@ export function LeadCard({ lead, index, onDoubleClick, columnId, isDragging }: L
             >
               <Edit2 size={14} />
             </button>
-            <button className="p-1.5 bg-slate-50 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all border border-slate-100">
-              <CheckSquare size={14} />
-            </button>
+
+        <button className="p-1.5 bg-slate-50 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all border border-slate-100">
+          <CheckSquare size={14} />
+        </button>
+
+        {/* Checklist badge under buttons */}
+        {requiredTotal > 0 && !allRequiredCompleted && (
+          <div className="flex justify-center mt-2 pt-2 border-t border-slate-100">
+            <div className="flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-200">
+              <AlertCircle size={11} />
+              {requiredCompleted}/{requiredTotal}
+            </div>
+          </div>
+        )}
+
+
           </div>
         </div>
       </div>
