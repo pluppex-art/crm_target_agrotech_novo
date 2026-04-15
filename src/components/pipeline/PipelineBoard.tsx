@@ -118,6 +118,7 @@ export const PipelineBoard: React.FC<PipelineBoardProps> = ({
       ? columns
       : columns.filter((col) => col.id === selectedStatus);
 
+
   const handleDragStart = (event: DragStartEvent) => {
     const lead = filteredLeads.find((l) => l.id === event.active.id);
     setActiveLead(lead ?? null);
@@ -129,6 +130,7 @@ export const PipelineBoard: React.FC<PipelineBoardProps> = ({
   };
 
   return (
+
     <div className="bg-white rounded-[32px] border border-gray-200 shadow-sm overflow-hidden flex-1 min-h-0 min-w-0 flex flex-col w-full max-w-full">
       <DndContext
         sensors={sensors}

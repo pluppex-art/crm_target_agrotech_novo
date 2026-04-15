@@ -1,5 +1,8 @@
 import React from 'react';
-import { Star, Phone, Plus, Trash2, Edit2, CheckSquare, AlertTriangle, MoreHorizontal } from 'lucide-react';
+
+import { Star, Phone, Plus, Trash2, Edit2, CheckSquare, AlertTriangle, MoreHorizontal, AlertCircle } from 'lucide-react';
+import { useLeadChecklist } from '../../hooks/useLeadChecklist';
+
 import { Lead, LeadSubStatus } from '../../types/leads';
 import { cn, getLeadEffectiveValue } from '../../lib/utils';
 import { useLeadStore } from '../../store/useLeadStore';
