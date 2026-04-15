@@ -17,7 +17,7 @@ export function HorizontalBar({ label, value, max, color, rank, isCurrency, coun
 
   const formattedValue = isCurrency
     ? `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-    : `${value}`;
+    : `${value}%`;
 
   const barWidth = value > 0 ? Math.max(pct, 6) : 0;
 
