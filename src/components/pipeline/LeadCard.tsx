@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { Star, Phone, Plus, Trash2, Edit2, CheckSquare, AlertTriangle, MoreHorizontal, AlertCircle } from 'lucide-react';
+import { Star, Phone, Plus, Trash2, Edit2, CheckSquare, AlertTriangle, AlertCircle } from 'lucide-react';
 import { useLeadChecklist } from '../../hooks/useLeadChecklist';
 
 import { Lead, LeadSubStatus } from '../../types/leads';
@@ -86,9 +86,29 @@ export function LeadCard({ lead, index, onDoubleClick, columnId, isDragging }: L
             </div>
           </div>
         </div>
-        <button className="p-1 text-slate-300 hover:text-slate-500 transition-colors">
-          <MoreHorizontal size={18} />
-        </button>
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            onClick={(e) => { e.stopPropagation(); deleteLead(lead.id); }}
+            className="p-1 text-slate-300 hover:text-red-500 transition-colors"
+            title="Excluir lead"
+          >
+            <Trash2 size={15} />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); setSelectedLead(lead); }}
+            className="p-1 text-slate-300 hover:text-emerald-500 transition-colors"
+            title="Editar lead"
+          >
+            <Edit2 size={15} />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onDoubleClick(); }}
+            className="p-1 text-slate-300 hover:text-emerald-500 transition-colors"
+            title="Ver checklist"
+          >
+            <CheckSquare size={15} />
+          </button>
+        </div>
       </div>
 
       {/* Card Body */}
@@ -110,43 +130,11 @@ export function LeadCard({ lead, index, onDoubleClick, columnId, isDragging }: L
           )}
         </div>
 
-        <div className="flex items-center justify-between pt-2">
+        <div className="pt-2">
           <span className="text-sm font-bold text-slate-800">
             R$ {getLeadEffectiveValue(lead).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
           </span>
-
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={(e) => { e.stopPropagation(); deleteLead(lead.id); }}
-              className="p-1.5 bg-slate-50 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all border border-slate-100"
-              title="Excluir lead"
-            >
-              <Trash2 size={14} />
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); setSelectedLead(lead); }}
-              className="p-1.5 bg-slate-50 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all border border-slate-100"
-            >
-              <Edit2 size={14} />
-            </button>
-
-
-        <button className="p-1.5 bg-slate-50 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all border border-slate-100">
-          <CheckSquare size={14} />
-        </button>
-
-          </div>
         </div>
-
-        {/* Checklist badge under buttons */}
-        {requiredTotal > 0 && !allRequiredCompleted && (
-          <div className="flex justify-center mt-2 pt-2 border-t border-slate-100">
-            <div className="flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-200">
-              <AlertCircle size={11} />
-              {requiredCompleted}/{requiredTotal}
-            </div>
-          </div>
-        )}
 
       </div>
 
