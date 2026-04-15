@@ -13,6 +13,7 @@ import { Security } from './pages/settings/Security';
 import { Integrations } from './pages/settings/Integrations';
 import { Users } from './pages/settings/Users';
 import { ManagePipelines } from './pages/settings/ManagePipelines';
+import { ManageStageChecklists } from './pages/settings/ManageStageChecklists';
 import { ManageCargos } from './pages/settings/ManageCargos';
 import { ManageCategories } from './pages/settings/ManageCategories';
 import { ManageActivityCategories } from './pages/settings/ManageActivityCategories';
@@ -115,8 +116,9 @@ export default function App() {
           <Route path="/settings/notifications" element={<Notifications />} />
           <Route path="/settings/security" element={<Security />} />
           <Route path="/settings/integrations" element={<Integrations />} />
-          <Route path="/settings/pipelines" element={<ManagePipelines />} />
-<Route path="/settings/cargos" element={<ManageCargos />} />
+        <Route path="/settings/pipelines" element={<ManagePipelines />} />
+        <Route path="/settings/checklists" element={<ManageStageChecklists />} />
+        <Route path="/settings/cargos" element={<ManageCargos />} />
   <Route path="/settings/categories" element={<ManageCategories />} />
   <Route path="/settings/activity-categories" element={<ManageActivityCategories />} />
   <Route path="/settings/goals" element={<ManageGoals />} />
