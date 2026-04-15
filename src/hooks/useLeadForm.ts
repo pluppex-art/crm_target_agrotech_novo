@@ -27,7 +27,9 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
     discount_type: lead.discount_type || 'percent',
     pix_completed: lead.pix_completed || false,
     contract_signed: lead.contract_signed || false,
+    valor_recebido: lead.valor_recebido || false,
   });
+
   const [isSaving, setIsSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ name?: string; phone?: string; email?: string }>({});
   const [hoverStars, setHoverStars] = useState(0);
@@ -50,9 +52,11 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
       discount_type: lead.discount_type || 'percent',
       pix_completed: lead.pix_completed || false,
       contract_signed: lead.contract_signed || false,
+      valor_recebido: lead.valor_recebido || false,
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lead.id]);
+
 
   // Sync specific real-time changes (toggles, values) from external sources without blowing away local typing
   useEffect(() => {
@@ -125,7 +129,9 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
         discount_applied: formData.discount_applied,
         pix_completed: formData.pix_completed,
         contract_signed: formData.contract_signed,
+        valor_recebido: formData.valor_recebido,
       };
+
 
       const { updateLead } = useLeadStore.getState();
       const success = await updateLead(lead.id, updateData);

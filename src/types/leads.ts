@@ -37,8 +37,10 @@ export interface Lead {
   responsible?: string;
   pix_completed?: boolean;
   contract_signed?: boolean;
+  valor_recebido?: boolean;
   created_at: string;
   last_contact_at?: string;
   history?: LeadHistory[];
 }
+
 

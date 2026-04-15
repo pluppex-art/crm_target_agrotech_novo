@@ -2,6 +2,8 @@ import { Package, Edit3, Trash2, MoreHorizontal, ShieldAlert } from 'lucide-reac
 import { usePermissions } from '../../hooks/usePermissions';
 import { useProductStore } from '../../store/useProductStore';
 import { Product } from '../../services/productService';
+import { DollarSign } from 'lucide-react';
+
 
 interface ProductCardProps {
   product: Product;
@@ -45,29 +47,39 @@ export function ProductCard({ product, onEdit }: ProductCardProps) {
         <h3 className="font-bold text-slate-800 mb-1">{product.name}</h3>
         <p className="text-lg font-bold text-emerald-600 mb-4">R$ {product.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
         
-        <div className="flex items-center justify-between pt-4 border-t border-slate-50">
-          <span className="text-[10px] text-slate-400 font-bold uppercase">Estoque: {product.stock || 0}</span>
-          <div className="flex items-center gap-2">
-            {hasPermission('products.edit') && (
-              <button 
-                onClick={() => onEdit(product)}
-                className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
-              >
-                <Edit3 className="w-3.5 h-3.5" />
-              </button>
-            )}
-            {hasPermission('products.delete') && (
-              <button 
-                onClick={() => {
-                  deleteProduct(product.id);
-                }}
-                className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            )}
+        <div className="space-y-2 pt-4 border-t border-slate-50">
+          <div className="flex items-baseline gap-1">
+            <DollarSign size={10} className="text-slate-400" />
+            <span className="text-[10px] text-slate-400 font-medium">Taxa Matrícula:</span>
+            <span className="text-xs font-bold text-emerald-600">
+              R$ {(product.matricula_taxa || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-slate-400 font-bold uppercase">Estoque: {product.stock || 0}</span>
+            <div className="flex items-center gap-2">
+              {hasPermission('products.edit') && (
+                <button 
+                  onClick={() => onEdit(product)}
+                  className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                </button>
+              )}
+              {hasPermission('products.delete') && (
+                <button 
+                  onClick={() => {
+                    deleteProduct(product.id);
+                  }}
+                  className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
+
       </div>
     </div>
   );

@@ -6,11 +6,12 @@ export interface Product {
   name: string;
   description?: string;
   price: number;
-  enrollment_fee?: number;
+  matricula_taxa: number;
   category?: string;
   stock: number;
   image_url?: string;
 }
+
 
 export const productService = {
   async getProducts(): Promise<Product[]> {

@@ -384,6 +384,41 @@ const baseValue = parseBRNumber(formData.value);
             />
           </div>
         </div>
+
+        {/* Valor Recebido */}
+        <div className="space-y-3">
+          <label className="flex items-center gap-3 cursor-pointer w-fit">
+            <div className="relative">
+              <input
+                type="checkbox"
+                checked={formData.valor_recebido}
+                onChange={(e) => toggleField?.('valor_recebido', e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className={cn(
+                "w-5 h-5 border-2 rounded-md transition-all flex items-center justify-center",
+                formData.valor_recebido ? "bg-emerald-600 border-emerald-600" : "bg-white border-slate-200"
+              )}>
+                {formData.valor_recebido && <CheckSquare size={12} className="text-white" />}
+              </div>
+            </div>
+            <span className="text-sm font-bold text-slate-700">Valor recebido</span>
+          </label>
+        </div>
+
+        {/* Valor Líquido */}
+        {currentProduct && (currentProduct.matricula_taxa || 0) > 0 && (
+          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
+            <p className="text-sm font-bold text-slate-700 mb-1">Valor Líquido (após taxa)</p>
+            <p className="text-xl font-bold text-emerald-600">
+              R$ {(finalValue - (currentProduct.matricula_taxa || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </p>
+            <p className="text-xs text-slate-400 mt-1">
+              Valor Final: R$ {finalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} - Taxa Matrícula: R$ {(currentProduct.matricula_taxa || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </p>
+          </div>
+        )}
+
       </div>
 
       {/* Footer actions */}
