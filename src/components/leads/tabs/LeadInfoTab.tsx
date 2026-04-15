@@ -276,16 +276,17 @@ const baseValue = parseBRNumber(formData.value);
             />
             {(() => {
               const currentProduct = products.find((p: any) => p.name === formData.product);
-              if (!currentProduct?.enrollment_fee) return null;
+              if (!currentProduct?.matricula_taxa) return null;
               return (
                 <div className="flex items-center gap-1.5 mt-0.5 px-1">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Taxa de matrícula:</span>
                   <span className="text-[10px] font-bold text-emerald-700">
-                    R$ {Number(currentProduct.enrollment_fee).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    R$ {Number(currentProduct.matricula_taxa).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
               );
             })()}
+
           </div>
         </div>
 
@@ -406,6 +407,28 @@ const baseValue = parseBRNumber(formData.value);
           </label>
         </div>
 
+        {/* Campo valor recebido */}
+        <div className="space-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-200">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <div className="relative">
+              <input
+                type="checkbox"
+                id="valor-recebido"
+                checked={formData.valor_recebido || false}
+                onChange={(e) => toggleField?.('valor_recebido', e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className={cn(
+                "w-5 h-5 border-2 rounded-md transition-all flex items-center justify-center shadow-sm",
+                formData.valor_recebido ? "bg-emerald-600 border-emerald-600" : "bg-white border-slate-200 hover:border-slate-300"
+              )}>
+                {formData.valor_recebido && <CheckSquare size={12} className="text-white" />}
+              </div>
+            </div>
+            <span className="text-sm font-bold text-slate-700">Valor recebido</span>
+          </label>
+        </div>
+
         {/* Valor Líquido */}
         {currentProduct && (currentProduct.matricula_taxa || 0) > 0 && (
           <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
@@ -418,6 +441,7 @@ const baseValue = parseBRNumber(formData.value);
             </p>
           </div>
         )}
+
 
       </div>
 
