@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, Trash2, Check, X, ChevronDown, Settings2 } from 'lucide-react';
 import { usePipelineStore } from '../../store/usePipelineStore';
-import { pipelineService } from '../../services/pipelineService';
+import { checklistService } from '../../services/checklistService';
 import { cn } from '../../lib/utils';
 
 interface ChecklistItem {
@@ -107,25 +107,50 @@ export function ManageStageChecklists() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (activePipelineId) {
+      loadChecklists(activePipelineId);
+    }
+  }, [activePipelineId]);
+
+  useEffect(() => {
     if (pipelines.length > 0 && !activePipelineId) {
       setActivePipelineId(pipelines[0].id);
     }
-  }, [pipelines, activePipelineId]);
+  }, [pipelines]);
 
   const loadChecklists = async (pipelineId: string) => {
     setLoading(true);
-    // TODO: Fetch from service when implemented
-    setLoading(false);
+    try {
+      const data = await checklistService.getChecklistsForPipeline(pipelineId);
+      setChecklists(data);
+    } catch (error) {
+      console.error('Error loading checklists:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleAddChecklist = async (stageId: string, name: string) => {
-    // TODO: Save to service
-    console.log('Add checklist', stageId, name);
+    const newItem = await checklistService.createChecklist(stageId, name);
+    if (newItem) {
+      setChecklists(prev => ({
+        ...prev,
+        [stageId]: [...(prev[stageId] || []), newItem].sort((a, b) => a.position - b.position)
+      }));
+    }
   };
 
   const handleDeleteChecklist = async (id: string) => {
-    // TODO: Delete from service
-    console.log('Delete checklist', id);
+    const success = await checklistService.deleteChecklist(id);
+    if (success) {
+      setChecklists(prev => {
+        const newChecklists = { ...prev };
+        for (const stageId in newChecklists) {
+          newChecklists[stageId] = newChecklists[stageId].filter(item => item.id !== id);
+        }
+        return newChecklists;
+      });
+    }
   };
 
   const activePipeline = pipelines.find(p => p.id === activePipelineId);
