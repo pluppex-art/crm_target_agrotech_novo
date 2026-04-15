@@ -20,7 +20,7 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
     description: '',
     price: '',
     category: '',
-    matricula_taxa: '',
+    enrollment_fee: '',
     image_url: '',
     stock: '0',
   });
@@ -39,7 +39,7 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
         description: product.description || '',
         price: product.price.toString(),
         category: product.category || '',
-        matricula_taxa: product.matricula_taxa?.toString() || '',
+        enrollment_fee: product.enrollment_fee?.toString() || '',
         image_url: product.image_url || '',
         stock: (product.stock || 0).toString(),
       });
@@ -49,7 +49,7 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
         description: '',
         price: '',
         category: '',
-        matricula_taxa: '',
+        enrollment_fee: '',
         image_url: '',
         stock: '0',
       });
@@ -64,7 +64,7 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
       const data = {
         ...formData,
         price: parseFloat(formData.price) || 0,
-        matricula_taxa: parseFloat(formData.matricula_taxa) || 0,
+        enrollment_fee: formData.enrollment_fee ? parseFloat(formData.enrollment_fee) : undefined,
         stock: parseInt(formData.stock) || 0,
         image_url: formData.image_url || `https://picsum.photos/seed/${formData.name}/400/300`,
       };
@@ -95,7 +95,7 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
           className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col"
         >
           <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white">
-            <h2 className="text-xl font-bold text-gray-800">Novo Produto</h2>
+            <h2 className="text-xl font-bold text-gray-800">{product ? 'Editar Produto' : 'Novo Produto'}</h2>
             <button 
               onClick={onClose}
               className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 transition-colors"
@@ -130,27 +130,27 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Preço (R$)</label>
-                <div className="relative">
-                  <input 
-                    required
-                    type="number" 
-                    step="0.01"
-                    value={formData.price}
-                    onChange={(e) => setFormData({...formData, price: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
-                    placeholder="0.00"
-                  />
-                  <DollarSign size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Preço (R$)</label>
+              <div className="relative">
+                <input
+                  required
+                  type="number"
+                  step="0.01"
+                  value={formData.price}
+                  onChange={(e) => setFormData({...formData, price: e.target.value})}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
+                  placeholder="0.00"
+                />
+                <DollarSign size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
               </div>
+            </div>
 
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Categoria</label>
                 <div className="relative">
-                  <select 
+                  <select
                     required
                     value={formData.category}
                     onChange={(e) => setFormData({...formData, category: e.target.value})}
@@ -164,20 +164,20 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
                   <Tag size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                 </div>
               </div>
-            </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Taxa de Matrícula (R$)</label>
-              <div className="relative">
-                <input 
-                  type="number" 
-                  step="0.01"
-                  value={formData.matricula_taxa}
-                  onChange={(e) => setFormData({...formData, matricula_taxa: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
-                  placeholder="0.00"
-                />
-                <DollarSign size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Taxa de Matrícula (R$)</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.enrollment_fee}
+                    onChange={(e) => setFormData({...formData, enrollment_fee: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
+                    placeholder="0.00"
+                  />
+                  <DollarSign size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                </div>
               </div>
             </div>
 
@@ -210,7 +210,7 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
                 className="px-8 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-lg shadow-emerald-200 transition-all flex items-center gap-2 disabled:opacity-50"
               >
                 {loading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-                Criar Produto
+                {product ? 'Salvar Alterações' : 'Criar Produto'}
               </button>
             </div>
           </form>
