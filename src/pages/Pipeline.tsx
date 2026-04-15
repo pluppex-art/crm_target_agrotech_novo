@@ -14,6 +14,7 @@ import { useLeadStore } from '../store/useLeadStore';
 import { usePipelineStore } from '../store/usePipelineStore';
 import { useTurmaStore } from '../store/useTurmaStore';
 import { useProductStore } from '../store/useProductStore';
+import { useProfileStore } from '../store/useProfileStore';
 import { useAuthStore } from '../store/useAuthStore';
 import type { Lead } from '../types/leads';
 import { LeadDetailsModal } from '../components/leads/LeadDetailsModal';
@@ -52,7 +53,15 @@ export const Pipeline: React.FC = () => {
 
   const { addAttendee, fetchTurmas, subscribe: subscribeTurmas } = useTurmaStore();
   const { products, fetchProducts, subscribe: subscribeProducts } = useProductStore();
-  const { user } = useAuthStore();
+  const authUser = useAuthStore(state => state.user);
+  const { profiles, fetchProfiles } = useProfileStore();
+  const permissions = usePermissions();
+
+  const isVendedor = useMemo(() => {
+    if (!authUser?.id || profiles.length === 0) return false;
+    const myProfile = profiles.find((p: any) => p.id === authUser.id);
+    return myProfile ? myProfile.cargos?.name?.toLowerCase().includes('vend') ?? false : false;
+  }, [authUser?.id, profiles]);
 
   const filters = usePipelineFilters(leads);
 
@@ -86,11 +95,21 @@ export const Pipeline: React.FC = () => {
     fetchPipelines();
     fetchTurmas();
     fetchProducts();
+    fetchProfiles();
+  }, [fetchPipelines, fetchTurmas, fetchProducts, fetchProfiles]);
 
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      Notification.requestPermission();
-    }
-  }, [fetchPipelines, fetchTurmas, fetchProducts]);
+  if (isVendedor && !permissions.hasPermission('pipeline.view_all') && !permissions.hasPermission('admin.all')) {
+    return (
+      <div className="flex-1 p-6 flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+        <div className="w-28 h-28 bg-slate-200 rounded-3xl flex items-center justify-center mb-8 shadow-xl">
+          <ShieldAlert className="w-16 h-16 text-slate-400" />
+        </div>
+        <h2 className="text-3xl font-bold text-slate-800 mb-4">Pipeline Privado</h2>
+        <p className="text-xl text-slate-500 max-w-lg mb-8 leading-relaxed">Como vendedor, você só vê seus leads.</p>
+        <p className="text-sm text-slate-400 uppercase tracking-widest font-bold">Permissão necessária: pipeline.view_all</p>
+      </div>
+    );
+  }
 
   useEffect(() => {
     if (currentPipelineId) {
@@ -255,7 +274,7 @@ export const Pipeline: React.FC = () => {
       />
 
       <PipelineBoard
-        filteredLeads={filters.filteredLeads}
+        filteredLeads={isVendedor ? filters.filteredLeads.filter(l => l.responsible === authUser?.email || l.responsible === profiles.find((p: any) => p.id === authUser?.id)?.name) : filters.filteredLeads}
         columns={filteredColumns}
         selectedStatus={filters.selectedStatus}
         minimizedColumns={minimizedColumns}

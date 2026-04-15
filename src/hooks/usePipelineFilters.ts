@@ -14,13 +14,13 @@ export const usePipelineFilters = (leads: Lead[]) => {
     fetchProfiles();
   }, [fetchProfiles]);
 
-  // Apenas usuários ativos do departamento Comercial (vendedores)
-  const responsibles = useMemo(() =>
-    profiles
-      .filter(p => p.department === 'Comercial' && p.status === 'active')
-      .map(p => p.name)
-      .filter(Boolean) as string[]
-  , [profiles]);
+  // Vendedores ativos
+  const responsibles = useMemo(() => {
+    const isVendedor = (p: any) => p.cargos?.name?.toLowerCase().includes('vend') ?? false;
+    return profiles
+      .filter(p => p.status === 'active' && p.name && isVendedor(p))
+      .map(p => p.name as string);
+  }, [profiles]);
 
   const filteredLeads = useMemo(() => leads.filter(lead => {
     const matchesSearch =
