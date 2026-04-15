@@ -52,11 +52,12 @@ export function LeadCard({ lead, index, onDoubleClick, columnId, isDragging }: L
 
   {/* Checklist badge */}
   {requiredTotal > 0 && !allRequiredCompleted && (
-    <div className="absolute top-2 left-2 flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-600 border border-amber-200">
+    <div className="absolute bottom-2 right-2 flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-600 border border-amber-200">
       <AlertCircle size={9} />
-      Checklist {requiredCompleted}/{requiredTotal}
+      {requiredCompleted}/{requiredTotal}
     </div>
   )}
+
 
 
       {/* Card Header */}
