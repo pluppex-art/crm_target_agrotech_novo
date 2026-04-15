@@ -167,7 +167,7 @@ const allSellersRanking = useMemo(() => {
 
     Object.values(byName).forEach(s => {
       const goal = sellerGoalMap[s.label];
-      s.percentage = goal && goal > 0 ? Math.min((s.value / goal) * 100, 100) : 0;
+      s.percentage = goal && goal > 0 ? Math.round((s.value / goal) * 100) : 0;
     });
 
     return Object.values(byName).sort((a, b) => b.percentage - a.percentage);
