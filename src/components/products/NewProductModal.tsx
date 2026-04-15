@@ -20,9 +20,11 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
     description: '',
     price: '',
     category: '',
+    matricula_taxa: '',
     image_url: '',
     stock: '0',
   });
+
 
   React.useEffect(() => {
     if (isOpen) {
@@ -37,6 +39,7 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
         description: product.description || '',
         price: product.price.toString(),
         category: product.category || '',
+        matricula_taxa: product.matricula_taxa?.toString() || '',
         image_url: product.image_url || '',
         stock: (product.stock || 0).toString(),
       });
@@ -46,11 +49,13 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
         description: '',
         price: '',
         category: '',
+        matricula_taxa: '',
         image_url: '',
         stock: '0',
       });
     }
   }, [product, isOpen]);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,9 +64,11 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
       const data = {
         ...formData,
         price: parseFloat(formData.price) || 0,
+        matricula_taxa: parseFloat(formData.matricula_taxa) || 0,
         stock: parseInt(formData.stock) || 0,
         image_url: formData.image_url || `https://picsum.photos/seed/${formData.name}/400/300`,
       };
+
 
       if (product) {
         await updateProduct(product.id, data);
@@ -158,6 +165,22 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
                 </div>
               </div>
             </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Taxa de Matrícula (R$)</label>
+              <div className="relative">
+                <input 
+                  type="number" 
+                  step="0.01"
+                  value={formData.matricula_taxa}
+                  onChange={(e) => setFormData({...formData, matricula_taxa: e.target.value})}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
+                  placeholder="0.00"
+                />
+                <DollarSign size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              </div>
+            </div>
+
 
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">URL da Imagem (Opcional)</label>
