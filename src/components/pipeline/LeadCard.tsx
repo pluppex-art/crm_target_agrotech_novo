@@ -17,11 +17,18 @@ interface LeadCardProps {
   isDragging?: boolean;
 }
 
+
 export function LeadCard({ lead, index, onDoubleClick, columnId, isDragging }: LeadCardProps) {
   const { updateLeadSubStatus, deleteLead, setSelectedLead } = useLeadStore();
   const elapsedHours = getElapsedHours(lead);
   const isWarning = elapsedHours >= 12 && elapsedHours < 18 && lead.status !== 'closed';
   const isDanger = elapsedHours >= 18 && lead.status !== 'closed';
+
+  const { allRequiredCompleted, requiredCompleted, requiredTotal } = useLeadChecklist({
+    leadId: lead.id,
+    stageId: lead.stage_id || columnId,
+  });
+
 
   return (
     <div
@@ -32,16 +39,25 @@ export function LeadCard({ lead, index, onDoubleClick, columnId, isDragging }: L
         isDanger ? "border-red-200 hover:border-red-300" : isWarning ? "border-amber-200 hover:border-amber-300" : "hover:border-emerald-200"
       )}
     >
-      {/* Inactivity badge */}
-      {(isWarning || isDanger) && (
-        <div className={cn(
-          "absolute top-2 right-2 flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full",
-          isDanger ? "bg-red-100 text-red-600" : "bg-amber-100 text-amber-600"
-        )}>
-          <AlertTriangle size={9} />
-          {elapsedHours}h
-        </div>
-      )}
+  {/* Inactivity badge */}
+  {(isWarning || isDanger) && (
+    <div className={cn(
+      "absolute top-2 right-2 flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full",
+      isDanger ? "bg-red-100 text-red-600" : "bg-amber-100 text-amber-600"
+    )}>
+      <AlertTriangle size={9} />
+      {elapsedHours}h
+    </div>
+  )}
+
+  {/* Checklist badge */}
+  {requiredTotal > 0 && !allRequiredCompleted && (
+    <div className="absolute top-2 left-2 flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-600 border border-amber-200">
+      <AlertCircle size={9} />
+      Checklist {requiredCompleted}/{requiredTotal}
+    </div>
+  )}
+
 
       {/* Card Header */}
       <div className="flex items-start justify-between mb-4">

@@ -23,6 +23,8 @@ import { cn, getLeadEffectiveValue } from '../lib/utils';
 import { requestNotificationPermission } from '../services/alertService';
 import { EnrollInTurmaModal } from '../components/pipeline/EnrollInTurmaModal';
 import { LeadCard } from '../components/pipeline/LeadCard';
+import { checklistService } from '../services/checklistService';
+
 
 
 
@@ -131,6 +133,20 @@ export const Pipeline: React.FC = () => {
     const sourceStageId = active.data.current?.columnId;
 
     if (sourceStageId === newStageId) return;
+
+    // Checklist validation
+    const draggedLead = leads.find(l => l.id === draggableId);
+    if (draggedLead && draggedLead.stage_id) {
+      const checklists = await checklistService.getChecklistsForStage(draggedLead.stage_id);
+      const required = checklists.filter(c => c.required);
+      const completions = await checklistService.getCompletionsForLead(draggedLead.id);
+      const requiredCompleted = required.filter(r => completions.includes(r.id)).length;
+      if (required.length > 0 && requiredCompleted < required.length) {
+        alert(`Conclua todos os itens obrigatórios do checklist (${requiredCompleted}/${required.length}) para avançar este lead.`);
+        return;
+      }
+    }
+
 
     const targetStage = currentPipeline?.stages.find(s => s.id === newStageId);
     const stageLower = targetStage?.name.toLowerCase() ?? '';
