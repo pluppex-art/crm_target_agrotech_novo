@@ -52,7 +52,7 @@ export function ProductCard({ product, onEdit }: ProductCardProps) {
             <DollarSign size={10} className="text-slate-400" />
             <span className="text-[10px] text-slate-400 font-medium">Taxa Matrícula:</span>
             <span className="text-xs font-bold text-emerald-600">
-              R$ {(product.matricula_taxa || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              R$ {(product.enrollment_fee || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </span>
           </div>
           <div className="flex items-center justify-between">

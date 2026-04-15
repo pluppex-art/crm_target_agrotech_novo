@@ -274,18 +274,14 @@ const baseValue = parseBRNumber(formData.value);
               readOnly
               className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none font-medium shadow-sm text-slate-500 cursor-not-allowed"
             />
-            {(() => {
-              const currentProduct = products.find((p: any) => p.name === formData.product);
-              if (!currentProduct?.matricula_taxa) return null;
-              return (
-                <div className="flex items-center gap-1.5 mt-0.5 px-1">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Taxa de matrícula:</span>
-                  <span className="text-[10px] font-bold text-emerald-700">
-                    R$ {Number(currentProduct.matricula_taxa).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-              );
-            })()}
+            {currentProduct?.enrollment_fee ? (
+              <div className="flex items-center gap-1.5 mt-0.5 px-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Taxa de matrícula:</span>
+                <span className="text-[10px] font-bold text-emerald-700">
+                  R$ {Number(currentProduct.enrollment_fee).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            ) : null}
 
           </div>
         </div>
@@ -387,60 +383,23 @@ const baseValue = parseBRNumber(formData.value);
         </div>
 
         {/* Valor Recebido */}
-        <div className="space-y-3">
-          <label className="flex items-center gap-3 cursor-pointer w-fit">
-            <div className="relative">
-              <input
-                type="checkbox"
-                checked={formData.valor_recebido}
-                onChange={(e) => toggleField?.('valor_recebido', e.target.checked)}
-                className="sr-only peer"
-              />
-              <div className={cn(
-                "w-5 h-5 border-2 rounded-md transition-all flex items-center justify-center",
-                formData.valor_recebido ? "bg-emerald-600 border-emerald-600" : "bg-white border-slate-200"
-              )}>
-                {formData.valor_recebido && <CheckSquare size={12} className="text-white" />}
-              </div>
+        <label className="flex items-center gap-3 cursor-pointer w-fit">
+          <div className="relative">
+            <input
+              type="checkbox"
+              checked={formData.valor_recebido || false}
+              onChange={(e) => toggleField?.('valor_recebido', e.target.checked)}
+              className="sr-only peer"
+            />
+            <div className={cn(
+              "w-5 h-5 border-2 rounded-md transition-all flex items-center justify-center",
+              formData.valor_recebido ? "bg-emerald-600 border-emerald-600" : "bg-white border-slate-200 hover:border-slate-300"
+            )}>
+              {formData.valor_recebido && <CheckSquare size={12} className="text-white" />}
             </div>
-            <span className="text-sm font-bold text-slate-700">Valor recebido</span>
-          </label>
-        </div>
-
-        {/* Campo valor recebido */}
-        <div className="space-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-200">
-          <label className="flex items-center gap-3 cursor-pointer">
-            <div className="relative">
-              <input
-                type="checkbox"
-                id="valor-recebido"
-                checked={formData.valor_recebido || false}
-                onChange={(e) => toggleField?.('valor_recebido', e.target.checked)}
-                className="sr-only peer"
-              />
-              <div className={cn(
-                "w-5 h-5 border-2 rounded-md transition-all flex items-center justify-center shadow-sm",
-                formData.valor_recebido ? "bg-emerald-600 border-emerald-600" : "bg-white border-slate-200 hover:border-slate-300"
-              )}>
-                {formData.valor_recebido && <CheckSquare size={12} className="text-white" />}
-              </div>
-            </div>
-            <span className="text-sm font-bold text-slate-700">Valor recebido</span>
-          </label>
-        </div>
-
-        {/* Valor Líquido */}
-        {currentProduct && (currentProduct.matricula_taxa || 0) > 0 && (
-          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
-            <p className="text-sm font-bold text-slate-700 mb-1">Valor Líquido (após taxa)</p>
-            <p className="text-xl font-bold text-emerald-600">
-              R$ {(finalValue - (currentProduct.matricula_taxa || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </p>
-            <p className="text-xs text-slate-400 mt-1">
-              Valor Final: R$ {finalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} - Taxa Matrícula: R$ {(currentProduct.matricula_taxa || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </p>
           </div>
-        )}
+          <span className="text-sm font-bold text-slate-700">Valor recebido</span>
+        </label>
 
 
       </div>
