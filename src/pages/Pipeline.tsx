@@ -98,18 +98,7 @@ export const Pipeline: React.FC = () => {
     fetchProfiles();
   }, [fetchPipelines, fetchTurmas, fetchProducts, fetchProfiles]);
 
-  if (isVendedor && !permissions.hasPermission('pipeline.view_all') && !permissions.hasPermission('admin.all')) {
-    return (
-      <div className="flex-1 p-6 flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-        <div className="w-28 h-28 bg-slate-200 rounded-3xl flex items-center justify-center mb-8 shadow-xl">
-          <ShieldAlert className="w-16 h-16 text-slate-400" />
-        </div>
-        <h2 className="text-3xl font-bold text-slate-800 mb-4">Pipeline Privado</h2>
-        <p className="text-xl text-slate-500 max-w-lg mb-8 leading-relaxed">Como vendedor, você só vê seus leads.</p>
-        <p className="text-sm text-slate-400 uppercase tracking-widest font-bold">Permissão necessária: pipeline.view_all</p>
-      </div>
-    );
-  }
+
 
   useEffect(() => {
     if (currentPipelineId) {
