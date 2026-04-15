@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { Star, Phone, Plus, Trash2, Edit2, CheckSquare, AlertTriangle, AlertCircle } from 'lucide-react';
+import { Star, Phone, Plus, Trash2, Edit2, CheckSquare, AlertTriangle } from 'lucide-react';
 import { useLeadChecklist } from '../../hooks/useLeadChecklist';
 
 import { Lead, LeadSubStatus } from '../../types/leads';
@@ -50,63 +50,38 @@ export function LeadCard({ lead, index, onDoubleClick, columnId, isDragging }: L
     </div>
   )}
 
-  {/* Checklist badge */}
-  {requiredTotal > 0 && !allRequiredCompleted && (
-    <div className="absolute bottom-2 right-2 flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-600 border border-amber-200">
-      <AlertCircle size={9} />
-      {requiredCompleted}/{requiredTotal}
-    </div>
-  )}
-
-
-
       {/* Card Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="relative">
-            <img
-              src={lead.photo || 'https://via.placeholder.com/150'}
-              alt={lead.name}
-              className="w-12 h-12 rounded-full object-cover border-2 border-slate-50 shadow-sm"
-              referrerPolicy="no-referrer"
-            />
-          </div>
+          <img
+            src={lead.photo || 'https://via.placeholder.com/150'}
+            alt={lead.name}
+            className="w-12 h-12 rounded-full object-cover border-2 border-slate-50 shadow-sm"
+            referrerPolicy="no-referrer"
+          />
           <div className="space-y-0.5">
             <h4 className="font-bold text-slate-800 text-sm leading-tight">{lead.name}</h4>
             <div className="flex gap-0.5">
               {[...Array(5)].map((_, i) => (
-                <Star
-                  key={i}
-                  size={10}
-                  className={cn(
-                    i < (lead.stars || 0) ? "fill-yellow-400 text-yellow-400" : "text-slate-200"
-                  )}
-                />
+                <Star key={i} size={10} className={cn(i < (lead.stars || 0) ? "fill-yellow-400 text-yellow-400" : "text-slate-200")} />
               ))}
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             onClick={(e) => { e.stopPropagation(); deleteLead(lead.id); }}
             className="p-1 text-slate-300 hover:text-red-500 transition-colors"
             title="Excluir lead"
           >
-            <Trash2 size={15} />
+            <Trash2 size={14} />
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); setSelectedLead(lead); }}
             className="p-1 text-slate-300 hover:text-emerald-500 transition-colors"
             title="Editar lead"
           >
-            <Edit2 size={15} />
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); onDoubleClick(); }}
-            className="p-1 text-slate-300 hover:text-emerald-500 transition-colors"
-            title="Ver checklist"
-          >
-            <CheckSquare size={15} />
+            <Edit2 size={14} />
           </button>
         </div>
       </div>
@@ -130,12 +105,26 @@ export function LeadCard({ lead, index, onDoubleClick, columnId, isDragging }: L
           )}
         </div>
 
-        <div className="pt-2">
+        <div className="flex items-center justify-between pt-2">
           <span className="text-sm font-bold text-slate-800">
             R$ {getLeadEffectiveValue(lead).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
           </span>
+          {requiredTotal > 0 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDoubleClick(); }}
+              title={allRequiredCompleted ? 'Checklist completo' : `${requiredCompleted}/${requiredTotal} itens concluídos`}
+              className={cn(
+                "flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all",
+                allRequiredCompleted
+                  ? "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100"
+                  : "bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100"
+              )}
+            >
+              <CheckSquare size={11} />
+              {requiredCompleted}/{requiredTotal}
+            </button>
+          )}
         </div>
-
       </div>
 
       {lead.status === 'qualified' && (
