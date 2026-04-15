@@ -77,9 +77,17 @@ export function LeadCard({ lead, index, onDoubleClick, columnId, isDragging }: L
           <Phone size={14} className="text-emerald-500" />
           <span className="text-xs font-medium">{lead.phone}</span>
         </div>
-        <div className="flex items-center gap-2 text-slate-500">
-          <Plus size={14} className="text-slate-300" />
-          <span className="text-xs font-medium">{lead.product}</span>
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-slate-500">
+            <Plus size={14} className="text-slate-300" />
+            <span className="text-xs font-medium">{lead.product}</span>
+          </div>
+          {lead.responsible && (
+            <div className="flex items-center gap-1.5 pl-4 text-xs text-slate-400">
+              <div className="w-1.5 h-1.5 bg-slate-300 rounded-full" />
+              <span className="font-medium">{lead.responsible}</span>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center justify-between pt-2">
