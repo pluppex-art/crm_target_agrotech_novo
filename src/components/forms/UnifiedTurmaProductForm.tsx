@@ -18,6 +18,7 @@ interface UnifiedFormProps {
 const blankForm = {
   name: '',
   price: '',
+  enrollment_fee: '',
   description: '',
   category: 'Cursos',
   professor_name: '',
@@ -63,6 +64,7 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
       setFormData({
         name: associatedTurma?.name || initialData.name || matchingProduct?.name || '',
         price: matchingProduct ? matchingProduct.price.toString() : '',
+        enrollment_fee: matchingProduct?.enrollment_fee != null ? matchingProduct.enrollment_fee.toString() : '',
         description: matchingProduct ? matchingProduct.description || '' : '',
         category: associatedTurma?.category || initialData.category || matchingProduct?.category || 'Cursos',
         professor_name: associatedTurma?.professor_name ?? initialData.professor_name ?? '',
@@ -90,10 +92,13 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
       let productId = matchingProduct?.id;
 
       // 1. Handle Product Update/Creation
+      const enrollmentFee = formData.enrollment_fee ? parseFloat(formData.enrollment_fee) : null;
+
       if (isProductEditing) {
         await updateProduct(matchingProduct!.id, {
           name: formData.name,
           price: parseFloat(formData.price) || 0,
+          enrollment_fee: enrollmentFee ?? undefined,
           description: formData.description,
           category: formData.category,
         });
@@ -101,6 +106,7 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
         const productData = {
           name: formData.name,
           price: parseFloat(formData.price) || 0,
+          enrollment_fee: enrollmentFee ?? undefined,
           description: formData.description,
           category: formData.category,
           image_url: `https://picsum.photos/seed/${encodeURIComponent(formData.name)}/400/300`,
@@ -215,6 +221,13 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
                 {field('Preço (R$)', 'price', {
                   type: 'number',
                   required: true,
+                  placeholder: '0.00',
+                  icon: <DollarSign size={16} />,
+                })}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {field('Taxa de Matrícula (R$)', 'enrollment_fee', {
+                  type: 'number',
                   placeholder: '0.00',
                   icon: <DollarSign size={16} />,
                 })}

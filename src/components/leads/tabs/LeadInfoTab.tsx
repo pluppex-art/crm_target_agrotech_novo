@@ -274,6 +274,18 @@ const baseValue = parseBRNumber(formData.value);
               readOnly
               className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none font-medium shadow-sm text-slate-500 cursor-not-allowed"
             />
+            {(() => {
+              const currentProduct = products.find((p: any) => p.name === formData.product);
+              if (!currentProduct?.enrollment_fee) return null;
+              return (
+                <div className="flex items-center gap-1.5 mt-0.5 px-1">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Taxa de matrícula:</span>
+                  <span className="text-[10px] font-bold text-emerald-700">
+                    R$ {Number(currentProduct.enrollment_fee).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              );
+            })()}
           </div>
         </div>
 
