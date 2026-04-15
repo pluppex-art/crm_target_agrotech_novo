@@ -109,10 +109,9 @@ export function LeadCard({ lead, index, onDoubleClick, columnId, isDragging }: L
           <span className="text-sm font-bold text-slate-800">
             R$ {getLeadEffectiveValue(lead).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
           </span>
-          {requiredTotal > 0 && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onDoubleClick(); }}
-              title={allRequiredCompleted ? 'Checklist completo' : `${requiredCompleted}/${requiredTotal} itens concluídos`}
+          <button
+              onClick={(e) => { e.stopPropagation(); setSelectedLead(lead); }}
+              title="Checklist"
               className={cn(
                 "flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all",
                 allRequiredCompleted
@@ -123,7 +122,7 @@ export function LeadCard({ lead, index, onDoubleClick, columnId, isDragging }: L
               <CheckSquare size={11} />
               {requiredCompleted}/{requiredTotal}
             </button>
-          )}
+
         </div>
       </div>
 
