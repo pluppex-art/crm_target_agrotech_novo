@@ -63,7 +63,9 @@ export const PipelineHeader: React.FC<PipelineHeaderProps> = ({
               <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center shadow-sm mb-1">
                 <UserCheck size={16} className="text-blue-600" />
               </div>
-              <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest leading-none">Professor</p>
+      <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest leading-none">Competencias</p>
+
+
               <p className="text-sm font-black text-blue-700 mt-0.5">
                 R$ {competenciaTotalValue.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
               </p>
