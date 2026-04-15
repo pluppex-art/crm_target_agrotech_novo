@@ -101,10 +101,14 @@ function StageChecklist({ stageId, stageName, checklists, onAddChecklist, onDele
 }
 
 export function ManageStageChecklists() {
-  const { pipelines } = usePipelineStore();
+  const { pipelines, fetchPipelines } = usePipelineStore();
   const [activePipelineId, setActivePipelineId] = useState<string | null>(null);
   const [checklists, setChecklists] = useState<Record<string, ChecklistItem[]>>({});
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchPipelines();
+  }, [fetchPipelines]);
 
   useEffect(() => {
     if (activePipelineId) {

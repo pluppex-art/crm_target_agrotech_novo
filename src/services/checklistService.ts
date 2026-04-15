@@ -27,10 +27,7 @@ export const checklistService = {
 
     const { data: checklists, error } = await supabase
       .from('stage_checklists')
-      .select(`
-        *,
-        pipeline_stages!inner(id, name)
-      `)
+      .select('*')
       .in('stage_id', stageIds)
       .order('position');
 
