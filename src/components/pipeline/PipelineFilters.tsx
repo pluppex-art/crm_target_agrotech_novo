@@ -18,6 +18,7 @@ interface PipelineFiltersProps {
   onStarsChange: (stars: number | 'all') => void;
   clearAllFilters: () => void;
   activeFilterCount: number;
+  isVendedor?: boolean;
 }
 
 export const PipelineFilters: React.FC<PipelineFiltersProps> = ({
@@ -35,7 +36,8 @@ export const PipelineFilters: React.FC<PipelineFiltersProps> = ({
   onResponsibleChange,
   onStarsChange,
   clearAllFilters,
-  activeFilterCount
+  activeFilterCount,
+  isVendedor = false,
 }) => {
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">
@@ -154,24 +156,26 @@ export const PipelineFilters: React.FC<PipelineFiltersProps> = ({
           <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
         </div>
 
-        {/* Responsible filter */}
-        <div className="relative w-[180px] shrink-0">
-          <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={15} />
-          <select
-            value={selectedResponsible}
-            onChange={(e) => onResponsibleChange(e.target.value)}
-            className={cn(
-              "w-full pl-9 pr-8 py-2 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none cursor-pointer text-sm font-medium transition-all text-ellipsis whitespace-nowrap overflow-hidden",
-              selectedResponsible !== 'all' ? "border-teal-300 bg-teal-50 text-teal-700" : "border-gray-200 text-gray-700"
-            )}
-          >
-            <option value="all">Todos responsáveis</option>
-            {responsibles.map((name: string) => (
-              <option key={name} value={name}>{name}</option>
-            ))}
-          </select>
-          <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
-        </div>
+        {/* Responsible filter — hidden for vendedores (they only see their own leads) */}
+        {!isVendedor && (
+          <div className="relative w-[180px] shrink-0">
+            <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={15} />
+            <select
+              value={selectedResponsible}
+              onChange={(e) => onResponsibleChange(e.target.value)}
+              className={cn(
+                "w-full pl-9 pr-8 py-2 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none cursor-pointer text-sm font-medium transition-all text-ellipsis whitespace-nowrap overflow-hidden",
+                selectedResponsible !== 'all' ? "border-teal-300 bg-teal-50 text-teal-700" : "border-gray-200 text-gray-700"
+              )}
+            >
+              <option value="all">Todos responsáveis</option>
+              {responsibles.map((name: string) => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+          </div>
+        )}
 
         {/* Stars filter */}
         <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 shrink-0">

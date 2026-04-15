@@ -63,7 +63,7 @@ export const Pipeline: React.FC = () => {
     return myProfile ? myProfile.cargos?.name?.toLowerCase().includes('vend') ?? false : false;
   }, [authUser?.id, profiles]);
 
-  const filters = usePipelineFilters(leads);
+  const filters = usePipelineFilters(leads, authUser?.id, isVendedor);
 
   const [isNewLeadModalOpen, setIsNewLeadModalOpen] = useState(false);
   const [initialStageIdForNewLead, setInitialStageIdForNewLead] = useState<string | undefined>(undefined);
@@ -260,10 +260,11 @@ export const Pipeline: React.FC = () => {
         onStarsChange={filters.setSelectedStars}
         clearAllFilters={filters.clearAllFilters}
         activeFilterCount={filters.activeFilterCount}
+        isVendedor={isVendedor}
       />
 
       <PipelineBoard
-        filteredLeads={isVendedor ? filters.filteredLeads.filter(l => l.responsible === authUser?.email || l.responsible === profiles.find((p: any) => p.id === authUser?.id)?.name) : filters.filteredLeads}
+        filteredLeads={filters.filteredLeads}
         columns={filteredColumns}
         selectedStatus={filters.selectedStatus}
         minimizedColumns={minimizedColumns}
