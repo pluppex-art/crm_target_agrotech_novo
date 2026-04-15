@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { checklistService, type ChecklistItem } from '../services/checklistService';
 
 export interface ChecklistItemWithState extends ChecklistItem {
@@ -14,24 +14,21 @@ export const useLeadChecklist = ({ leadId, stageId }: UseLeadChecklistProps) => 
   const [items, setItems] = useState<ChecklistItemWithState[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const load = useCallback(async () => {
+  useEffect(() => {
     if (!leadId || !stageId) {
       setItems([]);
       return;
     }
     setLoading(true);
-    const [checklistItems, completedIds] = await Promise.all([
+    Promise.all([
       checklistService.getChecklistsForStage(stageId),
-      checklistService.getCompletionsForLead(leadId, stageId),
-    ]);
-    const completedSet = new Set(completedIds);
-    setItems(checklistItems.map(item => ({ ...item, completed: completedSet.has(item.id) })));
-    setLoading(false);
+      checklistService.getCompletionsForLead(leadId),
+    ]).then(([checklistItems, completedIds]) => {
+      const completedSet = new Set(completedIds);
+      setItems(checklistItems.map(item => ({ ...item, completed: completedSet.has(item.id) })));
+      setLoading(false);
+    });
   }, [leadId, stageId]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
 
   const toggle = async (itemId: string) => {
     const item = items.find(i => i.id === itemId);
@@ -47,18 +44,17 @@ export const useLeadChecklist = ({ leadId, stageId }: UseLeadChecklistProps) => 
     }
   };
 
-  const requiredItems = items.filter(i => i.required);
-  const completedRequired = requiredItems.filter(i => i.completed).length;
-  const allRequiredCompleted = requiredItems.length === 0 || completedRequired === requiredItems.length;
+  const derived = useMemo(() => {
+    const requiredItems = items.filter(i => i.required);
+    const requiredCompleted = requiredItems.filter(i => i.completed).length;
+    return {
+      totalCount: items.length,
+      completedCount: items.filter(i => i.completed).length,
+      requiredTotal: requiredItems.length,
+      requiredCompleted,
+      allRequiredCompleted: requiredItems.length === 0 || requiredCompleted === requiredItems.length,
+    };
+  }, [items]);
 
-  return {
-    items,
-    loading,
-    toggle,
-    allRequiredCompleted,
-    completedCount: items.filter(i => i.completed).length,
-    totalCount: items.length,
-    requiredTotal: requiredItems.length,
-    requiredCompleted: completedRequired,
-  };
+  return { items, loading, toggle, ...derived };
 };

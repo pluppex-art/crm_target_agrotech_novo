@@ -125,25 +125,14 @@ export const checklistService = {
     }));
   },
 
-  async getCompletionsForLead(leadId: string, stageId: string): Promise<string[]> {
+  async getCompletionsForLead(leadId: string): Promise<string[]> {
     const supabase = getSupabaseClient();
     if (!supabase) return [];
-
-    // Get all checklist item IDs for this stage first
-    const { data: items, error: itemsError } = await supabase
-      .from('stage_checklists')
-      .select('id')
-      .eq('stage_id', stageId);
-
-    if (itemsError || !items?.length) return [];
-
-    const itemIds = items.map((i: any) => i.id);
 
     const { data, error } = await supabase
       .from('lead_checklist_completions')
       .select('checklist_item_id')
-      .eq('lead_id', leadId)
-      .in('checklist_item_id', itemIds);
+      .eq('lead_id', leadId);
 
     if (error) {
       console.error('Error fetching lead checklist completions:', error);

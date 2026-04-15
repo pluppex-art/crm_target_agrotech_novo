@@ -279,21 +279,17 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({
                 {tab === 'history' && 'Histórico'}
                 {tab === 'tasks' && 'Tarefas'}
                 {tab === 'turma' && 'Turma'}
-                {tab === 'checklist' && (
+                {tab === 'checklist' && leadChecklist.totalCount > 0 ? (
                   <span className="flex items-center gap-1">
                     Checklist
-                    {leadChecklist.totalCount > 0 && (
-                      <span className={cn(
-                        "inline-flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-black",
-                        leadChecklist.allRequiredCompleted
-                          ? "bg-emerald-500 text-white"
-                          : "bg-amber-400 text-white"
-                      )}>
-                        {leadChecklist.requiredCompleted}/{leadChecklist.requiredTotal}
-                      </span>
-                    )}
+                    <span className={cn(
+                      "inline-flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-black",
+                      leadChecklist.allRequiredCompleted ? "bg-emerald-500 text-white" : "bg-amber-400 text-white"
+                    )}>
+                      {leadChecklist.requiredCompleted}/{leadChecklist.requiredTotal}
+                    </span>
                   </span>
-                )}
+                ) : tab === 'checklist' && 'Checklist'}
               </button>
             ))}
           </div>
