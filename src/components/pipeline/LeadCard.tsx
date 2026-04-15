@@ -130,9 +130,13 @@ export function LeadCard({ lead, index, onDoubleClick, columnId, isDragging }: L
               <Edit2 size={14} />
             </button>
 
+
         <button className="p-1.5 bg-slate-50 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all border border-slate-100">
           <CheckSquare size={14} />
         </button>
+
+          </div>
+        </div>
 
         {/* Checklist badge under buttons */}
         {requiredTotal > 0 && !allRequiredCompleted && (
@@ -144,9 +148,6 @@ export function LeadCard({ lead, index, onDoubleClick, columnId, isDragging }: L
           </div>
         )}
 
-
-          </div>
-        </div>
       </div>
 
       {lead.status === 'qualified' && (
