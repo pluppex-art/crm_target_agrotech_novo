@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   TrendingUp, TrendingDown, DollarSign, Users, CheckCircle2,
@@ -8,6 +8,7 @@ import { usePermissions } from '../hooks/usePermissions';
 import { useLeadStore } from '../store/useLeadStore';
 import { useFinanceStore } from '../store/useFinanceStore';
 import { useProfileStore } from '../store/useProfileStore';
+import { goalService, type Goal } from '../services/goalService';
 import { cn, getLeadEffectiveValue, stageNameToStatus } from '../lib/utils';
 import { MetricCard } from '../components/dashboard/MetricCard';
 import { CSSBarChart } from '../components/dashboard/CSSBarChart';
@@ -22,18 +23,26 @@ export function Dashboard() {
 
   const { transactions, fetchTransactions, isLoading: financeLoading, subscribe: subscribeFinance } = useFinanceStore();
   const { leads, fetchLeads, isLoading: leadsLoading, subscribeToLeads } = useLeadStore();
-  const { profiles, fetchProfiles } = useProfileStore();
+const { profiles, fetchProfiles } = useProfileStore();
+  const [goals, setGoals] = useState<Goal[]>([]);
 
   // Use refs to run fetch only once — avoids infinite loop caused by
   // Zustand functions being recreated on every store update
   const didFetch = useRef(false);
-  useEffect(() => {
+  
+  const fetchInitialData = useCallback(async () => {
     if (didFetch.current) return;
     didFetch.current = true;
     fetchLeads();
     fetchTransactions();
     fetchProfiles();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    const goalsData = await goalService.getGoals();
+    setGoals(goalsData);
+  }, [fetchLeads, fetchTransactions, fetchProfiles]);
+
+  useEffect(() => {
+    fetchInitialData();
+  }, [fetchInitialData]);
 
   // Realtime subscriptions — run once on mount
   useEffect(() => {
@@ -123,7 +132,7 @@ export function Dashboard() {
     [closedLeads]
   );
 
-  const salesByResponsible = useMemo(() =>
+const salesByResponsible = useMemo(() =>
     Object.values(
       closedLeads.filter(l => l.responsible).reduce((acc: Record<string, { label: string; value: number; count: number }>, l) => {
         const key = l.responsible!;
@@ -136,17 +145,33 @@ export function Dashboard() {
     [closedLeads]
   );
 
-  const allSellersRanking = useMemo(() => {
+  const sellerGoalMap = useMemo(() =>
+    goals.filter(g => g.type === 'seller').reduce((acc: Record<string, number>, g) => {
+      acc[g.seller_name || ''] = g.revenue_goal;
+      return acc;
+    }, {} as Record<string, number>),
+    [goals]
+  );
+
+const allSellersRanking = useMemo(() => {
     const isVendedor = (p: { cargos?: { name?: string } | null }) =>
       p.cargos?.name?.toLowerCase().includes('vend') ?? false;
 
-    const byName: Record<string, { label: string; value: number; count: number }> = {};
-    salesByResponsible.forEach(s => { byName[s.label] = s; });
-    profiles.filter(p => p.name && isVendedor(p)).forEach(p => {
-      if (!byName[p.name!]) byName[p.name!] = { label: p.name!, value: 0, count: 0 };
+    const byName: Record<string, { label: string; value: number; count: number; percentage: number }> = {};
+    salesByResponsible.forEach(s => { 
+      byName[s.label] = { ...s, percentage: 0 };
     });
-    return Object.values(byName).sort((a, b) => b.value - a.value);
-  }, [salesByResponsible, profiles]);
+    profiles.filter(p => p.name && isVendedor(p)).forEach(p => {
+      if (!byName[p.name!]) byName[p.name!] = { label: p.name!, value: 0, count: 0, percentage: 0 };
+    });
+
+    Object.values(byName).forEach(s => {
+      const goal = sellerGoalMap[s.label];
+      s.percentage = goal && goal > 0 ? Math.min((s.value / goal) * 100, 100) : 0;
+    });
+
+    return Object.values(byName).sort((a, b) => b.percentage - a.percentage);
+  }, [salesByResponsible, profiles, sellerGoalMap]);
 
   const incomeByCategory = useMemo(() =>
     Object.values(
@@ -250,7 +275,7 @@ export function Dashboard() {
           {/* Ranking + Sales by product */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-              <h3 className="font-bold text-slate-800 mb-6">Ranking de Vendedores</h3>
+              <h3 className="font-bold text-slate-800 mb-6">Ranking de Vendedores (% Meta)</h3>
               {allSellersRanking.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-40 text-slate-300">
                   <Users className="w-10 h-10 mb-2 opacity-30" />
@@ -262,10 +287,10 @@ export function Dashboard() {
                     <HorizontalBar
                       key={`rank-${s.label}-${i}`}
                       label={s.label}
-                      value={s.value}
-                      max={allSellersRanking[0]?.value || 1}
+                      value={s.percentage}
+                      max={100}
                       rank={i}
-                      isCurrency={true}
+                      isCurrency={false}
                       count={s.count}
                       color={i === 0 ? 'bg-emerald-500' : i === 1 ? 'bg-blue-400' : i === 2 ? 'bg-purple-400' : 'bg-slate-300'}
                     />
