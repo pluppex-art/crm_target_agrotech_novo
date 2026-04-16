@@ -86,8 +86,7 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
   const removeEntry = (attendeeId: string, index: number) => {
     const state = getPayment(attendeeId);
     const entries = state.entries.filter((_, i) => i !== index);
-    updatePaymentState(attendeeId, { entries: entries.length > 0 ? entries : [{ valor: '', forma: '' }] });
-    savePayment(attendeeId, entries.length > 0 ? entries : []);
+    updatePaymentState(attendeeId, { entries });
   };
 
   const savePayment = async (attendeeId: string, entries?: PaymentEntry[]) => {
