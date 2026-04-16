@@ -39,6 +39,7 @@ export interface Lead {
   contract_signed?: boolean;
   valor_recebido?: number;
   forma_pagamento?: string;
+  taxa_matricula_recebido?: number;
   created_at: string;
   last_contact_at?: string;
   history?: LeadHistory[];

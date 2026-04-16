@@ -112,26 +112,40 @@ const [valorRecebidoOpen, setValorRecebidoOpen] = useState(
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
             <ClipboardCheck size={13} /> Confirmações para avançar para Ganho
           </p>
-          <label className="flex items-center gap-3 cursor-pointer group">
-            <div className="relative shrink-0">
-              <input
-                type="checkbox"
-                checked={pixCompleted ?? false}
-                onChange={(e) => onPixComplete?.(e.target.checked)}
-                className="sr-only peer"
-              />
-              <div className={cn(
-                "w-5 h-5 border-2 rounded-md transition-all flex items-center justify-center",
-                pixCompleted ? "bg-emerald-600 border-emerald-600" : "bg-white border-slate-300"
-              )}>
-                {pixCompleted && <CheckSquare size={12} className="text-white" />}
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-3 cursor-pointer group shrink-0">
+              <div className="relative shrink-0">
+                <input
+                  type="checkbox"
+                  checked={pixCompleted ?? false}
+                  onChange={(e) => onPixComplete?.(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className={cn(
+                  "w-5 h-5 border-2 rounded-md transition-all flex items-center justify-center",
+                  pixCompleted ? "bg-emerald-600 border-emerald-600" : "bg-white border-slate-300"
+                )}>
+                  {pixCompleted && <CheckSquare size={12} className="text-white" />}
+                </div>
               </div>
+              <div className="flex items-center gap-2">
+                <QrCode size={15} className="text-slate-400" />
+                <span className="text-sm font-semibold text-slate-700">PIX realizado</span>
+              </div>
+            </label>
+            <div className="flex-1">
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.taxa_matricula_recebido ?? ''}
+                onChange={(e) => updateFormField({ taxa_matricula_recebido: e.target.value ? parseFloat(e.target.value) : null })}
+                onBlur={(e) => toggleField?.('taxa_matricula_recebido', e.target.value ? parseFloat(e.target.value) : null)}
+                placeholder="Taxa matrícula R$"
+                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-sm font-medium shadow-sm"
+              />
             </div>
-            <div className="flex items-center gap-2">
-              <QrCode size={15} className="text-slate-400" />
-              <span className="text-sm font-semibold text-slate-700">PIX realizado</span>
-            </div>
-          </label>
+          </div>
           <label className="flex items-center gap-3 cursor-pointer group">
             <div className="relative shrink-0">
               <input

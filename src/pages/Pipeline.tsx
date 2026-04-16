@@ -226,11 +226,12 @@ export const Pipeline: React.FC = () => {
     ? COLUMNS
     : COLUMNS.filter((col: { id: string }) => col.id === filters.selectedStatus);
 
-  // Ganho Caixa: soma das taxas de matrícula dos leads com PIX confirmado
+  // Ganho Caixa: usa taxa_matricula_recebido se informado, senão enrollment_fee do produto (para leads com PIX confirmado)
   const caixaTotalValue = useMemo(() => {
     return filters.filteredLeads
       .filter(lead => lead.pix_completed)
       .reduce((sum, lead) => {
+        if (lead.taxa_matricula_recebido != null) return sum + lead.taxa_matricula_recebido;
         const product = products.find(p => p.name === lead.product);
         return sum + (product?.enrollment_fee ?? 0);
       }, 0);
@@ -243,13 +244,6 @@ export const Pipeline: React.FC = () => {
       .reduce((sum, lead) => sum + getLeadEffectiveValue(lead), 0);
   }, [filters.filteredLeads]);
 
-  // Vendas Caixa: soma do valor_recebido dos leads (apenas leads, não turmas)
-  const vendasCaixaValue = useMemo(() => {
-    return filters.filteredLeads
-      .filter(lead => lead.valor_recebido != null)
-      .reduce((sum, lead) => sum + (lead.valor_recebido ?? 0), 0);
-  }, [filters.filteredLeads]);
-
 
 
   return (
@@ -257,7 +251,6 @@ export const Pipeline: React.FC = () => {
       <PipelineHeader
         caixaTotalValue={caixaTotalValue}
         competenciaTotalValue={competenciaTotalValue}
-        vendasCaixaValue={vendasCaixaValue}
         leadsCount={filters.filteredLeads.length}
         currentPipelineId={currentPipelineId ?? null}
         pipelines={pipelines}

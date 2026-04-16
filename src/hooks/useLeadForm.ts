@@ -29,6 +29,7 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
     contract_signed: lead.contract_signed || false,
     valor_recebido: lead.valor_recebido ?? null,
     forma_pagamento: lead.forma_pagamento || '',
+    taxa_matricula_recebido: lead.taxa_matricula_recebido ?? null,
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -55,6 +56,7 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
       contract_signed: lead.contract_signed || false,
       valor_recebido: lead.valor_recebido ?? null,
       forma_pagamento: lead.forma_pagamento || '',
+      taxa_matricula_recebido: lead.taxa_matricula_recebido ?? null,
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lead.id]);
@@ -133,6 +135,7 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
         contract_signed: formData.contract_signed,
         valor_recebido: formData.valor_recebido ?? undefined,
         forma_pagamento: formData.forma_pagamento || undefined,
+        taxa_matricula_recebido: formData.taxa_matricula_recebido ?? undefined,
       };
 
 
