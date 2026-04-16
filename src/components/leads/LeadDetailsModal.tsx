@@ -269,7 +269,7 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({
 
           {/* Tabs */}
           <div className="flex gap-5 px-5 border-b border-slate-200">
-            {(['info', 'notes', 'history', 'tasks', 'turma', 'checklist'] as TabType[]).map((tab) => (
+{(['info', 'notes', 'history', 'tasks', 'turma', 'checklist'] as TabType[]).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
