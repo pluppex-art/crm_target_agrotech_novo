@@ -132,7 +132,8 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
       const selectedStage = currentPipelineStages.find((s: any) => s.id === selectedStageId);
       const stageName = ((selectedStage as any)?.name || '').toLowerCase();
       const isGanhoStage = stageName.includes('ganho') || stageName.includes('fechado') || stageName.includes('aprovado');
-      const newLead = await addLead({
+      const currentProduct = products.find((p: any) => p.name === formData.product);
+      const newLeadData = {
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
@@ -149,10 +150,20 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
         discount_applied: formData.discount_applied,
         discount: formData.discount || '',
         discount_type: formData.discount_type || 'percent',
+        pix_completed: isGanhoStage,
+        contract_signed: isGanhoStage,
+        valor_recebido: isGanhoStage ? parseBRNumber(formData.value) : undefined,
+        forma_pagamento: isGanhoStage ? 'PIX' : undefined,
+        taxa_matricula_recebido: isGanhoStage ? (currentProduct?.enrollment_fee ?? 0) : undefined,
         pipeline_id: pipelineId,
         stage_id: selectedStageId || undefined,
-        ...(isGanhoStage ? { pix_completed: true, contract_signed: true } : {}),
-      });
+      };
+      const newLead = await addLead(newLeadData);
+      // Auto-enroll in turma after successful ganho lead
+      if (isGanhoStage && newLead) {
+        const turmaService = (window as any).turmaService || { enrollLeadInTurma: async () => {} };
+        await turmaService.enrollLeadInTurma(newLeadData);
+      }
 
       if (isGanhoStage && newLead) {
         onLeadCreated?.(newLead);

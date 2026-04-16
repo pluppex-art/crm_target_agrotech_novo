@@ -226,15 +226,17 @@ export const Pipeline: React.FC = () => {
     ? COLUMNS
     : COLUMNS.filter((col: { id: string }) => col.id === filters.selectedStatus);
 
-  // Ganho Caixa: usa taxa_matricula_recebido se informado, senão enrollment_fee do produto (para leads com PIX confirmado)
+  // Ganho Caixa: valor_recebido > taxa_matricula_recebido > enrollment_fee (se pix confirmado)
   const caixaTotalValue = useMemo(() => {
-    return filters.filteredLeads
-      .filter(lead => lead.pix_completed)
-      .reduce((sum, lead) => {
-        if (lead.taxa_matricula_recebido != null) return sum + lead.taxa_matricula_recebido;
+    return filters.filteredLeads.reduce((sum, lead) => {
+      if (lead.valor_recebido != null) return sum + lead.valor_recebido;
+      if (lead.taxa_matricula_recebido != null) return sum + lead.taxa_matricula_recebido;
+      if (lead.pix_completed) {
         const product = products.find(p => p.name === lead.product);
         return sum + (product?.enrollment_fee ?? 0);
-      }, 0);
+      }
+      return sum;
+    }, 0);
   }, [filters.filteredLeads, products]);
 
   // Competências: soma do valor de vendas dos leads com PIX confirmado
