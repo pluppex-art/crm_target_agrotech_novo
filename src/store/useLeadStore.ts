@@ -16,7 +16,7 @@ interface LeadStore {
   updateLeadSubStatus: (leadId: string, subStatus: LeadSubStatus | null) => Promise<boolean>;
   updateLead: (leadId: string, lead: Partial<Omit<Lead, 'id' | 'created_at'>>) => Promise<boolean>;
   deleteLead: (leadId: string) => Promise<void>;
-  addLead: (lead: Omit<Lead, 'id' | 'created_at'>) => Promise<void>;
+  addLead: (lead: Omit<Lead, 'id' | 'created_at'>) => Promise<Lead | undefined>;
   subscribeToLeads: (pipelineId?: string) => () => void;
 }
 
@@ -45,10 +45,12 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
       const newLead = await supabaseService.createLead(leadData as any);
       if (newLead) {
         set((state) => ({ leads: [newLead, ...state.leads], isLoading: false }));
+        return newLead;
       }
     } catch (err) {
       set({ error: 'Failed to add lead', isLoading: false });
     }
+    return undefined;
   },
 
   updateLeadStage: async (leadId: string, stageId: string) => {

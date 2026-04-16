@@ -103,11 +103,10 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({
   const stages = isTurmaMode ? TURMA_STAGES : pipelineStages;
   const currentStageData = stages?.find(s => s.id === currentStageId);
   const currentStageName = ((currentStageData as any)?.title || (currentStageData as any)?.name || '') as string;
-  const isGanhoStage = currentStageName.toLowerCase().includes('ganho');
   const isPerdidoStage = currentStageName.toLowerCase().includes('perdido');
 
-  // Show confirmations in all stages except Won and Lost
-  const showConfirmations = !isGanhoStage && !isPerdidoStage;
+  // Show confirmations in all stages except Lost (including Ganho — already checked)
+  const showConfirmations = !isPerdidoStage;
 
   // Unified stage change handler: delegates to turma or pipeline handler
   const handleStageChange = (stageId: string) => {

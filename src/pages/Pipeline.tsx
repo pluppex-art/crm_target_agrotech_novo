@@ -343,6 +343,10 @@ export const Pipeline: React.FC = () => {
         onClose={() => setIsNewLeadModalOpen(false)}
         pipelineId={currentPipelineId}
         initialStageId={initialStageIdForNewLead}
+        onLeadCreated={(lead) => {
+          setEnrollLead(lead);
+          triggerGanhoAnimation();
+        }}
       />
 
       {/* Enroll in Turma Modal */}

@@ -9,6 +9,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { usePipelineStore } from '../../store/usePipelineStore';
 import { supabaseService } from '../../services/supabaseService';
 import { LeadStatus, LeadSubStatus } from '../../types/leads';
+import type { Lead } from '../../types/leads';
 import { cn, parseBRNumber, formatCPFCNPJ } from '../../lib/utils';
 import { AlertCircle, CheckSquare, ChevronDown, DollarSign, Loader2, Mail, MapPin, Percent, Phone, Save, X, User } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -19,9 +20,10 @@ interface NewLeadModalProps {
   initialStatus?: LeadStatus;
   pipelineId?: string;
   initialStageId?: string;
+  onLeadCreated?: (lead: Lead) => void;
 }
 
-export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, initialStatus = 'new', pipelineId, initialStageId }) => {
+export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, initialStatus = 'new', pipelineId, initialStageId, onLeadCreated }) => {
   const { addLead } = useLeadStore();
   const { products, fetchProducts } = useProductStore();
   const { profiles, fetchProfiles } = useProfileStore();
@@ -130,7 +132,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
       const selectedStage = currentPipelineStages.find((s: any) => s.id === selectedStageId);
       const stageName = ((selectedStage as any)?.name || '').toLowerCase();
       const isGanhoStage = stageName.includes('ganho') || stageName.includes('fechado') || stageName.includes('aprovado');
-      await addLead({
+      const newLead = await addLead({
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
@@ -147,11 +149,14 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
         discount_applied: formData.discount_applied,
         discount: formData.discount || '',
         discount_type: formData.discount_type || 'percent',
-
         pipeline_id: pipelineId,
         stage_id: selectedStageId || undefined,
         ...(isGanhoStage ? { pix_completed: true, contract_signed: true } : {}),
       });
+
+      if (isGanhoStage && newLead) {
+        onLeadCreated?.(newLead);
+      }
 
       onClose();
       setFormData({
