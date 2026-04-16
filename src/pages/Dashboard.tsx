@@ -9,7 +9,8 @@ import { useLeadStore } from '../store/useLeadStore';
 import { useFinanceStore } from '../store/useFinanceStore';
 import { useProfileStore } from '../store/useProfileStore';
 import { goalService, type Goal } from '../services/goalService';
-import { cn, getLeadEffectiveValue, stageNameToStatus } from '../lib/utils';
+import { cn, stageNameToStatus, getLeadEffectiveValue } from '../lib/utils';
+
 import { MetricCard } from '../components/dashboard/MetricCard';
 import { CSSBarChart } from '../components/dashboard/CSSBarChart';
 import { HorizontalBar } from '../components/dashboard/HorizontalBar';

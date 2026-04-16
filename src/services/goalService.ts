@@ -51,7 +51,7 @@ export const goalService = {
     }
   },
 
-  async upsertSellerGoal(seller_name: string, revenue_goal: number, leads_goal: number): Promise<Goal | null> {
+  async upsertSellerGoal(seller_id: string, revenue_goal: number, leads_goal: number): Promise<Goal | null> {
     const supabase = getSupabaseClient();
     if (!supabase) return null;
 
@@ -59,7 +59,7 @@ export const goalService = {
       .from('goals')
       .select('*')
       .eq('type', 'seller')
-      .eq('seller_name', seller_name)
+      .eq('seller_id', seller_id)
       .maybeSingle();
 
     if (existing) {
@@ -74,7 +74,7 @@ export const goalService = {
     } else {
       const { data, error } = await supabase
         .from('goals')
-        .insert([{ type: 'seller', seller_name, revenue_goal, leads_goal }])
+        .insert([{ type: 'seller', seller_id, revenue_goal, leads_goal }])
         .select()
         .single();
       if (error) { console.error(error); return null; }

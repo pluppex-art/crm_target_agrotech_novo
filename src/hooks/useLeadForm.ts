@@ -30,6 +30,10 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
     valor_recebido: lead.valor_recebido ?? null,
     forma_pagamento: lead.forma_pagamento || '',
     taxa_matricula_recebido: lead.taxa_matricula_recebido ?? null,
+    // Semáforo
+    margem_percent: lead.margem_percent,
+    faixa_comissao: lead.faixa_comissao ?? null,
+    motivo_perda: lead.motivo_perda || '',
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -57,6 +61,9 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
       valor_recebido: lead.valor_recebido ?? null,
       forma_pagamento: lead.forma_pagamento || '',
       taxa_matricula_recebido: lead.taxa_matricula_recebido ?? null,
+      margem_percent: lead.margem_percent,
+      faixa_comissao: lead.faixa_comissao ?? null,
+      motivo_perda: lead.motivo_perda || '',
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lead.id]);

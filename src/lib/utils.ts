@@ -116,6 +116,22 @@ export function formatCPFCNPJ(value: string): string {
   }
 }
 
+export function computeFaixa(margem: number | null | undefined): 'verde' | 'amarela' | 'vermelha' | null {
+  if (margem === null || margem === undefined || isNaN(margem)) return null;
+  if (margem > 20) return 'verde';
+  if (margem >= 10) return 'amarela';
+  return 'vermelha';
+}
+
+export function getFaixaIcon(faixa: 'verde' | 'amarela' | 'vermelha' | null): string {
+  switch (faixa) {
+    case 'verde': return '🟢';
+    case 'amarela': return '🟡';
+    case 'vermelha': return '🔴';
+    default: return '⚪';
+  }
+}
+
 export function formatRelativeTime(date: string | Date): string {
   const now = new Date();
   const d = new Date(date);

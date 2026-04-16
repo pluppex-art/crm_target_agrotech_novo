@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 
-
 import { useLeadStore } from '../../store/useLeadStore';
 import { useProductStore } from '../../store/useProductStore';
 import { useProfileStore } from '../../store/useProfileStore';
@@ -10,7 +9,7 @@ import { usePipelineStore } from '../../store/usePipelineStore';
 import { supabaseService } from '../../services/supabaseService';
 import { LeadStatus, LeadSubStatus } from '../../types/leads';
 import type { Lead } from '../../types/leads';
-import { cn, parseBRNumber, formatCPFCNPJ } from '../../lib/utils';
+import { cn, parseBRNumber, formatCPFCNPJ, computeFaixa, getFaixaIcon } from '../../lib/utils';
 import { AlertCircle, CheckSquare, ChevronDown, DollarSign, Loader2, Mail, MapPin, Percent, Phone, Save, X, User } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -36,11 +35,11 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
   }, [pipelines, pipelineId]);
 
   // Filter only vendedores (profiles with cargo name containing 'vendedor')
-    const vendedores = useMemo(() => {
-      const sellers = profiles.filter((p: any) => {
-        const cargoName = (p.cargos?.name || p.cargo_name || '').toLowerCase();
-        return cargoName.includes('vendedor') || cargoName.includes('vendedor');
-      });
+  const vendedores = useMemo(() => {
+    const sellers = profiles.filter((p: any) => {
+      const cargoName = (p.cargos?.name || p.cargo_name || '').toLowerCase();
+      return cargoName.includes('vendedor');
+    });
     // Fallback: show all active profiles if no vendedores found
     return sellers.length > 0
       ? sellers
@@ -65,6 +64,8 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
     discount_applied: boolean;
     discount: string;
     discount_type: DiscountType;
+    margem_percent?: number;
+    faixa_comissao: 'verde' | 'amarela' | 'vermelha' | null;
   }>({
     name: '',
     email: '',
@@ -78,8 +79,9 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
     discount_applied: false,
     discount: '',
     discount_type: 'percent',
+    margem_percent: undefined,
+    faixa_comissao: null,
   });
-
 
   useEffect(() => {
     if (isOpen) {
@@ -91,7 +93,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
         setFormData(prev => ({ ...prev, responsible: consultantName }));
       }
     }
-  }, [isOpen, initialStageId, fetchProducts, fetchProfiles, user, formData.responsible]);
+  }, [isOpen, initialStageId, fetchProducts, fetchProfiles, user]);
 
   const calculateFinalValue = () => {
     const val = parseBRNumber(formData.value);
@@ -102,7 +104,6 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
     }
     return val * (1 - Math.min(discount, 1));
   };
-
 
   const handleProductChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedProduct = products.find((product: any) => product.name === e.target.value);
@@ -133,31 +134,33 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
       const stageName = ((selectedStage as any)?.name || '').toLowerCase();
       const isGanhoStage = stageName.includes('ganho') || stageName.includes('fechado') || stageName.includes('aprovado');
       const currentProduct = products.find((p: any) => p.name === formData.product);
-      const newLeadData = {
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        product: formData.product,
-        value: parseBRNumber(formData.value),
-        city: formData.city,
-        cnpj: formData.cnpj,
-        responsible: formData.responsible,
-        status: initialStatus as LeadStatus,
-        subStatus: initialStatus === 'qualified' ? formData.subStatus : null,
-        stars: 0,
-        photo: `https://tfwclxxcgnmndcnbklkx.supabase.co/storage/v1/object/public/icones/5.png`,
-        history: [],
-        discount_applied: formData.discount_applied,
-        discount: formData.discount || '',
-        discount_type: formData.discount_type || 'percent',
-        pix_completed: isGanhoStage,
-        contract_signed: isGanhoStage,
-        valor_recebido: isGanhoStage ? parseBRNumber(formData.value) : undefined,
-        forma_pagamento: isGanhoStage ? 'PIX' : undefined,
-        taxa_matricula_recebido: isGanhoStage ? (currentProduct?.enrollment_fee ?? 0) : undefined,
-        pipeline_id: pipelineId,
-        stage_id: selectedStageId || undefined,
-      };
+        const newLeadData = {
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          product: formData.product,
+          value: parseBRNumber(formData.value),
+          city: formData.city,
+          cnpj: formData.cnpj,
+          responsible: formData.responsible,
+          status: initialStatus as LeadStatus,
+          subStatus: initialStatus === 'qualified' ? formData.subStatus : null,
+          stars: 0,
+          photo: `https://tfwclxxcgnmndcnbklkx.supabase.co/storage/v1/object/public/icones/5.png`,
+          history: [],
+          discount_applied: formData.discount_applied,
+          discount: formData.discount || '',
+          discount_type: formData.discount_type || 'percent',
+          pix_completed: isGanhoStage,
+          contract_signed: isGanhoStage,
+          valor_recebido: isGanhoStage ? parseBRNumber(formData.value) : undefined,
+          forma_pagamento: isGanhoStage ? 'PIX' : undefined,
+          taxa_matricula_recebido: isGanhoStage ? (currentProduct?.enrollment_fee ?? 0) : undefined,
+          pipeline_id: pipelineId,
+          stage_id: selectedStageId || undefined,
+          margem_percent: formData.margem_percent,
+          faixa_comissao: formData.faixa_comissao,
+        };
       const newLead = await addLead(newLeadData);
       // Auto-enroll in turma after successful ganho lead
       if (isGanhoStage && newLead) {
@@ -183,6 +186,8 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
         discount_applied: false,
         discount: '',
         discount_type: 'percent',
+        margem_percent: undefined,
+        faixa_comissao: null,
       });
     } catch (error) {
       console.error('Error adding lead:', error);
@@ -194,7 +199,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
   if (!isOpen) return null;
 
   return createPortal(
-<AnimatePresence mode="wait">
+    <AnimatePresence mode="wait">
       <div key="overlay-new" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
         <motion.div
           key="modal-new"
@@ -205,13 +210,13 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
         >
           <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-10">
             <h2 className="text-xl font-bold text-gray-800">Novo Cliente</h2>
-              {!pipelineId && (
-                <div className="ml-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg text-xs font-bold text-amber-800 flex items-center gap-1 mt-1">
-                  <AlertCircle size={12} />
-                  Pipeline não selecionado - cliente será criado em um estado padrão
-                </div>
-              )}
-              <button 
+            {!pipelineId && (
+              <div className="ml-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg text-xs font-bold text-amber-800 flex items-center gap-1 mt-1">
+                <AlertCircle size={12} />
+                Pipeline não selecionado - cliente será criado em um estado padrão
+              </div>
+            )}
+            <button 
               onClick={onClose}
               className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 transition-colors"
             >
@@ -402,7 +407,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                   <input
                     type="checkbox"
                     checked={formData.discount_applied}
-                    onChange={(e) => setFormData(prev => ({ ...prev, discount_applied: e.target.checked }))}
+                    onChange={(e) => setFormData(prev => ({ ...prev, discount_applied: e.target.checked })) }
                     className="sr-only"
                   />
                   <div className={cn(
@@ -422,7 +427,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                 <div className="flex rounded-xl overflow-hidden border border-slate-200 shrink-0">
                   <button
                     type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, discount_type: 'percent' }))}
+                    onClick={() => setFormData(prev => ({ ...prev, discount_type: 'percent' })) }
                     className={cn(
                       "px-3 py-2.5 text-xs font-bold transition-colors flex items-center gap-1",
                       formData.discount_type === 'percent'
@@ -434,7 +439,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                   </button>
                   <button
                     type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, discount_type: 'money' }))}
+                    onClick={() => setFormData(prev => ({ ...prev, discount_type: 'money' })) }
                     className={cn(
                       "px-3 py-2.5 text-xs font-bold transition-colors border-l border-slate-200 flex items-center gap-1",
                       formData.discount_type === 'money'
@@ -464,6 +469,54 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
               </div>
             </div>
 
+            {/* Semáforo - NEW */}
+            <div className="space-y-3">
+              <label className="flex items-center gap-3 cursor-pointer w-fit">
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={formData.margem_percent !== undefined}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setFormData(prev => ({ ...prev, margem_percent: 0, faixa_comissao: computeFaixa(0) || null }));
+                      } else {
+                        setFormData(prev => ({ ...prev, margem_percent: undefined, faixa_comissao: null }));
+                      }
+                    }}
+                    className="sr-only"
+                  />
+                  <div className={cn(
+                    'w-5 h-5 border-2 rounded-md transition-all flex items-center justify-center',
+                    formData.margem_percent !== undefined ? 'bg-emerald-600 border-emerald-600' : 'bg-white border-slate-200'
+                  )}>
+                    {formData.margem_percent !== undefined && <CheckSquare size={12} className="text-white" />}
+                  </div>
+                </div>
+                <span className="text-sm font-bold text-slate-700">Margem de Comissão (%)</span>
+              </label>
+              <div className={cn(
+                'flex items-end gap-3 transition-all duration-300',
+                formData.margem_percent !== undefined ? 'opacity-100' : 'opacity-0 max-h-0 overflow-hidden'
+              )}>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  value={formData.margem_percent ?? ''}
+                  onChange={(e) => {
+                    const value = parseFloat(e.target.value) || 0;
+                    const faixa = computeFaixa(value);
+                    setFormData(prev => ({ ...prev, margem_percent: value, faixa_comissao: faixa ?? null }));
+                  }}
+                  placeholder="Ex: 15.5"
+                  className="flex-1 px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm"
+                />
+                <div className="flex items-center justify-center w-16 h-16 bg-slate-50 border-2 border-slate-200 rounded-2xl shrink-0">
+                  <span className="text-2xl">{getFaixaIcon(formData.faixa_comissao)}</span>
+                </div>
+              </div>
+            </div>
 
             <div className="pt-4 flex justify-end gap-3">
               <button 
@@ -478,7 +531,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                 disabled={loading}
                 className="px-8 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-lg shadow-emerald-200 transition-all flex items-center gap-2 disabled:opacity-50"
               >
-{loading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                {loading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
                 Criar Cliente
               </button>
             </div>
@@ -489,5 +542,3 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
     document.body
   );
 };
-
-
