@@ -1,6 +1,5 @@
 import React from 'react';
-import { cn } from '../../lib/utils';
-import { Users, BarChart2 } from 'lucide-react';
+import { Users } from 'lucide-react';
 
 interface DoughnutChartProps {
   data: Array<{ label: string; value: number; color: string }>;
@@ -8,10 +7,10 @@ interface DoughnutChartProps {
   emptyLabel?: string;
 }
 
-export function DoughnutChart({ 
-  data, 
-  totalLabel = 'Total', 
-  emptyLabel = 'Sem dados para distribuição'
+export function DoughnutChart({
+  data,
+  totalLabel = 'Total',
+  emptyLabel = 'Sem dados para distribuição',
 }: DoughnutChartProps) {
   const total = data.reduce((sum, d) => sum + d.value, 0);
   const hasData = total > 0;
@@ -25,83 +24,87 @@ export function DoughnutChart({
     );
   }
 
-  const radius = 60;
-  const strokeWidth = 20;
-  const circumference = 2 * Math.PI * radius;
-  const centerRadius = radius - strokeWidth;
+  const SIZE = 200;
+  const CX = 100;
+  const CY = 100;
+  const R = 72;
+  const SW = 24;
+  const C = 2 * Math.PI * R; // circumference ≈ 452
 
-  const segments = data.map((d, index) => ({
-    ...d,
-    pct: total > 0 ? d.value / total : 0,
-    startAngle: data.slice(0, index).reduce((sum, item) => sum + (item.value / total), 0) * 360,
-    endAngle: data.slice(0, index + 1).reduce((sum, item) => sum + (item.value / total), 0) * 360
-  }));
+  // Build segments with cumulative start angles (degrees)
+  let cumAngle = 0;
+  const segments = data.map(d => {
+    const pct = d.value / total;
+    const startAngle = cumAngle;
+    cumAngle += pct * 360;
+    return { ...d, pct, startAngle };
+  });
 
   return (
-    <div className="p-6">
+    <div className="p-4">
       {/* SVG Doughnut */}
       <div className="relative mx-auto w-48 h-48">
-        {/* Background ring */}
-        <svg className="w-full h-full -rotate-90 transform origin-center">
+        <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="w-full h-full">
+          {/* Background ring */}
           <circle
-            cx="50%"
-            cy="50%"
-            r={`${radius}%`}
+            cx={CX}
+            cy={CY}
+            r={R}
             fill="none"
-            stroke="hsl(210 40% 96%)"
-            strokeWidth={strokeWidth}
+            stroke="hsl(210 40% 94%)"
+            strokeWidth={SW}
           />
-        </svg>
 
-        {/* Segments */}
-        {segments.map((seg, i) => (
-          <svg
-            key={seg.label}
-            className="w-full h-full absolute -rotate-90 transform origin-center"
-            style={{ zIndex: i }}
-          >
+          {/* Segments — each rotated to its cumulative start angle.
+              strokeDasharray shows exactly pct of the arc;
+              strokeDashoffset=C/4 shifts the dash start to 12 o'clock
+              (SVG paths start at 3 o'clock; C/4 = 90° shift) */}
+          {segments.map((seg) => (
             <circle
-              cx="50%"
-              cy="50%"
-              r={`${radius}%`}
+              key={seg.label}
+              cx={CX}
+              cy={CY}
+              r={R}
               fill="none"
               stroke={seg.color}
-              strokeWidth={strokeWidth}
-              strokeLinecap="round"
-              strokeDasharray={`${circumference} ${circumference}`}
-              strokeDashoffset={`${circumference * (1 - seg.pct)}`}
-              className="transition-all duration-1000"
-              style={{
-                strokeDashoffset: `${circumference * (1 - seg.pct)}`,
-                transitionDelay: `${i * 100}ms`
-              }}
+              strokeWidth={SW}
+              strokeLinecap="butt"
+              strokeDasharray={`${seg.pct * C} ${C}`}
+              strokeDashoffset={C / 4}
+              transform={`rotate(${seg.startAngle} ${CX} ${CY})`}
             />
-          </svg>
-        ))}
+          ))}
+        </svg>
 
-        {/* Center hole + total */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <div className="w-20 h-20 bg-white/80 backdrop-blur-sm rounded-2xl border-2 border-white/50 shadow-xl flex flex-col items-center justify-center">
+        {/* Center label */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <div className="w-20 h-20 bg-white/90 rounded-2xl border-2 border-white/60 shadow-xl flex flex-col items-center justify-center">
             <div className="text-2xl font-bold text-slate-800">{total}</div>
-            <div className="text-xs text-slate-500 uppercase tracking-wider">{totalLabel}</div>
+            <div className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
+              {totalLabel}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Legend */}
-      <div className="mt-6 space-y-2">
-        {data.map((d, i) => (
+      <div className="mt-5 space-y-2">
+        {data.map(d => (
           <div key={d.label} className="flex items-center gap-3">
-            <div 
-              className={cn('w-3 h-3 rounded-full', d.color)} 
-              style={{ boxShadow: `0 0 0 2px white, 0 0 0 4px ${d.color.replace('500', '400')}` }}
+            <div
+              className="w-3 h-3 rounded-full flex-shrink-0"
+              style={{ backgroundColor: d.color }}
             />
-            <span className="text-sm font-medium text-slate-700">{d.label}</span>
-            <span className="ml-auto text-xs text-slate-500">{Math.round((d.value / total) * 100)}%</span>
+            <span className="text-sm font-medium text-slate-700 truncate flex-1">{d.label}</span>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <span className="text-xs font-bold text-slate-700">{d.value}</span>
+              <span className="text-xs text-slate-400">
+                ({Math.round((d.value / total) * 100)}%)
+              </span>
+            </div>
           </div>
         ))}
       </div>
     </div>
   );
 }
-
