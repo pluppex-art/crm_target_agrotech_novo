@@ -9,7 +9,6 @@ interface LeadTurmaTabProps {
   loadingTurmas: boolean;
   leadId?: string;
   leadName?: string;
-  valorRecebido?: number | null;
   leadValue?: number;
   updateAttendeePayment?: (attendeeId: string, valor_recebido: number | null, forma_pagamento: string) => Promise<void>;
   onActivityCreated?: () => void;
@@ -26,7 +25,6 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
   loadingTurmas,
   leadId,
   leadName,
-  valorRecebido,
   leadValue,
   updateAttendeePayment,
   onActivityCreated,
@@ -91,9 +89,9 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
       ) : leadTurmas.length > 0 ? (
         leadTurmas.map(({ turma, attendee }: any) => {
           const payment = getPayment(attendee.id);
-          const turmaValorRecebido = payment.open && payment.valor ? parseFloat(payment.valor) : null;
-          const valorAReceber = leadValue != null && turmaValorRecebido != null
-            ? leadValue - turmaValorRecebido
+          const turmaValorRecebido = payment.open ? (payment.valor ? parseFloat(payment.valor) : 0) : null;
+          const valorAReceber = payment.open && leadValue != null
+            ? leadValue - (turmaValorRecebido ?? 0)
             : null;
           return (
             <div key={turma.id} className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-3">
@@ -199,8 +197,8 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
                   </div>
                 )}
 
-                {/* Valor a Receber — visual only, uses lead-level data */}
-                {leadValue != null && (
+                {/* Valor a Receber — only visible when payment toggle is ON */}
+                {payment.open && leadValue != null && (
                   <div className="pt-2 border-t border-slate-100 space-y-1.5">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-slate-400">Valor do Curso</span>
@@ -208,25 +206,23 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
                         R$ {leadValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
-                    {valorRecebido != null && (
+                    {(turmaValorRecebido ?? 0) > 0 && (
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-slate-400">− Valor Recebido</span>
                         <span className="font-semibold text-slate-600">
-                          R$ {Number(valorRecebido).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          R$ {Number(turmaValorRecebido).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
                     )}
-                    {valorAReceber != null && (
-                      <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
-                        <span className="font-bold text-slate-600">Valor a Receber</span>
-                        <span className={cn(
-                          "font-bold",
-                          valorAReceber <= 0 ? "text-emerald-600" : "text-orange-600"
-                        )}>
-                          R$ {valorAReceber.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                    )}
+                    <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
+                      <span className="font-bold text-slate-600">Valor a Receber</span>
+                      <span className={cn(
+                        "font-bold",
+                        (valorAReceber ?? 0) <= 0 ? "text-emerald-600" : "text-orange-600"
+                      )}>
+                        R$ {(valorAReceber ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
                   </div>
                 )}
               </div>
