@@ -9,6 +9,7 @@ import { usePermissions } from '../hooks/usePermissions';
 import { useLeadStore } from '../store/useLeadStore';
 import { useFinanceStore } from '../store/useFinanceStore';
 import { useProfileStore } from '../store/useProfileStore';
+import { useTurmaStore } from '../store/useTurmaStore';
 import { goalService, type Goal } from '../services/goalService';
 import { cn, stageNameToStatus, getLeadEffectiveValue } from '../lib/utils';
 
@@ -30,22 +31,24 @@ export function Dashboard() {
 
   const { transactions, fetchTransactions, isLoading: financeLoading, subscribe: subscribeFinance } = useFinanceStore();
   const { leads, fetchLeads, isLoading: leadsLoading, subscribeToLeads } = useLeadStore();
-const { profiles, fetchProfiles } = useProfileStore();
+  const { profiles, fetchProfiles } = useProfileStore();
+  const { turmas, fetchTurmas } = useTurmaStore();
   const [goals, setGoals] = useState<Goal[]>([]);
 
   // Use refs to run fetch only once — avoids infinite loop caused by
   // Zustand functions being recreated on every store update
   const didFetch = useRef(false);
-  
+
   const fetchInitialData = useCallback(async () => {
     if (didFetch.current) return;
     didFetch.current = true;
     fetchLeads();
     fetchTransactions();
     fetchProfiles();
+    fetchTurmas();
     const goalsData = await goalService.getGoals();
     setGoals(goalsData);
-  }, [fetchLeads, fetchTransactions, fetchProfiles]);
+  }, [fetchLeads, fetchTransactions, fetchProfiles, fetchTurmas]);
 
   useEffect(() => {
     fetchInitialData();
@@ -63,11 +66,22 @@ const { profiles, fetchProfiles } = useProfileStore();
 
   const isLoading = leadsLoading || financeLoading;
 
+  // ── Turma income (received payments from attendees) ─────────────
+  const turmaIncome = useMemo(
+    () => turmas.reduce((sum, t) =>
+      sum + t.attendees.reduce((s, a) =>
+        a.status !== 'cancelado' && a.valor_recebido ? s + a.valor_recebido : s, 0
+      ), 0
+    ),
+    [turmas]
+  );
+
   // ── Finance metrics ──────────────────────────────────────────────
-  const totalIncome = useMemo(
+  const txIncome = useMemo(
     () => transactions.filter(t => t.type === 'income').reduce((s, t) => s + Math.abs(t.amount), 0),
     [transactions]
   );
+  const totalIncome = txIncome + turmaIncome;
 
   const totalExpense = useMemo(
     () => transactions.filter(t => t.type === 'expense').reduce((s, t) => s + Math.abs(t.amount), 0),
@@ -108,13 +122,18 @@ const { profiles, fetchProfiles } = useProfileStore();
   );
 
   const monthlyIncome = useMemo(() =>
-    last6Months.map(({ label, month, year }) => ({
-      label,
-      value: transactions
+    last6Months.map(({ label, month, year }) => {
+      const txValue = transactions
         .filter(t => t.type === 'income' && new Date(t.date).getMonth() === month && new Date(t.date).getFullYear() === year)
-        .reduce((s, t) => s + t.amount, 0),
-    })),
-    [last6Months, transactions]
+        .reduce((s, t) => s + t.amount, 0);
+      const turmaValue = turmas
+        .filter(t => { const d = new Date(t.date); return d.getMonth() === month && d.getFullYear() === year; })
+        .reduce((sum, t) => sum + t.attendees.reduce((s, a) =>
+          a.status !== 'cancelado' && a.valor_recebido ? s + a.valor_recebido : s, 0
+        ), 0);
+      return { label, value: txValue + turmaValue };
+    }),
+    [last6Months, transactions, turmas]
   );
 
   const monthlyExpense = useMemo(() =>
@@ -154,7 +173,9 @@ const salesByResponsible = useMemo(() =>
 
   const sellerGoalMap = useMemo(() =>
     goals.filter(g => g.type === 'seller').reduce((acc: Record<string, number>, g) => {
-      acc[g.seller_name || ''] = g.revenue_goal;
+      // seller_id stores the seller name in current implementation (upsertSellerGoal passes name as seller_id)
+      const key = g.seller_name || g.seller_id || '';
+      if (key) acc[key] = g.revenue_goal;
       return acc;
     }, {} as Record<string, number>),
     [goals]

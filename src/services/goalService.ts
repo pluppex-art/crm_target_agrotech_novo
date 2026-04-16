@@ -4,6 +4,7 @@ export interface Goal {
   id: string;
   type: 'company' | 'seller';
   seller_name: string | null;
+  seller_id: string | null; // stores seller name in current implementation
   revenue_goal: number;
   leads_goal: number;
   created_at?: string;
