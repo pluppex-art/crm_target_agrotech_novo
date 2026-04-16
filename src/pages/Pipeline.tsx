@@ -59,13 +59,13 @@ export const Pipeline: React.FC = () => {
   const { profiles, fetchProfiles } = useProfileStore();
   const permissions = usePermissions();
 
-  const isVendedor = useMemo(() => {
+  const isComercial = useMemo(() => {
     if (!authUser?.id || profiles.length === 0) return false;
     const myProfile = profiles.find((p: any) => p.id === authUser.id);
-    return myProfile ? myProfile.cargos?.name?.toLowerCase().includes('vend') ?? false : false;
+    return myProfile ? myProfile.department?.toLowerCase() === 'comercial' : false;
   }, [authUser?.id, profiles]);
 
-  const filters = usePipelineFilters(leads, authUser?.id, isVendedor);
+  const filters = usePipelineFilters(leads, authUser?.id, isComercial);
 
   const [isNewLeadModalOpen, setIsNewLeadModalOpen] = useState(false);
   const [initialStageIdForNewLead, setInitialStageIdForNewLead] = useState<string | undefined>(undefined);
@@ -318,7 +318,7 @@ export const Pipeline: React.FC = () => {
         onStarsChange={filters.setSelectedStars}
         clearAllFilters={filters.clearAllFilters}
         activeFilterCount={filters.activeFilterCount}
-        isVendedor={isVendedor}
+        isVendedor={isComercial}
       />
 
       <PipelineBoard

@@ -81,16 +81,15 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({
   const leadTurmas = useLeadTurmas({ leadId: lead?.id ?? '' });
   const leadChecklist = useLeadChecklist({ leadId: lead?.id ?? '', stageId: currentStageId ?? '' });
 
-  // Build vendedores list from profiles
+  // Build vendedores list from Comercial department profiles
   const vendedores = useMemo(() => {
     if (profiles.length === 0) fetchProfiles();
-    const sellers = profiles.filter(p => {
-      const cargoName = (p.cargos?.name || p.cargo_name || '').toLowerCase();
-      return cargoName.includes('vendedor');
-    });
-    // Fallback: all active profiles
-    const list = sellers.length > 0
-      ? sellers
+    const comercial = profiles.filter(p =>
+      p.department?.toLowerCase() === 'comercial' && (p.status === 'active' || !p.status)
+    );
+    // Fallback: all active profiles if no comercial members found
+    const list = comercial.length > 0
+      ? comercial
       : profiles.filter(p => p.status === 'active' || !p.status);
     // Always include the lead's current responsible even if not in list
     const names = list.map(p => p.name as string).filter(Boolean);

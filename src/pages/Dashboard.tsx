@@ -10,6 +10,7 @@ import { useLeadStore } from '../store/useLeadStore';
 import { useFinanceStore } from '../store/useFinanceStore';
 import { useProfileStore } from '../store/useProfileStore';
 import { useTurmaStore } from '../store/useTurmaStore';
+import { usePipelineStore } from '../store/usePipelineStore';
 import { goalService, type Goal } from '../services/goalService';
 import { cn, stageNameToStatus, getLeadEffectiveValue } from '../lib/utils';
 
@@ -33,6 +34,8 @@ export function Dashboard() {
   const { leads, fetchLeads, isLoading: leadsLoading, subscribeToLeads } = useLeadStore();
   const { profiles, fetchProfiles } = useProfileStore();
   const { turmas, fetchTurmas } = useTurmaStore();
+  const { pipelines, fetchPipelines } = usePipelineStore();
+
   const [goals, setGoals] = useState<Goal[]>([]);
 
   // Use refs to run fetch only once — avoids infinite loop caused by
@@ -46,9 +49,10 @@ export function Dashboard() {
     fetchTransactions();
     fetchProfiles();
     fetchTurmas();
+    fetchPipelines();
     const goalsData = await goalService.getGoals();
     setGoals(goalsData);
-  }, [fetchLeads, fetchTransactions, fetchProfiles, fetchTurmas]);
+  }, [fetchLeads, fetchTransactions, fetchProfiles, fetchTurmas, fetchPipelines]);
 
   useEffect(() => {
     fetchInitialData();
@@ -229,13 +233,28 @@ const allSellersRanking = useMemo(() => {
     n.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
   // ── Pipeline columns ─────────────────────────────────────────────
-  // Pipeline stages for charts
-  const pipelineStages = useMemo(() => [
-    { id: 'new', label: 'Novo', value: leads.filter(l => stageNameToStatus(l.status) === 'new').length, color: 'hsl(210, 80%, 55%)' },
-    { id: 'qualified', label: 'Qualificado', value: leads.filter(l => stageNameToStatus(l.status) === 'qualified').length, color: 'hsl(142, 71%, 45%)' },
-    { id: 'proposal', label: 'Proposta', value: leads.filter(l => stageNameToStatus(l.status) === 'proposal').length, color: 'hsl(262, 80%, 55%)' },
-    { id: 'closed', label: 'Fechado', value: closedLeads.length, color: 'hsl(0, 84%, 60%)' },
-  ], [leads, closedLeads]);
+  // Pipeline stages for charts — use real stages from the first active pipeline
+  const pipelineStages = useMemo(() => {
+    const activePipeline = pipelines.find(p => p.is_active) ?? pipelines[0];
+    if (activePipeline?.stages?.length) {
+      return activePipeline.stages
+        .filter(s => s.is_active)
+        .sort((a, b) => a.position - b.position)
+        .map(s => ({
+          id: s.id,
+          label: s.name,
+          value: leads.filter(l => l.stage_id === s.id).length,
+          color: s.color,
+        }));
+    }
+    // Fallback to grouped statuses if no pipeline stages available
+    return [
+      { id: 'new', label: 'Novo', value: leads.filter(l => stageNameToStatus(l.status) === 'new').length, color: 'hsl(210, 80%, 55%)' },
+      { id: 'qualified', label: 'Qualificado', value: leads.filter(l => stageNameToStatus(l.status) === 'qualified').length, color: 'hsl(142, 71%, 45%)' },
+      { id: 'proposal', label: 'Proposta', value: leads.filter(l => stageNameToStatus(l.status) === 'proposal').length, color: 'hsl(262, 80%, 55%)' },
+      { id: 'closed', label: 'Fechado', value: closedLeads.length, color: 'hsl(0, 84%, 60%)' },
+    ];
+  }, [pipelines, leads, closedLeads]);
 
   const monthlySales = useMemo(() =>
     last6Months.map(({ label, month, year }) => ({
@@ -371,12 +390,12 @@ const allSellersRanking = useMemo(() => {
 
             <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8">
               <h3 className="font-bold text-xl text-slate-800 mb-6">Funil de Conversão</h3>
-              <FunnelChart 
-                stages={pipelineStages.map(s => ({
+              <FunnelChart
+                stages={pipelineStages.map((s, i) => ({
                   label: s.label,
                   count: s.value,
                   color: s.color,
-                  icon: s.id === 'new' ? Users : s.id === 'qualified' ? Filter : s.id === 'proposal' ? FileText : CheckCircle2
+                  icon: i === 0 ? Users : i === pipelineStages.length - 1 ? CheckCircle2 : i % 3 === 1 ? Filter : FileText
                 }))}
                 conversionRate={conversionRate}
               />

@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import type { Lead } from '../types/leads';
 import { useProfileStore } from '../store/useProfileStore';
 
-export const usePipelineFilters = (leads: Lead[], authUserId?: string, isVendedor?: boolean) => {
+export const usePipelineFilters = (leads: Lead[], authUserId?: string, isComercial?: boolean) => {
   const { profiles, fetchProfiles } = useProfileStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedResponsible, setSelectedResponsible] = useState<string>('all');
@@ -20,18 +20,21 @@ export const usePipelineFilters = (leads: Lead[], authUserId?: string, isVendedo
     return profiles.find((p: any) => p.id === authUserId)?.name ?? null;
   }, [authUserId, profiles]);
 
-  // Vendedores ativos
+  // Usuários do departamento Comercial ativos
   const responsibles = useMemo(() => {
-    const isVend = (p: any) => p.cargos?.name?.toLowerCase().includes('vend') ?? false;
     return profiles
-      .filter(p => p.status === 'active' && p.name && isVend(p))
+      .filter(p => p.status === 'active' && p.name && p.department?.toLowerCase() === 'comercial')
       .map(p => p.name as string);
   }, [profiles]);
 
-  const filteredLeads = useMemo(() => leads.filter(lead => {
-    // Vendedores só veem seus próprios leads
-    if (isVendedor && myProfileName && lead.responsible !== myProfileName) return false;
+  // Comercial users see all leads but filter defaults to their own name
+  useEffect(() => {
+    if (isComercial && myProfileName && selectedResponsible === 'all') {
+      setSelectedResponsible(myProfileName);
+    }
+  }, [isComercial, myProfileName]);
 
+  const filteredLeads = useMemo(() => leads.filter(lead => {
     const matchesSearch =
       lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lead.product.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -40,7 +43,7 @@ export const usePipelineFilters = (leads: Lead[], authUserId?: string, isVendedo
     const matchesProduct = selectedProduct === 'all' || lead.product === selectedProduct;
     const matchesStars = selectedStars === 'all' || (lead.stars || 0) === selectedStars;
     return matchesSearch && matchesResponsible && matchesProduct && matchesStars;
-  }), [leads, searchTerm, selectedResponsible, selectedProduct, selectedStars, isVendedor, myProfileName]);
+  }), [leads, searchTerm, selectedResponsible, selectedProduct, selectedStars]);
 
   const activeFilterCount = useMemo(() => [
     selectedResponsible !== 'all',
