@@ -53,7 +53,7 @@ export const Pipeline: React.FC = () => {
     subscribe: subscribePipelines,
   } = usePipelineStore();
 
-  const { addAttendee, fetchTurmas, subscribe: subscribeTurmas } = useTurmaStore();
+  const { turmas, addAttendee, fetchTurmas, subscribe: subscribeTurmas } = useTurmaStore();
   const { products, fetchProducts, subscribe: subscribeProducts } = useProductStore();
   const authUser = useAuthStore(state => state.user);
   const { profiles, fetchProfiles } = useProfileStore();
@@ -228,9 +228,10 @@ export const Pipeline: React.FC = () => {
 
   // Ganho Caixa: soma de TODOS recebimentos (lead + turmas)
   const caixaTotalValue = useMemo(() => {
-    return filters.filteredLeads.reduce((sum, lead) => {
+    const filteredLeadIds = new Set(filters.filteredLeads.map(l => l.id));
+
+    const leadTotal = filters.filteredLeads.reduce((sum, lead) => {
       let total = 0;
-      // Recebimentos do lead
       if (lead.valor_recebido != null) total += lead.valor_recebido;
       if (lead.taxa_matricula_recebido != null) total += lead.taxa_matricula_recebido;
       if (lead.pix_completed) {
@@ -239,19 +240,43 @@ export const Pipeline: React.FC = () => {
       }
       return sum + total;
     }, 0);
-  }, [filters.filteredLeads, products]);
 
-// Competências: soma do valor pendente (vendas - recebido) dos leads com PIX confirmado
+    const turmaTotal = turmas.reduce((sum, turma) => {
+      return sum + turma.attendees.reduce((s, a) => {
+        if (a.lead_id && filteredLeadIds.has(a.lead_id) && a.valor_recebido != null) {
+          return s + a.valor_recebido;
+        }
+        return s;
+      }, 0);
+    }, 0);
+
+    return leadTotal + turmaTotal;
+  }, [filters.filteredLeads, products, turmas]);
+
+  // Competências: soma do valor pendente (vendas - recebido) incluindo turmas
   const competenciaTotalValue = useMemo(() => {
-    return filters.filteredLeads
+    const filteredLeadIds = new Set(filters.filteredLeads.map(l => l.id));
+
+    const leadCompetencia = filters.filteredLeads
       .filter(lead => lead.pix_completed)
       .reduce((sum, lead) => {
         const vendaTotal = getLeadEffectiveValue(lead);
         const recebido = (lead.valor_recebido || 0) + (lead.taxa_matricula_recebido || 0);
-        const pendente = vendaTotal - recebido;
-        return sum + Math.max(0, pendente);
+        return sum + Math.max(0, vendaTotal - recebido);
       }, 0);
-  }, [filters.filteredLeads]);
+
+    const turmaCompetencia = turmas.reduce((sum, turma) => {
+      return sum + turma.attendees.reduce((s, a) => {
+        if (a.lead_id && filteredLeadIds.has(a.lead_id)) {
+          const pendente = (a.vendas || 0) - (a.valor_recebido || 0);
+          return s + Math.max(0, pendente);
+        }
+        return s;
+      }, 0);
+    }, 0);
+
+    return leadCompetencia + turmaCompetencia;
+  }, [filters.filteredLeads, turmas]);
 
 
 
