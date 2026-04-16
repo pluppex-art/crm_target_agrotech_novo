@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { GraduationCap, Calendar, Clock, MapPin, Plus, Activity, CheckSquare, ChevronDown } from 'lucide-react';
+import { GraduationCap, Calendar, Clock, MapPin, Plus, Activity, CheckSquare, ChevronDown, X } from 'lucide-react';
 import { NewActivityModal } from '../../tasks/NewActivityModal';
 import { cn } from '../../../lib/utils';
 import type { TurmaAttendee } from '../../../services/turmaService';
@@ -15,11 +15,17 @@ interface LeadTurmaTabProps {
   onActivityCreated?: () => void;
 }
 
-interface PaymentState {
-  open: boolean;
+interface PaymentEntry {
   valor: string;
   forma: string;
 }
+
+interface PaymentState {
+  open: boolean;
+  entries: PaymentEntry[];
+}
+
+const FORMAS = ['PIX', 'Cartão de Crédito', 'Cartão de Débito', 'Boleto Bancário', 'Dinheiro', 'Transferência Bancária', 'Cheque'];
 
 export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
   leadTurmas,
@@ -34,40 +40,62 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
   const [paymentStates, setPaymentStates] = useState<Record<string, PaymentState>>({});
 
-  // Initialize payment states when turmas load
   useEffect(() => {
     const initial: Record<string, PaymentState> = {};
     leadTurmas.forEach(({ attendee }: { attendee: TurmaAttendee }) => {
+      const hasPayment = attendee.valor_recebido != null;
       initial[attendee.id] = {
-        open: attendee.valor_recebido != null,
-        valor: attendee.valor_recebido?.toString() ?? '',
-        forma: attendee.forma_pagamento ?? '',
+        open: hasPayment,
+        entries: hasPayment
+          ? [{ valor: attendee.valor_recebido!.toString(), forma: attendee.forma_pagamento ?? '' }]
+          : [{ valor: '', forma: '' }],
       };
     });
     setPaymentStates(initial);
   }, [leadTurmas]);
 
   const getPayment = (attendeeId: string): PaymentState =>
-    paymentStates[attendeeId] ?? { open: false, valor: '', forma: '' };
+    paymentStates[attendeeId] ?? { open: false, entries: [{ valor: '', forma: '' }] };
 
-  const setPayment = (attendeeId: string, updates: Partial<PaymentState>) =>
+  const updatePaymentState = (attendeeId: string, updates: Partial<PaymentState>) =>
     setPaymentStates(prev => ({
       ...prev,
       [attendeeId]: { ...getPayment(attendeeId), ...updates },
     }));
 
-  const handleTogglePayment = async (attendeeId: string, checked: boolean) => {
-    setPayment(attendeeId, { open: checked });
+  const handleToggle = async (attendeeId: string, checked: boolean) => {
     if (!checked) {
-      setPayment(attendeeId, { open: false, valor: '', forma: '' });
+      updatePaymentState(attendeeId, { open: false, entries: [{ valor: '', forma: '' }] });
       await updateAttendeePayment?.(attendeeId, null, '');
+    } else {
+      updatePaymentState(attendeeId, { open: true });
     }
   };
 
-  const handleSavePayment = async (attendeeId: string) => {
+  const handleEntryChange = (attendeeId: string, index: number, field: keyof PaymentEntry, value: string) => {
     const state = getPayment(attendeeId);
-    const valor = state.valor ? parseFloat(state.valor) : null;
-    await updateAttendeePayment?.(attendeeId, valor, state.forma);
+    const entries = state.entries.map((e, i) => i === index ? { ...e, [field]: value } : e);
+    updatePaymentState(attendeeId, { entries });
+  };
+
+  const addEntry = (attendeeId: string) => {
+    const state = getPayment(attendeeId);
+    updatePaymentState(attendeeId, { entries: [...state.entries, { valor: '', forma: '' }] });
+  };
+
+  const removeEntry = (attendeeId: string, index: number) => {
+    const state = getPayment(attendeeId);
+    const entries = state.entries.filter((_, i) => i !== index);
+    updatePaymentState(attendeeId, { entries: entries.length > 0 ? entries : [{ valor: '', forma: '' }] });
+    savePayment(attendeeId, entries.length > 0 ? entries : []);
+  };
+
+  const savePayment = async (attendeeId: string, entries?: PaymentEntry[]) => {
+    const state = getPayment(attendeeId);
+    const entriesToSave = entries ?? state.entries;
+    const total = entriesToSave.reduce((sum, e) => sum + (e.valor ? parseFloat(e.valor) : 0), 0);
+    const formas = entriesToSave.filter(e => e.forma).map(e => e.forma).join(', ');
+    await updateAttendeePayment?.(attendeeId, total > 0 ? total : null, formas);
   };
 
   return (
@@ -91,9 +119,10 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
       ) : leadTurmas.length > 0 ? (
         leadTurmas.map(({ turma, attendee }: any) => {
           const payment = getPayment(attendee.id);
-          const valorAReceber = payment.open && leadValue != null
+          const valorAReceber = leadValue != null
             ? leadValue - (valorRecebido ?? 0)
             : null;
+
           return (
             <div key={turma.id} className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-3">
               {/* Turma header */}
@@ -123,94 +152,110 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
                 </div>
               </div>
 
-              {/* Payment toggle for this turma */}
-              <div className="pt-3 border-t border-slate-100 space-y-3">
-                <label className="flex items-center gap-3 cursor-pointer w-fit">
-                  <div className="relative">
-                    <input
-                      type="checkbox"
-                      checked={payment.open}
-                      onChange={(e) => handleTogglePayment(attendee.id, e.target.checked)}
-                      className="sr-only"
-                    />
-                    <div className={cn(
-                      "w-5 h-5 border-2 rounded-md transition-all flex items-center justify-center",
-                      payment.open ? "bg-emerald-600 border-emerald-600" : "bg-white border-slate-200"
-                    )}>
-                      {payment.open && <CheckSquare size={12} className="text-white" />}
-                    </div>
+              {/* Valor a Receber — sempre visível baseado no pipeline */}
+              {valorAReceber != null && (
+                <div className="pt-3 border-t border-slate-100 space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-400">Valor do Curso</span>
+                    <span className="font-semibold text-slate-600">
+                      R$ {leadValue!.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </span>
                   </div>
-                  <span className="text-sm font-bold text-slate-700">Pagamento recebido?</span>
-                </label>
-
-                <div className={cn(
-                  "grid grid-cols-2 gap-3 transition-all duration-300",
-                  payment.open ? "opacity-100 max-h-[200px]" : "opacity-0 max-h-0 overflow-hidden"
-                )}>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Valor (R$)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={payment.valor}
-                      onChange={(e) => setPayment(attendee.id, { valor: e.target.value })}
-                      onBlur={() => handleSavePayment(attendee.id)}
-                      placeholder="0,00"
-                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-sm font-medium shadow-sm"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Forma</label>
-                    <div className="relative">
-                      <select
-                        value={payment.forma}
-                        onChange={(e) => {
-                          setPayment(attendee.id, { forma: e.target.value });
-                        }}
-                        onBlur={() => handleSavePayment(attendee.id)}
-                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none text-sm font-medium shadow-sm cursor-pointer"
-                      >
-                        <option value="">Selecione...</option>
-                        <option value="PIX">PIX</option>
-                        <option value="Cartão de Crédito">Cartão de Crédito</option>
-                        <option value="Cartão de Débito">Cartão de Débito</option>
-                        <option value="Boleto Bancário">Boleto Bancário</option>
-                        <option value="Dinheiro">Dinheiro</option>
-                        <option value="Transferência Bancária">Transferência Bancária</option>
-                        <option value="Cheque">Cheque</option>
-                      </select>
-                      <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  {(valorRecebido ?? 0) > 0 && (
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-400">− Valor Recebido</span>
+                      <span className="font-semibold text-slate-600">
+                        R$ {Number(valorRecebido).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </span>
                     </div>
+                  )}
+                  <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
+                    <span className="font-bold text-slate-600">Valor a Receber</span>
+                    <span className={cn('font-bold', valorAReceber <= 0 ? 'text-emerald-600' : 'text-orange-600')}>
+                      R$ {valorAReceber.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </span>
                   </div>
                 </div>
+              )}
 
-                {/* Valor a Receber — only visible when payment toggle is ON */}
-                {payment.open && leadValue != null && (
-                  <div className="pt-2 border-t border-slate-100 space-y-1.5">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-400">Valor do Curso</span>
-                      <span className="font-semibold text-slate-600">
-                        R$ {leadValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                    {(valorRecebido ?? 0) > 0 && (
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-slate-400">− Valor Recebido</span>
-                        <span className="font-semibold text-slate-600">
-                          R$ {Number(valorRecebido).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
-                      <span className="font-bold text-slate-600">Valor a Receber</span>
-                      <span className={cn(
-                        "font-bold",
-                        (valorAReceber ?? 0) <= 0 ? "text-emerald-600" : "text-orange-600"
+              {/* Pagamento recebido nesta turma */}
+              <div className="pt-3 border-t border-slate-100 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        checked={payment.open}
+                        onChange={(e) => handleToggle(attendee.id, e.target.checked)}
+                        className="sr-only"
+                      />
+                      <div className={cn(
+                        'w-5 h-5 border-2 rounded-md transition-all flex items-center justify-center',
+                        payment.open ? 'bg-emerald-600 border-emerald-600' : 'bg-white border-slate-200'
                       )}>
-                        R$ {(valorAReceber ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </span>
+                        {payment.open && <CheckSquare size={12} className="text-white" />}
+                      </div>
                     </div>
+                    <span className="text-sm font-bold text-slate-700">Pagamento recebido?</span>
+                  </label>
+
+                  {payment.open && (
+                    <button
+                      onClick={() => addEntry(attendee.id)}
+                      className="flex items-center gap-1 px-2 py-1 text-xs font-bold text-emerald-600 border border-emerald-200 rounded-lg hover:bg-emerald-50 transition-colors"
+                    >
+                      <Plus size={12} />
+                      Adicionar
+                    </button>
+                  )}
+                </div>
+
+                {payment.open && (
+                  <div className="space-y-2">
+                    {payment.entries.map((entry, index) => (
+                      <div key={index} className="flex items-end gap-2">
+                        <div className="flex flex-col gap-1 flex-1">
+                          {index === 0 && (
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Valor (R$)</label>
+                          )}
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={entry.valor}
+                            onChange={(e) => handleEntryChange(attendee.id, index, 'valor', e.target.value)}
+                            onBlur={() => savePayment(attendee.id)}
+                            placeholder="0,00"
+                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-sm font-medium shadow-sm"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1 flex-1">
+                          {index === 0 && (
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Forma</label>
+                          )}
+                          <div className="relative">
+                            <select
+                              value={entry.forma}
+                              onChange={(e) => handleEntryChange(attendee.id, index, 'forma', e.target.value)}
+                              onBlur={() => savePayment(attendee.id)}
+                              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none text-sm font-medium shadow-sm cursor-pointer"
+                            >
+                              <option value="">Selecione...</option>
+                              {FORMAS.map(f => <option key={f} value={f}>{f}</option>)}
+                            </select>
+                            <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                          </div>
+                        </div>
+                        {payment.entries.length > 1 && (
+                          <button
+                            onClick={() => removeEntry(attendee.id, index)}
+                            className="mb-0.5 p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <X size={14} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
