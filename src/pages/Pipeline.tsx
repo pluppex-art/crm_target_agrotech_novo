@@ -238,11 +238,14 @@ export const Pipeline: React.FC = () => {
     );
   }, [currentPipeline]);
 
-  // Todos os leads do pipeline atual que estão em etapa Ganho (independente de filtros)
-  const ganhoLeads = useMemo(
-    () => leads.filter(l => l.stage_id && ganhoStageIds.has(l.stage_id)),
-    [leads, ganhoStageIds]
-  );
+  // Leads em etapa Ganho: responde ao filtro de responsável (todos quando "all", ou somente o selecionado)
+  const ganhoLeads = useMemo(() => {
+    return leads.filter(l => {
+      if (!l.stage_id || !ganhoStageIds.has(l.stage_id)) return false;
+      if (filters.selectedResponsible !== 'all' && l.responsible !== filters.selectedResponsible) return false;
+      return true;
+    });
+  }, [leads, ganhoStageIds, filters.selectedResponsible]);
 
   // Ganho Caixa: soma dos valores efetivamente recebidos dos leads em etapa Ganho
   const caixaTotalValue = useMemo(() => {

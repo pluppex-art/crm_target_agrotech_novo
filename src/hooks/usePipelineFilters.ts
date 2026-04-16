@@ -20,10 +20,15 @@ export const usePipelineFilters = (leads: Lead[], authUserId?: string, isComerci
     return profiles.find((p: any) => p.id === authUserId)?.name ?? null;
   }, [authUserId, profiles]);
 
-  // Usuários do departamento Comercial ativos
+  // Usuários do departamento Comercial OU com cargo Vendedor (ativos)
   const responsibles = useMemo(() => {
     return profiles
-      .filter(p => p.status === 'active' && p.name && p.department?.toLowerCase() === 'comercial')
+      .filter(p => {
+        if (!p.status || p.status !== 'active' || !p.name) return false;
+        const isComercialDept = p.department?.toLowerCase() === 'comercial';
+        const isVendedorCargo = p.cargos?.name?.toLowerCase().includes('vendedor');
+        return isComercialDept || isVendedorCargo;
+      })
       .map(p => p.name as string);
   }, [profiles]);
 
