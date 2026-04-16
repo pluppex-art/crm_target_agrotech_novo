@@ -1,5 +1,3 @@
-import React from 'react';
-import { cn } from '../../lib/utils';
 import { BarChart2 } from 'lucide-react';
 
 interface ImprovedCSSBarChartProps {
@@ -10,102 +8,75 @@ interface ImprovedCSSBarChartProps {
   emptyLabel?: string;
 }
 
-export function ImprovedCSSBarChart({ 
-  data, 
-  color = 'hsl(142, 71%, 45%)', 
-  gradient = true,
+export function ImprovedCSSBarChart({
+  data,
+  color = 'hsl(142, 71%, 45%)',
   showValues = true,
-  emptyLabel = 'Sem dados ainda' 
+  emptyLabel = 'Sem dados ainda',
 }: ImprovedCSSBarChartProps) {
   const max = Math.max(...data.map(d => d.value), 1);
   const hasData = data.some(d => d.value > 0);
 
   if (!hasData) {
     return (
-      <div className="flex flex-col items-center justify-center h-44 p-8 text-slate-300 rounded-2xl border-2 border-dashed border-slate-200 bg-gradient-to-br from-slate-50 to-white">
-        <BarChart2 className="w-12 h-12 mb-3 opacity-40" />
+      <div className="flex flex-col items-center justify-center h-44 text-slate-300 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50">
+        <BarChart2 className="w-10 h-10 mb-2 opacity-40" />
         <p className="text-sm font-semibold text-slate-400">{emptyLabel}</p>
       </div>
     );
   }
 
-  const getBarColor = (index: number) => {
-    const colors = [
-      `${color.replace('500', '500')}`,
-      `${color.replace('500', '400')}`,
-      `${color.replace('500', '600')}`,
-      `${color.replace('500', '300')}`
-    ];
-    return colors[index % colors.length];
-  };
+  const fmt = (n: number) =>
+    n >= 1_000_000
+      ? `${(n / 1_000_000).toFixed(1)}M`
+      : n >= 1_000
+      ? `${(n / 1_000).toFixed(0)}k`
+      : n.toLocaleString('pt-BR');
 
   return (
-    <div className="h-44 p-4 rounded-2xl border border-slate-100 shadow-sm bg-gradient-to-br from-white via-slate-50/50 to-slate-100/30 backdrop-blur-sm overflow-hidden">
-      <div className="relative h-full flex items-end justify-between gap-1.5">
-        {/* Grid background */}
-        <div className="absolute inset-0 bg-grid-slate-100/20 [background-size:20px_20px] rounded-xl -z-10" />
-        
-        {/* Vertical grid lines */}
-        {[0.2, 0.4, 0.6, 0.8, 1].map((pos) => (
-          <div
-            key={pos}
-            className="w-px bg-gradient-to-t from-slate-200/60 to-transparent h-full absolute"
-            style={{ left: `${pos * 100}%` }}
-          />
-        ))}
-
+    <div className="w-full">
+      <div className="flex items-end justify-between gap-2 h-44 pb-1">
         {data.map((d, i) => {
-          const pct = (d.value / max) * 100;
+          const pct = Math.max((d.value / max) * 100, 3);
           return (
-            <div 
+            <div
               key={`${d.label}-${i}`}
-              className="group flex flex-col items-center flex-1 h-full relative z-10 hover:scale-[1.05] transition-all duration-200"
+              className="flex-1 flex flex-col items-center justify-end gap-1 h-full group"
             >
-              {/* Value label */}
+              {/* Value above bar */}
               {showValues && (
-                <span 
-                  className={cn(
-                    "text-xs font-bold absolute -translate-x-1/2 whitespace-nowrap px-1.5 py-0.5 bg-white/90 backdrop-blur-sm rounded-lg shadow-md border border-slate-100/50 text-slate-700 transition-opacity",
-                    pct > 10 ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                  )}
-                  style={{ bottom: `${pct + 2}%`, left: '50%' }}
-                >
-                  {d.value >= 10000 ? `${(d.value/1000).toFixed(0)}k` : d.value.toLocaleString()}
+                <span className="text-[11px] font-bold text-slate-600 leading-none">
+                  {fmt(d.value)}
                 </span>
               )}
-              
-              {/* Enhanced bar */}
-              <div 
-                className={cn(
-                  'relative w-4/5 rounded-2xl shadow-lg overflow-hidden transition-all duration-700 ease-out group-hover:shadow-xl hover:-rotate-[2deg]',
-                  gradient ? 'bg-gradient-to-t' : ''
-                )}
-                style={{ 
-                  height: `${Math.max(pct, 3)}%`,
-                  background: gradient 
-                    ? `linear-gradient(to top, ${getBarColor(i)}, ${getBarColor(i).replace(/500$|400$/, '300')})` 
-                    : color
+
+              {/* Bar */}
+              <div
+                className="w-full rounded-t-lg transition-all duration-500 group-hover:opacity-80"
+                style={{
+                  height: `${pct}%`,
+                  backgroundColor: color,
+                  opacity: 0.85 + (i % 2) * 0.1,
                 }}
-              >
-                {/* Shine effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 transform -translate-x-1/2 opacity-75" />
-                
-                {/* Sparkle on hover */}
-                <div className="absolute top-1 right-1 w-1 h-1 bg-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-              
-              {/* Label */}
-              <span 
-                className="text-[10px] font-bold text-slate-600 mt-1.5 px-1 py-px bg-slate-100/50 rounded-md backdrop-blur-sm group-hover:bg-slate-200 transition-colors"
-                title={d.label}
-              >
-                {d.label.length > 4 ? d.label.slice(0,4) + '.' : d.label}
-              </span>
+              />
             </div>
           );
         })}
       </div>
+
+      {/* X-axis labels */}
+      <div className="flex justify-between gap-2 mt-2 border-t border-slate-100 pt-2">
+        {data.map((d, i) => (
+          <div key={`label-${i}`} className="flex-1 text-center">
+            <span
+              className="text-[10px] font-medium text-slate-500 leading-tight block"
+              title={d.label}
+            >
+              {d.label.length > 10 ? d.label.slice(0, 10) + '…' : d.label}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
-
