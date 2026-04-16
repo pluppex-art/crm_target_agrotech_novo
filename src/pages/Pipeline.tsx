@@ -226,16 +226,18 @@ export const Pipeline: React.FC = () => {
     ? COLUMNS
     : COLUMNS.filter((col: { id: string }) => col.id === filters.selectedStatus);
 
-  // Ganho Caixa: valor_recebido > taxa_matricula_recebido > enrollment_fee (se pix confirmado)
+  // Ganho Caixa: soma de TODOS recebimentos (lead + turmas)
   const caixaTotalValue = useMemo(() => {
     return filters.filteredLeads.reduce((sum, lead) => {
-      if (lead.valor_recebido != null) return sum + lead.valor_recebido;
-      if (lead.taxa_matricula_recebido != null) return sum + lead.taxa_matricula_recebido;
+      let total = 0;
+      // Recebimentos do lead
+      if (lead.valor_recebido != null) total += lead.valor_recebido;
+      if (lead.taxa_matricula_recebido != null) total += lead.taxa_matricula_recebido;
       if (lead.pix_completed) {
         const product = products.find(p => p.name === lead.product);
-        return sum + (product?.enrollment_fee ?? 0);
+        total += (product?.enrollment_fee ?? 0);
       }
-      return sum;
+      return sum + total;
     }, 0);
   }, [filters.filteredLeads, products]);
 
