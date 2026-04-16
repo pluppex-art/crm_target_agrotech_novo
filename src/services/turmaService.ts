@@ -100,6 +100,8 @@ export const turmaService = {
           time: t.time,
           product_id: t.product_id,
           product_name: t.products?.name ?? 'Produto não encontrado',
+          product_price: t.products?.price ?? 0,
+          enrollment_fee: t.products?.enrollment_fee ?? 0,
           category: t.products?.category ?? 'Geral',
           location: t.location,
           status: t.status,

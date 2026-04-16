@@ -16,17 +16,15 @@ import {
   Trash2,
   Edit2,
   BookOpen,
+  Search,
 } from 'lucide-react';
-import { DndContext, useSensors, useSensor, PointerSensor, closestCenter, Active, Over } from '@dnd-kit/core';
+import { DndContext, useSensors, useSensor, PointerSensor, closestCenter } from '@dnd-kit/core';
 import {
   useDroppable,
   useDraggable,
   DragEndEvent,
 } from '@dnd-kit/core';
-import {
-  CSS,
-  Transform
-} from '@dnd-kit/utilities';
+import { CSS } from '@dnd-kit/utilities';
 import { useTurmaStore, Turma, TurmaAttendee, AttendanceStatus } from '../store/useTurmaStore';
 import { Loader2 } from 'lucide-react';
 import { UnifiedTurmaProductForm } from '../components/forms/UnifiedTurmaProductForm';
@@ -67,6 +65,7 @@ export function Turmas() {
   const [selectedTurma, setSelectedTurma] = useState<Turma | null>(null);
   const [isNewTurmaOpen, setIsNewTurmaOpen] = useState(false);
   const [editingTurma, setEditingTurma] = useState<Turma | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const [setupRequired] = useState(false);
   const [responsibles, setResponsibles] = useState<string[]>([]);
 
@@ -190,8 +189,22 @@ export function Turmas() {
           </button>
         </div>
 
+        {/* Search */}
+        <div className="px-4 sm:px-6 pb-4">
+          <div className="relative">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Buscar por nome, professor ou produto..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 shadow-sm"
+            />
+          </div>
+        </div>
+
         {/* Cards Grid */}
-        <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 gap-4 content-start">
+        <div className="flex-1 overflow-y-auto p-6 pt-2 grid grid-cols-1 gap-4 content-start">
           {isLoading ? (
             <div className="col-span-full flex flex-col items-center justify-center py-20 text-slate-400">
               <Loader2 className="w-8 h-8 animate-spin text-emerald-600 mb-2" />
@@ -230,7 +243,15 @@ export function Turmas() {
               <p className="font-medium">Nenhuma turma cadastrada</p>
             </div>
           ) : (
-            turmas.map(turma => {
+            turmas.filter(t => {
+              if (!searchTerm.trim()) return true;
+              const q = searchTerm.toLowerCase();
+              return (
+                t.name.toLowerCase().includes(q) ||
+                (t.professor_name || '').toLowerCase().includes(q) ||
+                t.product_name.toLowerCase().includes(q)
+              );
+            }).map(turma => {
               const confirmados = (turma.attendees || []).filter(a => a.status === 'confirmado').length;
               const st = TURMA_STATUS_LABELS[turma.status] || TURMA_STATUS_LABELS.agendada;
               const isSelected = liveSelectedTurma?.id === turma.id;

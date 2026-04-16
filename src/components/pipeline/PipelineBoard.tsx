@@ -95,6 +95,7 @@ interface PipelineBoardProps {
   toggleColumnMinimized: (colId: string) => void;
   onDragEnd: (event: DragEndEvent) => void;
   onLeadDoubleClick: (lead: Lead) => void;
+  onAddLeadToColumn?: (columnId: string) => void;
 }
 
 export const PipelineBoard: React.FC<PipelineBoardProps> = ({
@@ -105,6 +106,7 @@ export const PipelineBoard: React.FC<PipelineBoardProps> = ({
   toggleColumnMinimized,
   onDragEnd,
   onLeadDoubleClick,
+  onAddLeadToColumn,
 }) => {
   const [activeLead, setActiveLead] = useState<Lead | null>(null);
 
@@ -196,6 +198,7 @@ export const PipelineBoard: React.FC<PipelineBoardProps> = ({
                         {columnLeads.length}
                       </span>
                       <button
+                        onClick={() => onAddLeadToColumn?.(column.id)}
                         className="p-1.5 bg-white border border-gray-200 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-all shadow-sm"
                         title={`Adicionar lead em ${column.title}`}
                       >

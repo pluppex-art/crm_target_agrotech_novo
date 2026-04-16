@@ -302,6 +302,10 @@ export const Pipeline: React.FC = () => {
         toggleColumnMinimized={toggleColumnMinimized}
         onDragEnd={onDragEnd}
         onLeadDoubleClick={setSelectedLead}
+        onAddLeadToColumn={(columnId) => {
+          setInitialStageIdForNewLead(columnId);
+          setIsNewLeadModalOpen(true);
+        }}
       />
 
       {/* Lead Details Modal */}

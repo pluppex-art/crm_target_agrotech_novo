@@ -6,6 +6,7 @@ import { useLeadStore } from '../../store/useLeadStore';
 import { useProductStore } from '../../store/useProductStore';
 import { useProfileStore } from '../../store/useProfileStore';
 import { useAuthStore } from '../../store/useAuthStore';
+import { usePipelineStore } from '../../store/usePipelineStore';
 import { supabaseService } from '../../services/supabaseService';
 import { LeadStatus, LeadSubStatus } from '../../types/leads';
 import { cn, parseBRNumber, formatCPFCNPJ } from '../../lib/utils';
@@ -23,6 +24,12 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
   const { products, fetchProducts } = useProductStore();
   const { profiles, fetchProfiles } = useProfileStore();
   const { user } = useAuthStore();
+  const { pipelines } = usePipelineStore();
+
+  const currentPipelineStages = useMemo(() => {
+    const pipeline = pipelines.find(p => p.id === pipelineId);
+    return pipeline?.stages ?? [];
+  }, [pipelines, pipelineId]);
 
   // Filter only vendedores (profiles with cargo name containing 'vendedor')
   const vendedores = useMemo(() => {
@@ -38,6 +45,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
 
   const [loading, setLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ phone?: string; email?: string }>({});
+  const [selectedStageId, setSelectedStageId] = useState<string>(initialStageId ?? '');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -56,13 +64,13 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
     if (isOpen) {
       fetchProducts();
       fetchProfiles();
-      
+      setSelectedStageId(initialStageId ?? '');
       const consultantName = user?.user_metadata?.full_name || user?.user_metadata?.name || '';
       if (!formData.responsible && consultantName) {
         setFormData(prev => ({ ...prev, responsible: consultantName }));
       }
     }
-  }, [isOpen, fetchProducts, fetchProfiles, user, formData.responsible]);
+  }, [isOpen, initialStageId, fetchProducts, fetchProfiles, user, formData.responsible]);
 
   const calculateFinalValue = () => {
     const val = parseBRNumber(formData.value);
@@ -111,7 +119,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
         history: [],
         discount: formData.isDiscountApplied ? formData.discountValue : '',
         pipeline_id: pipelineId,
-        stage_id: initialStageId || undefined,
+        stage_id: selectedStageId || undefined,
       });
       onClose();
       setFormData({
@@ -303,6 +311,25 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                   <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                 </div>
               </div>
+
+              {currentPipelineStages.length > 0 && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Etapa</label>
+                  <div className="relative">
+                    <select
+                      value={selectedStageId}
+                      onChange={(e) => setSelectedStageId(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 appearance-none cursor-pointer"
+                    >
+                      <option value="">Primeira etapa</option>
+                      {currentPipelineStages.map((stage: any) => (
+                        <option key={stage.id} value={stage.id}>{stage.name}</option>
+                      ))}
+                    </select>
+                    <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                  </div>
+                </div>
+              )}
 
               {initialStatus === 'qualified' && (
                 <div className="space-y-1.5">
