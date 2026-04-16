@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'motion/react';
-import { X, User, Phone, Mail, DollarSign, MapPin, Save, Loader2, ChevronDown, AlertCircle, CheckSquare } from 'lucide-react';
+
+
 import { useLeadStore } from '../../store/useLeadStore';
 import { useProductStore } from '../../store/useProductStore';
 import { useProfileStore } from '../../store/useProfileStore';
@@ -10,6 +10,8 @@ import { usePipelineStore } from '../../store/usePipelineStore';
 import { supabaseService } from '../../services/supabaseService';
 import { LeadStatus, LeadSubStatus } from '../../types/leads';
 import { cn, parseBRNumber, formatCPFCNPJ } from '../../lib/utils';
+import { AlertCircle, CheckSquare, ChevronDown, DollarSign, Loader2, Mail, MapPin, Percent, Phone, Save, X, User } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 
 interface NewLeadModalProps {
   isOpen: boolean;
@@ -32,11 +34,11 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
   }, [pipelines, pipelineId]);
 
   // Filter only vendedores (profiles with cargo name containing 'vendedor')
-  const vendedores = useMemo(() => {
-    const sellers = profiles.filter(p => {
-      const cargoName = (p.cargos?.name || p.cargo_name || '').toLowerCase();
-      return cargoName.includes('vendedor') || cargoName.includes('vendedor');
-    });
+    const vendedores = useMemo(() => {
+      const sellers = profiles.filter((p: any) => {
+        const cargoName = (p.cargos?.name || p.cargo_name || '').toLowerCase();
+        return cargoName.includes('vendedor') || cargoName.includes('vendedor');
+      });
     // Fallback: show all active profiles if no vendedores found
     return sellers.length > 0
       ? sellers
@@ -46,7 +48,22 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
   const [loading, setLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ phone?: string; email?: string }>({});
   const [selectedStageId, setSelectedStageId] = useState<string>(initialStageId ?? '');
-  const [formData, setFormData] = useState({
+  type DiscountType = 'percent' | 'money';
+  
+  const [formData, setFormData] = useState<{
+    name: string;
+    email: string;
+    phone: string;
+    product: string;
+    value: string;
+    city: string;
+    cnpj: string;
+    responsible: string;
+    subStatus: LeadSubStatus;
+    discount_applied: boolean;
+    discount: string;
+    discount_type: DiscountType;
+  }>({
     name: '',
     email: '',
     phone: '',
@@ -55,10 +72,12 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
     city: '',
     cnpj: '',
     responsible: '',
-    subStatus: 'qualified' as LeadSubStatus,
-    isDiscountApplied: false,
-    discountValue: '',
+    subStatus: 'qualified',
+    discount_applied: false,
+    discount: '',
+    discount_type: 'percent',
   });
+
 
   useEffect(() => {
     if (isOpen) {
@@ -74,17 +93,22 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
 
   const calculateFinalValue = () => {
     const val = parseBRNumber(formData.value);
-    const discount = parseBRNumber(formData.discountValue);
-    return val * (1 - discount / 100);
+    let discount = 0;
+    if (formData.discount_applied && formData.discount) {
+      const discVal = parseBRNumber(formData.discount);
+      discount = formData.discount_type === 'percent' ? discVal / 100 : discVal / val;
+    }
+    return val * (1 - Math.min(discount, 1));
   };
 
+
   const handleProductChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedProduct = products.find(p => p.name === e.target.value);
-    setFormData({
-      ...formData,
+    const selectedProduct = products.find((product: any) => product.name === e.target.value);
+    setFormData(prev => ({
+      ...prev,
       product: e.target.value,
-      value: selectedProduct ? selectedProduct.price.toString() : formData.value
-    });
+      value: selectedProduct ? selectedProduct.price.toString() : prev.value
+    }));
   };
 
   const handleSubmit = async (e: React.SyntheticEvent) => {
@@ -120,11 +144,15 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
         stars: 0,
         photo: `https://tfwclxxcgnmndcnbklkx.supabase.co/storage/v1/object/public/icones/5.png`,
         history: [],
-        discount: formData.isDiscountApplied ? formData.discountValue : '',
+        discount_applied: formData.discount_applied,
+        discount: formData.discount || '',
+        discount_type: formData.discount_type || 'percent',
+
         pipeline_id: pipelineId,
         stage_id: selectedStageId || undefined,
         ...(isGanhoStage ? { pix_completed: true, contract_signed: true } : {}),
       });
+
       onClose();
       setFormData({
         name: '',
@@ -135,9 +163,10 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
         city: '',
         cnpj: '',
         responsible: '',
-        subStatus: 'qualified',
-        isDiscountApplied: false,
-        discountValue: '',
+        subStatus: 'qualified' as LeadSubStatus,
+        discount_applied: false,
+        discount: '',
+        discount_type: 'percent',
       });
     } catch (error) {
       console.error('Error adding lead:', error);
@@ -185,7 +214,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                     required
                     type="text" 
                     value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    onChange={(e) => setFormData(prev => ({...prev, name: e.target.value}))}
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
                     placeholder="Ex: João Silva"
                   />
@@ -201,7 +230,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                   <input
                     type="text"
                     value={formData.phone}
-                    onChange={(e) => { setFormData({...formData, phone: e.target.value}); setFieldErrors(p => ({...p, phone: undefined})); }}
+                    onChange={(e) => { setFormData(prev => ({...prev, phone: e.target.value})); setFieldErrors((p: any) => ({...p, phone: undefined})); }}
                     className={cn("w-full px-4 py-2.5 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700", fieldErrors.phone ? "border-red-400 bg-red-50" : "border-gray-200")}
                     placeholder="(00) 00000-0000"
                   />
@@ -220,7 +249,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                   <input
                     type="email"
                     value={formData.email}
-                    onChange={(e) => { setFormData({...formData, email: e.target.value}); setFieldErrors(p => ({...p, email: undefined})); }}
+                    onChange={(e) => { setFormData(prev => ({...prev, email: e.target.value})); setFieldErrors((p: any) => ({...p, email: undefined})); }}
                     className={cn("w-full px-4 py-2.5 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700", fieldErrors.email ? "border-red-400 bg-red-50" : "border-gray-200")}
                     placeholder="email@exemplo.com"
                   />
@@ -274,7 +303,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                   <input 
                     type="text" 
                     value={formData.city}
-                    onChange={(e) => setFormData({...formData, city: e.target.value})}
+                    onChange={(e) => setFormData(prev => ({...prev, city: e.target.value}))}
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
                     placeholder="Cidade - UF"
                   />
@@ -287,7 +316,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                 <input
                   type="text"
                   value={formData.cnpj}
-                  onChange={(e) => setFormData({...formData, cnpj: formatCPFCNPJ(e.target.value)})}
+                  onChange={(e) => setFormData(prev => ({...prev, cnpj: formatCPFCNPJ(e.target.value)}))}
                   className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
                   placeholder="000.000.000-00 ou 00.000.000/0000-00"
                   maxLength={18}
@@ -302,7 +331,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                   <select
                     required
                     value={formData.responsible}
-                    onChange={(e) => setFormData({...formData, responsible: e.target.value})}
+                    onChange={(e) => setFormData(prev => ({...prev, responsible: e.target.value}))}
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 appearance-none cursor-pointer"
                   >
                     <option value="">Selecione o responsável</option>
@@ -356,15 +385,15 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                 <div className="relative">
                   <input
                     type="checkbox"
-                    checked={formData.isDiscountApplied}
-                    onChange={(e) => setFormData({ ...formData, isDiscountApplied: e.target.checked })}
+                    checked={formData.discount_applied}
+                    onChange={(e) => setFormData(prev => ({ ...prev, discount_applied: e.target.checked }))}
                     className="sr-only"
                   />
                   <div className={cn(
                     'w-5 h-5 border-2 rounded-md transition-all flex items-center justify-center',
-                    formData.isDiscountApplied ? 'bg-emerald-600 border-emerald-600' : 'bg-white border-slate-200'
+                    formData.discount_applied ? 'bg-emerald-600 border-emerald-600' : 'bg-white border-slate-200'
                   )}>
-                    {formData.isDiscountApplied && <CheckSquare size={12} className="text-white" />}
+                    {formData.discount_applied && <CheckSquare size={12} className="text-white" />}
                   </div>
                 </div>
                 <span className="text-sm font-bold text-slate-700">Aplicar desconto?</span>
@@ -372,21 +401,44 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
 
               <div className={cn(
                 'flex gap-4 transition-all duration-300',
-                formData.isDiscountApplied ? 'opacity-100 max-h-[100px]' : 'opacity-0 max-h-0 overflow-hidden'
+                formData.discount_applied ? 'opacity-100 max-h-[100px]' : 'opacity-0 max-h-0 overflow-hidden'
               )}>
-                <div className="flex-1 relative">
-                  <input
-                    type="text"
-                    placeholder="0"
-                    value={formData.discountValue}
-                    onChange={(e) => {
-                      const val = e.target.value.replace(/[^0-9.]/g, '');
-                      setFormData({ ...formData, discountValue: val });
-                    }}
-                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm text-right pr-8"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">%</span>
+                <div className="flex rounded-xl overflow-hidden border border-slate-200 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, discount_type: 'percent' }))}
+                    className={cn(
+                      "px-3 py-2.5 text-xs font-bold transition-colors flex items-center gap-1",
+                      formData.discount_type === 'percent'
+                        ? "bg-emerald-600 text-white"
+                        : "bg-white text-slate-500 hover:bg-slate-50"
+                    )}
+                  >
+                    <Percent size={12} /> %
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, discount_type: 'money' }))}
+                    className={cn(
+                      "px-3 py-2.5 text-xs font-bold transition-colors border-l border-slate-200 flex items-center gap-1",
+                      formData.discount_type === 'money'
+                        ? "bg-emerald-600 text-white"
+                        : "bg-white text-slate-500 hover:bg-slate-50"
+                    )}
+                  >
+                    <DollarSign size={12} /> R$
+                  </button>
                 </div>
+                <input
+                  type="text"
+                  placeholder="0"
+                  value={formData.discount}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9,]/g, '');
+                    setFormData({ ...formData, discount: val });
+                  }}
+                  className="flex-1 px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm"
+                />
                 <div className="flex-[2] px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between">
                   <span className="text-xs font-bold text-slate-400 uppercase">Valor Final</span>
                   <span className="text-sm font-bold text-emerald-600">
@@ -395,6 +447,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                 </div>
               </div>
             </div>
+
 
             <div className="pt-4 flex justify-end gap-3">
               <button 
