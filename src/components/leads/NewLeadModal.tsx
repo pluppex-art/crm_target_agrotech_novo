@@ -230,7 +230,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                   <input
                     type="text"
                     value={formData.phone}
-                    onChange={(e) => { setFormData(prev => ({...prev, phone: e.target.value})); setFieldErrors((p: any) => ({...p, phone: undefined})); }}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setFormData(prev => ({...prev, phone: e.target.value})); setFieldErrors(p => ({...p, phone: undefined})); }}
                     className={cn("w-full px-4 py-2.5 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700", fieldErrors.phone ? "border-red-400 bg-red-50" : "border-gray-200")}
                     placeholder="(00) 00000-0000"
                   />
@@ -249,7 +249,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                   <input
                     type="email"
                     value={formData.email}
-                    onChange={(e) => { setFormData(prev => ({...prev, email: e.target.value})); setFieldErrors((p: any) => ({...p, email: undefined})); }}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setFormData(prev => ({...prev, email: e.target.value})); setFieldErrors(p => ({...p, email: undefined})); }}
                     className={cn("w-full px-4 py-2.5 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700", fieldErrors.email ? "border-red-400 bg-red-50" : "border-gray-200")}
                     placeholder="email@exemplo.com"
                   />
