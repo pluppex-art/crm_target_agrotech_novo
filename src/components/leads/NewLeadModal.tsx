@@ -34,15 +34,14 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
     return pipeline?.stages ?? [];
   }, [pipelines, pipelineId]);
 
-  // Filter only vendedores (profiles with cargo name containing 'vendedor')
+  // Usuários do departamento Comercial ativos
   const vendedores = useMemo(() => {
-    const sellers = profiles.filter((p: any) => {
-      const cargoName = (p.cargos?.name || p.cargo_name || '').toLowerCase();
-      return cargoName.includes('vendedor');
-    });
-    // Fallback: show all active profiles if no vendedores found
-    return sellers.length > 0
-      ? sellers
+    const comercial = profiles.filter(p =>
+      p.department?.toLowerCase() === 'comercial' && (p.status === 'active' || !p.status)
+    );
+    // Fallback: all active profiles if no comercial members found
+    return comercial.length > 0
+      ? comercial
       : profiles.filter(p => p.status === 'active' || !p.status);
   }, [profiles]);
 
