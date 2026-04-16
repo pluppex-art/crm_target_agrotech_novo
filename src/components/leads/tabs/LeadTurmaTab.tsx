@@ -199,20 +199,30 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
                   </label>
 
                   {payment.open && (
-                    <button
-                      onClick={() => addEntry(attendee.id)}
-                      className="flex items-center gap-1 px-2 py-1 text-xs font-bold text-emerald-600 border border-emerald-200 rounded-lg hover:bg-emerald-50 transition-colors"
-                    >
-                      <Plus size={12} />
-                      Adicionar
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => addEntry(attendee.id)}
+                        className="flex items-center gap-1 px-2 py-1 text-xs font-bold text-emerald-600 border border-emerald-200 rounded-lg hover:bg-emerald-50 transition-colors"
+                      >
+                        <Plus size={12} />
+                        Adicionar
+                      </button>
+                      <button
+                        onClick={() => savePayment(attendee.id)}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 transition-all shadow-sm"
+                        disabled={payment.entries.every(e => !e.valor.trim())}
+                      >
+                        <CheckSquare size={12} />
+                        Salvar Pagamento
+                      </button>
+                    </div>
                   )}
                 </div>
 
                 {payment.open && (
                   <div className="space-y-2">
                     {payment.entries.map((entry, index) => (
-                      <div key={index} className="flex items-end gap-2">
+                      <div key={index} className="flex items-end gap-2">  
                         <div className="flex flex-col gap-1 flex-1">
                           {index === 0 && (
                             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Valor (R$)</label>
