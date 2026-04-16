@@ -2,7 +2,8 @@ import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   TrendingUp, TrendingDown, DollarSign, Users, CheckCircle2,
-  BarChart2, ArrowRight, Loader2, ShoppingBag, Percent, ShieldAlert
+  BarChart2, ArrowRight, Loader2, ShoppingBag, Percent, ShieldAlert,
+  Filter, FileText
 } from 'lucide-react';
 import { usePermissions } from '../hooks/usePermissions';
 import { useLeadStore } from '../store/useLeadStore';
@@ -14,6 +15,11 @@ import { cn, stageNameToStatus, getLeadEffectiveValue } from '../lib/utils';
 import { MetricCard } from '../components/dashboard/MetricCard';
 import { CSSBarChart } from '../components/dashboard/CSSBarChart';
 import { HorizontalBar } from '../components/dashboard/HorizontalBar';
+import { LineTrendChart } from '../components/dashboard/LineTrendChart';
+import { DoughnutChart } from '../components/dashboard/DoughnutChart';
+import { FunnelChart } from '../components/dashboard/FunnelChart';
+import { GoalRing } from '../components/dashboard/GoalRing';
+import { ImprovedCSSBarChart } from '../components/dashboard/ImprovedCSSBarChart';
 
 type View = 'all' | 'sales' | 'finance';
 
@@ -202,6 +208,29 @@ const allSellersRanking = useMemo(() => {
     n.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
   // ── Pipeline columns ─────────────────────────────────────────────
+  // Pipeline stages for charts
+  const pipelineStages = useMemo(() => [
+    { id: 'new', label: 'Novo', value: leads.filter(l => stageNameToStatus(l.status) === 'new').length, color: 'hsl(210, 80%, 55%)' },
+    { id: 'qualified', label: 'Qualificado', value: leads.filter(l => stageNameToStatus(l.status) === 'qualified').length, color: 'hsl(142, 71%, 45%)' },
+    { id: 'proposal', label: 'Proposta', value: leads.filter(l => stageNameToStatus(l.status) === 'proposal').length, color: 'hsl(262, 80%, 55%)' },
+    { id: 'closed', label: 'Fechado', value: closedLeads.length, color: 'hsl(0, 84%, 60%)' },
+  ], [leads, closedLeads]);
+
+  const monthlySales = useMemo(() =>
+    last6Months.map(({ label, month, year }) => ({
+      label,
+      value: closedLeads
+        .filter(l => new Date(l.created_at).getMonth() === month && new Date(l.created_at).getFullYear() === year)
+        .reduce((s, l) => s + getLeadEffectiveValue(l), 0),
+    })),
+    [last6Months, closedLeads]
+  );
+
+  const totalSalesGoal = useMemo(() =>
+    goals.reduce((sum, g) => sum + g.revenue_goal, 0),
+    [goals]
+  );
+
   const pipeline = [
     { id: 'new', label: 'Em Aberto', color: 'bg-blue-500', light: 'bg-blue-50 text-blue-600' },
     { id: 'qualified', label: 'Qualificados', color: 'bg-emerald-500', light: 'bg-emerald-50 text-emerald-600' },
@@ -302,7 +331,57 @@ const allSellersRanking = useMemo(() => {
 
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
               <h3 className="font-bold text-slate-800 mb-4">Vendas por Produto</h3>
-              <CSSBarChart data={salesByProduct} color="bg-blue-500" emptyLabel="Nenhuma venda fechada ainda" />
+              <ImprovedCSSBarChart data={salesByProduct.slice(0, 6)} color="hsl(210, 80%, 55%)" gradient showValues />
+            </div>
+          </div>
+
+          {/* New charts section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 gap-6 mb-8">
+            <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8">
+              <h3 className="font-bold text-xl text-slate-800 mb-6 flex items-center gap-2">
+                <Users className="w-6 h-6" />
+                Distribuição do Pipeline
+              </h3>
+              <DoughnutChart 
+                data={pipelineStages.map(s => ({ label: s.label, value: s.value, color: s.color }))} 
+                totalLabel="Leads" 
+              />
+            </div>
+
+            <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8">
+              <h3 className="font-bold text-xl text-slate-800 mb-6">Funil de Conversão</h3>
+              <FunnelChart 
+                stages={pipelineStages.map(s => ({
+                  label: s.label,
+                  count: s.value,
+                  color: s.color,
+                  icon: s.id === 'new' ? Users : s.id === 'qualified' ? Filter : s.id === 'proposal' ? FileText : CheckCircle2
+                }))}
+                conversionRate={conversionRate}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div className="lg:col-span-1 bg-white rounded-3xl border border-slate-100 shadow-xl p-8">
+              <h3 className="font-bold text-xl text-slate-800 mb-6">Tendência de Vendas</h3>
+              <LineTrendChart 
+                data={monthlySales} 
+                color="hsl(142, 71%, 45%)" 
+                trend={monthlySales[monthlySales.length - 1]?.value! > monthlySales[0]?.value! ? 'up' : 'down'}
+                suffix="k"
+              />
+            </div>
+
+            <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8">
+              <h3 className="font-bold text-xl text-slate-800 mb-6">Progresso da Meta Geral</h3>
+              <GoalRing 
+                current={totalSalesValue} 
+                target={totalSalesGoal} 
+                label="Vendas" 
+                color="hsl(142, 71%, 45%)"
+                size="lg"
+              />
             </div>
           </div>
 
@@ -360,11 +439,11 @@ const allSellersRanking = useMemo(() => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
               <h3 className="font-bold text-slate-800 mb-4">Receitas Mensais</h3>
-              <CSSBarChart data={monthlyIncome} color="bg-emerald-500" emptyLabel="Nenhuma receita registrada" />
+              <ImprovedCSSBarChart data={monthlyIncome} color="hsl(142, 71%, 45%)" gradient showValues />
             </div>
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
               <h3 className="font-bold text-slate-800 mb-4">Despesas Mensais</h3>
-              <CSSBarChart data={monthlyExpense} color="bg-rose-400" emptyLabel="Nenhuma despesa registrada" />
+              <ImprovedCSSBarChart data={monthlyExpense} color="hsl(0, 84%, 60%)" gradient showValues />
             </div>
           </div>
 
@@ -372,11 +451,38 @@ const allSellersRanking = useMemo(() => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
               <h3 className="font-bold text-slate-800 mb-4">Receita por Categoria</h3>
-              <CSSBarChart data={incomeByCategory} color="bg-teal-500" emptyLabel="Sem categorias de receita" />
+              <ImprovedCSSBarChart data={incomeByCategory.slice(0, 6)} color="hsl(162, 74%, 47%)" gradient showValues />
             </div>
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
               <h3 className="font-bold text-slate-800 mb-4">Despesa por Categoria</h3>
-              <CSSBarChart data={expenseByCategory} color="bg-orange-400" emptyLabel="Sem categorias de despesa" />
+              <ImprovedCSSBarChart data={expenseByCategory.slice(0, 6)} color="hsl(25, 90%, 55%)" gradient showValues />
+            </div>
+          </div>
+
+          {/* Finance trends */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8">
+              <h3 className="font-bold text-xl text-slate-800 mb-6">Tendência de Lucro Líquido</h3>
+              <LineTrendChart 
+                data={monthlyIncome.map((inc: any, i: number) => ({
+                  label: inc.label,
+                  value: inc.value - (monthlyExpense[i]?.value || 0)
+                }))} 
+                color={netProfit >= 0 ? 'hsl(142, 71%, 45%)' : 'hsl(0, 84%, 60%)'}
+                trend={netProfit >= 0 ? 'up' : 'down'}
+                suffix=""
+              />
+            </div>
+
+            <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8">
+              <h3 className="font-bold text-xl text-slate-800 mb-6">Margem de Lucro por Mês</h3>
+              <GoalRing 
+                current={Math.abs(netProfit)} 
+                target={totalIncome} 
+                label="Margem"
+                color={margin >= 20 ? 'hsl(142, 71%, 45%)' : margin >= 10 ? 'hsl(40, 90%, 55%)' : 'hsl(0, 84%, 60%)'}
+                size="lg"
+              />
             </div>
           </div>
         </div>

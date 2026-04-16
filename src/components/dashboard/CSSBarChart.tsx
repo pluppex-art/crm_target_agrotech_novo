@@ -9,6 +9,8 @@ interface CSSBarChartProps {
 }
 
 export function CSSBarChart({ data, color = 'bg-emerald-500', emptyLabel = 'Sem dados ainda' }: CSSBarChartProps) {
+  console.warn('CSSBarChart is deprecated. Use ImprovedCSSBarChart instead.');
+
   const max = Math.max(...data.map(d => d.value), 1);
   const hasData = data.some(d => d.value > 0);
 
