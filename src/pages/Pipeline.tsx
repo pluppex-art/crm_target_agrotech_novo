@@ -238,21 +238,25 @@ export const Pipeline: React.FC = () => {
     );
   }, [currentPipeline]);
 
-  // Leads filtrados que estão na etapa Ganho
+  // Todos os leads do pipeline atual que estão em etapa Ganho (independente de filtros)
   const ganhoLeads = useMemo(
-    () => filters.filteredLeads.filter(l => l.stage_id && ganhoStageIds.has(l.stage_id)),
-    [filters.filteredLeads, ganhoStageIds]
+    () => leads.filter(l => l.stage_id && ganhoStageIds.has(l.stage_id)),
+    [leads, ganhoStageIds]
   );
 
-  // Ganho Caixa: soma de recebimentos apenas dos leads na etapa Ganho
+  // Ganho Caixa: soma dos valores efetivamente recebidos dos leads em etapa Ganho
   const caixaTotalValue = useMemo(() => {
     const ganhoLeadIds = new Set(ganhoLeads.map(l => l.id));
 
     const leadTotal = ganhoLeads.reduce((sum, lead) => {
       let total = 0;
+      // Valor recebido da venda principal
       if (lead.valor_recebido != null) total += lead.valor_recebido;
-      if (lead.taxa_matricula_recebido != null) total += lead.taxa_matricula_recebido;
-      if (lead.pix_completed) {
+      // Taxa de matrícula recebida: usa o campo direto se existir,
+      // caso contrário usa o enrollment_fee do produto quando pix foi confirmado
+      if (lead.taxa_matricula_recebido != null) {
+        total += lead.taxa_matricula_recebido;
+      } else if (lead.pix_completed) {
         const product = products.find(p => p.name === lead.product);
         total += (product?.enrollment_fee ?? 0);
       }
@@ -271,23 +275,20 @@ export const Pipeline: React.FC = () => {
     return leadTotal + turmaTotal;
   }, [ganhoLeads, products, turmas]);
 
-  // Competências: valor pendente (vendas - recebido) apenas dos leads na etapa Ganho
+  // Competências: valor total comprometido (valor de venda) dos leads em etapa Ganho
   const competenciaTotalValue = useMemo(() => {
     const ganhoLeadIds = new Set(ganhoLeads.map(l => l.id));
 
-    const leadCompetencia = ganhoLeads
-      .filter(lead => lead.pix_completed)
-      .reduce((sum, lead) => {
-        const vendaTotal = getLeadEffectiveValue(lead);
-        const recebido = (lead.valor_recebido || 0) + (lead.taxa_matricula_recebido || 0);
-        return sum + Math.max(0, vendaTotal - recebido);
-      }, 0);
+    // Valor efetivo de cada lead ganho (com desconto aplicado)
+    const leadCompetencia = ganhoLeads.reduce((sum, lead) => {
+      return sum + getLeadEffectiveValue(lead);
+    }, 0);
 
+    // Valor de vendas nas turmas para leads ganhos
     const turmaCompetencia = turmas.reduce((sum, turma) => {
       return sum + turma.attendees.reduce((s, a) => {
         if (a.lead_id && ganhoLeadIds.has(a.lead_id)) {
-          const pendente = (a.vendas || 0) - (a.valor_recebido || 0);
-          return s + Math.max(0, pendente);
+          return s + (a.vendas || 0);
         }
         return s;
       }, 0);
