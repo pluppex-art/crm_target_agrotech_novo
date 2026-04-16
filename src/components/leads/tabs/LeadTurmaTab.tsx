@@ -70,11 +70,6 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
     await updateAttendeePayment?.(attendeeId, valor, state.forma);
   };
 
-  const valorAReceber =
-    leadValue != null && valorRecebido != null
-      ? leadValue - valorRecebido
-      : null;
-
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -96,6 +91,10 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
       ) : leadTurmas.length > 0 ? (
         leadTurmas.map(({ turma, attendee }: any) => {
           const payment = getPayment(attendee.id);
+          const turmaValorRecebido = payment.open && payment.valor ? parseFloat(payment.valor) : null;
+          const valorAReceber = leadValue != null && turmaValorRecebido != null
+            ? leadValue - turmaValorRecebido
+            : null;
           return (
             <div key={turma.id} className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-3">
               {/* Turma header */}
