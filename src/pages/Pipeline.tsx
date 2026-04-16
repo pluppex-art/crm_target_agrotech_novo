@@ -239,11 +239,16 @@ export const Pipeline: React.FC = () => {
     }, 0);
   }, [filters.filteredLeads, products]);
 
-  // Competências: soma do valor de vendas dos leads com PIX confirmado
+// Competências: soma do valor pendente (vendas - recebido) dos leads com PIX confirmado
   const competenciaTotalValue = useMemo(() => {
     return filters.filteredLeads
       .filter(lead => lead.pix_completed)
-      .reduce((sum, lead) => sum + getLeadEffectiveValue(lead), 0);
+      .reduce((sum, lead) => {
+        const vendaTotal = getLeadEffectiveValue(lead);
+        const recebido = (lead.valor_recebido || 0) + (lead.taxa_matricula_recebido || 0);
+        const pendente = vendaTotal - recebido;
+        return sum + Math.max(0, pendente);
+      }, 0);
   }, [filters.filteredLeads]);
 
 
