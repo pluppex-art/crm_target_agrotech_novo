@@ -537,19 +537,17 @@ interface AttendeeCardProps {
 }
 
 function AttendeeCard({ attendee, id, onViewDetails, onRemove }: AttendeeCardProps) {
+  const [confirmingRemove, setConfirmingRemove] = useState(false);
+
   const {
     attributes,
     listeners,
     setNodeRef,
     transform,
     isDragging
-  } = useDraggable({
-    id,
-  });
+  } = useDraggable({ id });
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-  };
+  const style = { transform: CSS.Transform.toString(transform) };
 
   return (
     <div
@@ -558,7 +556,7 @@ function AttendeeCard({ attendee, id, onViewDetails, onRemove }: AttendeeCardPro
       {...listeners}
       {...attributes}
       className={cn(
-        'bg-white rounded-xl border border-slate-100 p-3 shadow-sm flex items-center gap-3 transition-all group/card',
+        'bg-white rounded-xl border border-slate-100 p-3 shadow-sm flex items-start gap-3 transition-all group/card mb-2',
         isDragging ? 'shadow-xl border-emerald-300 rotate-1 cursor-grabbing scale-[1.02]' : 'hover:border-emerald-200 cursor-grab',
       )}
     >
@@ -566,26 +564,73 @@ function AttendeeCard({ attendee, id, onViewDetails, onRemove }: AttendeeCardPro
         src={attendee.photo}
         alt={attendee.name}
         onClick={(e) => { e.stopPropagation(); onViewDetails?.(); }}
-        className={cn('w-8 h-8 rounded-full object-cover border-2 border-slate-100 shrink-0', onViewDetails && 'cursor-pointer hover:opacity-80')}
+        className={cn('w-9 h-9 rounded-full object-cover border-2 border-slate-100 shrink-0 mt-0.5', onViewDetails && 'cursor-pointer hover:opacity-80')}
         referrerPolicy="no-referrer"
       />
-      <div className="flex-1 min-w-0" onClick={(e) => { e.stopPropagation(); onViewDetails?.(); }}>
-        <p className="text-xs font-bold text-slate-700 truncate">{attendee.name}</p>
-        <p className="text-[10px] text-slate-400 truncate">{attendee.responsible}</p>
+      <div
+        className="flex-1 min-w-0"
+        onClick={(e) => { e.stopPropagation(); onViewDetails?.(); }}
+      >
+        {/* Nome do cliente */}
+        <p className="text-xs font-bold text-slate-700 truncate leading-tight">{attendee.name}</p>
+        {/* Responsável */}
+        <p className="text-[10px] text-slate-400 truncate mt-0.5">
+          {attendee.responsible || 'Sem responsável'}
+        </p>
+        {/* Infos básicas: venda e recebido */}
+        <div className="flex items-center gap-2 mt-1 flex-wrap">
+          {attendee.vendas > 0 && (
+            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full">
+              R$ {attendee.vendas.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+            </span>
+          )}
+          {attendee.valor_recebido != null && attendee.valor_recebido > 0 && (
+            <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">
+              Rec. R$ {attendee.valor_recebido.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+            </span>
+          )}
+          {attendee.forma_pagamento && (
+            <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full truncate max-w-[80px]">
+              {attendee.forma_pagamento}
+            </span>
+          )}
+        </div>
       </div>
-      {attendee.vendas > 0 && (
-        <span className="text-[10px] font-bold text-emerald-700 shrink-0">
-          R$ {attendee.vendas.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
-        </span>
-      )}
+
+      {/* Botão remover com confirmação */}
       {onRemove && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onRemove(); }}
-          className="p-1 rounded-lg text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors opacity-0 group-hover/card:opacity-100 shrink-0"
-          title="Remover da turma"
-        >
-          <X size={13} />
-        </button>
+        <div className="shrink-0 flex flex-col items-end gap-1">
+          {confirmingRemove ? (
+            <div
+              className="flex items-center gap-1"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => { e.stopPropagation(); setConfirmingRemove(false); onRemove(); }}
+                className="px-2 py-0.5 text-[10px] font-bold bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+              >
+                Sim
+              </button>
+              <button
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => { e.stopPropagation(); setConfirmingRemove(false); }}
+                className="px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors"
+              >
+                Não
+              </button>
+            </div>
+          ) : (
+            <button
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); setConfirmingRemove(true); }}
+              className="p-1 rounded-lg text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors opacity-0 group-hover/card:opacity-100"
+              title="Remover da turma"
+            >
+              <X size={13} />
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

@@ -12,6 +12,7 @@ export interface Task {
   category?: string;
   lead_id?: string;
   lead_name?: string;
+  responsible?: string;
 }
 
 export const taskService = {
