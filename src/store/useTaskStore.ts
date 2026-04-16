@@ -9,6 +9,7 @@ interface TaskState {
   fetchTasks: () => Promise<void>;
   fetchTasksByLeadId: (leadId: string) => Promise<Task[]>;
   addTask: (task: Omit<Task, 'id' | 'created_at'>) => Promise<void>;
+  updateTask: (taskId: string, updates: Partial<Omit<Task, 'id' | 'created_at'>>) => Promise<void>;
   updateTaskStatus: (taskId: string, status: 'pending' | 'completed') => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
   subscribe: () => () => void;
@@ -49,6 +50,19 @@ export const useTaskStore = create<TaskState>((set) => ({
       }
     } catch (error) {
       set({ error: 'Failed to create task', loading: false });
+    }
+  },
+
+  updateTask: async (taskId, updates) => {
+    try {
+      const success = await taskService.updateTask(taskId, updates);
+      if (success) {
+        set((state) => ({
+          tasks: state.tasks.map((t) => (t.id === taskId ? { ...t, ...updates } : t)),
+        }));
+      }
+    } catch (error) {
+      console.error('Error updating task:', error);
     }
   },
 

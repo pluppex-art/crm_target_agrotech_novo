@@ -86,6 +86,23 @@ export const taskService = {
     return true;
   },
 
+  async updateTask(taskId: string, updates: Partial<Omit<Task, 'id' | 'created_at'>>): Promise<boolean> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return false;
+
+    const { error } = await supabase
+      .from('tasks')
+      .update(updates)
+      .eq('id', taskId);
+
+    if (error) {
+      console.error('Error updating task:', error);
+      return false;
+    }
+
+    return true;
+  },
+
   async deleteTask(taskId: string): Promise<boolean> {
     const supabase = getSupabaseClient();
     if (!supabase) return false;

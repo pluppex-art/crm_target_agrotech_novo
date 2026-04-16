@@ -101,12 +101,6 @@ export function Dashboard() {
   // ── Sales metrics ────────────────────────────────────────────────
   const closedLeads = useMemo(() => leads.filter(l => stageNameToStatus(l.status) === 'closed'), [leads]);
   const conversionRate = leads.length > 0 ? (closedLeads.length / leads.length) * 100 : 0;
-  const avgTicket = useMemo(
-    () => closedLeads.length > 0
-      ? closedLeads.reduce((s, l) => s + getLeadEffectiveValue(l), 0) / closedLeads.length
-      : 0,
-    [closedLeads]
-  );
   const totalSalesValue = useMemo(
     () => closedLeads.reduce((s, l) => s + getLeadEffectiveValue(l), 0),
     [closedLeads]
@@ -333,18 +327,16 @@ const allSellersRanking = useMemo(() => {
       {(view === 'all' || view === 'sales') && (
         <div>
           {/* Sales metrics */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-8">
             <MetricCard label="Leads Ativos" value={String(leads.length)} icon={Users} color="bg-emerald-50 text-emerald-600" />
             <MetricCard label="Fechados" value={String(closedLeads.length)} icon={CheckCircle2} color="bg-blue-50 text-blue-600" />
             <MetricCard label="Conversão" value={`${conversionRate.toFixed(1)}%`} icon={Percent} color="bg-purple-50 text-purple-600" />
-            <MetricCard label="Total Vendas" value={`R$ ${fmt(totalSalesValue)}`} icon={TrendingUp} color="bg-emerald-50 text-emerald-600" />
             <MetricCard
               label="Em Proposta"
               value={String(leads.filter(l => stageNameToStatus(l.status) === 'proposal').length)}
               icon={ShoppingBag}
               color="bg-rose-50 text-rose-600"
             />
-            <MetricCard label="Ticket Médio" value={`R$ ${fmt(avgTicket)}`} icon={DollarSign} color="bg-amber-50 text-amber-600" />
           </div>
 
           {/* Ranking + Sales by product */}

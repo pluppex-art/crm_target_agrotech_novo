@@ -8,6 +8,7 @@ import { useTaskStore } from '../../store/useTaskStore';
 import { useActivityCategoryStore } from '../../store/useActivityCategoryStore';
 import { useProfileStore } from '../../store/useProfileStore';
 import { cn } from '../../lib/utils';
+import { Task } from '../../services/taskService';
 
 interface NewActivityModalProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ interface NewActivityModalProps {
   leadId?: string;
   leadName?: string;
   onCreated?: () => void;
+  initialTask?: Task;
 }
 
 const PRIORITY_OPTIONS = [
@@ -29,8 +31,10 @@ export const NewActivityModal: React.FC<NewActivityModalProps> = ({
   leadId,
   leadName,
   onCreated,
+  initialTask,
 }) => {
-  const { addTask } = useTaskStore();
+  const isEditing = !!initialTask;
+  const { addTask, updateTask } = useTaskStore();
   const { categories, fetchCategories } = useActivityCategoryStore();
   const { profiles, fetchProfiles } = useProfileStore();
   const [loading, setLoading] = useState(false);
@@ -48,8 +52,29 @@ export const NewActivityModal: React.FC<NewActivityModalProps> = ({
     if (isOpen) {
       fetchCategories();
       fetchProfiles();
+      if (initialTask) {
+        setFormData({
+          title: initialTask.title,
+          description: initialTask.description || '',
+          due_date: initialTask.due_date || '',
+          scheduled_time: initialTask.scheduled_time || '',
+          priority: initialTask.priority,
+          category: initialTask.category || '',
+          responsible: initialTask.responsible || '',
+        });
+      } else {
+        setFormData({
+          title: '',
+          description: '',
+          due_date: '',
+          scheduled_time: '',
+          priority: 'medium',
+          category: '',
+          responsible: '',
+        });
+      }
     }
-  }, [isOpen, fetchCategories, fetchProfiles]);
+  }, [isOpen, initialTask, fetchCategories, fetchProfiles]);
 
   useEffect(() => {
     if (categories.length > 0 && !formData.category) {
