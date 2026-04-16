@@ -226,33 +226,29 @@ export const Pipeline: React.FC = () => {
     ? COLUMNS
     : COLUMNS.filter((col: { id: string }) => col.id === filters.selectedStatus);
 
+  // Ganho Caixa: soma das taxas de matrícula dos leads com PIX confirmado
   const caixaTotalValue = useMemo(() => {
-    const caixaStageIds = new Set(
-      (currentPipeline?.stages ?? [])
-        .filter(s => {
-          const n = s.name.toLowerCase();
-          return n.includes('matricula') || n.includes('curso');
-        })
-        .map(s => s.id)
-    );
     return filters.filteredLeads
-      .filter(lead => caixaStageIds.has(lead.stage_id ?? ''))
-      .reduce((sum, lead) => sum + getLeadEffectiveValue(lead), 0);
-  }, [filters.filteredLeads, currentPipeline?.stages]);
+      .filter(lead => lead.pix_completed)
+      .reduce((sum, lead) => {
+        const product = products.find(p => p.name === lead.product);
+        return sum + (product?.enrollment_fee ?? 0);
+      }, 0);
+  }, [filters.filteredLeads, products]);
 
+  // Competências: soma do valor de vendas dos leads com PIX confirmado
   const competenciaTotalValue = useMemo(() => {
-    const competenciaStageIds = new Set(
-      (currentPipeline?.stages ?? [])
-        .filter(s => {
-          const n = s.name.toLowerCase();
-          return n.includes('competencia') || n.includes('professor');
-        })
-        .map(s => s.id)
-    );
     return filters.filteredLeads
-      .filter(lead => competenciaStageIds.has(lead.stage_id ?? ''))
-      .reduce((sum, lead) => sum + getLeadEffectiveValue(lead) * 0.3, 0); // 30% for professor
-  }, [filters.filteredLeads, currentPipeline?.stages]);
+      .filter(lead => lead.pix_completed)
+      .reduce((sum, lead) => sum + getLeadEffectiveValue(lead), 0);
+  }, [filters.filteredLeads]);
+
+  // Vendas Caixa: soma do valor_recebido dos leads (apenas leads, não turmas)
+  const vendasCaixaValue = useMemo(() => {
+    return filters.filteredLeads
+      .filter(lead => lead.valor_recebido != null)
+      .reduce((sum, lead) => sum + (lead.valor_recebido ?? 0), 0);
+  }, [filters.filteredLeads]);
 
 
 
@@ -261,6 +257,7 @@ export const Pipeline: React.FC = () => {
       <PipelineHeader
         caixaTotalValue={caixaTotalValue}
         competenciaTotalValue={competenciaTotalValue}
+        vendasCaixaValue={vendasCaixaValue}
         leadsCount={filters.filteredLeads.length}
         currentPipelineId={currentPipelineId ?? null}
         pipelines={pipelines}

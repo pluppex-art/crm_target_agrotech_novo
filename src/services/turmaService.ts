@@ -10,6 +10,8 @@ export interface TurmaAttendee {
   responsible: string;
   status: AttendanceStatus;
   vendas: number;
+  valor_recebido?: number | null;
+  forma_pagamento?: string | null;
 }
 
 export interface Turma {
@@ -66,6 +68,8 @@ export const turmaService = {
         responsible: a.responsible ?? '',
         status: a.status as AttendanceStatus,
         vendas: Number(a.vendas) || 0,
+        valor_recebido: a.valor_recebido ?? null,
+        forma_pagamento: a.forma_pagamento ?? null,
       })),
     }));
   },
@@ -109,6 +113,8 @@ export const turmaService = {
           responsible: item.responsible,
           status: item.status as AttendanceStatus,
           vendas: Number(item.vendas) || 0,
+          valor_recebido: item.valor_recebido ?? null,
+          forma_pagamento: item.forma_pagamento ?? null,
         }
       };
     });
@@ -260,6 +266,22 @@ export const turmaService = {
 
   async deleteTurma(id: string): Promise<boolean> {
     return turmaService.remove(id);
+  },
+
+  async updateAttendeePayment(attendeeId: string, valor_recebido: number | null, forma_pagamento: string): Promise<boolean> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return false;
+
+    const { error } = await supabase
+      .from('turma_attendees')
+      .update({ valor_recebido: valor_recebido ?? null, forma_pagamento: forma_pagamento || null })
+      .eq('id', attendeeId);
+
+    if (error) {
+      console.error('Error updating attendee payment:', error);
+      return false;
+    }
+    return true;
   },
 
   async removeAttendee(attendeeId: string): Promise<boolean> {

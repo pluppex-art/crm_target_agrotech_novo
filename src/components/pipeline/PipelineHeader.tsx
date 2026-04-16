@@ -1,5 +1,5 @@
 import React from 'react';
-import { Loader2, Download, Plus, Trophy, UserCheck } from 'lucide-react';
+import { Loader2, Download, Plus, Trophy, UserCheck, Wallet } from 'lucide-react';
 
 import { PipelineSelect } from './PipelineSelect';
 import { cn } from '../../lib/utils';
@@ -7,6 +7,7 @@ import { cn } from '../../lib/utils';
 interface PipelineHeaderProps {
   caixaTotalValue: number;
   competenciaTotalValue: number;
+  vendasCaixaValue: number;
   leadsCount: number;
   currentPipelineId: string | null;
   pipelines: any[];
@@ -21,6 +22,7 @@ interface PipelineHeaderProps {
 export const PipelineHeader: React.FC<PipelineHeaderProps> = ({
   caixaTotalValue,
   competenciaTotalValue,
+  vendasCaixaValue,
   leadsCount,
   currentPipelineId,
   pipelines,
@@ -58,16 +60,24 @@ export const PipelineHeader: React.FC<PipelineHeaderProps> = ({
                 R$ {caixaTotalValue.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
               </p>
             </div>
-            {/* Professor */}
+            {/* Competências */}
             <div className="px-4 py-2 bg-blue-50 border border-blue-100 rounded-2xl shadow-sm">
               <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center shadow-sm mb-1">
                 <UserCheck size={16} className="text-blue-600" />
               </div>
-      <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest leading-none">Competencias</p>
-
-
+              <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest leading-none">Competências</p>
               <p className="text-sm font-black text-blue-700 mt-0.5">
                 R$ {competenciaTotalValue.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+              </p>
+            </div>
+            {/* Vendas Caixa */}
+            <div className="px-4 py-2 bg-violet-50 border border-violet-100 rounded-2xl shadow-sm">
+              <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center shadow-sm mb-1">
+                <Wallet size={16} className="text-violet-600" />
+              </div>
+              <p className="text-[10px] font-black text-violet-500 uppercase tracking-widest leading-none">Vendas Caixa</p>
+              <p className="text-sm font-black text-violet-700 mt-0.5">
+                R$ {vendasCaixaValue.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
               </p>
             </div>
           </div>

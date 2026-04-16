@@ -28,10 +28,16 @@ export const useLeadTurmas = ({ leadId }: UseLeadTurmasProps) => {
     }
   };
 
+  const updateAttendeePayment = async (attendeeId: string, valor_recebido: number | null, forma_pagamento: string) => {
+    await turmaService.updateAttendeePayment(attendeeId, valor_recebido, forma_pagamento);
+    await loadTurmas();
+  };
+
   return {
     leadTurmas,
     loadingTurmas,
     loadTurmas,
+    updateAttendeePayment,
   };
 };
 
