@@ -17,8 +17,7 @@ export function FunnelChart({
   conversionRate,
   emptyLabel = 'Sem dados de pipeline',
 }: FunnelChartProps) {
-  const totalTop = stages[0]?.count || 0;
-  const hasData = totalTop > 0;
+  const hasData = stages.some(s => s.count > 0);
 
   if (!hasData) {
     return (
@@ -34,8 +33,10 @@ export function FunnelChart({
     <div className="space-y-1.5">
       {stages.map((stage, i) => {
         const Icon = stage.icon;
-        // Each stage is 14% narrower than the previous, creating the funnel shape
-        const widthPct = 100 - i * 14;
+        // Dynamically shrink so last stage reaches ~55% width regardless of stage count
+        const minWidth = 55;
+        const step = stages.length > 1 ? (100 - minWidth) / (stages.length - 1) : 0;
+        const widthPct = 100 - i * step;
         const dropPct =
           i > 0 && stages[i - 1].count > 0
             ? Math.round(

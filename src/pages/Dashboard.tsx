@@ -234,11 +234,16 @@ const allSellersRanking = useMemo(() => {
 
   // ── Pipeline columns ─────────────────────────────────────────────
   // Pipeline stages for charts — use real stages from the first active pipeline
+  // Stages that represent "exit" states (lost/disqualified) — excluded from funnel/distribution
+  const EXCLUDED_STAGE_NAMES = ['perda', 'aquecimento', 'desqualificado'];
+  const isExcludedStage = (name: string) =>
+    EXCLUDED_STAGE_NAMES.some(ex => name.toLowerCase().includes(ex));
+
   const pipelineStages = useMemo(() => {
     const activePipeline = pipelines.find(p => p.is_active) ?? pipelines[0];
     if (activePipeline?.stages?.length) {
       return activePipeline.stages
-        .filter(s => s.is_active)
+        .filter(s => s.is_active && !isExcludedStage(s.name))
         .sort((a, b) => a.position - b.position)
         .map(s => ({
           id: s.id,
