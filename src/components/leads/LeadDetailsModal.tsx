@@ -114,6 +114,13 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({
     if (isTurmaMode && turmaAttendee && onTurmaStatusChange) {
       onTurmaStatusChange(turmaAttendee.turmaId, turmaAttendee.attendeeId, stageId as any);
     } else {
+      // Auto-check PIX and contract when moving to Ganho
+      const targetStage = pipelineStages?.find(s => s.id === stageId);
+      const targetName = ((targetStage as any)?.title || (targetStage as any)?.name || '').toLowerCase();
+      if (targetName.includes('ganho') || targetName.includes('fechado') || targetName.includes('aprovado')) {
+        if (!form.formData.pix_completed) form.toggleField('pix_completed', true);
+        if (!form.formData.contract_signed) form.toggleField('contract_signed', true);
+      }
       onStageChange?.(stageId);
     }
   };
