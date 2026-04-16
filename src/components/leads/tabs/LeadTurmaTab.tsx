@@ -162,14 +162,14 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
                   </div>
                   {(valorRecebido ?? 0) > 0 && (
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-400">− Valor Recebido</span>
-                      <span className="font-semibold text-slate-600">
+                      <span className="text-slate-400 uppercase font-bold text-emerald-600">✓ Ganho Caixa</span>
+                      <span className="font-semibold text-emerald-600">
                         R$ {Number(valorRecebido).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
                   )}
                   <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
-                    <span className="font-bold text-slate-600">Valor a Receber</span>
+                    <span className="font-bold text-slate-600">Valor Competência (a Receber)</span>
                     <span className={cn('font-bold', valorAReceber <= 0 ? 'text-emerald-600' : 'text-orange-600')}>
                       R$ {valorAReceber.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </span>

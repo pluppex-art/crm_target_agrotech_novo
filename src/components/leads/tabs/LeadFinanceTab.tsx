@@ -39,8 +39,8 @@ export const LeadFinanceTab: React.FC<LeadFinanceTabProps> = ({
 
   // Cálculos agregados
   const totals = useMemo(() => {
-    let totalVendas = leadValue || 0;
-    let totalRecebido = leadValorRecebido || 0;
+    let totalVendas = (leadValue || 0);
+    let totalRecebido = (leadValorRecebido || 0);
     
     leadTurmas.forEach(({ attendee }) => {
       totalVendas += Number(attendee.vendas) || 0;
@@ -68,7 +68,7 @@ export const LeadFinanceTab: React.FC<LeadFinanceTabProps> = ({
       };
     });
     setPaymentStates(initial);
-  }, [leadTurmas]);
+  }, [leadTurmas, leadValorRecebido]);
 
   const getPayment = (attendeeId: string): PaymentState =>
     paymentStates[attendeeId] ?? { open: false, entries: [{ valor: '', forma: '' }] };
