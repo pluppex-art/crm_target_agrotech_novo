@@ -226,11 +226,29 @@ export const Pipeline: React.FC = () => {
     ? COLUMNS
     : COLUMNS.filter((col: { id: string }) => col.id === filters.selectedStatus);
 
-  // Ganho Caixa: soma de TODOS recebimentos (lead + turmas)
-  const caixaTotalValue = useMemo(() => {
-    const filteredLeadIds = new Set(filters.filteredLeads.map(l => l.id));
+  // IDs das etapas "Ganho" no pipeline atual
+  const ganhoStageIds = useMemo(() => {
+    return new Set(
+      (currentPipeline?.stages ?? [])
+        .filter(s => {
+          const n = s.name.toLowerCase();
+          return n.includes('ganho') || n.includes('aprovado') || n.includes('fechado') || n.includes('conclu');
+        })
+        .map(s => s.id)
+    );
+  }, [currentPipeline]);
 
-    const leadTotal = filters.filteredLeads.reduce((sum, lead) => {
+  // Leads filtrados que estão na etapa Ganho
+  const ganhoLeads = useMemo(
+    () => filters.filteredLeads.filter(l => l.stage_id && ganhoStageIds.has(l.stage_id)),
+    [filters.filteredLeads, ganhoStageIds]
+  );
+
+  // Ganho Caixa: soma de recebimentos apenas dos leads na etapa Ganho
+  const caixaTotalValue = useMemo(() => {
+    const ganhoLeadIds = new Set(ganhoLeads.map(l => l.id));
+
+    const leadTotal = ganhoLeads.reduce((sum, lead) => {
       let total = 0;
       if (lead.valor_recebido != null) total += lead.valor_recebido;
       if (lead.taxa_matricula_recebido != null) total += lead.taxa_matricula_recebido;
@@ -243,7 +261,7 @@ export const Pipeline: React.FC = () => {
 
     const turmaTotal = turmas.reduce((sum, turma) => {
       return sum + turma.attendees.reduce((s, a) => {
-        if (a.lead_id && filteredLeadIds.has(a.lead_id) && a.valor_recebido != null) {
+        if (a.lead_id && ganhoLeadIds.has(a.lead_id) && a.valor_recebido != null) {
           return s + a.valor_recebido;
         }
         return s;
@@ -251,13 +269,13 @@ export const Pipeline: React.FC = () => {
     }, 0);
 
     return leadTotal + turmaTotal;
-  }, [filters.filteredLeads, products, turmas]);
+  }, [ganhoLeads, products, turmas]);
 
-  // Competências: soma do valor pendente (vendas - recebido) incluindo turmas
+  // Competências: valor pendente (vendas - recebido) apenas dos leads na etapa Ganho
   const competenciaTotalValue = useMemo(() => {
-    const filteredLeadIds = new Set(filters.filteredLeads.map(l => l.id));
+    const ganhoLeadIds = new Set(ganhoLeads.map(l => l.id));
 
-    const leadCompetencia = filters.filteredLeads
+    const leadCompetencia = ganhoLeads
       .filter(lead => lead.pix_completed)
       .reduce((sum, lead) => {
         const vendaTotal = getLeadEffectiveValue(lead);
@@ -267,7 +285,7 @@ export const Pipeline: React.FC = () => {
 
     const turmaCompetencia = turmas.reduce((sum, turma) => {
       return sum + turma.attendees.reduce((s, a) => {
-        if (a.lead_id && filteredLeadIds.has(a.lead_id)) {
+        if (a.lead_id && ganhoLeadIds.has(a.lead_id)) {
           const pendente = (a.vendas || 0) - (a.valor_recebido || 0);
           return s + Math.max(0, pendente);
         }
@@ -276,7 +294,7 @@ export const Pipeline: React.FC = () => {
     }, 0);
 
     return leadCompetencia + turmaCompetencia;
-  }, [filters.filteredLeads, turmas]);
+  }, [ganhoLeads, turmas]);
 
 
 
