@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { GraduationCap, Calendar, Clock, MapPin, Plus, Activity, DollarSign, CheckSquare, ChevronDown } from 'lucide-react';
+import { GraduationCap, Calendar, Clock, MapPin, Plus, Activity, CheckSquare, ChevronDown } from 'lucide-react';
 import { NewActivityModal } from '../../tasks/NewActivityModal';
 import { cn } from '../../../lib/utils';
 import type { TurmaAttendee } from '../../../services/turmaService';
@@ -9,6 +9,7 @@ interface LeadTurmaTabProps {
   loadingTurmas: boolean;
   leadId?: string;
   leadName?: string;
+  valorRecebido?: number | null;
   leadValue?: number;
   updateAttendeePayment?: (attendeeId: string, valor_recebido: number | null, forma_pagamento: string) => Promise<void>;
   onActivityCreated?: () => void;
@@ -25,6 +26,7 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
   loadingTurmas,
   leadId,
   leadName,
+  valorRecebido,
   leadValue,
   updateAttendeePayment,
   onActivityCreated,
@@ -89,9 +91,8 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
       ) : leadTurmas.length > 0 ? (
         leadTurmas.map(({ turma, attendee }: any) => {
           const payment = getPayment(attendee.id);
-          const turmaValorRecebido = payment.open ? (payment.valor ? parseFloat(payment.valor) : 0) : null;
           const valorAReceber = payment.open && leadValue != null
-            ? leadValue - (turmaValorRecebido ?? 0)
+            ? leadValue - (valorRecebido ?? 0)
             : null;
           return (
             <div key={turma.id} className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-3">
@@ -184,19 +185,6 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
                   </div>
                 </div>
 
-                {/* Taxa de Matrícula */}
-                {(turma.enrollment_fee ?? 0) > 0 && (
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-500 flex items-center gap-1.5">
-                      <DollarSign size={11} className="text-amber-500" />
-                      Taxa de Matrícula
-                    </span>
-                    <span className="font-bold text-amber-600">
-                      R$ {Number(turma.enrollment_fee).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                )}
-
                 {/* Valor a Receber — only visible when payment toggle is ON */}
                 {payment.open && leadValue != null && (
                   <div className="pt-2 border-t border-slate-100 space-y-1.5">
@@ -206,11 +194,11 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
                         R$ {leadValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
-                    {(turmaValorRecebido ?? 0) > 0 && (
+                    {(valorRecebido ?? 0) > 0 && (
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-slate-400">− Valor Recebido</span>
                         <span className="font-semibold text-slate-600">
-                          R$ {Number(turmaValorRecebido).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          R$ {Number(valorRecebido).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
                     )}
