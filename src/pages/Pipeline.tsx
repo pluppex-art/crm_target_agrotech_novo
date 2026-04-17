@@ -62,7 +62,10 @@ export const Pipeline: React.FC = () => {
   const isComercial = useMemo(() => {
     if (!authUser?.id || profiles.length === 0) return false;
     const myProfile = profiles.find((p: any) => p.id === authUser.id);
-    return myProfile ? myProfile.department?.toLowerCase() === 'comercial' : false;
+    if (!myProfile) return false;
+    const isAdminRole = myProfile.cargos?.permissions?.includes('admin.all');
+    if (isAdminRole) return false;
+    return myProfile.department?.toLowerCase() === 'comercial';
   }, [authUser?.id, profiles]);
 
   const filters = usePipelineFilters(leads, authUser?.id, isComercial);

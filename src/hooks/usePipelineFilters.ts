@@ -45,7 +45,7 @@ export const usePipelineFilters = (leads: Lead[], authUserId?: string, isComerci
       lead.product.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (lead.responsible && lead.responsible.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesResponsible = selectedResponsible === 'all' || lead.responsible === selectedResponsible;
-    const matchesProduct = selectedProduct === 'all' || lead.product === selectedProduct;
+    const matchesProduct = selectedProduct === 'all' || lead.product?.trim().toLowerCase() === selectedProduct.trim().toLowerCase();
     const matchesStars = selectedStars === 'all' || (lead.stars || 0) === selectedStars;
     return matchesSearch && matchesResponsible && matchesProduct && matchesStars;
   }), [leads, searchTerm, selectedResponsible, selectedProduct, selectedStars]);
