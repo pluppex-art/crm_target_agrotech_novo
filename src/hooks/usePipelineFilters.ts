@@ -20,6 +20,20 @@ export const usePipelineFilters = (leads: Lead[], authUserId?: string, isComerci
     return profiles.find((p: any) => p.id === authUserId)?.name ?? null;
   }, [authUserId, profiles]);
 
+  // Valores únicos de produto que existem nos leads (preserva a grafia original do lead)
+  const productOptions = useMemo(() => {
+    const seen = new Set<string>();
+    return leads
+      .map(l => l.product)
+      .filter((p): p is string => !!p?.trim())
+      .filter(p => {
+        const key = p.trim().toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+  }, [leads]);
+
   // Nomes de responsáveis: perfis do Comercial/Vendedor + nomes únicos que aparecem nos leads
   const responsibles = useMemo(() => {
     const fromProfiles = profiles
@@ -85,6 +99,7 @@ export const usePipelineFilters = (leads: Lead[], authUserId?: string, isComerci
     selectedResponsible,
     selectedStars,
     responsibles,
+    productOptions,
     filteredLeads,
     activeFilterCount,
     clearAllFilters,
