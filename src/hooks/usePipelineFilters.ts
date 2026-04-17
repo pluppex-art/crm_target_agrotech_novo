@@ -20,9 +20,9 @@ export const usePipelineFilters = (leads: Lead[], authUserId?: string, isComerci
     return profiles.find((p: any) => p.id === authUserId)?.name ?? null;
   }, [authUserId, profiles]);
 
-  // Usuários do departamento Comercial OU com cargo Vendedor (ativos)
+  // Nomes de responsáveis: perfis do Comercial/Vendedor + nomes únicos que aparecem nos leads
   const responsibles = useMemo(() => {
-    return profiles
+    const fromProfiles = profiles
       .filter(p => {
         if (!p.status || p.status !== 'active' || !p.name) return false;
         const isComercialDept = p.department?.toLowerCase() === 'comercial';
@@ -30,7 +30,19 @@ export const usePipelineFilters = (leads: Lead[], authUserId?: string, isComerci
         return isComercialDept || isVendedorCargo;
       })
       .map(p => p.name as string);
-  }, [profiles]);
+
+    const fromLeads = leads
+      .map(l => l.responsible)
+      .filter((name): name is string => !!name?.trim());
+
+    const seen = new Set<string>();
+    return [...fromProfiles, ...fromLeads].filter(name => {
+      const key = name.trim().toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [profiles, leads]);
 
   // Comercial users see all leads but filter defaults to their own name
   useEffect(() => {
@@ -44,7 +56,7 @@ export const usePipelineFilters = (leads: Lead[], authUserId?: string, isComerci
       lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lead.product.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (lead.responsible && lead.responsible.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesResponsible = selectedResponsible === 'all' || lead.responsible === selectedResponsible;
+    const matchesResponsible = selectedResponsible === 'all' || lead.responsible?.trim().toLowerCase() === selectedResponsible.trim().toLowerCase();
     const matchesProduct = selectedProduct === 'all' || lead.product?.trim().toLowerCase() === selectedProduct.trim().toLowerCase();
     const matchesStars = selectedStars === 'all' || (lead.stars || 0) === selectedStars;
     return matchesSearch && matchesResponsible && matchesProduct && matchesStars;

@@ -2,24 +2,50 @@ import { useEffect, useState, useMemo } from 'react';
 import { Loader2, Search, ShieldAlert } from 'lucide-react';
 import { usePermissions } from '../hooks/usePermissions';
 import { useLeadStore } from '../store/useLeadStore';
+import { usePipelineStore } from '../store/usePipelineStore';
+import { useProfileStore } from '../store/useProfileStore';
 import { LeadsToolbar } from '../components/leads/LeadsToolbar';
 import { LeadsTable } from '../components/leads/LeadsTable';
 import { NewLeadModal } from '../components/leads/NewLeadModal';
+import { LeadDetailsModal } from '../components/leads/LeadDetailsModal';
+import type { Lead } from '../types/leads';
 
 export function Leads() {
   const { hasPermission, loading: permissionsLoading } = usePermissions();
-  const { leads, fetchLeads, isLoading, subscribeToLeads } = useLeadStore();
+  const { leads, fetchLeads, isLoading, subscribeToLeads, updateLeadStage, updateLead } = useLeadStore();
+  const { pipelines, fetchPipelines } = usePipelineStore();
+  const { profiles, fetchProfiles } = useProfileStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchLeads();
-  }, [fetchLeads]);
+    fetchPipelines();
+    fetchProfiles();
+  }, [fetchLeads, fetchPipelines, fetchProfiles]);
 
   useEffect(() => {
     const unsubscribe = subscribeToLeads();
     return unsubscribe;
   }, []);
+
+  const selectedLeadPipeline = useMemo(() => {
+    if (!selectedLead?.pipeline_id) return pipelines[0] ?? null;
+    return pipelines.find(p => p.id === selectedLead.pipeline_id) ?? pipelines[0] ?? null;
+  }, [selectedLead, pipelines]);
+
+  const pipelineStages = useMemo(() =>
+    (selectedLeadPipeline?.stages ?? []).map(s => ({ id: s.id, title: s.name, color: s.color || 'bg-blue-500' })),
+    [selectedLeadPipeline]
+  );
+
+  const responsibles = useMemo(() =>
+    profiles
+      .filter(p => p.status === 'active' && p.name && p.department?.toLowerCase() === 'comercial')
+      .map(p => p.name as string),
+    [profiles]
+  );
 
   const filteredLeads = useMemo(() => {
     return leads.filter(lead => 
@@ -86,12 +112,33 @@ export function Leads() {
         </div>
       </div>
 
-      <LeadsTable leads={filteredLeads} totalCount={leads.length} />
-
-      <NewLeadModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+      <LeadsTable
+        leads={filteredLeads}
+        totalCount={leads.length}
+        onLeadClick={setSelectedLead}
       />
+
+      <NewLeadModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
+
+      {selectedLead && (
+        <LeadDetailsModal
+          key={`lead-details-${selectedLead.id}`}
+          isOpen={!!selectedLead}
+          onClose={() => setSelectedLead(null)}
+          lead={leads.find(l => l.id === selectedLead.id) || selectedLead}
+          pipelineStages={pipelineStages}
+          currentStageId={selectedLead.stage_id || pipelineStages[0]?.id}
+          responsibles={responsibles}
+          onStageChange={(stageId) => {
+            const targetStage = selectedLeadPipeline?.stages.find(s => s.id === stageId);
+            updateLeadStage(selectedLead.id, stageId);
+            updateLead(selectedLead.id, { status: targetStage?.name ?? '' });
+          }}
+        />
+      )}
     </div>
   );
 }

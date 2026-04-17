@@ -4,7 +4,7 @@ import {
   flexRender, 
   createColumnHelper 
 } from '@tanstack/react-table';
-import { Search, Filter, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Lead } from '../../types/leads';
 import { useLeadStore } from '../../store/useLeadStore';
@@ -14,9 +14,10 @@ const columnHelper = createColumnHelper<Lead>();
 interface LeadsTableProps {
   leads: Lead[];
   totalCount: number;
+  onLeadClick?: (lead: Lead) => void;
 }
 
-export function LeadsTable({ leads, totalCount }: LeadsTableProps) {
+export function LeadsTable({ leads, totalCount, onLeadClick }: LeadsTableProps) {
   const { deleteLead } = useLeadStore();
 
   const columns = [
@@ -71,10 +72,8 @@ export function LeadsTable({ leads, totalCount }: LeadsTableProps) {
     columnHelper.display({
       id: 'actions',
       cell: (info) => (
-        <button 
-          onClick={() => {
-            deleteLead(info.row.original.id);
-          }}
+        <button
+          onClick={(e) => { e.stopPropagation(); deleteLead(info.row.original.id); }}
           className="p-2 text-slate-300 hover:text-red-600 transition-colors"
           title="Excluir cliente"
         >
@@ -113,7 +112,11 @@ export function LeadsTable({ leads, totalCount }: LeadsTableProps) {
           </thead>
           <tbody>
             {table.getRowModel().rows.map(row => (
-              <tr key={row.id} className="hover:bg-slate-50 transition-colors group">
+              <tr
+                key={row.id}
+                onClick={() => onLeadClick?.(row.original)}
+                className="hover:bg-slate-50 transition-colors group cursor-pointer"
+              >
                 {row.getVisibleCells().map(cell => (
                   <td key={cell.id} className="px-6 py-4 text-sm border-b border-slate-50">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
