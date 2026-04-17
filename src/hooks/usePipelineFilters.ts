@@ -20,14 +20,18 @@ export const usePipelineFilters = (leads: Lead[], authUserId?: string, isComerci
     return profiles.find((p: any) => p.id === authUserId)?.name ?? null;
   }, [authUserId, profiles]);
 
-  // Valores únicos de produto que existem nos leads (preserva a grafia original do lead)
+  // Nomes base únicos de produto (parte antes da primeira vírgula, ex: "Drone, Palmas-TO, 01/05" → "Drone")
   const productOptions = useMemo(() => {
     const seen = new Set<string>();
     return leads
-      .map(l => l.product)
-      .filter((p): p is string => !!p?.trim())
+      .map(l => {
+        const raw = l.product?.trim();
+        if (!raw) return null;
+        return raw.split(',')[0].trim();
+      })
+      .filter((p): p is string => !!p)
       .filter(p => {
-        const key = p.trim().toLowerCase();
+        const key = p.toLowerCase();
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
