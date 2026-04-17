@@ -241,15 +241,12 @@ export const Pipeline: React.FC = () => {
     );
   }, [currentPipeline]);
 
-  // Leads que contam para os totais financeiros:
-  // 1. Leads na etapa Ganho
-  // 2. Leads em outras etapas com PIX ativado + taxa preenchida + valor recebido preenchido
+  // Leads na etapa Ganho: base para os totais financeiros
   const ganhoLeads = useMemo(() => {
     return leads.filter(l => {
-      const matchesResponsible = filters.selectedResponsible === 'all' || l.responsible === filters.selectedResponsible;
-      if (!matchesResponsible) return false;
-      if (l.stage_id && ganhoStageIds.has(l.stage_id)) return true;
-      return l.pix_completed && l.taxa_matricula_recebido != null && l.valor_recebido != null;
+      if (!l.stage_id || !ganhoStageIds.has(l.stage_id)) return false;
+      if (filters.selectedResponsible !== 'all' && l.responsible !== filters.selectedResponsible) return false;
+      return true;
     });
   }, [leads, ganhoStageIds, filters.selectedResponsible]);
 
