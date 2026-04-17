@@ -241,12 +241,15 @@ export const Pipeline: React.FC = () => {
     );
   }, [currentPipeline]);
 
-  // Leads em etapa Ganho: responde ao filtro de responsável (todos quando "all", ou somente o selecionado)
+  // Leads que contam para os totais financeiros:
+  // 1. Leads na etapa Ganho
+  // 2. Leads em outras etapas com PIX ativado + taxa preenchida + valor recebido preenchido
   const ganhoLeads = useMemo(() => {
     return leads.filter(l => {
-      if (!l.stage_id || !ganhoStageIds.has(l.stage_id)) return false;
-      if (filters.selectedResponsible !== 'all' && l.responsible !== filters.selectedResponsible) return false;
-      return true;
+      const matchesResponsible = filters.selectedResponsible === 'all' || l.responsible === filters.selectedResponsible;
+      if (!matchesResponsible) return false;
+      if (l.stage_id && ganhoStageIds.has(l.stage_id)) return true;
+      return l.pix_completed && l.taxa_matricula_recebido != null && l.valor_recebido != null;
     });
   }, [leads, ganhoStageIds, filters.selectedResponsible]);
 
