@@ -250,20 +250,25 @@ export const Pipeline: React.FC = () => {
     });
   }, [leads, ganhoStageIds, filters.selectedResponsible]);
 
-  // Ganho Caixa: soma dos valores efetivamente recebidos dos leads em etapa Ganho
+  // Helper: acha produto pelo nome do lead usando includes (ignora caixa e sufixos de data/local)
+  const findProductForLead = (leadProduct: string) =>
+    products.find(p => {
+      const pName = p.name.toLowerCase().trim();
+      const lName = leadProduct.toLowerCase().trim();
+      return lName === pName || lName.includes(pName);
+    });
+
+  // Ganho Caixa: valor recebido (venda + taxa de matrícula)
   const caixaTotalValue = useMemo(() => {
     const ganhoLeadIds = new Set(ganhoLeads.map(l => l.id));
 
     const leadTotal = ganhoLeads.reduce((sum, lead) => {
       let total = 0;
-      // Valor recebido da venda principal
       if (lead.valor_recebido != null) total += lead.valor_recebido;
-      // Taxa de matrícula recebida: usa o campo direto se existir,
-      // caso contrário usa o enrollment_fee do produto quando pix foi confirmado
       if (lead.taxa_matricula_recebido != null) {
         total += lead.taxa_matricula_recebido;
       } else if (lead.pix_completed) {
-        const product = products.find(p => p.name === lead.product);
+        const product = findProductForLead(lead.product);
         total += (product?.enrollment_fee ?? 0);
       }
       return sum + total;
@@ -281,16 +286,16 @@ export const Pipeline: React.FC = () => {
     return leadTotal + turmaTotal;
   }, [ganhoLeads, products, turmas]);
 
-  // Competências: valor total comprometido (valor de venda) dos leads em etapa Ganho
+  // Competências: valor de venda + taxa de matrícula dos leads em etapa Ganho
   const competenciaTotalValue = useMemo(() => {
     const ganhoLeadIds = new Set(ganhoLeads.map(l => l.id));
 
-    // Valor efetivo de cada lead ganho (com desconto aplicado)
     const leadCompetencia = ganhoLeads.reduce((sum, lead) => {
-      return sum + getLeadEffectiveValue(lead);
+      const product = findProductForLead(lead.product);
+      const enrollmentFee = product?.enrollment_fee ?? 0;
+      return sum + getLeadEffectiveValue(lead) + enrollmentFee;
     }, 0);
 
-    // Valor de vendas nas turmas para leads ganhos
     const turmaCompetencia = turmas.reduce((sum, turma) => {
       return sum + turma.attendees.reduce((s, a) => {
         if (a.lead_id && ganhoLeadIds.has(a.lead_id)) {
@@ -301,7 +306,7 @@ export const Pipeline: React.FC = () => {
     }, 0);
 
     return leadCompetencia + turmaCompetencia;
-  }, [ganhoLeads, turmas]);
+  }, [ganhoLeads, products, turmas]);
 
 
 

@@ -6,6 +6,7 @@ import { useLeadChecklist } from '../../hooks/useLeadChecklist';
 import { Lead, LeadSubStatus } from '../../types/leads';
 import { cn, getLeadEffectiveValue } from '../../lib/utils';
 import { useLeadStore } from '../../store/useLeadStore';
+import { useProductStore } from '../../store/useProductStore';
 import { getElapsedHours } from '../../services/alertService';
 
 
@@ -18,11 +19,29 @@ interface LeadCardProps {
 }
 
 
-export function LeadCard({ lead, index, onDoubleClick, columnId, isDragging }: LeadCardProps) {
+export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragging }: LeadCardProps) {
   const { updateLeadSubStatus, deleteLead, setSelectedLead } = useLeadStore();
+  const { products } = useProductStore();
+
+  const product = products.find(p => {
+    const pName = p.name.toLowerCase().trim();
+    const lName = (lead.product ?? '').toLowerCase().trim();
+    return lName === pName || lName.includes(pName);
+  });
+  const enrollmentFee = product?.enrollment_fee ?? 0;
+  const totalDisplayValue = getLeadEffectiveValue(lead) + enrollmentFee;
+
   const elapsedHours = getElapsedHours(lead);
-  const isWarning = elapsedHours >= 12 && elapsedHours < 18 && lead.status !== 'closed';
-  const isDanger = elapsedHours >= 18 && lead.status !== 'closed';
+  const stageName = (lead.status ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const isInactiveStage =
+    stageName.includes('ganho') ||
+    stageName.includes('aprovado') ||
+    stageName.includes('fechado') ||
+    stageName.includes('perdido') ||
+    stageName.includes('aquecimento') ||
+    stageName.includes('desqualificado');
+  const isWarning = elapsedHours >= 12 && elapsedHours < 18 && !isInactiveStage;
+  const isDanger = elapsedHours >= 18 && !isInactiveStage;
 
   const { allRequiredCompleted, requiredCompleted, requiredTotal } = useLeadChecklist({
     leadId: lead.id,
@@ -107,7 +126,7 @@ export function LeadCard({ lead, index, onDoubleClick, columnId, isDragging }: L
 
         <div className="flex items-center justify-between pt-2">
           <span className="text-sm font-bold text-slate-800">
-            R$ {getLeadEffectiveValue(lead).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+            R$ {totalDisplayValue.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
           </span>
           <button
               onClick={(e) => { e.stopPropagation(); setSelectedLead(lead); }}

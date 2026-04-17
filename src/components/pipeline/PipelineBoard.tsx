@@ -16,6 +16,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { LeadCard } from './LeadCard';
 import { cn } from '../../lib/utils';
 import { getLeadEffectiveValue } from '../../lib/utils';
+import { useProductStore } from '../../store/useProductStore';
 import type { Lead } from '../../types/leads';
 
 function DroppableArea({
@@ -109,6 +110,7 @@ export const PipelineBoard: React.FC<PipelineBoardProps> = ({
   onAddLeadToColumn,
 }) => {
   const [activeLead, setActiveLead] = useState<Lead | null>(null);
+  const { products } = useProductStore();
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -148,10 +150,14 @@ export const PipelineBoard: React.FC<PipelineBoardProps> = ({
             const columnLeads = filteredLeads.filter(
               (l) => (l.stage_id || columns[0]?.id) === column.id
             );
-            const columnSum = columnLeads.reduce(
-              (sum, l) => sum + getLeadEffectiveValue(l),
-              0
-            );
+            const columnSum = columnLeads.reduce((sum, l) => {
+              const p = products.find(prod => {
+                const pn = prod.name.toLowerCase().trim();
+                const ln = (l.product ?? '').toLowerCase().trim();
+                return ln === pn || ln.includes(pn);
+              });
+              return sum + getLeadEffectiveValue(l) + (p?.enrollment_fee ?? 0);
+            }, 0);
             const isMinimized = minimizedColumns.has(column.id);
 
             return (
