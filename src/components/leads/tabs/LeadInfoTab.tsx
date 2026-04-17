@@ -144,7 +144,7 @@ const [valorRecebidoOpen, setValorRecebidoOpen] = useState(
               </div>
               <div className="flex items-center gap-2">
                 <QrCode size={15} className="text-slate-400" />
-                <span className="text-sm font-semibold text-slate-700">PIX realizado</span>
+                <span className="text-sm font-semibold text-slate-700">Taxa Matrícula</span>
               </div>
             </label>
             <div className="flex-1">
@@ -153,7 +153,7 @@ const [valorRecebidoOpen, setValorRecebidoOpen] = useState(
                 step="0.01"
                 min="0"
                 disabled={!pixCompleted}
-                value={formData.taxa_matricula_recebido ?? ''}
+                value={pixCompleted ? (formData.taxa_matricula_recebido ?? enrollmentFee) : enrollmentFee}
                 onChange={(e) => updateFormField({ taxa_matricula_recebido: e.target.value ? parseFloat(e.target.value) : null })}
                 onBlur={(e) => toggleField?.('taxa_matricula_recebido', e.target.value ? parseFloat(e.target.value) : null)}
                 placeholder="Taxa matrícula R$"
