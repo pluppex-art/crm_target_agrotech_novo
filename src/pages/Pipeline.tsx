@@ -334,7 +334,7 @@ export const Pipeline: React.FC = () => {
         selectedResponsible={filters.selectedResponsible}
         selectedStars={filters.selectedStars}
         responsibles={filters.responsibles}
-        products={filters.productOptions.map(p => ({ id: p, name: p }))}
+        products={products}
         columns={COLUMNS}
         onSearchChange={filters.setSearchTerm}
         onStatusChange={filters.setSelectedStatus}
