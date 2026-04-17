@@ -38,8 +38,14 @@ const [valorRecebidoOpen, setValorRecebidoOpen] = useState(
   const finalValue = calculateFinalValue();
   const hasDiscount = formData.discount_applied && Math.abs(finalValue - baseValue) > 0.01;
 
-  const currentProduct = products.find(p => p.name === formData.product);
+  const currentProduct = products.find(p => {
+    const pName = p.name.toLowerCase().trim();
+    const lName = (formData.product ?? '').toLowerCase().trim();
+    return lName === pName || lName.includes(pName);
+  });
   const isServiceProduct = (currentProduct?.category || '').toLowerCase().startsWith('serviço') || (currentProduct?.category || '').toLowerCase().startsWith('servico');
+  const enrollmentFee = currentProduct?.enrollment_fee ?? 0;
+  const totalWithFee = finalValue + enrollmentFee;
 
   return (
     <div className="space-y-6">
@@ -99,7 +105,7 @@ const [valorRecebidoOpen, setValorRecebidoOpen] = useState(
               "font-bold text-emerald-600 transition-all duration-200",
               hasDiscount ? "text-sm leading-tight" : "text-base leading-normal"
             )}>
-              R$ {finalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              R$ {totalWithFee.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </span>
           </div>
             <span className="text-xs text-slate-400">· {formData.cnpj ? formatCPFCNPJ(formData.cnpj) : 'Sem CPF/CNPJ'}</span>
