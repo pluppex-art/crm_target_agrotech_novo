@@ -125,7 +125,14 @@ const [valorRecebidoOpen, setValorRecebidoOpen] = useState(
                 <input
                   type="checkbox"
                   checked={pixCompleted ?? false}
-                  onChange={(e) => onPixComplete?.(e.target.checked)}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    onPixComplete?.(checked);
+                    if (checked && !formData.taxa_matricula_recebido && enrollmentFee > 0) {
+                      updateFormField({ taxa_matricula_recebido: enrollmentFee });
+                      toggleField?.('taxa_matricula_recebido', enrollmentFee);
+                    }
+                  }}
                   className="sr-only peer"
                 />
                 <div className={cn(
@@ -145,11 +152,17 @@ const [valorRecebidoOpen, setValorRecebidoOpen] = useState(
                 type="number"
                 step="0.01"
                 min="0"
+                disabled={!pixCompleted}
                 value={formData.taxa_matricula_recebido ?? ''}
                 onChange={(e) => updateFormField({ taxa_matricula_recebido: e.target.value ? parseFloat(e.target.value) : null })}
                 onBlur={(e) => toggleField?.('taxa_matricula_recebido', e.target.value ? parseFloat(e.target.value) : null)}
                 placeholder="Taxa matrícula R$"
-                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-sm font-medium shadow-sm"
+                className={cn(
+                  "w-full px-3 py-2 border rounded-xl outline-none text-sm font-medium shadow-sm transition-all",
+                  pixCompleted
+                    ? "bg-white border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                    : "bg-slate-50 border-slate-100 text-slate-400 cursor-not-allowed"
+                )}
               />
             </div>
           </div>
