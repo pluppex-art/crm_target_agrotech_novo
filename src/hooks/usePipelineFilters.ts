@@ -70,8 +70,18 @@ export const usePipelineFilters = (leads: Lead[], authUserId?: string, isComerci
       lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lead.product.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (lead.responsible && lead.responsible.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesResponsible = selectedResponsible === 'all' || lead.responsible?.trim().toLowerCase() === selectedResponsible.trim().toLowerCase();
-    const matchesProduct = selectedProduct === 'all' || lead.product?.trim().toLowerCase() === selectedProduct.trim().toLowerCase();
+    const selectedResponsibleLower = selectedResponsible.trim().toLowerCase();
+    const leadResponsibleLower = (lead.responsible ?? '').trim().toLowerCase();
+    const matchesResponsible = selectedResponsible === 'all' ||
+      leadResponsibleLower === selectedResponsibleLower ||
+      leadResponsibleLower.includes(selectedResponsibleLower) ||
+      selectedResponsibleLower.includes(leadResponsibleLower);
+    const selectedProductLower = selectedProduct.trim().toLowerCase();
+    const leadProductLower = (lead.product ?? '').trim().toLowerCase();
+    const matchesProduct = selectedProduct === 'all' ||
+      leadProductLower === selectedProductLower ||
+      leadProductLower.includes(selectedProductLower) ||
+      selectedProductLower.includes(leadProductLower);
     const matchesStars = selectedStars === 'all' || (lead.stars || 0) === selectedStars;
     return matchesSearch && matchesResponsible && matchesProduct && matchesStars;
   }), [leads, searchTerm, selectedResponsible, selectedProduct, selectedStars]);
