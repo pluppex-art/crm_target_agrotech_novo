@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   GraduationCap,
@@ -38,8 +38,12 @@ import { LeadDetailsModal } from '../components/leads/LeadDetailsModal';
 import { Lead } from '../types/leads';
 import { getSupabaseClient } from '../lib/supabase';
 import { cn } from '../lib/utils';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { usePermissions } from '../hooks/usePermissions';
+
+const totalVendasTurma = (turma: Turma): number => 
+  (turma.attendees || []).reduce((sum: number, a) => sum + (a.vendas || 0), 0);
+
 
 // ── Column definitions — order: matriculado → cancelado → indeciso → confirmado ──
 const STATUS_COLUMNS: { id: AttendanceStatus; label: string; color: string; bg: string; icon: React.ReactNode }[] = [
@@ -174,8 +178,11 @@ export function Turmas() {
     ? turmas.find(t => t.id === selectedTurma.id) ?? selectedTurma
     : null;
 
-  const totalVendasTurma = (t: Turma) =>
-    t.attendees.reduce((acc, a) => acc + a.vendas, 0);
+  const handleMarkConcluida = () => {
+    if (!liveSelectedTurma) return;
+    // TODO: Call store updateTurma when implemented
+    console.log('Marking turma as concluida:', liveSelectedTurma.id);
+  };
 
 
 
@@ -369,6 +376,15 @@ export function Turmas() {
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
+                {liveSelectedTurma.status !== 'concluida' && (
+                  <button
+                    onClick={handleMarkConcluida}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all"
+                  >
+                    <CheckCheck size={14} />
+                    <span className="hidden sm:inline">Turma Concluída</span>
+                  </button>
+                )}
                 <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-0.5">
                   <button
                     onClick={() => setViewMode('kanban')}
@@ -398,7 +414,7 @@ export function Turmas() {
             <div className="px-4 sm:px-6 py-3 bg-slate-50/50 border-b border-slate-100 grid grid-cols-4 gap-2 sm:gap-3">
               {STATUS_COLUMNS.map(col => {
                 const count = (liveSelectedTurma.attendees || []).filter(a => a.status === col.id).length;
-                const total = (liveSelectedTurma.attendees || []).filter(a => a.status === col.id).reduce((s, a) => s + (a.vendas || 0), 0);
+                const total = (liveSelectedTurma.attendees || []).filter(a => a.status === col.id).reduce((s: number, a) => s + (a.vendas || 0), 0 as number);
                 return (
                   <div key={col.id} className={cn('rounded-xl p-2.5 border transition-colors', col.bg)}>
                     <div className="flex items-center gap-1 mb-1">
@@ -695,6 +711,7 @@ function AttendeeCard({ attendee, id, onViewDetails, onRemove, onCheckIn, onNoSh
       {/* CheckIn / NoShow buttons */}
       {(onCheckIn || onNoShow) && (
         <div className="flex items-center gap-1.5 pt-2 border-t border-slate-50" onClick={(e) => e.stopPropagation()}>
+          {/* Mostra CheckIn se não estiver confirmado */}
           {onCheckIn && attendee.status !== 'confirmado' && (
             <button
               onPointerDown={(e) => e.stopPropagation()}
@@ -704,6 +721,7 @@ function AttendeeCard({ attendee, id, onViewDetails, onRemove, onCheckIn, onNoSh
               <LogIn size={11} /> CheckIn
             </button>
           )}
+          {/* Mostra NoShow se não estiver cancelado */}
           {onNoShow && attendee.status !== 'cancelado' && (
             <button
               onPointerDown={(e) => e.stopPropagation()}
@@ -718,3 +736,5 @@ function AttendeeCard({ attendee, id, onViewDetails, onRemove, onCheckIn, onNoSh
     </div>
   );
 }
+
+
