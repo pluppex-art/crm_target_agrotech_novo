@@ -61,7 +61,7 @@ function getStageClasses(colorClass: string): { active: string; inactive: string
 
 
 
-const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({
+const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType }> = ({
   isOpen,
   onClose,
   lead,
@@ -71,8 +71,9 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({
   turmaAttendee,
   onTurmaStatusChange,
   responsibles,
+  initialTab,
 }) => {
-  const [activeTab, setActiveTab] = useState<TabType>('info');
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab ?? 'info');
   const form = useLeadForm({ lead, onClose });
   const { products } = useProductStore();
   const { profiles, fetchProfiles } = useProfileStore();
