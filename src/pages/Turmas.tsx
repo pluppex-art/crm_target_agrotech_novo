@@ -17,6 +17,8 @@ import {
   Edit2,
   BookOpen,
   Search,
+  List,
+  LayoutGrid,
 } from 'lucide-react';
 import { DndContext, useSensors, useSensor, PointerSensor, closestCenter } from '@dnd-kit/core';
 import {
@@ -73,6 +75,8 @@ export function Turmas() {
   const [selectedAttendeeLead, setSelectedAttendeeLead] = useState<Lead | null>(null);
   const [selectedAttendeeInfo, setSelectedAttendeeInfo] = useState<{ turmaId: string; attendeeId: string; currentStatus: AttendanceStatus } | null>(null);
   const [loadingAttendeeDetail, setLoadingAttendeeDetail] = useState(false);
+  const [viewMode, setViewMode] = useState<'kanban' | 'lista'>('kanban');
+  const [attendeeInitialTab, setAttendeeInitialTab] = useState<'info' | 'turma'>('info');
 
   useEffect(() => {
     fetchTurmas();
@@ -261,7 +265,7 @@ export function Turmas() {
                   key={turma.id}
                   onClick={() => setSelectedTurma(isSelected ? null : turma)}
                   className={cn(
-                    'bg-white rounded-2xl p-5 border cursor-pointer transition-all shadow-sm hover:shadow-md group',
+                    'bg-white rounded-2xl p-5 border cursor-pointer transition-all shadow-sm hover:shadow-md group relative overflow-hidden',
                     isSelected ? 'border-emerald-400 ring-2 ring-emerald-200' : 'border-slate-100 hover:border-emerald-200'
                   )}
                 >
@@ -322,6 +326,12 @@ export function Turmas() {
                       style={{ width: (turma.attendees || []).length ? `${(confirmados / turma.attendees.length) * 100}%` : '0%' }}
                     />
                   </div>
+
+                  {turma.status === 'concluida' && (
+                    <div className="absolute top-[18px] right-[-30px] w-[110px] bg-slate-500 text-white text-[9px] font-bold py-[3px] text-center rotate-45 shadow pointer-events-none select-none">
+                      Concluída
+                    </div>
+                  )}
                 </div>
               );
             })
@@ -350,56 +360,83 @@ export function Turmas() {
                   <div className="hidden sm:flex items-center gap-1"><MapPin size={11} className="text-emerald-500" />{liveSelectedTurma.location || '--'}</div>
                 </div>
               </div>
-              <button
-                onClick={() => setSelectedTurma(null)}
-                className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors shadow-sm bg-white shrink-0"
-              >
-                <X size={20} />
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                {liveSelectedTurma.status !== 'concluida' && (
+                  <button
+                    onClick={() => updateTurma(liveSelectedTurma.id, { status: 'concluida' })}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-xl transition-colors"
+                  >
+                    <CheckCircle2 size={13} />
+                    Concluída
+                  </button>
+                )}
+                <button
+                  onClick={() => setSelectedTurma(null)}
+                  className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors shadow-sm bg-white shrink-0"
+                >
+                  <X size={20} />
+                </button>
+              </div>
             </div>
 
-            {/* Stats Row */}
-            <div className="px-4 sm:px-6 py-3 bg-slate-50/50 border-b border-slate-100 grid grid-cols-4 gap-2 sm:gap-3">
-              {STATUS_COLUMNS.map(col => {
-                const count = (liveSelectedTurma.attendees || []).filter(a => a.status === col.id).length;
-                const total = (liveSelectedTurma.attendees || []).filter(a => a.status === col.id).reduce((s, a) => s + (a.vendas || 0), 0);
-                return (
-                  <div key={col.id} className={cn('rounded-xl p-2.5 border transition-colors', col.bg)}>
-                    <div className="flex items-center gap-1 mb-1">
-                      {col.icon}
-                      <span className={cn('text-[10px] font-bold hidden sm:block', col.color)}>{col.label}</span>
-                    </div>
-                    <p className="text-xl font-bold text-slate-800">{count}</p>
-                    <p className="text-[10px] text-slate-500 mt-0.5">R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}</p>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Kanban Attendance */}
+            {/* Attendance Section */}
             <div className="flex-1 overflow-auto p-4 custom-scrollbar">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4 px-2">
-                Lista de Presença
-              </p>
-
-              <DndContext
-                key={`dnd-${liveSelectedTurma.id}`}
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={onDragEnd}
-              >
-                <div className="flex lg:flex-row flex-col gap-4 h-full min-h-[300px]">
-                  {STATUS_COLUMNS.map(col => (
-                    <TurmaColumn
-                      key={`col-${col.id}-${liveSelectedTurma.id}`}
-                      column={col}
-                      attendees={liveSelectedTurma.attendees || []}
-                      onAttendeeClick={(att) => handleAttendeeClick(att, liveSelectedTurma.id)}
-                      onRemoveAttendee={(attId) => removeAttendee(liveSelectedTurma.id, attId)}
-                    />
-                  ))}
+              <div className="flex items-center justify-between mb-4 px-2">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Lista de Presença</p>
+                <div className="flex items-center gap-0.5 bg-slate-100 rounded-xl p-1">
+                  <button
+                    onClick={() => setViewMode('kanban')}
+                    className={cn('flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all', viewMode === 'kanban' ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400 hover:text-slate-600')}
+                  >
+                    <LayoutGrid size={11} />
+                    Kanban
+                  </button>
+                  <button
+                    onClick={() => setViewMode('lista')}
+                    className={cn('flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all', viewMode === 'lista' ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400 hover:text-slate-600')}
+                  >
+                    <List size={11} />
+                    Lista
+                  </button>
                 </div>
-              </DndContext>
+              </div>
+
+              {viewMode === 'kanban' ? (
+                <DndContext
+                  key={`dnd-${liveSelectedTurma.id}`}
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={onDragEnd}
+                >
+                  <div className="flex lg:flex-row flex-col gap-4 h-full min-h-[300px]">
+                    {STATUS_COLUMNS.map(col => (
+                      <TurmaColumn
+                        key={`col-${col.id}-${liveSelectedTurma.id}`}
+                        column={col}
+                        attendees={liveSelectedTurma.attendees || []}
+                        onAttendeeClick={(att) => { setAttendeeInitialTab('info'); handleAttendeeClick(att, liveSelectedTurma.id); }}
+                        onRemoveAttendee={(attId) => removeAttendee(liveSelectedTurma.id, attId)}
+                        onCheckIn={(att) => { setAttendeeInitialTab('turma'); handleAttendeeClick(att, liveSelectedTurma.id); }}
+                        onNoShow={(attId) => {
+                          updateAttendeeStatus(liveSelectedTurma.id, attId, 'cancelado');
+                          setSelectedTurma(prev => prev ? { ...prev, attendees: prev.attendees.map(a => a.id === attId ? { ...a, status: 'cancelado' as const } : a) } : null);
+                        }}
+                      />
+                    ))}
+                  </div>
+                </DndContext>
+              ) : (
+                <AttendeeListView
+                  attendees={liveSelectedTurma.attendees || []}
+                  onAttendeeClick={(att) => { setAttendeeInitialTab('info'); handleAttendeeClick(att, liveSelectedTurma.id); }}
+                  onRemoveAttendee={(attId) => removeAttendee(liveSelectedTurma.id, attId)}
+                  onCheckIn={(att) => { setAttendeeInitialTab('turma'); handleAttendeeClick(att, liveSelectedTurma.id); }}
+                  onNoShow={(attId) => {
+                    updateAttendeeStatus(liveSelectedTurma.id, attId, 'cancelado');
+                    setSelectedTurma(prev => prev ? { ...prev, attendees: prev.attendees.map(a => a.id === attId ? { ...a, status: 'cancelado' as const } : a) } : null);
+                  }}
+                />
+              )}
             </div>
 
 
@@ -434,6 +471,7 @@ export function Turmas() {
           turmaAttendee={selectedAttendeeInfo ?? undefined}
           currentStageId={selectedAttendeeInfo?.currentStatus}
           responsibles={responsibles}
+          initialTab={attendeeInitialTab}
           onTurmaStatusChange={(turmaId: string, attendeeId: string, status: AttendanceStatus) => {
             updateAttendeeStatus(turmaId, attendeeId, status);
             setSelectedAttendeeInfo(prev => prev ? { ...prev, currentStatus: status } : null);
@@ -444,15 +482,21 @@ export function Turmas() {
   );
 }
 
-/* ── Turma Column Component ────────────────────────────────────────────────── */
-interface TurmaColumnProps {
-  column: typeof STATUS_COLUMNS[number];
-  attendees: TurmaAttendee[];
+/* ── Shared attendee action props ──────────────────────────────────────────── */
+interface AttendeeActions {
   onAttendeeClick: (att: TurmaAttendee) => void;
   onRemoveAttendee: (attId: string) => void;
+  onCheckIn: (att: TurmaAttendee) => void;
+  onNoShow: (attId: string) => void;
 }
 
-function TurmaColumn({ column, attendees, onAttendeeClick, onRemoveAttendee }: TurmaColumnProps) {
+/* ── Turma Column Component ────────────────────────────────────────────────── */
+interface TurmaColumnProps extends AttendeeActions {
+  column: typeof STATUS_COLUMNS[number];
+  attendees: TurmaAttendee[];
+}
+
+function TurmaColumn({ column, attendees, onAttendeeClick, onRemoveAttendee, onCheckIn, onNoShow }: TurmaColumnProps) {
   const attendeesInCol = attendees.filter(a => a.status === column.id);
   const { isOver, setNodeRef } = useDroppable({ id: column.id });
 
@@ -476,10 +520,70 @@ function TurmaColumn({ column, attendees, onAttendeeClick, onRemoveAttendee }: T
               id={att.id}
               onViewDetails={att.lead_id ? () => onAttendeeClick(att) : undefined}
               onRemove={() => onRemoveAttendee(att.id)}
+              onCheckIn={() => onCheckIn(att)}
+              onNoShow={() => onNoShow(att.id)}
             />
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ── Attendee List View ────────────────────────────────────────────────────── */
+function AttendeeListView({ attendees, onAttendeeClick, onRemoveAttendee, onCheckIn, onNoShow }: AttendeeActions & { attendees: TurmaAttendee[] }) {
+  const sorted = [...attendees].sort((a, b) => a.name.localeCompare(b.name));
+  if (sorted.length === 0) {
+    return <p className="text-xs text-slate-400 text-center py-10">Nenhum participante.</p>;
+  }
+  return (
+    <div className="space-y-1.5">
+      {sorted.map(att => {
+        const col = STATUS_COLUMNS.find(c => c.id === att.status);
+        return (
+          <div key={att.id} className="bg-white rounded-xl border border-slate-100 px-3 py-2.5 flex items-center gap-3 shadow-sm hover:border-emerald-200 transition-colors group/row">
+            <img
+              src={att.photo}
+              alt={att.name}
+              onClick={() => att.lead_id && onAttendeeClick(att)}
+              className={cn('w-8 h-8 rounded-full object-cover border-2 border-slate-100 shrink-0', att.lead_id && 'cursor-pointer hover:opacity-80')}
+              referrerPolicy="no-referrer"
+            />
+            <div className="flex-1 min-w-0" onClick={() => att.lead_id && onAttendeeClick(att)}>
+              <p className="text-xs font-bold text-slate-700 truncate leading-tight">{att.name}</p>
+              <p className="text-[10px] text-slate-400 truncate">{att.responsible || 'Sem responsável'}</p>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {att.valor_recebido != null && att.valor_recebido > 0 && (
+                <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full hidden sm:inline">
+                  Rec. R$ {att.valor_recebido.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                </span>
+              )}
+              {col && (
+                <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full border', col.bg, col.color)}>{col.label}</span>
+              )}
+              <button
+                onClick={() => onCheckIn(att)}
+                className="px-2 py-1 text-[10px] font-bold bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors opacity-0 group-hover/row:opacity-100"
+              >
+                Check-in
+              </button>
+              <button
+                onClick={() => onNoShow(att.id)}
+                className="px-2 py-1 text-[10px] font-bold bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors opacity-0 group-hover/row:opacity-100"
+              >
+                No-show
+              </button>
+              <button
+                onClick={() => onRemoveAttendee(att.id)}
+                className="p-1 rounded-lg text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors opacity-0 group-hover/row:opacity-100"
+              >
+                <X size={13} />
+              </button>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -490,9 +594,11 @@ interface AttendeeCardProps {
   id: string;
   onViewDetails?: () => void;
   onRemove?: () => void;
+  onCheckIn?: () => void;
+  onNoShow?: () => void;
 }
 
-function AttendeeCard({ attendee, id, onViewDetails, onRemove }: AttendeeCardProps) {
+function AttendeeCard({ attendee, id, onViewDetails, onRemove, onCheckIn, onNoShow }: AttendeeCardProps) {
   const [confirmingRemove, setConfirmingRemove] = useState(false);
 
   const {
@@ -550,6 +656,24 @@ function AttendeeCard({ attendee, id, onViewDetails, onRemove }: AttendeeCardPro
               {attendee.forma_pagamento}
             </span>
           )}
+        </div>
+
+        {/* Check-in / No-show quick actions */}
+        <div className="flex items-center gap-1 mt-1.5 opacity-0 group-hover/card:opacity-100 transition-opacity">
+          <button
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); onCheckIn?.(); }}
+            className="px-1.5 py-0.5 text-[9px] font-bold bg-emerald-50 text-emerald-600 rounded-md hover:bg-emerald-100 transition-colors"
+          >
+            Check-in
+          </button>
+          <button
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); onNoShow?.(); }}
+            className="px-1.5 py-0.5 text-[9px] font-bold bg-red-50 text-red-500 rounded-md hover:bg-red-100 transition-colors"
+          >
+            No-show
+          </button>
         </div>
       </div>
 
