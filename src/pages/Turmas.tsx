@@ -280,114 +280,97 @@ export function Turmas() {
               const st = TURMA_STATUS_LABELS[turma.status] || TURMA_STATUS_LABELS.agendada;
               const isSelected = liveSelectedTurma?.id === turma.id;
 
+              const isConcluida = turma.status === 'concluida';
+
               return (
                 <div
                   key={turma.id}
                   onClick={() => setSelectedTurma(isSelected ? null : turma)}
                   className={cn(
-                    'bg-white rounded-2xl p-5 border cursor-pointer transition-all shadow-sm hover:shadow-md group relative overflow-hidden',
-                    isSelected ? 'border-emerald-400 ring-2 ring-emerald-200' : 'border-slate-100 hover:border-emerald-200'
+                    'rounded-2xl border cursor-pointer transition-all shadow-sm hover:shadow-md group relative overflow-hidden',
+                    isConcluida
+                      ? 'bg-gradient-to-br from-emerald-50 to-white border-emerald-200 hover:border-emerald-400'
+                      : 'bg-white border-slate-100 hover:border-emerald-200',
+                    isSelected ? 'border-emerald-400 ring-2 ring-emerald-200' : ''
                   )}
                 >
-                  {/* Fita "Concluído" inspirada na referência de X da tela */}
-                  {turma.status === 'concluida' && (
-                    <div className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden z-10 rounded-2xl">
-                       <div 
-                         className="absolute w-[150%] text-center py-1.5 font-black text-[11px] tracking-widest text-[#064e3b] uppercase shadow-emerald-900/20 shadow-xl flex items-center justify-center gap-2"
-                         style={{
-                           transform: 'rotate(18deg)',
-                           background: `repeating-linear-gradient(
-                             -45deg,
-                             #10b981,
-                             #10b981 15px,
-                             #059669 15px,
-                             #059669 30px
-                           )`,
-                           borderTop: '2px solid #065f46',
-                           borderBottom: '2px solid #065f46',
-                           textShadow: '0 1px 1px rgba(255,255,255,0.5)'
-                         }}
-                       >
-                         TURMA CONCLUÍDA
-                       </div>
-                       <div 
-                         className="absolute w-[150%] text-center py-1.5 font-black text-[11px] tracking-widest text-[#064e3b] uppercase shadow-emerald-900/20 shadow-xl flex items-center justify-center gap-2"
-                         style={{
-                           transform: 'rotate(-18deg)',
-                           background: `repeating-linear-gradient(
-                             -45deg,
-                             #10b981,
-                             #10b981 15px,
-                             #059669 15px,
-                             #059669 30px
-                           )`,
-                           borderTop: '2px solid #065f46',
-                           borderBottom: '2px solid #065f46',
-                           textShadow: '0 1px 1px rgba(255,255,255,0.5)',
-                           opacity: 0.95
-                         }}
-                       >
-                         TURMA CONCLUÍDA
-                       </div>
+                  {/* Banner superior para turmas concluídas */}
+                  {isConcluida && (
+                    <div
+                      className="w-full flex items-center justify-center gap-2 py-2 px-4"
+                      style={{
+                        background: 'repeating-linear-gradient(-45deg, #10b981, #10b981 14px, #059669 14px, #059669 28px)',
+                        borderBottom: '2px solid #065f46',
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d1fae5" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      <span className="text-[11px] font-black tracking-widest uppercase text-emerald-50" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>
+                        Turma Concluída
+                      </span>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d1fae5" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                     </div>
                   )}
 
-                  <div className="flex items-start justify-between mb-3 relative z-20">
-                    <div className="flex-1">
-                      <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full', st.color)}>{st.label}</span>
-                      <h3 className="font-bold text-slate-800 mt-2 leading-tight">{turma.name}</h3>
-                      <p className="text-xs text-slate-500 mt-0.5">{turma.professor_name || 'Sem professor'}</p>
+                  <div className="p-5">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        {!isConcluida && (
+                          <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full', st.color)}>{st.label}</span>
+                        )}
+                        <h3 className={cn('font-bold leading-tight', isConcluida ? 'text-emerald-900 text-base mt-0' : 'text-slate-800 mt-2')}>{turma.name}</h3>
+                        <p className={cn('text-xs mt-0.5', isConcluida ? 'text-emerald-700' : 'text-slate-500')}>{turma.professor_name || 'Sem professor'}</p>
+                      </div>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={e => { e.stopPropagation(); setEditingTurma(turma); setIsNewTurmaOpen(true); }}
+                          className="p-1.5 hover:bg-emerald-50 rounded-lg text-slate-300 hover:text-emerald-500 transition-colors"
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                        <button
+                          onClick={e => { e.stopPropagation(); removeTurma(turma.id); if (isSelected) setSelectedTurma(null); }}
+                          className="p-1.5 hover:bg-red-50 rounded-lg text-slate-300 hover:text-red-400 transition-colors"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={e => { e.stopPropagation(); setEditingTurma(turma); setIsNewTurmaOpen(true); }}
-                        className="p-1.5 hover:bg-emerald-50 rounded-lg text-slate-300 hover:text-emerald-500 transition-colors"
-                      >
-                        <Edit2 size={14} />
-                      </button>
-                      <button
-                        onClick={e => { e.stopPropagation(); removeTurma(turma.id); if (isSelected) setSelectedTurma(null); }}
-                        className="p-1.5 hover:bg-red-50 rounded-lg text-slate-300 hover:text-red-400 transition-colors"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
 
-                  <div className="space-y-1.5 text-xs text-slate-500">
-                    <div className="flex items-center gap-2">
-                      <Calendar size={12} className="text-emerald-500 shrink-0" />
-                      {turma.date ? new Date(turma.date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' }) : 'Data não definida'}
-                      <Clock size={12} className="text-emerald-500 ml-1 shrink-0" />
-                      {turma.time || '--:--'}
+                    <div className={cn('space-y-1.5 text-xs', isConcluida ? 'text-emerald-800' : 'text-slate-500')}>
+                      <div className="flex items-center gap-2">
+                        <Calendar size={12} className="text-emerald-500 shrink-0" />
+                        {turma.date ? new Date(turma.date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' }) : 'Data não definida'}
+                        <Clock size={12} className="text-emerald-500 ml-1 shrink-0" />
+                        {turma.time || '--:--'}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <MapPin size={12} className="text-emerald-500 shrink-0" />
+                        <span className="truncate">{turma.location || 'Sem localização'}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Package size={12} className="text-emerald-500 shrink-0" />
+                        {turma.product_name}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <MapPin size={12} className="text-emerald-500 shrink-0" />
-                      <span className="truncate">{turma.location || 'Sem localização'}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Package size={12} className="text-emerald-500 shrink-0" />
-                      {turma.product_name}
-                    </div>
-                  </div>
 
-                  <div className="mt-4 pt-3 border-t border-slate-50 flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 text-xs">
-                      <Users size={12} className="text-slate-400" />
-                      <span className="font-semibold text-slate-700">{confirmados}</span>
-                      <span className="text-slate-400">/ {(turma.attendees || []).length} confirmados</span>
+                    <div className={cn('mt-4 pt-3 flex items-center justify-between', isConcluida ? 'border-t border-emerald-200' : 'border-t border-slate-50')}>
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <Users size={12} className={isConcluida ? 'text-emerald-500' : 'text-slate-400'} />
+                        <span className={cn('font-semibold', isConcluida ? 'text-emerald-800' : 'text-slate-700')}>{confirmados}</span>
+                        <span className={isConcluida ? 'text-emerald-600' : 'text-slate-400'}>/ {(turma.attendees || []).length} confirmados</span>
+                      </div>
+                      <span className={cn('text-xs font-bold', isConcluida ? 'text-emerald-700 text-sm' : 'text-emerald-700')}>
+                        R$ {totalVendasTurma(turma).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                      </span>
                     </div>
-                    <span className="text-xs font-bold text-emerald-700">
-                      R$ {totalVendasTurma(turma).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
-                    </span>
-                  </div>
 
-                  {/* Progress bar */}
-                  <div className="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                      style={{ width: (turma.attendees || []).length ? `${(confirmados / turma.attendees.length) * 100}%` : '0%' }}
-                    />
+                    {/* Progress bar */}
+                    <div className={cn('mt-2 h-1.5 rounded-full overflow-hidden', isConcluida ? 'bg-emerald-100' : 'bg-slate-100')}>
+                      <div
+                        className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                        style={{ width: (turma.attendees || []).length ? `${(confirmados / turma.attendees.length) * 100}%` : '0%' }}
+                      />
+                    </div>
                   </div>
                 </div>
               );
