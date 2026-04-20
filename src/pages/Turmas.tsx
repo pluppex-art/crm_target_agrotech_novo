@@ -1,15 +1,19 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
+  GraduationCap,
   Plus,
-  Calendar,
-  Users,
-  MapPin,
-  Clock,
   X,
-  XCircle,
-  Loader2,
+  Calendar,
+  Clock,
+  MapPin,
+  Package,
+  Users,
   DollarSign,
+  CheckCircle2,
+  HelpCircle,
+  XCircle,
+  Trash2,
   Edit2,
   BookOpen,
   Search,
@@ -20,49 +24,47 @@ import {
   UserX,
   BadgeCheck,
 } from 'lucide-react';
-import { DndContext, useSensors, useSensor, PointerSensor, closestCenter, DragOverlay } from '@dnd-kit/core';
+import { DndContext, useSensors, useSensor, PointerSensor, closestCenter } from '@dnd-kit/core';
+import {
+  useDroppable,
+  useDraggable,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
 import { useTurmaStore, Turma, TurmaAttendee, AttendanceStatus } from '../store/useTurmaStore';
-import { usePermissions } from '../hooks/usePermissions';
-import { NewTurmaModal } from '../components/marketing/NewTurmaModal';
+import { Loader2 } from 'lucide-react';
+import { UnifiedTurmaProductForm } from '../components/forms/UnifiedTurmaProductForm';
 import { LeadDetailsModal } from '../components/leads/LeadDetailsModal';
-import { getSupabaseClient } from '../lib/supabase';
 import { Lead } from '../types/leads';
+import { getSupabaseClient } from '../lib/supabase';
 import { cn } from '../lib/utils';
+import { useEffect } from 'react';
+import { usePermissions } from '../hooks/usePermissions';
 
-// Extraídos para componentes separados
-import { TurmaColumn } from '../components/turmas/TurmaColumn';
-import { AttendeeCard } from '../components/turmas/AttendeeCard';
-
-// ── Constants ─────────────────────────────────────────────────────────────
-const STATUS_COLUMNS = [
-  { id: 'matriculado', label: 'Matriculado', color: 'text-blue-600', bg: 'bg-blue-50 border-blue-200', icon: <Users size={14} className="text-blue-600" /> },
-  { id: 'indeciso', label: 'Indeciso', color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200', icon: <Clock size={14} className="text-amber-600" /> },
-  { id: 'cancelado', label: 'Cancelado', color: 'text-red-600', bg: 'bg-red-50 border-red-200', icon: <XCircle size={14} className="text-red-600" /> },
-  { id: 'confirmado', label: 'Confirmado', color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200', icon: <CheckCheck size={14} className="text-emerald-600" /> },
+// ── Column definitions — order: matriculado → cancelado → indeciso → confirmado ──
+const STATUS_COLUMNS: { id: AttendanceStatus; label: string; color: string; bg: string; icon: React.ReactNode }[] = [
+  { id: 'matriculado', label: 'Matriculado', color: 'text-blue-600', bg: 'bg-blue-50 border-blue-200', icon: <BookOpen size={14} className="text-blue-600" /> },
+  { id: 'cancelado', label: 'Cancelado', color: 'text-red-500', bg: 'bg-red-50 border-red-200', icon: <XCircle size={14} className="text-red-500" /> },
+  { id: 'indeciso', label: 'Indeciso', color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200', icon: <HelpCircle size={14} className="text-amber-600" /> },
+  { id: 'confirmado', label: 'Confirmado', color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200', icon: <CheckCircle2 size={14} className="text-emerald-600" /> },
 ];
 
-const TURMA_STATUS_LABELS: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  agendada: { label: 'Agendada', color: 'bg-blue-50 text-blue-600 border-blue-100', icon: <Calendar size={12} /> },
-  em_andamento: { label: 'Em Andamento', color: 'bg-emerald-50 text-emerald-600 border-emerald-100', icon: <Clock size={12} /> },
-  concluida: { label: 'Concluída', color: 'bg-slate-100 text-slate-500 border-slate-200', icon: <CheckCheck size={12} /> },
-  cancelada: { label: 'Cancelada', color: 'bg-red-50 text-red-600 border-red-100', icon: <XCircle size={12} /> },
+const TURMA_STATUS_LABELS: Record<string, { label: string; color: string }> = {
+  agendada: { label: 'Agendada', color: 'bg-blue-100 text-blue-700' },
+  em_andamento: { label: 'Em Andamento', color: 'bg-emerald-100 text-emerald-700' },
+  concluida: { label: 'Concluída', color: 'bg-slate-100 text-slate-600' },
+  cancelada: { label: 'Cancelada', color: 'bg-red-100 text-red-600' },
 };
 
-// ── Helpers ───────────────────────────────────────────────────────────────
+// ── Fetch a full Lead from Supabase by id ────────────────────────────────────
 async function fetchLeadById(leadId: string): Promise<Lead | null> {
   const supabase = getSupabaseClient();
   if (!supabase) return null;
   const { data, error } = await supabase.from('leads').select('*').eq('id', leadId).single();
-  if (error || !data) return null;
+  if (error) { console.error('Error fetching lead:', error); return null; }
   return data as Lead;
 }
 
-const totalVendasTurma = (turma: Turma) => 
-  (turma.attendees || []).reduce((acc, att) => acc + (att.vendas || 0), 0);
-const totalRecebidoTurma = (turma: Turma) => 
-  (turma.attendees || []).reduce((acc, att) => acc + (att.valor_recebido || 0), 0);
-
-// ── Componente Principal ──────────────────────────────────────────────────
 export function Turmas() {
   const { hasPermission } = usePermissions();
   const { turmas, fetchTurmas, updateAttendeeStatus, updateTurma, removeTurma, removeAttendee, isLoading, subscribe } = useTurmaStore();
@@ -70,6 +72,8 @@ export function Turmas() {
   const [isNewTurmaOpen, setIsNewTurmaOpen] = useState(false);
   const [editingTurma, setEditingTurma] = useState<Turma | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [setupRequired] = useState(false);
+  const [responsibles, setResponsibles] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<'kanban' | 'lista'>('kanban');
 
   // Attendee detail modal
@@ -80,25 +84,69 @@ export function Turmas() {
 
   useEffect(() => {
     fetchTurmas();
-    const unsubscribe = subscribe();
-    return () => unsubscribe();
+  }, [fetchTurmas]);
+
+  // Fetch distinct responsibles directly from the database
+  useEffect(() => {
+    const fetchResponsibles = async () => {
+      const supabase = getSupabaseClient();
+      if (!supabase) return;
+      const { data } = await supabase
+        .from('leads')
+        .select('responsible')
+        .not('responsible', 'is', null)
+        .neq('responsible', '');
+      if (data) {
+        const unique = Array.from(new Set(data.map((r: any) => r.responsible).filter(Boolean))) as string[];
+        setResponsibles(unique);
+      }
+    };
+    fetchResponsibles();
   }, []);
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  useEffect(() => {
+    const unsubscribe = subscribe();
+    return unsubscribe;
+  }, []); // Subscribe once
 
-  const filteredTurmas = useMemo(() => {
-    return turmas.filter(t => 
-      t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.professor_name?.toLowerCase().includes(searchTerm.toLowerCase())
-    ).sort((a, b) => new Date(b.date || '').getTime() - new Date(a.date || '').getTime());
-  }, [turmas, searchTerm]);
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
 
-  const onDragEnd = (event: any) => {
+  if (!hasPermission('turmas.view')) {
+    return (
+      <div className="p-6 flex flex-col items-center justify-center min-h-[600px] text-center">
+        <div className="w-24 h-24 bg-slate-100 rounded-2xl flex items-center justify-center mb-6 shadow-sm">
+          <GraduationCap className="w-12 h-12 text-slate-400" />
+        </div>
+        <h2 className="text-2xl font-bold text-slate-800 mb-3">Acesso Bloqueado</h2>
+        <p className="text-slate-500 max-w-md mb-4 leading-relaxed">
+          Você precisa da permissão <code className="bg-slate-100 px-2 py-1 rounded-lg text-sm font-mono text-slate-700">turmas.view</code> para acessar as turmas.
+        </p>
+        <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Contate o administrador</p>
+      </div>
+    );
+  }
+
+  const onDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || !selectedTurma) return;
-    const attendeeId: string = active.id as string;
-    const newStatus: AttendanceStatus = over.id as AttendanceStatus;
-    updateAttendeeStatus(selectedTurma.id as string, attendeeId, newStatus);
+    const newStatus = over.id as AttendanceStatus;
+    const attendeeId = active.id as string;
+    updateAttendeeStatus(selectedTurma.id, attendeeId, newStatus);
+    setSelectedTurma(prev => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        attendees: prev.attendees.map(a =>
+          a.id === attendeeId ? { ...a, status: newStatus } : a
+        ),
+      };
+    });
   };
 
   const handleAttendeeClick = async (attendee: TurmaAttendee, turmaId: string, tab: 'info' | 'turma' = 'info') => {
@@ -115,7 +163,19 @@ export function Turmas() {
 
   const handleCheckIn = (attendee: TurmaAttendee, turmaId: string) => {
     updateAttendeeStatus(turmaId, attendee.id, 'confirmado');
+    setSelectedTurma(prev => prev ? {
+      ...prev,
+      attendees: prev.attendees.map(a => a.id === attendee.id ? { ...a, status: 'confirmado' } : a),
+    } : null);
     handleAttendeeClick({ ...attendee, status: 'confirmado' }, turmaId, 'turma');
+  };
+
+  const handleNoShow = (attendee: TurmaAttendee, turmaId: string) => {
+    updateAttendeeStatus(turmaId, attendee.id, 'cancelado');
+    setSelectedTurma(prev => prev ? {
+      ...prev,
+      attendees: prev.attendees.map(a => a.id === attendee.id ? { ...a, status: 'cancelado' } : a),
+    } : null);
   };
 
   const handleMarkConcluida = () => {
@@ -127,64 +187,106 @@ export function Turmas() {
     ? turmas.find(t => t.id === selectedTurma.id) ?? selectedTurma
     : null;
 
+  const totalVendasTurma = (t: Turma) =>
+    t.attendees.reduce((acc, a) => acc + a.vendas, 0);
+
+
+
   return (
-    <div className="h-full flex flex-col bg-slate-50/50">
-      {/* Top Header */}
-      <div className="bg-white border-b border-slate-200 px-8 py-5 shrink-0">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-black text-slate-800 tracking-tight">Gestão de Turmas</h1>
-            <p className="text-sm text-slate-500 font-medium">Controle de presença, matrículas e performance financeira</p>
-          </div>
+    <div className="flex flex-col lg:flex-row h-full bg-[#f3f6f9] overflow-hidden relative">
+      {/* Left Panel — Turmas Cards */}
+      <div
+        key="left-panel"
+        className={cn(
+          'flex flex-col transition-all duration-300 h-full overflow-hidden',
+          liveSelectedTurma ? 'lg:w-[420px] lg:min-w-[420px] hidden lg:flex' : 'flex-1'
+        )}
+      >
+        {/* Header */}
+        <div className="p-4 sm:p-6 pb-4 bg-white border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="relative group">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-500 transition-colors" size={18} />
-              <input
-                type="text"
-                placeholder="Buscar turma ou professor..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl w-full md:w-64 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-sm transition-all shadow-sm"
-              />
+            <GraduationCap className="text-emerald-600 shrink-0" size={26} />
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-800 leading-tight">Turmas</h1>
+              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Gerencie turmas e presenças.</p>
             </div>
-            {hasPermission('marketing', 'create') && (
-              <button
-                onClick={() => setIsNewTurmaOpen(true)}
-                className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-2.5 rounded-2xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200/50 text-sm font-bold"
-              >
-                <Plus size={20} />
-                Nova Turma
-              </button>
-            )}
+          </div>
+          <button
+            onClick={() => { setEditingTurma(null); setIsNewTurmaOpen(true); }}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 font-semibold text-sm"
+          >
+            <Plus size={18} />
+            <span className="whitespace-nowrap">Nova Turma</span>
+          </button>
+        </div>
+
+        {/* Search */}
+        <div className="px-4 sm:px-6 pb-4">
+          <div className="relative">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Buscar por nome, professor ou produto..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 shadow-sm"
+            />
           </div>
         </div>
-      </div>
 
-      <div className="flex-1 flex overflow-hidden">
-        {/* Main Side: Turmas List */}
-        <div className={cn(
-          "flex-1 overflow-y-auto p-6 pt-2 grid gap-6 content-start transition-all duration-300",
-          liveSelectedTurma ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3'
-        )}>
+        {/* Cards Grid */}
+        <div className="flex-1 overflow-y-auto p-6 pt-2 grid grid-cols-1 gap-4 content-start">
           {isLoading ? (
             <div className="col-span-full flex flex-col items-center justify-center py-20 text-slate-400">
               <Loader2 className="w-8 h-8 animate-spin text-emerald-600 mb-2" />
-              <p className="font-bold text-sm">Carregando turmas...</p>
+              <p>Carregando turmas...</p>
             </div>
-          ) : filteredTurmas.length === 0 ? (
+          ) : setupRequired ? (
+            <div className="col-span-full">
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-8 flex flex-col items-center text-center">
+                <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-4">
+                  <Package className="text-amber-600" size={32} />
+                </div>
+                <h3 className="text-lg font-bold text-amber-900 mb-2">Configuração Necessária</h3>
+                <p className="text-sm text-amber-700 max-w-md mb-6">
+                  A tabela de turmas ainda não foi criada no seu banco de dados Supabase.
+                  Para corrigir isso e ativar este módulo, siga as instruções abaixo:
+                </p>
+                <div className="bg-white border border-amber-100 rounded-xl p-4 text-left w-full max-w-lg mb-6 shadow-sm">
+                  <ol className="list-decimal list-inside space-y-3 text-xs text-slate-600">
+                    <li>Abra o arquivo <code className="bg-slate-100 px-1 py-0.5 rounded text-indigo-600 font-bold">turmas_schema.sql</code> e copie o conteúdo.</li>
+                    <li>Vá ao seu <strong>Dashboard do Supabase</strong>.</li>
+                    <li>Acesse o <strong>SQL Editor</strong> e crie uma <strong>New Query</strong>.</li>
+                    <li>Cole o código e clique em <strong>Run</strong>.</li>
+                  </ol>
+                </div>
+                <button
+                  onClick={() => fetchTurmas()}
+                  className="px-6 py-2 bg-amber-600 text-white rounded-xl font-bold text-sm hover:bg-amber-700 transition-all shadow-md"
+                >
+                  Já executei o SQL, verificar agora
+                </button>
+              </div>
+            </div>
+          ) : turmas.length === 0 ? (
             <div className="col-span-full flex flex-col items-center justify-center py-20 text-slate-400">
-              <BookOpen className="w-12 h-12 mb-4 opacity-20" />
-              <p className="font-bold">Nenhuma turma encontrada</p>
-              <p className="text-sm">Tente ajustar sua busca ou criar uma nova turma.</p>
+              <GraduationCap size={48} className="mb-3 opacity-30" />
+              <p className="font-medium">Nenhuma turma cadastrada</p>
             </div>
           ) : (
-            filteredTurmas.map(turma => {
-              const isSelected = selectedTurma?.id === turma.id;
-              const status = TURMA_STATUS_LABELS[turma.status] || TURMA_STATUS_LABELS.agendada;
-              const totalVendas = totalVendasTurma(turma);
-              const totalVagas = turma.capacity || 20;
-              const ocupadas = (turma.attendees || []).length;
-              
+            turmas.filter(t => {
+              if (!searchTerm.trim()) return true;
+              const q = searchTerm.toLowerCase();
+              return (
+                t.name.toLowerCase().includes(q) ||
+                (t.professor_name || '').toLowerCase().includes(q) ||
+                t.product_name.toLowerCase().includes(q)
+              );
+            }).map(turma => {
+              const confirmados = (turma.attendees || []).filter(a => a.status === 'confirmado').length;
+              const st = TURMA_STATUS_LABELS[turma.status] || TURMA_STATUS_LABELS.agendada;
+              const isSelected = liveSelectedTurma?.id === turma.id;
+
               return (
                 <div
                   key={turma.id}
@@ -194,156 +296,234 @@ export function Turmas() {
                     isSelected ? 'border-emerald-400 ring-2 ring-emerald-200' : 'border-slate-100 hover:border-emerald-200'
                   )}
                 >
-                  <div className="flex items-start justify-between mb-4 relative z-10">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-black text-slate-800 text-lg leading-tight truncate group-hover:text-emerald-700 transition-colors">{turma.name}</h3>
-                      <p className="text-xs font-bold text-slate-400 mt-0.5 flex items-center gap-1.5 uppercase tracking-wider">
-                        PROF. {turma.professor_name || 'NÃO DEFINIDO'}
-                      </p>
-                    </div>
-                    <span className={cn('text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest border flex items-center gap-1.5', status.color)}>
-                      {status.icon} {status.label}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 mb-5 relative z-10">
-                    <div className="bg-slate-50 rounded-xl p-3 border border-slate-100/50">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Capacidade</p>
-                      <div className="flex items-end gap-2">
-                        <span className="text-lg font-black text-slate-700 leading-none">{ocupadas}</span>
-                        <span className="text-xs font-bold text-slate-400">/ {totalVagas} alunos</span>
-                      </div>
-                      <div className="w-full h-1 bg-slate-200 rounded-full mt-2 overflow-hidden">
-                        <div className="h-full bg-emerald-500 rounded-full transition-all duration-500" style={{ width: `${(ocupadas/totalVagas)*100}%` }} />
+                  {/* Fita zebrada para turmas concluídas */}
+                  {turma.status === 'concluida' && (
+                    <div className="absolute inset-0 pointer-events-none rounded-2xl overflow-hidden">
+                      <div
+                        className="absolute inset-0 opacity-[0.035]"
+                        style={{ backgroundImage: 'repeating-linear-gradient(45deg, #10b981 0, #10b981 8px, transparent 0, transparent 50%)', backgroundSize: '20px 20px' }}
+                      />
+                      <div className="absolute top-3 right-[-28px] rotate-45 bg-emerald-500 text-white text-[9px] font-black px-8 py-0.5 shadow-sm tracking-widest uppercase">
+                        Concluída
                       </div>
                     </div>
-                    <div className="bg-slate-50 rounded-xl p-3 border border-slate-100/50">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Faturamento Potencial</p>
-                      <p className="text-lg font-black text-emerald-600 leading-none">R$ {totalVendas.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}</p>
-                      <p className="text-[10px] font-bold text-emerald-500 mt-1 opacity-80 uppercase tracking-wider">Total em vendas</p>
+                  )}
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full', st.color)}>{st.label}</span>
+                      <h3 className="font-bold text-slate-800 mt-2 leading-tight">{turma.name}</h3>
+                      <p className="text-xs text-slate-500 mt-0.5">{turma.professor_name || 'Sem professor'}</p>
                     </div>
-                  </div>
-
-                  <div className="flex items-center gap-4 text-xs font-bold text-slate-500 pt-4 border-t border-slate-100 relative z-10">
-                    <span className="flex items-center gap-1.5 bg-slate-100/80 px-2 py-1 rounded-lg">
-                      <Calendar size={13} className="text-emerald-500" />
-                      {turma.date ? new Date(turma.date + 'T00:00:00').toLocaleDateString('pt-BR') : '--'}
-                    </span>
-                    <span className="flex items-center gap-1.5 bg-slate-100/80 px-2 py-1 rounded-lg">
-                      <Clock size={13} className="text-emerald-500" />
-                      {turma.time?.substring(0, 5) || '--:--'}
-                    </span>
-                    {hasPermission('marketing', 'edit') && (
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
-                        onClick={(e) => { e.stopPropagation(); setEditingTurma(turma); }}
-                        className="ml-auto p-1.5 text-slate-300 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-all"
+                        onClick={e => { e.stopPropagation(); setEditingTurma(turma); setIsNewTurmaOpen(true); }}
+                        className="p-1.5 hover:bg-emerald-50 rounded-lg text-slate-300 hover:text-emerald-500 transition-colors"
                       >
-                        <Edit2 size={16} />
+                        <Edit2 size={14} />
                       </button>
-                    )}
+                      <button
+                        onClick={e => { e.stopPropagation(); removeTurma(turma.id); if (isSelected) setSelectedTurma(null); }}
+                        className="p-1.5 hover:bg-red-50 rounded-lg text-slate-300 hover:text-red-400 transition-colors"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 text-xs text-slate-500">
+                    <div className="flex items-center gap-2">
+                      <Calendar size={12} className="text-emerald-500 shrink-0" />
+                      {turma.date ? new Date(turma.date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' }) : 'Data não definida'}
+                      <Clock size={12} className="text-emerald-500 ml-1 shrink-0" />
+                      {turma.time || '--:--'}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MapPin size={12} className="text-emerald-500 shrink-0" />
+                      <span className="truncate">{turma.location || 'Sem localização'}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Package size={12} className="text-emerald-500 shrink-0" />
+                      {turma.product_name}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-slate-50 flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <Users size={12} className="text-slate-400" />
+                      <span className="font-semibold text-slate-700">{confirmados}</span>
+                      <span className="text-slate-400">/ {(turma.attendees || []).length} confirmados</span>
+                    </div>
+                    <span className="text-xs font-bold text-emerald-700">
+                      R$ {totalVendasTurma(turma).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                    </span>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                      style={{ width: (turma.attendees || []).length ? `${(confirmados / turma.attendees.length) * 100}%` : '0%' }}
+                    />
                   </div>
                 </div>
               );
             })
           )}
         </div>
+      </div>
 
-        {/* Right Side: Detail Panel */}
-        <AnimatePresence>
-          {liveSelectedTurma && (
-            <motion.div
-              initial={{ x: '100%', opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: '100%', opacity: 0 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="w-full max-w-[600px] bg-white border-l border-slate-200 shadow-2xl flex flex-col z-20"
-            >
-              <div className="p-6 border-b border-slate-100 flex items-start justify-between bg-slate-50/30">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h2 className="text-xl font-black text-slate-800 truncate">{liveSelectedTurma.name}</h2>
-                    <span className={cn('text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest border', TURMA_STATUS_LABELS[liveSelectedTurma.status]?.color || 'bg-slate-50')}>
-                      {liveSelectedTurma.status}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                    <div className="flex items-center gap-1"><Users size={11} className="text-emerald-500" />{liveSelectedTurma.professor_name || 'Sem professor'}</div>
-                    <div className="hidden sm:flex items-center gap-1"><MapPin size={11} className="text-emerald-500" />{liveSelectedTurma.location || '--'}</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {liveSelectedTurma.status !== 'concluida' && (
-                    <button
-                      onClick={handleMarkConcluida}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all"
-                    >
-                      <CheckCheck size={14} />
-                      <span className="hidden sm:inline">Concluída</span>
-                    </button>
-                  )}
-                  <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-0.5">
-                    <button onClick={() => setViewMode('kanban')} className={cn('p-1.5 rounded-md transition-all', viewMode === 'kanban' ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-400')}><LayoutGrid size={15} /></button>
-                    <button onClick={() => setViewMode('lista')} className={cn('p-1.5 rounded-md transition-all', viewMode === 'lista' ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-400')}><LayoutList size={15} /></button>
-                  </div>
-                  <button onClick={() => setSelectedTurma(null)} className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors shadow-sm bg-white"><X size={20} /></button>
+      {/* Right Panel — Attendance Detail & Kanban */}
+      <AnimatePresence mode="wait">
+        {liveSelectedTurma && (
+          <motion.div
+            key={`detail-panel-${liveSelectedTurma.id}`}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            className="fixed inset-0 lg:relative z-50 lg:z-0 lg:flex-1 flex flex-col border-l border-slate-200 bg-white overflow-hidden"
+          >
+            {/* Panel Header */}
+            <div className="px-4 sm:px-6 py-4 border-b border-slate-100 flex items-start justify-between bg-white relative z-10">
+              <div className="flex-1 min-w-0 pr-4">
+                <h2 className="text-lg font-bold text-slate-800 leading-tight truncate">{liveSelectedTurma.name}</h2>
+                <p className="text-xs text-slate-500 mt-0.5 truncate">{liveSelectedTurma.professor_name || 'Sem professor'}</p>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-[10px] sm:text-xs text-slate-500">
+                  <span className="flex items-center gap-1"><Calendar size={11} className="text-emerald-500" />{liveSelectedTurma.date ? new Date(liveSelectedTurma.date + 'T00:00:00').toLocaleDateString('pt-BR') : '--'}</span>
+                  <span className="flex items-center gap-1"><Clock size={11} className="text-emerald-500" />{liveSelectedTurma.time || '--:--'}</span>
+                  <div className="hidden sm:flex items-center gap-1"><MapPin size={11} className="text-emerald-500" />{liveSelectedTurma.location || '--'}</div>
                 </div>
               </div>
-
-              {/* Stats Bar */}
-              <div className="px-6 py-4 bg-white border-b border-slate-50 flex items-center justify-around gap-2">
-                {[
-                  { label: 'Matriculados', val: (liveSelectedTurma.attendees || []).length, color: 'text-slate-700' },
-                  { label: 'Confirmados', val: (liveSelectedTurma.attendees || []).filter(a => a.status === 'confirmado').length, color: 'text-emerald-600' },
-                  { label: 'Faturamento', val: `R$ ${totalRecebidoTurma(liveSelectedTurma).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}`, color: 'text-blue-600' },
-                ].map((stat, i) => (
-                  <div key={i} className="text-center">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{stat.label}</p>
-                    <p className={cn("text-sm font-black", stat.color)}>{stat.val}</p>
-                  </div>
-                ))}
+              <div className="flex items-center gap-2 shrink-0">
+                {liveSelectedTurma.status !== 'concluida' && (
+                  <button
+                    onClick={handleMarkConcluida}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all"
+                    title="Marcar turma como concluída"
+                  >
+                    <CheckCheck size={14} />
+                    <span className="hidden sm:inline">Concluída</span>
+                  </button>
+                )}
+                <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-0.5">
+                  <button
+                    onClick={() => setViewMode('kanban')}
+                    className={cn('p-1.5 rounded-md transition-all', viewMode === 'kanban' ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-400 hover:text-slate-600')}
+                    title="Visualização Kanban"
+                  >
+                    <LayoutGrid size={15} />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('lista')}
+                    className={cn('p-1.5 rounded-md transition-all', viewMode === 'lista' ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-400 hover:text-slate-600')}
+                    title="Visualização Lista"
+                  >
+                    <LayoutList size={15} />
+                  </button>
+                </div>
+                <button
+                  onClick={() => setSelectedTurma(null)}
+                  className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors shadow-sm bg-white"
+                >
+                  <X size={20} />
+                </button>
               </div>
+            </div>
 
-              <div className="flex-1 overflow-auto p-4 custom-scrollbar">
-                {viewMode === 'kanban' ? (
-                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+            {/* Stats Row */}
+            <div className="px-4 sm:px-6 py-3 bg-slate-50/50 border-b border-slate-100 grid grid-cols-4 gap-2 sm:gap-3">
+              {STATUS_COLUMNS.map(col => {
+                const count = (liveSelectedTurma.attendees || []).filter(a => a.status === col.id).length;
+                const total = (liveSelectedTurma.attendees || []).filter(a => a.status === col.id).reduce((s, a) => s + (a.vendas || 0), 0);
+                return (
+                  <div key={col.id} className={cn('rounded-xl p-2.5 border transition-colors', col.bg)}>
+                    <div className="flex items-center gap-1 mb-1">
+                      {col.icon}
+                      <span className={cn('text-[10px] font-bold hidden sm:block', col.color)}>{col.label}</span>
+                    </div>
+                    <p className="text-xl font-bold text-slate-800">{count}</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}</p>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Attendance content — Kanban or Lista */}
+            <div className="flex-1 overflow-auto p-4 custom-scrollbar">
+              {viewMode === 'kanban' ? (
+                <>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4 px-2">
+                    Lista de Presença — Kanban
+                  </p>
+                  <DndContext
+                    key={`dnd-${liveSelectedTurma.id}`}
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={onDragEnd}
+                  >
                     <div className="flex lg:flex-row flex-col gap-4 h-full min-h-[300px]">
                       {STATUS_COLUMNS.map(col => (
                         <TurmaColumn
-                          key={col.id}
+                          key={`col-${col.id}-${liveSelectedTurma.id}`}
                           column={col}
                           attendees={liveSelectedTurma.attendees || []}
                           onAttendeeClick={(att) => handleAttendeeClick(att, liveSelectedTurma.id)}
                           onRemoveAttendee={(attId) => removeAttendee(liveSelectedTurma.id, attId)}
                           onCheckIn={(att) => handleCheckIn(att, liveSelectedTurma.id)}
-                          onNoShow={(att) => updateAttendeeStatus(liveSelectedTurma.id as string, att.id as string, 'cancelado' as AttendanceStatus)}
+                          onNoShow={(att) => handleNoShow(att, liveSelectedTurma.id)}
                         />
                       ))}
                     </div>
                   </DndContext>
-                ) : (
+                </>
+              ) : (
+                <>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4 px-2">
+                    Lista de Presença
+                  </p>
                   <div className="space-y-2">
                     {(liveSelectedTurma.attendees || []).map(att => {
                       const isPago = (att.valor_recebido ?? 0) > 0;
                       const colDef = STATUS_COLUMNS.find(c => c.id === att.status);
                       return (
-                        <div key={att.id} className="flex items-center gap-3 bg-white border border-slate-100 rounded-xl px-3 py-2.5 shadow-sm hover:border-emerald-200 transition-colors">
+                        <div
+                          key={att.id}
+                          className="flex items-center gap-3 bg-white border border-slate-100 rounded-xl px-3 py-2.5 shadow-sm hover:border-emerald-200 transition-colors"
+                        >
                           <div className="relative shrink-0">
                             <img src={att.photo} alt={att.name} className="w-9 h-9 rounded-full object-cover border-2 border-slate-100" referrerPolicy="no-referrer" />
-                            {isPago && <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center"><BadgeCheck size={10} className="text-white" /></div>}
+                            {isPago && (
+                              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center">
+                                <BadgeCheck size={10} className="text-white" />
+                              </div>
+                            )}
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-bold text-slate-700 truncate">{att.name}</p>
                             <p className="text-[10px] text-slate-400 truncate">{att.responsible || 'Sem responsável'}</p>
                           </div>
-                          <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full', colDef?.bg, colDef?.color)}>{colDef?.label}</span>
+                          <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full hidden sm:inline', colDef?.bg, colDef?.color)}>
+                            {colDef?.label}
+                          </span>
+                          <div className="text-right shrink-0">
+                            <p className="text-[10px] font-bold text-emerald-700">R$ {(att.vendas || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}</p>
+                            {isPago && <p className="text-[10px] text-emerald-500">Rec. R$ {att.valor_recebido!.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}</p>}
+                          </div>
                           <div className="flex items-center gap-1 shrink-0">
                             {att.lead_id && att.status !== 'confirmado' && (
-                              <button onClick={() => handleCheckIn(att, liveSelectedTurma.id)} className="flex items-center gap-1 px-2 py-1 text-[10px] font-bold bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors">
+                              <button
+                                onClick={() => handleCheckIn(att, liveSelectedTurma.id)}
+                                className="flex items-center gap-1 px-2 py-1 text-[10px] font-bold bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors"
+                                title="Check-in"
+                              >
                                 <LogIn size={11} /> CheckIn
                               </button>
                             )}
                             {att.lead_id && att.status !== 'cancelado' && (
-                              <button onClick={() => updateAttendeeStatus(liveSelectedTurma.id as string, att.id as string, 'cancelado' as AttendanceStatus)} className="flex items-center gap-1 px-2 py-1 text-[10px] font-bold bg-red-50 border border-red-200 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
+                              <button
+                                onClick={() => handleNoShow(att, liveSelectedTurma.id)}
+                                className="flex items-center gap-1 px-2 py-1 text-[10px] font-bold bg-red-50 border border-red-200 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                                title="No-show"
+                              >
                                 <UserX size={11} /> NoShow
                               </button>
                             )}
@@ -352,39 +532,195 @@ export function Turmas() {
                       );
                     })}
                   </div>
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+                </>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      <NewTurmaModal isOpen={isNewTurmaOpen} onClose={() => setIsNewTurmaOpen(false)} />
-      {editingTurma && (
-        <NewTurmaModal
-          isOpen={true}
-          onClose={() => setEditingTurma(null)}
-          turma={editingTurma}
-        />
+      {/* Forms & Modals */}
+      <UnifiedTurmaProductForm
+        isOpen={isNewTurmaOpen}
+        onClose={() => { setIsNewTurmaOpen(false); setEditingTurma(null); }}
+        mode="turma"
+        initialData={editingTurma ?? undefined}
+      />
+
+      {/* Loading overlay for attendee detail */}
+      {loadingAttendeeDetail && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/20 backdrop-blur-[1px]">
+          <div className="bg-white rounded-2xl p-6 shadow-xl flex items-center gap-3">
+            <Loader2 className="animate-spin text-emerald-600" size={20} />
+            <span className="text-sm font-medium text-slate-700">Carregando dados do cliente...</span>
+          </div>
+        </div>
       )}
 
+      {/* Attendee Lead Detail Modal */}
       {selectedAttendeeLead && (
         <LeadDetailsModal
-          isOpen={true}
-          onClose={() => {
-            setSelectedAttendeeLead(null);
-            setSelectedAttendeeInfo(null);
-            fetchTurmas();
-          }}
+          isOpen={!!selectedAttendeeLead}
+          onClose={() => { setSelectedAttendeeLead(null); setSelectedAttendeeInfo(null); }}
           lead={selectedAttendeeLead}
           turmaAttendee={selectedAttendeeInfo ?? undefined}
           currentStageId={selectedAttendeeInfo?.currentStatus}
-          initialTab={modalInitialTab}
+          responsibles={responsibles}
           onTurmaStatusChange={(turmaId: string, attendeeId: string, status: AttendanceStatus) => {
-            updateAttendeeStatus(turmaId as string, attendeeId as string, status);
+            updateAttendeeStatus(turmaId, attendeeId, status);
             setSelectedAttendeeInfo(prev => prev ? { ...prev, currentStatus: status } : null);
           }}
         />
+      )}
+    </div>
+  );
+}
+
+/* ── Turma Column Component ────────────────────────────────────────────────── */
+interface TurmaColumnProps {
+  column: typeof STATUS_COLUMNS[number];
+  attendees: TurmaAttendee[];
+  onAttendeeClick: (att: TurmaAttendee) => void;
+  onRemoveAttendee: (attId: string) => void;
+  onCheckIn: (att: TurmaAttendee) => void;
+  onNoShow: (att: TurmaAttendee) => void;
+}
+
+function TurmaColumn({ column, attendees, onAttendeeClick, onRemoveAttendee, onCheckIn, onNoShow }: TurmaColumnProps) {
+  const attendeesInCol = attendees.filter(a => a.status === column.id);
+  const { isOver, setNodeRef } = useDroppable({ id: column.id });
+
+  return (
+    <div className="flex flex-col flex-1 min-w-[180px]">
+      <div className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl border mb-3 shadow-sm', column.bg)}>
+        {column.icon}
+        <span className={cn('text-xs font-bold', column.color)}>{column.label}</span>
+        <span className="ml-auto text-xs font-bold text-slate-400">{attendeesInCol.length}</span>
+      </div>
+
+      <div className="flex-1 space-y-2.5 p-2 rounded-xl min-h-[150px]">
+        <div ref={setNodeRef} className={cn(
+          'min-h-[150px]',
+          isOver ? 'bg-emerald-50/50 ring-2 ring-emerald-100 ring-inset' : 'bg-slate-50/30'
+        )}>
+          {attendeesInCol.map((att) => (
+            <AttendeeCard
+              key={att.id}
+              attendee={att}
+              id={att.id}
+              onViewDetails={att.lead_id ? () => onAttendeeClick(att) : undefined}
+              onRemove={() => onRemoveAttendee(att.id)}
+              onCheckIn={att.lead_id ? () => onCheckIn(att) : undefined}
+              onNoShow={att.lead_id ? () => onNoShow(att) : undefined}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Attendee Card ─────────────────────────────────────────────────────────── */
+interface AttendeeCardProps {
+  attendee: TurmaAttendee;
+  id: string;
+  onViewDetails?: () => void;
+  onRemove?: () => void;
+  onCheckIn?: () => void;
+  onNoShow?: () => void;
+}
+
+function AttendeeCard({ attendee, id, onViewDetails, onRemove, onCheckIn, onNoShow }: AttendeeCardProps) {
+  const [confirmingRemove, setConfirmingRemove] = useState(false);
+  const isPago = (attendee.valor_recebido ?? 0) > 0;
+
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id });
+  const style = { transform: CSS.Transform.toString(transform) };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      className={cn(
+        'bg-white rounded-xl border p-3 shadow-sm flex flex-col gap-2 transition-all group/card mb-2',
+        isDragging ? 'shadow-xl border-emerald-300 rotate-1 cursor-grabbing scale-[1.02]' : 'hover:border-emerald-200 cursor-grab',
+        isPago ? 'border-emerald-200 bg-emerald-50/30' : 'border-slate-100',
+      )}
+    >
+      {/* Top row: photo + info + remove */}
+      <div className="flex items-start gap-2">
+        <div className="relative shrink-0">
+          <img
+            src={attendee.photo}
+            alt={attendee.name}
+            onClick={(e) => { e.stopPropagation(); onViewDetails?.(); }}
+            className={cn('w-9 h-9 rounded-full object-cover border-2 border-slate-100 mt-0.5', onViewDetails && 'cursor-pointer hover:opacity-80')}
+            referrerPolicy="no-referrer"
+          />
+          {isPago && (
+            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center shadow-sm">
+              <BadgeCheck size={10} className="text-white" />
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1 min-w-0" onClick={(e) => { e.stopPropagation(); onViewDetails?.(); }}>
+          <p className="text-xs font-bold text-slate-700 truncate leading-tight">{attendee.name}</p>
+          <p className="text-[10px] text-slate-400 truncate mt-0.5">{attendee.responsible || 'Sem responsável'}</p>
+          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+            {attendee.vendas > 0 && (
+              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full">
+                R$ {attendee.vendas.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+              </span>
+            )}
+            {isPago && (
+              <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                <BadgeCheck size={9} /> Pago
+              </span>
+            )}
+          </div>
+        </div>
+
+        {onRemove && (
+          <div className="shrink-0 flex flex-col items-end gap-1">
+            {confirmingRemove ? (
+              <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                <button onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setConfirmingRemove(false); onRemove(); }} className="px-2 py-0.5 text-[10px] font-bold bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">Sim</button>
+                <button onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setConfirmingRemove(false); }} className="px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors">Não</button>
+              </div>
+            ) : (
+              <button onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setConfirmingRemove(true); }} className="p-1 rounded-lg text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors opacity-0 group-hover/card:opacity-100" title="Remover da turma">
+                <X size={13} />
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* CheckIn / NoShow buttons */}
+      {(onCheckIn || onNoShow) && (
+        <div className="flex items-center gap-1.5 pt-1 border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
+          {onCheckIn && attendee.status !== 'confirmado' && (
+            <button
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); onCheckIn(); }}
+              className="flex-1 flex items-center justify-center gap-1 py-1 text-[10px] font-bold bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors"
+            >
+              <LogIn size={11} /> CheckIn
+            </button>
+          )}
+          {onNoShow && attendee.status !== 'cancelado' && (
+            <button
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); onNoShow(); }}
+              className="flex-1 flex items-center justify-center gap-1 py-1 text-[10px] font-bold bg-red-50 border border-red-200 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+            >
+              <UserX size={11} /> NoShow
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

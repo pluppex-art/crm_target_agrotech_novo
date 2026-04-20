@@ -62,7 +62,7 @@ export const usePermissions = () => {
     return cargo?.permissions ?? [];
   }, [roleId, cargos]);
 
-  const hasPermission = (permission: string, p0: string): boolean =>
+  const hasPermission = (permission: string): boolean =>
     permissions.includes(permission) || permissions.includes('admin.all');
 
   return { permissions, hasPermission, loading, reload: loadRoleId };
