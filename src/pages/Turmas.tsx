@@ -303,28 +303,29 @@ export function Turmas() {
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={handleToggleConcluida}
-                  className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all",
-                    liveSelectedTurma.status === 'concluida'
-                      ? "bg-emerald-600 border border-emerald-700 text-white hover:bg-emerald-700 shadow-sm"
-                      : "bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100"
-                  )}
-                  title={liveSelectedTurma.status === 'concluida' ? "Reabrir turma" : "Marcar turma como concluída"}
-                >
-                  {liveSelectedTurma.status === 'concluida' ? (
-                    <>
-                      <CheckCheck size={14} />
-                      <span className="hidden sm:inline">Turma Concluída</span>
-                    </>
-                  ) : (
-                    <>
-                      <CheckCheck size={14} />
-                      <span className="hidden sm:inline">Concluir Turma</span>
-                    </>
-                  )}
-                </button>
+                {liveSelectedTurma.status === 'concluida' ? (
+                  <button
+                    onClick={handleToggleConcluida}
+                    className="relative flex items-center justify-center gap-1.5 px-4 py-1.5 bg-emerald-500 text-white font-bold text-xs uppercase tracking-wide group transition-all hover:bg-emerald-600 rounded-r-xl rounded-l-sm"
+                    style={{
+                      clipPath: 'polygon(10px 0, 100% 0, 100% 100%, 10px 100%, 0 50%)',
+                      paddingLeft: '1.25rem'
+                    }}
+                    title="Turma concluída. Clique para reabrir."
+                  >
+                    <CheckCheck size={14} className="shrink-0" />
+                    <span className="hidden sm:inline">Concluída</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleToggleConcluida}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all shadow-sm"
+                    title="Marcar turma como concluída"
+                  >
+                    <CheckCheck size={14} />
+                    <span className="hidden sm:inline">Concluir Turma</span>
+                  </button>
+                )}
                 <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-0.5">
                   <button
                     onClick={() => setViewMode('kanban')}
