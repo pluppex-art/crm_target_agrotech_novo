@@ -21,11 +21,20 @@ export function TurmaCard({ turma, isSelected, onSelect, onEdit, onDelete }: Tur
     <div
       onClick={() => onSelect(turma)}
       className={cn(
-        'bg-white rounded-2xl p-5 border cursor-pointer transition-all shadow-sm hover:shadow-md group',
+        'relative overflow-hidden bg-white rounded-2xl p-5 border cursor-pointer transition-all shadow-sm hover:shadow-md group',
         isSelected ? 'border-emerald-400 ring-2 ring-emerald-200' : 'border-slate-100 hover:border-emerald-200'
       )}
     >
-      <div className="flex items-start justify-between mb-3">
+      {/* Faixa (Ribbon) de Concluída cobrindo o cartão */}
+      {turma.status === 'concluida' && (
+        <div className="absolute inset-0 z-20 pointer-events-none flex items-center justify-center overflow-hidden">
+          <div className="w-[150%] bg-emerald-500/90 text-white font-black text-sm tracking-[0.3em] uppercase text-center py-2 -rotate-[15deg] shadow-lg backdrop-blur-sm">
+            Turma Concluída
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-start justify-between mb-3 relative z-30">
         <div className="flex-1">
           <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full', st.color)}>{st.label}</span>
           <h3 className="font-bold text-slate-800 mt-2 leading-tight">{turma.name}</h3>
@@ -34,14 +43,14 @@ export function TurmaCard({ turma, isSelected, onSelect, onEdit, onDelete }: Tur
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             onClick={e => { e.stopPropagation(); onEdit(turma); }}
-            className="p-1.5 hover:bg-emerald-50 rounded-lg text-slate-300 hover:text-emerald-500 transition-colors"
+            className="p-1.5 hover:bg-emerald-50 rounded-lg text-slate-400 hover:text-emerald-600 transition-colors bg-white/80 backdrop-blur-sm"
             title="Editar turma"
           >
             <Edit2 size={14} />
           </button>
           <button
             onClick={e => { e.stopPropagation(); onDelete(turma.id); }}
-            className="p-1.5 hover:bg-red-50 rounded-lg text-slate-300 hover:text-red-400 transition-colors"
+            className="p-1.5 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-500 transition-colors bg-white/80 backdrop-blur-sm"
             title="Excluir turma"
           >
             <Trash2 size={14} />
