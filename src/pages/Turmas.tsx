@@ -49,11 +49,18 @@ const STATUS_COLUMNS: { id: AttendanceStatus; label: string; color: string; bg: 
   { id: 'confirmado', label: 'Confirmado', color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200', icon: <CheckCircle2 size={14} className="text-emerald-600" /> },
 ];
 
-const TURMA_STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  agendada: { label: 'Agendada', color: 'bg-blue-100 text-blue-700' },
-  em_andamento: { label: 'Em Andamento', color: 'bg-emerald-100 text-emerald-700' },
-  concluida: { label: 'Concluída', color: 'bg-slate-100 text-slate-600' },
-  cancelada: { label: 'Cancelada', color: 'bg-red-100 text-red-600' },
+const TURMA_STATUS_LABELS: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+  agendada: { label: 'Agendada', color: 'bg-blue-50 text-blue-600 border-blue-100', icon: <Calendar size={12} /> },
+  em_andamento: { label: 'Em Andamento', color: 'bg-emerald-50 text-emerald-600 border-emerald-100', icon: <Clock size={12} /> },
+  concluida: { label: 'Concluída', color: 'bg-slate-100 text-slate-500 border-slate-200', icon: <CheckCheck size={12} /> },
+  cancelada: { label: 'Cancelada', color: 'bg-red-50 text-red-600 border-red-100', icon: <XCircle size={12} /> },
+};
+
+const STATUS_STRIPE: Record<string, string> = {
+  agendada: 'bg-gradient-to-b from-blue-400 to-blue-600',
+  em_andamento: 'bg-gradient-to-b from-emerald-400 to-emerald-600',
+  concluida: 'bg-gradient-to-b from-slate-300 to-slate-400',
+  cancelada: 'bg-gradient-to-b from-red-400 to-red-600',
 };
 
 // ── Fetch a full Lead from Supabase by id ────────────────────────────────────
@@ -235,7 +242,10 @@ export function Turmas() {
         </div>
 
         {/* Cards Grid */}
-        <div className="flex-1 overflow-y-auto p-6 pt-2 grid grid-cols-1 gap-4 content-start">
+        <div className={cn(
+          "flex-1 overflow-y-auto p-6 pt-2 grid gap-6 content-start",
+          liveSelectedTurma ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3'
+        )}>
           {isLoading ? (
             <div className="col-span-full flex flex-col items-center justify-center py-20 text-slate-400">
               <Loader2 className="w-8 h-8 animate-spin text-emerald-600 mb-2" />
@@ -286,85 +296,150 @@ export function Turmas() {
               const confirmados = (turma.attendees || []).filter(a => a.status === 'confirmado').length;
               const st = TURMA_STATUS_LABELS[turma.status] || TURMA_STATUS_LABELS.agendada;
               const isSelected = liveSelectedTurma?.id === turma.id;
+              const totalVendas = totalVendasTurma(turma);
+              const potentialVendas = (turma.product_price || 0) * (turma.attendees || []).length;
 
               return (
                 <div
                   key={turma.id}
                   onClick={() => setSelectedTurma(isSelected ? null : turma)}
                   className={cn(
-                    'bg-white rounded-2xl p-5 border cursor-pointer transition-all shadow-sm hover:shadow-md group relative overflow-hidden',
-                    isSelected ? 'border-emerald-400 ring-2 ring-emerald-200' : 'border-slate-100 hover:border-emerald-200'
+                    'bg-white rounded-2xl border cursor-pointer transition-all duration-300 shadow-sm hover:shadow-xl group relative overflow-hidden flex flex-col',
+                    isSelected
+                      ? 'border-emerald-400 ring-2 ring-emerald-500/10 shadow-emerald-100/50 scale-[1.02]'
+                      : 'border-slate-100 hover:border-emerald-200 hover:-translate-y-1'
                   )}
                 >
-                  {/* Fita zebrada para turmas concluídas */}
-                  {turma.status === 'concluida' && (
-                    <div className="absolute inset-0 pointer-events-none rounded-2xl overflow-hidden">
-                      <div
-                        className="absolute inset-0 opacity-[0.035]"
-                        style={{ backgroundImage: 'repeating-linear-gradient(45deg, #10b981 0, #10b981 8px, transparent 0, transparent 50%)', backgroundSize: '20px 20px' }}
-                      />
-                      <div className="absolute top-3 right-[-28px] rotate-45 bg-emerald-500 text-white text-[9px] font-black px-8 py-0.5 shadow-sm tracking-widest uppercase">
-                        Concluída
+                  {/* Status Indicator Stripe */}
+                  <div className={cn('absolute left-0 top-0 bottom-0 w-1.5', STATUS_STRIPE[turma.status] ?? 'bg-slate-300')} />
+
+                  {/* Top Actions (Hidden by default, shown on hover or if selected) */}
+                  <div className="absolute top-4 right-4 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                    <button
+                      onClick={e => { e.stopPropagation(); setEditingTurma(turma); setIsNewTurmaOpen(true); }}
+                      className="p-1.5 bg-white/90 backdrop-blur shadow-sm border border-slate-100 rounded-lg text-slate-400 hover:text-emerald-600 hover:border-emerald-100 transition-all"
+                    >
+                      <Edit2 size={14} />
+                    </button>
+                    <button
+                      onClick={e => { e.stopPropagation(); if (confirm('Excluir esta turma?')) removeTurma(turma.id); if (isSelected) setSelectedTurma(null); }}
+                      className="p-1.5 bg-white/90 backdrop-blur shadow-sm border border-slate-100 rounded-lg text-slate-400 hover:text-red-500 hover:border-red-100 transition-all"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+
+                  {/* Card Content */}
+                  <div className="p-5 pl-7 flex flex-col h-full">
+                    {/* Badge Header */}
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className={cn(
+                        'text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider border flex items-center gap-1',
+                        st.color
+                      )}>
+                        {st.icon}
+                        {st.label}
+                      </span>
+                      {turma.category && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-50 text-slate-500 border border-slate-100 uppercase tracking-wider">
+                          {turma.category}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Title & Professor */}
+                    <div className="mb-4">
+                      <h3 className="font-extrabold text-slate-800 text-base leading-tight group-hover:text-emerald-700 transition-colors">
+                        {turma.name || 'Turma sem nome'}
+                      </h3>
+                      <div className="mt-1 flex flex-col gap-0.5">
+                        <div className="flex items-center gap-1.5 text-xs text-slate-600 font-medium">
+                          <Users size={12} className="text-emerald-500" />
+                          <span>{turma.professor_name || 'Sem professor'}</span>
+                        </div>
+                        {turma.professor_email && (
+                          <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
+                            <LogIn size={10} className="ml-0.5" />
+                            <span className="truncate">{turma.professor_email}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
+
+                    {/* Product & Details Block */}
+                    <div className="grid grid-cols-2 gap-3 mb-5 bg-slate-50/50 p-3 rounded-xl border border-slate-100/50">
+                      <div className="space-y-1.5">
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Produto</p>
+                        <div className="flex items-center gap-1.5">
+                          <Package size={12} className="text-emerald-500 shrink-0" />
+                          <span className="text-xs font-bold text-slate-700 truncate">{turma.product_name}</span>
+                        </div>
+                        {turma.product_price && (
+                          <p className="text-[10px] font-medium text-emerald-600 ml-5">R$ {turma.product_price.toLocaleString('pt-BR')}</p>
+                        )}
+                      </div>
+                      <div className="space-y-1.5">
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Local & Data</p>
+                        <div className="flex items-center gap-1.5">
+                          <Calendar size={12} className="text-emerald-500 shrink-0" />
+                          <span className="text-xs font-bold text-slate-700">
+                            {turma.date ? new Date(turma.date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '--/--'}
+                          </span>
+                          <span className="text-xs text-slate-400 font-medium">| {turma.time || '--:--'}</span>
+                        </div>
+                        {turma.location && (
+                          <div className="flex items-center gap-1.5 ml-0.5 text-[10px] text-slate-500 font-medium">
+                            <MapPin size={10} className="text-slate-400" />
+                            <span className="truncate">{turma.location}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Progress & Stats Area */}
+                    <div className="mt-auto space-y-3">
+                      {/* Attendance Bar */}
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-[11px] font-bold">
+                          <span className="text-slate-500">Confirmados</span>
+                          <span className="text-emerald-600 text-xs">{confirmados} / {(turma.attendees || []).length}</span>
+                        </div>
+                        <div className="h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200/50">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: (turma.attendees || []).length ? `${(confirmados / turma.attendees.length) * 100}%` : '0%' }}
+                            className="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Financial Footer */}
+                      <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                        <div className="flex flex-col">
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Faturamento</span>
+                          <span className="text-sm font-black text-slate-800">
+                            R$ {totalVendas.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                          </span>
+                        </div>
+                        {potentialVendas > 0 && (
+                          <div className="flex flex-col text-right">
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Potencial</span>
+                            <span className="text-[11px] font-bold text-slate-500">
+                              R$ {potentialVendas.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Corner Visual Element */}
+                  {turma.status === 'concluida' && (
+                    <div className="absolute top-0 right-0 w-16 h-16 overflow-hidden pointer-events-none">
+                      <div className="absolute top-[-10px] right-[-10px] w-20 h-20 bg-emerald-500/10 rounded-full blur-2xl" />
+                      <CheckCheck size={40} className="absolute top-2 right-2 text-emerald-500/10 rotate-12" />
+                    </div>
                   )}
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full', st.color)}>{st.label}</span>
-                      <h3 className="font-bold text-slate-800 mt-2 leading-tight">{turma.name}</h3>
-                      <p className="text-xs text-slate-500 mt-0.5">{turma.professor_name || 'Sem professor'}</p>
-                    </div>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={e => { e.stopPropagation(); setEditingTurma(turma); setIsNewTurmaOpen(true); }}
-                        className="p-1.5 hover:bg-emerald-50 rounded-lg text-slate-300 hover:text-emerald-500 transition-colors"
-                      >
-                        <Edit2 size={14} />
-                      </button>
-                      <button
-                        onClick={e => { e.stopPropagation(); removeTurma(turma.id); if (isSelected) setSelectedTurma(null); }}
-                        className="p-1.5 hover:bg-red-50 rounded-lg text-slate-300 hover:text-red-400 transition-colors"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5 text-xs text-slate-500">
-                    <div className="flex items-center gap-2">
-                      <Calendar size={12} className="text-emerald-500 shrink-0" />
-                      {turma.date ? new Date(turma.date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' }) : 'Data não definida'}
-                      <Clock size={12} className="text-emerald-500 ml-1 shrink-0" />
-                      {turma.time || '--:--'}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <MapPin size={12} className="text-emerald-500 shrink-0" />
-                      <span className="truncate">{turma.location || 'Sem localização'}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Package size={12} className="text-emerald-500 shrink-0" />
-                      {turma.product_name}
-                    </div>
-                  </div>
-
-                  <div className="mt-4 pt-3 border-t border-slate-50 flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 text-xs">
-                      <Users size={12} className="text-slate-400" />
-                      <span className="font-semibold text-slate-700">{confirmados}</span>
-                      <span className="text-slate-400">/ {(turma.attendees || []).length} confirmados</span>
-                    </div>
-                    <span className="text-xs font-bold text-emerald-700">
-                      R$ {totalVendasTurma(turma).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
-                    </span>
-                  </div>
-
-                  {/* Progress bar */}
-                  <div className="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                      style={{ width: (turma.attendees || []).length ? `${(confirmados / turma.attendees.length) * 100}%` : '0%' }}
-                    />
-                  </div>
                 </div>
               );
             })
@@ -566,6 +641,7 @@ export function Turmas() {
           turmaAttendee={selectedAttendeeInfo ?? undefined}
           currentStageId={selectedAttendeeInfo?.currentStatus}
           responsibles={responsibles}
+          initialTab={modalInitialTab}
           onTurmaStatusChange={(turmaId: string, attendeeId: string, status: AttendanceStatus) => {
             updateAttendeeStatus(turmaId, attendeeId, status);
             setSelectedAttendeeInfo(prev => prev ? { ...prev, currentStatus: status } : null);
