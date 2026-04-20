@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   GraduationCap,
@@ -17,8 +17,12 @@ import {
   Edit2,
   BookOpen,
   Search,
-  List,
   LayoutGrid,
+  LayoutList,
+  CheckCheck,
+  LogIn,
+  UserX,
+  BadgeCheck,
 } from 'lucide-react';
 import { DndContext, useSensors, useSensor, PointerSensor, closestCenter } from '@dnd-kit/core';
 import {
@@ -34,8 +38,12 @@ import { LeadDetailsModal } from '../components/leads/LeadDetailsModal';
 import { Lead } from '../types/leads';
 import { getSupabaseClient } from '../lib/supabase';
 import { cn } from '../lib/utils';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { usePermissions } from '../hooks/usePermissions';
+
+const totalVendasTurma = (turma: Turma): number =>
+  (turma.attendees || []).reduce((sum: number, a) => sum + (a.vendas || 0), 0);
+
 
 // ── Column definitions — order: matriculado → cancelado → indeciso → confirmado ──
 const STATUS_COLUMNS: { id: AttendanceStatus; label: string; color: string; bg: string; icon: React.ReactNode }[] = [
@@ -63,20 +71,20 @@ async function fetchLeadById(leadId: string): Promise<Lead | null> {
 
 export function Turmas() {
   const { hasPermission } = usePermissions();
-  const { turmas, fetchTurmas, updateAttendeeStatus, updateTurma, removeTurma, removeAttendee, isLoading, subscribe } = useTurmaStore();
+  const { turmas, fetchTurmas, updateAttendeeStatus, removeTurma, removeAttendee, isLoading, subscribe } = useTurmaStore();
   const [selectedTurma, setSelectedTurma] = useState<Turma | null>(null);
   const [isNewTurmaOpen, setIsNewTurmaOpen] = useState(false);
   const [editingTurma, setEditingTurma] = useState<Turma | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [setupRequired] = useState(false);
   const [responsibles, setResponsibles] = useState<string[]>([]);
+  const [viewMode, setViewMode] = useState<'kanban' | 'lista'>('kanban');
 
   // Attendee detail modal
   const [selectedAttendeeLead, setSelectedAttendeeLead] = useState<Lead | null>(null);
   const [selectedAttendeeInfo, setSelectedAttendeeInfo] = useState<{ turmaId: string; attendeeId: string; currentStatus: AttendanceStatus } | null>(null);
   const [loadingAttendeeDetail, setLoadingAttendeeDetail] = useState(false);
-  const [viewMode, setViewMode] = useState<'kanban' | 'lista'>('kanban');
-  const [attendeeInitialTab, setAttendeeInitialTab] = useState<'info' | 'turma'>('info');
+  const [modalInitialTab, setModalInitialTab] = useState<'info' | 'turma'>('info');
 
   useEffect(() => {
     fetchTurmas();
@@ -145,23 +153,36 @@ export function Turmas() {
     });
   };
 
-  const handleAttendeeClick = async (attendee: TurmaAttendee, turmaId: string) => {
+  const handleAttendeeClick = async (attendee: TurmaAttendee, turmaId: string, tab: 'info' | 'turma' = 'info') => {
     if (!attendee.lead_id) return;
     setLoadingAttendeeDetail(true);
     const lead = await fetchLeadById(attendee.lead_id);
     setLoadingAttendeeDetail(false);
     if (lead) {
+      setModalInitialTab(tab);
       setSelectedAttendeeLead(lead);
       setSelectedAttendeeInfo({ turmaId, attendeeId: attendee.id, currentStatus: attendee.status });
     }
+  };
+
+  const handleCheckIn = (attendee: TurmaAttendee, turmaId: string) => {
+    updateAttendeeStatus(turmaId, attendee.id, 'confirmado');
+    handleAttendeeClick({ ...attendee, status: 'confirmado' }, turmaId, 'turma');
+  };
+
+  const handleNoShow = (attendee: TurmaAttendee, turmaId: string) => {
+    updateAttendeeStatus(turmaId, attendee.id, 'cancelado');
   };
 
   const liveSelectedTurma = selectedTurma
     ? turmas.find(t => t.id === selectedTurma.id) ?? selectedTurma
     : null;
 
-  const totalVendasTurma = (t: Turma) =>
-    t.attendees.reduce((acc, a) => acc + a.vendas, 0);
+  const handleMarkConcluida = () => {
+    if (!liveSelectedTurma) return;
+    // TODO: Call store updateTurma when implemented
+    console.log('Marking turma as concluida:', liveSelectedTurma.id);
+  };
 
 
 
@@ -265,7 +286,7 @@ export function Turmas() {
                   key={turma.id}
                   onClick={() => setSelectedTurma(isSelected ? null : turma)}
                   className={cn(
-                    'bg-white rounded-2xl p-5 border cursor-pointer transition-all shadow-sm hover:shadow-md group relative overflow-hidden',
+                    'bg-white rounded-2xl p-5 border cursor-pointer transition-all shadow-sm hover:shadow-md group',
                     isSelected ? 'border-emerald-400 ring-2 ring-emerald-200' : 'border-slate-100 hover:border-emerald-200'
                   )}
                 >
@@ -326,12 +347,6 @@ export function Turmas() {
                       style={{ width: (turma.attendees || []).length ? `${(confirmados / turma.attendees.length) * 100}%` : '0%' }}
                     />
                   </div>
-
-                  {turma.status === 'concluida' && (
-                    <div className="absolute top-[18px] right-[-30px] w-[110px] bg-slate-500 text-white text-[9px] font-bold py-[3px] text-center rotate-45 shadow pointer-events-none select-none">
-                      Concluída
-                    </div>
-                  )}
                 </div>
               );
             })
@@ -363,13 +378,29 @@ export function Turmas() {
               <div className="flex items-center gap-2 shrink-0">
                 {liveSelectedTurma.status !== 'concluida' && (
                   <button
-                    onClick={() => updateTurma(liveSelectedTurma.id, { status: 'concluida' })}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-xl transition-colors"
+                    onClick={handleMarkConcluida}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all"
                   >
-                    <CheckCircle2 size={13} />
-                    Concluída
+                    <CheckCheck size={14} />
+                    <span className="hidden sm:inline">Turma Concluída</span>
                   </button>
                 )}
+                <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-0.5">
+                  <button
+                    onClick={() => setViewMode('kanban')}
+                    className={cn('p-1.5 rounded-md transition-all', viewMode === 'kanban' ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-400 hover:text-slate-600')}
+                    title="Visualização Kanban"
+                  >
+                    <LayoutGrid size={15} />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('lista')}
+                    className={cn('p-1.5 rounded-md transition-all', viewMode === 'lista' ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-400 hover:text-slate-600')}
+                    title="Visualização Lista"
+                  >
+                    <LayoutList size={15} />
+                  </button>
+                </div>
                 <button
                   onClick={() => setSelectedTurma(null)}
                   className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors shadow-sm bg-white shrink-0"
@@ -379,63 +410,110 @@ export function Turmas() {
               </div>
             </div>
 
-            {/* Attendance Section */}
-            <div className="flex-1 overflow-auto p-4 custom-scrollbar">
-              <div className="flex items-center justify-between mb-4 px-2">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Lista de Presença</p>
-                <div className="flex items-center gap-0.5 bg-slate-100 rounded-xl p-1">
-                  <button
-                    onClick={() => setViewMode('kanban')}
-                    className={cn('flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all', viewMode === 'kanban' ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400 hover:text-slate-600')}
-                  >
-                    <LayoutGrid size={11} />
-                    Kanban
-                  </button>
-                  <button
-                    onClick={() => setViewMode('lista')}
-                    className={cn('flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all', viewMode === 'lista' ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400 hover:text-slate-600')}
-                  >
-                    <List size={11} />
-                    Lista
-                  </button>
-                </div>
-              </div>
-
-              {viewMode === 'kanban' ? (
-                <DndContext
-                  key={`dnd-${liveSelectedTurma.id}`}
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragEnd={onDragEnd}
-                >
-                  <div className="flex lg:flex-row flex-col gap-4 h-full min-h-[300px]">
-                    {STATUS_COLUMNS.map(col => (
-                      <TurmaColumn
-                        key={`col-${col.id}-${liveSelectedTurma.id}`}
-                        column={col}
-                        attendees={liveSelectedTurma.attendees || []}
-                        onAttendeeClick={(att) => { setAttendeeInitialTab('info'); handleAttendeeClick(att, liveSelectedTurma.id); }}
-                        onRemoveAttendee={(attId) => removeAttendee(liveSelectedTurma.id, attId)}
-                        onCheckIn={(att) => { setAttendeeInitialTab('turma'); handleAttendeeClick(att, liveSelectedTurma.id); }}
-                        onNoShow={(attId) => {
-                          updateAttendeeStatus(liveSelectedTurma.id, attId, 'cancelado');
-                          setSelectedTurma(prev => prev ? { ...prev, attendees: prev.attendees.map(a => a.id === attId ? { ...a, status: 'cancelado' as const } : a) } : null);
-                        }}
-                      />
-                    ))}
+            {/* Stats Row */}
+            <div className="px-4 sm:px-6 py-3 bg-slate-50/50 border-b border-slate-100 grid grid-cols-4 gap-2 sm:gap-3">
+              {STATUS_COLUMNS.map(col => {
+                const count = (liveSelectedTurma.attendees || []).filter(a => a.status === col.id).length;
+                const total = (liveSelectedTurma.attendees || []).filter(a => a.status === col.id).reduce((s: number, a) => s + (a.vendas || 0), 0 as number);
+                return (
+                  <div key={col.id} className={cn('rounded-xl p-2.5 border transition-colors', col.bg)}>
+                    <div className="flex items-center gap-1 mb-1">
+                      {col.icon}
+                      <span className={cn('text-[10px] font-bold hidden sm:block', col.color)}>{col.label}</span>
+                    </div>
+                    <p className="text-xl font-bold text-slate-800">{count}</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}</p>
                   </div>
-                </DndContext>
+                );
+              })}
+            </div>
+
+            {/* Attendance content — Kanban or Lista */}
+            <div className="flex-1 overflow-auto p-4 custom-scrollbar">
+              {viewMode === 'kanban' ? (
+                <>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4 px-2">
+                    Lista de Presença
+                  </p>
+                  <DndContext
+                    key={`dnd-${liveSelectedTurma.id}`}
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={onDragEnd}
+                  >
+                    <div className="flex lg:flex-row flex-col gap-4 h-full min-h-[300px]">
+                      {STATUS_COLUMNS.map(col => (
+                        <TurmaColumn
+                          key={`col-${col.id}-${liveSelectedTurma.id}`}
+                          column={col}
+                          attendees={liveSelectedTurma.attendees || []}
+                          onAttendeeClick={(att) => handleAttendeeClick(att, liveSelectedTurma.id)}
+                          onRemoveAttendee={(attId) => removeAttendee(liveSelectedTurma.id, attId)}
+                          onCheckIn={(att) => handleCheckIn(att, liveSelectedTurma.id)}
+                          onNoShow={(att) => handleNoShow(att, liveSelectedTurma.id)}
+                        />
+                      ))}
+                    </div>
+                  </DndContext>
+                </>
               ) : (
-                <AttendeeListView
-                  attendees={liveSelectedTurma.attendees || []}
-                  onAttendeeClick={(att) => { setAttendeeInitialTab('info'); handleAttendeeClick(att, liveSelectedTurma.id); }}
-                  onRemoveAttendee={(attId) => removeAttendee(liveSelectedTurma.id, attId)}
-                  onCheckIn={(att) => { setAttendeeInitialTab('turma'); handleAttendeeClick(att, liveSelectedTurma.id); }}
-                  onNoShow={(attId) => {
-                    updateAttendeeStatus(liveSelectedTurma.id, attId, 'cancelado');
-                    setSelectedTurma(prev => prev ? { ...prev, attendees: prev.attendees.map(a => a.id === attId ? { ...a, status: 'cancelado' as const } : a) } : null);
-                  }}
-                />
+                <>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4 px-2">
+                    Lista de Presença
+                  </p>
+                  <div className="space-y-2">
+                    {(liveSelectedTurma.attendees || []).map(att => {
+                      const isPago = (att.valor_recebido ?? 0) > 0;
+                      const colDef = STATUS_COLUMNS.find(c => c.id === att.status);
+                      return (
+                        <div
+                          key={att.id}
+                          className="flex items-center gap-3 bg-white border border-slate-100 rounded-xl px-3 py-2.5 shadow-sm hover:border-emerald-200 transition-colors"
+                        >
+                          <div className="relative shrink-0">
+                            <img src={att.photo} alt={att.name} className="w-9 h-9 rounded-full object-cover border-2 border-slate-100" referrerPolicy="no-referrer" />
+                            {isPago && (
+                              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center">
+                                <BadgeCheck size={10} className="text-white" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-slate-700 truncate">{att.name}</p>
+                            <p className="text-[10px] text-slate-400 truncate">{att.responsible || 'Sem responsável'}</p>
+                          </div>
+                          <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full hidden sm:inline', colDef?.bg, colDef?.color)}>
+                            {colDef?.label}
+                          </span>
+                          <div className="text-right shrink-0">
+                            <p className="text-[10px] font-bold text-emerald-700">R$ {(att.vendas || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}</p>
+                            {isPago && <p className="text-[10px] text-emerald-500">Rec. R$ {att.valor_recebido!.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}</p>}
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            {att.lead_id && att.status !== 'confirmado' && (
+                              <button
+                                onClick={() => handleCheckIn(att, liveSelectedTurma.id)}
+                                className="flex items-center gap-1 px-2 py-1 text-[10px] font-bold bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors"
+                                title="Check-in"
+                              >
+                                <LogIn size={11} /> CheckIn
+                              </button>
+                            )}
+                            {att.lead_id && att.status !== 'cancelado' && (
+                              <button
+                                onClick={() => handleNoShow(att, liveSelectedTurma.id)}
+                                className="flex items-center gap-1 px-2 py-1 text-[10px] font-bold bg-red-50 border border-red-200 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                                title="No-show"
+                              >
+                                <UserX size={11} /> NoShow
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
               )}
             </div>
 
@@ -471,7 +549,7 @@ export function Turmas() {
           turmaAttendee={selectedAttendeeInfo ?? undefined}
           currentStageId={selectedAttendeeInfo?.currentStatus}
           responsibles={responsibles}
-          initialTab={attendeeInitialTab}
+          initialTab={modalInitialTab}
           onTurmaStatusChange={(turmaId: string, attendeeId: string, status: AttendanceStatus) => {
             updateAttendeeStatus(turmaId, attendeeId, status);
             setSelectedAttendeeInfo(prev => prev ? { ...prev, currentStatus: status } : null);
@@ -482,18 +560,14 @@ export function Turmas() {
   );
 }
 
-/* ── Shared attendee action props ──────────────────────────────────────────── */
-interface AttendeeActions {
+/* ── Turma Column Component ────────────────────────────────────────────────── */
+interface TurmaColumnProps {
+  column: typeof STATUS_COLUMNS[number];
+  attendees: TurmaAttendee[];
   onAttendeeClick: (att: TurmaAttendee) => void;
   onRemoveAttendee: (attId: string) => void;
   onCheckIn: (att: TurmaAttendee) => void;
-  onNoShow: (attId: string) => void;
-}
-
-/* ── Turma Column Component ────────────────────────────────────────────────── */
-interface TurmaColumnProps extends AttendeeActions {
-  column: typeof STATUS_COLUMNS[number];
-  attendees: TurmaAttendee[];
+  onNoShow: (att: TurmaAttendee) => void;
 }
 
 function TurmaColumn({ column, attendees, onAttendeeClick, onRemoveAttendee, onCheckIn, onNoShow }: TurmaColumnProps) {
@@ -520,70 +594,12 @@ function TurmaColumn({ column, attendees, onAttendeeClick, onRemoveAttendee, onC
               id={att.id}
               onViewDetails={att.lead_id ? () => onAttendeeClick(att) : undefined}
               onRemove={() => onRemoveAttendee(att.id)}
-              onCheckIn={() => onCheckIn(att)}
-              onNoShow={() => onNoShow(att.id)}
+              onCheckIn={att.lead_id ? () => onCheckIn(att) : undefined}
+              onNoShow={att.lead_id ? () => onNoShow(att) : undefined}
             />
           ))}
         </div>
       </div>
-    </div>
-  );
-}
-
-/* ── Attendee List View ────────────────────────────────────────────────────── */
-function AttendeeListView({ attendees, onAttendeeClick, onRemoveAttendee, onCheckIn, onNoShow }: AttendeeActions & { attendees: TurmaAttendee[] }) {
-  const sorted = [...attendees].sort((a, b) => a.name.localeCompare(b.name));
-  if (sorted.length === 0) {
-    return <p className="text-xs text-slate-400 text-center py-10">Nenhum participante.</p>;
-  }
-  return (
-    <div className="space-y-1.5">
-      {sorted.map(att => {
-        const col = STATUS_COLUMNS.find(c => c.id === att.status);
-        return (
-          <div key={att.id} className="bg-white rounded-xl border border-slate-100 px-3 py-2.5 flex items-center gap-3 shadow-sm hover:border-emerald-200 transition-colors group/row">
-            <img
-              src={att.photo}
-              alt={att.name}
-              onClick={() => att.lead_id && onAttendeeClick(att)}
-              className={cn('w-8 h-8 rounded-full object-cover border-2 border-slate-100 shrink-0', att.lead_id && 'cursor-pointer hover:opacity-80')}
-              referrerPolicy="no-referrer"
-            />
-            <div className="flex-1 min-w-0" onClick={() => att.lead_id && onAttendeeClick(att)}>
-              <p className="text-xs font-bold text-slate-700 truncate leading-tight">{att.name}</p>
-              <p className="text-[10px] text-slate-400 truncate">{att.responsible || 'Sem responsável'}</p>
-            </div>
-            <div className="flex items-center gap-1.5 shrink-0">
-              {att.valor_recebido != null && att.valor_recebido > 0 && (
-                <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full hidden sm:inline">
-                  Rec. R$ {att.valor_recebido.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
-                </span>
-              )}
-              {col && (
-                <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full border', col.bg, col.color)}>{col.label}</span>
-              )}
-              <button
-                onClick={() => onCheckIn(att)}
-                className="px-2 py-1 text-[10px] font-bold bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors opacity-0 group-hover/row:opacity-100"
-              >
-                Check-in
-              </button>
-              <button
-                onClick={() => onNoShow(att.id)}
-                className="px-2 py-1 text-[10px] font-bold bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors opacity-0 group-hover/row:opacity-100"
-              >
-                No-show
-              </button>
-              <button
-                onClick={() => onRemoveAttendee(att.id)}
-                className="p-1 rounded-lg text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors opacity-0 group-hover/row:opacity-100"
-              >
-                <X size={13} />
-              </button>
-            </div>
-          </div>
-        );
-      })}
     </div>
   );
 }
@@ -618,96 +634,101 @@ function AttendeeCard({ attendee, id, onViewDetails, onRemove, onCheckIn, onNoSh
       {...listeners}
       {...attributes}
       className={cn(
-        'bg-white rounded-xl border border-slate-100 p-3 shadow-sm flex items-start gap-3 transition-all group/card mb-2',
+        'bg-white rounded-xl border border-slate-100 p-3 shadow-sm flex flex-col gap-2 transition-all group/card mb-2',
         isDragging ? 'shadow-xl border-emerald-300 rotate-1 cursor-grabbing scale-[1.02]' : 'hover:border-emerald-200 cursor-grab',
       )}
     >
-      <img
-        src={attendee.photo}
-        alt={attendee.name}
-        onClick={(e) => { e.stopPropagation(); onViewDetails?.(); }}
-        className={cn('w-9 h-9 rounded-full object-cover border-2 border-slate-100 shrink-0 mt-0.5', onViewDetails && 'cursor-pointer hover:opacity-80')}
-        referrerPolicy="no-referrer"
-      />
-      <div
-        className="flex-1 min-w-0"
-        onClick={(e) => { e.stopPropagation(); onViewDetails?.(); }}
-      >
-        {/* Nome do cliente */}
-        <p className="text-xs font-bold text-slate-700 truncate leading-tight">{attendee.name}</p>
-        {/* Responsável */}
-        <p className="text-[10px] text-slate-400 truncate mt-0.5">
-          {attendee.responsible || 'Sem responsável'}
-        </p>
-        {/* Infos básicas: venda e recebido */}
-        <div className="flex items-center gap-2 mt-1 flex-wrap">
-          {attendee.vendas > 0 && (
-            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full">
-              R$ {attendee.vendas.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
-            </span>
-          )}
-          {attendee.valor_recebido != null && attendee.valor_recebido > 0 && (
-            <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">
-              Rec. R$ {attendee.valor_recebido.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
-            </span>
-          )}
-          {attendee.forma_pagamento && (
-            <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full truncate max-w-[80px]">
-              {attendee.forma_pagamento}
-            </span>
-          )}
+      <div className="flex items-start gap-3 w-full">
+        <img
+          src={attendee.photo}
+          alt={attendee.name}
+          onClick={(e) => { e.stopPropagation(); onViewDetails?.(); }}
+          className={cn('w-9 h-9 rounded-full object-cover border-2 border-slate-100 shrink-0 mt-0.5', onViewDetails && 'cursor-pointer hover:opacity-80')}
+          referrerPolicy="no-referrer"
+        />
+        <div
+          className="flex-1 min-w-0"
+          onClick={(e) => { e.stopPropagation(); onViewDetails?.(); }}
+        >
+          {/* Nome do cliente */}
+          <p className="text-xs font-bold text-slate-700 truncate leading-tight">{attendee.name}</p>
+          {/* Responsável */}
+          <p className="text-[10px] text-slate-400 truncate mt-0.5">
+            {attendee.responsible || 'Sem responsável'}
+          </p>
+          {/* Infos básicas: venda e recebido */}
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            {attendee.vendas > 0 && (
+              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full">
+                R$ {attendee.vendas.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+              </span>
+            )}
+            {attendee.valor_recebido != null && attendee.valor_recebido > 0 && (
+              <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">
+                Rec. R$ {attendee.valor_recebido.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* Check-in / No-show quick actions */}
-        <div className="flex items-center gap-1 mt-1.5 opacity-0 group-hover/card:opacity-100 transition-opacity">
-          <button
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => { e.stopPropagation(); onCheckIn?.(); }}
-            className="px-1.5 py-0.5 text-[9px] font-bold bg-emerald-50 text-emerald-600 rounded-md hover:bg-emerald-100 transition-colors"
-          >
-            Check-in
-          </button>
-          <button
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => { e.stopPropagation(); onNoShow?.(); }}
-            className="px-1.5 py-0.5 text-[9px] font-bold bg-red-50 text-red-500 rounded-md hover:bg-red-100 transition-colors"
-          >
-            No-show
-          </button>
-        </div>
+        {/* Botão remover com confirmação */}
+        {onRemove && (
+          <div className="shrink-0 flex flex-col items-end gap-1">
+            {confirmingRemove ? (
+              <div
+                className="flex items-center gap-1"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => { e.stopPropagation(); setConfirmingRemove(false); onRemove(); }}
+                  className="px-2 py-0.5 text-[10px] font-bold bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                >
+                  Sim
+                </button>
+                <button
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => { e.stopPropagation(); setConfirmingRemove(false); }}
+                  className="px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors"
+                >
+                  Não
+                </button>
+              </div>
+            ) : (
+              <button
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => { e.stopPropagation(); setConfirmingRemove(true); }}
+                className="p-1 rounded-lg text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors opacity-0 group-hover/card:opacity-100"
+                title="Remover da turma"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Botão remover com confirmação */}
-      {onRemove && (
-        <div className="shrink-0 flex flex-col items-end gap-1">
-          {confirmingRemove ? (
-            <div
-              className="flex items-center gap-1"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => { e.stopPropagation(); setConfirmingRemove(false); onRemove(); }}
-                className="px-2 py-0.5 text-[10px] font-bold bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-              >
-                Sim
-              </button>
-              <button
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => { e.stopPropagation(); setConfirmingRemove(false); }}
-                className="px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors"
-              >
-                Não
-              </button>
-            </div>
-          ) : (
+      {/* CheckIn / NoShow buttons */}
+      {(onCheckIn || onNoShow) && (
+        <div className="flex items-center gap-1.5 pt-2 border-t border-slate-50" onClick={(e) => e.stopPropagation()}>
+          {/* Mostra CheckIn se não estiver confirmado */}
+          {onCheckIn && attendee.status !== 'confirmado' && (
             <button
               onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => { e.stopPropagation(); setConfirmingRemove(true); }}
-              className="p-1 rounded-lg text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors opacity-0 group-hover/card:opacity-100"
-              title="Remover da turma"
+              onClick={(e) => { e.stopPropagation(); onCheckIn(); }}
+              className="flex-1 flex items-center justify-center gap-1 py-1 text-[10px] font-bold bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors"
             >
-              <X size={13} />
+              <LogIn size={11} /> CheckIn
+            </button>
+          )}
+          {/* Mostra NoShow se não estiver cancelado */}
+          {onNoShow && attendee.status !== 'cancelado' && (
+            <button
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); onNoShow(); }}
+              className="flex-1 flex items-center justify-center gap-1 py-1 text-[10px] font-bold bg-red-50 border border-red-200 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+            >
+              <UserX size={11} /> NoShow
             </button>
           )}
         </div>
@@ -715,3 +736,5 @@ function AttendeeCard({ attendee, id, onViewDetails, onRemove, onCheckIn, onNoSh
     </div>
   );
 }
+
+
