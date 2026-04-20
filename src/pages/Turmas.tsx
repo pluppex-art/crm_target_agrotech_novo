@@ -261,7 +261,7 @@ export function Turmas() {
                   key={turma.id}
                   onClick={() => setSelectedTurma(isSelected ? null : turma)}
                   className={cn(
-                    'bg-white rounded-2xl p-5 border cursor-pointer transition-all shadow-sm hover:shadow-md group relative overflow-hidden',
+                    'bg-white rounded-2xl p-5 border cursor-pointer transition-all shadow-sm hover:shadow-md group',
                     isSelected ? 'border-emerald-400 ring-2 ring-emerald-200' : 'border-slate-100 hover:border-emerald-200'
                   )}
                 >
@@ -322,13 +322,6 @@ export function Turmas() {
                       style={{ width: (turma.attendees || []).length ? `${(confirmados / turma.attendees.length) * 100}%` : '0%' }}
                     />
                   </div>
-
-                  {/* Ribbon for concluida */}
-                  {turma.status === 'concluida' && (
-                    <div className="absolute top-[18px] right-[-30px] w-[110px] bg-slate-500 text-white text-[9px] font-bold py-[3px] text-center rotate-45 shadow pointer-events-none select-none">
-                      Concluída
-                    </div>
-                  )}
                 </div>
               );
             })
@@ -357,23 +350,12 @@ export function Turmas() {
                   <div className="hidden sm:flex items-center gap-1"><MapPin size={11} className="text-emerald-500" />{liveSelectedTurma.location || '--'}</div>
                 </div>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                {liveSelectedTurma.status !== 'concluida' && (
-                  <button
-                    onClick={() => updateTurma(liveSelectedTurma.id, { status: 'concluida' })}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-xl transition-colors"
-                  >
-                    <CheckCircle2 size={13} />
-                    Concluída
-                  </button>
-                )}
-                <button
-                  onClick={() => setSelectedTurma(null)}
-                  className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors shadow-sm bg-white shrink-0"
-                >
-                  <X size={20} />
-                </button>
-              </div>
+              <button
+                onClick={() => setSelectedTurma(null)}
+                className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors shadow-sm bg-white shrink-0"
+              >
+                <X size={20} />
+              </button>
             </div>
 
             {/* Stats Row */}
@@ -414,10 +396,6 @@ export function Turmas() {
                       attendees={liveSelectedTurma.attendees || []}
                       onAttendeeClick={(att) => handleAttendeeClick(att, liveSelectedTurma.id)}
                       onRemoveAttendee={(attId) => removeAttendee(liveSelectedTurma.id, attId)}
-                      onStatusChange={(attId, status) => {
-                        updateAttendeeStatus(liveSelectedTurma.id, attId, status);
-                        setSelectedTurma(prev => prev ? { ...prev, attendees: prev.attendees.map(a => a.id === attId ? { ...a, status } : a) } : null);
-                      }}
                     />
                   ))}
                 </div>
@@ -472,10 +450,9 @@ interface TurmaColumnProps {
   attendees: TurmaAttendee[];
   onAttendeeClick: (att: TurmaAttendee) => void;
   onRemoveAttendee: (attId: string) => void;
-  onStatusChange: (attId: string, status: AttendanceStatus) => void;
 }
 
-function TurmaColumn({ column, attendees, onAttendeeClick, onRemoveAttendee, onStatusChange }: TurmaColumnProps) {
+function TurmaColumn({ column, attendees, onAttendeeClick, onRemoveAttendee }: TurmaColumnProps) {
   const attendeesInCol = attendees.filter(a => a.status === column.id);
   const { isOver, setNodeRef } = useDroppable({ id: column.id });
 
@@ -499,7 +476,6 @@ function TurmaColumn({ column, attendees, onAttendeeClick, onRemoveAttendee, onS
               id={att.id}
               onViewDetails={att.lead_id ? () => onAttendeeClick(att) : undefined}
               onRemove={() => onRemoveAttendee(att.id)}
-              onStatusChange={(status) => onStatusChange(att.id, status)}
             />
           ))}
         </div>
@@ -514,10 +490,9 @@ interface AttendeeCardProps {
   id: string;
   onViewDetails?: () => void;
   onRemove?: () => void;
-  onStatusChange?: (status: AttendanceStatus) => void;
 }
 
-function AttendeeCard({ attendee, id, onViewDetails, onRemove, onStatusChange }: AttendeeCardProps) {
+function AttendeeCard({ attendee, id, onViewDetails, onRemove }: AttendeeCardProps) {
   const [confirmingRemove, setConfirmingRemove] = useState(false);
 
   const {
@@ -577,28 +552,6 @@ function AttendeeCard({ attendee, id, onViewDetails, onRemove, onStatusChange }:
           )}
         </div>
       </div>
-
-      {/* Botões check-in / nocode */}
-      {onStatusChange && (
-        <div className="shrink-0 flex flex-col gap-1 items-end opacity-0 group-hover/card:opacity-100 transition-opacity">
-          <button
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => { e.stopPropagation(); onStatusChange('confirmado'); }}
-            title="Check-in"
-            className="px-1.5 py-0.5 text-[9px] font-bold bg-emerald-50 text-emerald-600 rounded-md hover:bg-emerald-100 transition-colors"
-          >
-            Check-in
-          </button>
-          <button
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => { e.stopPropagation(); onStatusChange('cancelado'); }}
-            title="Não veio"
-            className="px-1.5 py-0.5 text-[9px] font-bold bg-red-50 text-red-500 rounded-md hover:bg-red-100 transition-colors"
-          >
-            No-show
-          </button>
-        </div>
-      )}
 
       {/* Botão remover com confirmação */}
       {onRemove && (
