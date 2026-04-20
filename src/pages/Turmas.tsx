@@ -41,7 +41,7 @@ import { cn } from '../lib/utils';
 import { useEffect, useState } from 'react';
 import { usePermissions } from '../hooks/usePermissions';
 
-const totalVendasTurma = (turma: Turma): number => 
+const totalVendasTurma = (turma: Turma): number =>
   (turma.attendees || []).reduce((sum: number, a) => sum + (a.vendas || 0), 0);
 
 
@@ -180,8 +180,7 @@ export function Turmas() {
 
   const handleMarkConcluida = () => {
     if (!liveSelectedTurma) return;
-    // TODO: Call store updateTurma when implemented
-    console.log('Marking turma as concluida:', liveSelectedTurma.id);
+    updateTurma(liveSelectedTurma.id, { status: 'concluida' });
   };
 
 
@@ -286,10 +285,22 @@ export function Turmas() {
                   key={turma.id}
                   onClick={() => setSelectedTurma(isSelected ? null : turma)}
                   className={cn(
-                    'bg-white rounded-2xl p-5 border cursor-pointer transition-all shadow-sm hover:shadow-md group',
+                    'bg-white rounded-2xl p-5 border cursor-pointer transition-all shadow-sm hover:shadow-md group relative overflow-hidden',
                     isSelected ? 'border-emerald-400 ring-2 ring-emerald-200' : 'border-slate-100 hover:border-emerald-200'
                   )}
                 >
+                  {/* Fita zebrada para turmas concluídas */}
+                  {turma.status === 'concluida' && (
+                    <div className="absolute inset-0 pointer-events-none rounded-2xl overflow-hidden">
+                      <div
+                        className="absolute inset-0 opacity-[0.035]"
+                        style={{ backgroundImage: 'repeating-linear-gradient(45deg, #10b981 0, #10b981 8px, transparent 0, transparent 50%)', backgroundSize: '20px 20px' }}
+                      />
+                      <div className="absolute top-3 right-[-28px] rotate-45 bg-emerald-500 text-white text-[9px] font-black px-8 py-0.5 shadow-sm tracking-widest uppercase flex items-center justify-center gap-1">
+                        <BadgeCheck size={10} /> Concluído
+                      </div>
+                    </div>
+                  )}
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
                       <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full', st.color)}>{st.label}</span>
@@ -737,4 +748,8 @@ function AttendeeCard({ attendee, id, onViewDetails, onRemove, onCheckIn, onNoSh
   );
 }
 
+
+function updateTurma(id: string, arg1: { status: string; }) {
+  throw new Error('Function not implemented.');
+}
 
