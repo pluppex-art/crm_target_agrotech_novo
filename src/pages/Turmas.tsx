@@ -287,38 +287,58 @@ export function Turmas() {
                   key={turma.id}
                   onClick={() => setSelectedTurma(isSelected ? null : turma)}
                   className={cn(
-                    'rounded-2xl border cursor-pointer transition-all shadow-sm hover:shadow-md group relative overflow-hidden',
+                    'bg-white rounded-2xl p-6 border cursor-pointer transition-all shadow-sm hover:shadow-md group relative overflow-hidden',
                     isConcluida
-                      ? 'bg-gradient-to-br from-emerald-50 to-white border-emerald-200 hover:border-emerald-400'
-                      : 'bg-white border-slate-100 hover:border-emerald-200',
+                      ? 'border-emerald-300 hover:border-emerald-400'
+                      : 'border-slate-100 hover:border-emerald-200',
                     isSelected ? 'border-emerald-400 ring-2 ring-emerald-200' : ''
                   )}
                 >
-                  {/* Banner superior para turmas concluídas */}
+                  {/* Fitas X decorativas — baixa opacidade para não cobrir conteúdo */}
                   {isConcluida && (
-                    <div
-                      className="w-full flex items-center justify-center gap-2 py-2 px-4"
-                      style={{
-                        background: 'repeating-linear-gradient(-45deg, #10b981, #10b981 14px, #059669 14px, #059669 28px)',
-                        borderBottom: '2px solid #065f46',
-                      }}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d1fae5" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                      <span className="text-[11px] font-black tracking-widest uppercase text-emerald-50" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>
-                        Turma Concluída
-                      </span>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d1fae5" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl z-0">
+                      <div
+                        className="absolute w-[160%] py-5 font-black text-[13px] tracking-widest text-white/60 uppercase text-center"
+                        style={{
+                          left: '-30%',
+                          top: '50%',
+                          transform: 'translateY(-50%) rotate(15deg)',
+                          background: 'repeating-linear-gradient(-45deg,#10b981,#10b981 14px,#059669 14px,#059669 28px)',
+                          opacity: 0.22,
+                        }}
+                      >
+                        TURMA CONCLUÍDA &nbsp;&nbsp; TURMA CONCLUÍDA
+                      </div>
+                      <div
+                        className="absolute w-[160%] py-5 font-black text-[13px] tracking-widest text-white/60 uppercase text-center"
+                        style={{
+                          left: '-30%',
+                          top: '50%',
+                          transform: 'translateY(-50%) rotate(-15deg)',
+                          background: 'repeating-linear-gradient(-45deg,#10b981,#10b981 14px,#059669 14px,#059669 28px)',
+                          opacity: 0.22,
+                        }}
+                      >
+                        TURMA CONCLUÍDA &nbsp;&nbsp; TURMA CONCLUÍDA
+                      </div>
                     </div>
                   )}
 
-                  <div className="p-5">
-                    <div className="flex items-start justify-between mb-3">
+                  {/* Conteúdo — sempre sobre as fitas */}
+                  <div className="relative z-10">
+                    <div className="flex items-start justify-between mb-4">
                       <div className="flex-1">
-                        {!isConcluida && (
+                        <div className="flex items-center gap-2 mb-2">
                           <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full', st.color)}>{st.label}</span>
-                        )}
-                        <h3 className={cn('font-bold leading-tight', isConcluida ? 'text-emerald-900 text-base mt-0' : 'text-slate-800 mt-2')}>{turma.name}</h3>
-                        <p className={cn('text-xs mt-0.5', isConcluida ? 'text-emerald-700' : 'text-slate-500')}>{turma.professor_name || 'Sem professor'}</p>
+                          {isConcluida && (
+                            <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                              Concluída
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="font-bold text-slate-800 text-base leading-tight">{turma.name}</h3>
+                        <p className="text-xs text-slate-500 mt-0.5">{turma.professor_name || 'Sem professor'}</p>
                       </div>
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
@@ -336,7 +356,7 @@ export function Turmas() {
                       </div>
                     </div>
 
-                    <div className={cn('space-y-1.5 text-xs', isConcluida ? 'text-emerald-800' : 'text-slate-500')}>
+                    <div className="space-y-2 text-xs text-slate-500">
                       <div className="flex items-center gap-2">
                         <Calendar size={12} className="text-emerald-500 shrink-0" />
                         {turma.date ? new Date(turma.date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' }) : 'Data não definida'}
@@ -353,19 +373,18 @@ export function Turmas() {
                       </div>
                     </div>
 
-                    <div className={cn('mt-4 pt-3 flex items-center justify-between', isConcluida ? 'border-t border-emerald-200' : 'border-t border-slate-50')}>
+                    <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between">
                       <div className="flex items-center gap-1.5 text-xs">
-                        <Users size={12} className={isConcluida ? 'text-emerald-500' : 'text-slate-400'} />
-                        <span className={cn('font-semibold', isConcluida ? 'text-emerald-800' : 'text-slate-700')}>{confirmados}</span>
-                        <span className={isConcluida ? 'text-emerald-600' : 'text-slate-400'}>/ {(turma.attendees || []).length} confirmados</span>
+                        <Users size={12} className="text-slate-400" />
+                        <span className="font-semibold text-slate-700">{confirmados}</span>
+                        <span className="text-slate-400">/ {(turma.attendees || []).length} confirmados</span>
                       </div>
-                      <span className={cn('text-xs font-bold', isConcluida ? 'text-emerald-700 text-sm' : 'text-emerald-700')}>
+                      <span className="text-sm font-bold text-emerald-700">
                         R$ {totalVendasTurma(turma).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
                       </span>
                     </div>
 
-                    {/* Progress bar */}
-                    <div className={cn('mt-2 h-1.5 rounded-full overflow-hidden', isConcluida ? 'bg-emerald-100' : 'bg-slate-100')}>
+                    <div className="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-emerald-500 rounded-full transition-all duration-500"
                         style={{ width: (turma.attendees || []).length ? `${(confirmados / turma.attendees.length) * 100}%` : '0%' }}
