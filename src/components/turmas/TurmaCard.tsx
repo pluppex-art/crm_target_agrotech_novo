@@ -22,28 +22,28 @@ export function TurmaCard({ turma, isSelected, onSelect, onEdit, onDelete }: Tur
       onClick={() => onSelect(turma)}
       className={cn(
         'relative overflow-hidden bg-white rounded-2xl p-5 border cursor-pointer transition-all shadow-sm hover:shadow-md group',
-        isSelected ? 'border-emerald-400 ring-2 ring-emerald-200' : 'border-slate-100 hover:border-emerald-200'
+        isSelected ? 'border-emerald-400 ring-2 ring-emerald-200' : 'border-slate-100 hover:border-emerald-200',
+        turma.status === 'concluida' ? 'border-emerald-300' : ''
       )}
     >
-      {/* Absolute "X" Ribbon Overlay as explicitly requested */}
+      {/* Faixa em formato de X */}
       {turma.status === 'concluida' && (
         <div className="absolute inset-0 pointer-events-none z-20 flex items-center justify-center">
-          <div className="absolute w-[2000px] bg-emerald-500/85 backdrop-blur-sm shadow-sm flex items-center justify-center py-1.5 -rotate-[18deg] origin-center">
-            <span className="text-white font-black text-xs tracking-[0.3em] uppercase whitespace-nowrap opacity-90">
-              {Array(15).fill('TURMA CONCLUÍDA').join(' • ')}
-            </span>
+          <div className="absolute w-[150%] bg-emerald-500/90 text-white font-black text-sm tracking-[0.3em] uppercase text-center py-1.5 -rotate-[22deg] shadow-md backdrop-blur-sm">
+            Turma Concluída
           </div>
-          <div className="absolute w-[2000px] bg-emerald-500/85 backdrop-blur-sm shadow-sm flex items-center justify-center py-1.5 rotate-[18deg] origin-center">
-            <span className="text-white font-black text-xs tracking-[0.3em] uppercase whitespace-nowrap opacity-90">
-              {Array(15).fill('TURMA CONCLUÍDA').join(' • ')}
-            </span>
+          <div className="absolute w-[150%] bg-emerald-500/90 text-white font-black text-sm tracking-[0.3em] uppercase text-center py-1.5 rotate-[22deg] shadow-md backdrop-blur-sm">
+            Turma Concluída
           </div>
         </div>
       )}
 
       <div className="flex items-start justify-between mb-3 relative z-30">
         <div className="flex-1">
-          <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full', st.color)}>
+          <span className={cn(
+            'text-[10px] font-bold px-2 py-0.5 rounded-full',
+            turma.status === 'concluida' ? 'bg-emerald-100 text-emerald-700' : st.color
+          )}>
             {st.label}
           </span>
           <h3 className="font-bold text-slate-800 mt-2 leading-tight">{turma.name}</h3>
@@ -52,14 +52,14 @@ export function TurmaCard({ turma, isSelected, onSelect, onEdit, onDelete }: Tur
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             onClick={e => { e.stopPropagation(); onEdit(turma); }}
-            className="p-1.5 hover:bg-emerald-50 rounded-lg text-slate-300 hover:text-emerald-500 transition-colors"
+            className="p-1.5 hover:bg-emerald-50 rounded-lg text-slate-400 hover:text-emerald-600 transition-colors bg-white/80 backdrop-blur-sm"
             title="Editar turma"
           >
             <Edit2 size={14} />
           </button>
           <button
             onClick={e => { e.stopPropagation(); onDelete(turma.id); }}
-            className="p-1.5 hover:bg-red-50 rounded-lg text-slate-300 hover:text-red-400 transition-colors"
+            className="p-1.5 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-500 transition-colors bg-white/80 backdrop-blur-sm"
             title="Excluir turma"
           >
             <Trash2 size={14} />
