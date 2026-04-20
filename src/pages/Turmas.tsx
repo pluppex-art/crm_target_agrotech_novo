@@ -566,6 +566,7 @@ export function Turmas() {
           turmaAttendee={selectedAttendeeInfo ?? undefined}
           currentStageId={selectedAttendeeInfo?.currentStatus}
           responsibles={responsibles}
+          initialTab={modalInitialTab}
           onTurmaStatusChange={(turmaId: string, attendeeId: string, status: AttendanceStatus) => {
             updateAttendeeStatus(turmaId, attendeeId, status);
             setSelectedAttendeeInfo(prev => prev ? { ...prev, currentStatus: status } : null);
