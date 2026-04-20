@@ -291,7 +291,7 @@ export function Turmas() {
                 >
                   {/* Fita "Concluído" inspirada na referência de X da tela */}
                   {turma.status === 'concluida' && (
-                    <div className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden z-10 rounded-2xl bg-white/40 backdrop-blur-[1px]">
+                    <div className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden z-10 rounded-2xl">
                        <div 
                          className="absolute w-[150%] text-center py-1.5 font-black text-[11px] tracking-widest text-[#064e3b] uppercase shadow-emerald-900/20 shadow-xl flex items-center justify-center gap-2"
                          style={{
