@@ -21,7 +21,9 @@ import { DndContext, useSensors, useSensor, PointerSensor, closestCenter } from 
 import {
   useDroppable,
   useDraggable,
+  DragStartEvent,
   DragEndEvent,
+  DragOverlay,
 } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { useTurmaStore, Turma, TurmaAttendee, AttendanceStatus } from '../store/useTurmaStore';
@@ -62,6 +64,9 @@ export function Turmas() {
   const [selectedAttendeeInfo, setSelectedAttendeeInfo] = useState<{ turmaId: string; attendeeId: string; currentStatus: AttendanceStatus } | null>(null);
   const [loadingAttendeeDetail, setLoadingAttendeeDetail] = useState(false);
   const [modalInitialTab, setModalInitialTab] = useState<'info' | 'turma'>('info');
+
+  // Drag and drop state
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchTurmas();
@@ -113,7 +118,12 @@ export function Turmas() {
     );
   }
 
+  const onDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  };
+
   const onDragEnd = (event: DragEndEvent) => {
+    setActiveId(null);
     const { active, over } = event;
     if (!over || !selectedTurma) return;
     const newStatus = over.id as AttendanceStatus;
@@ -355,6 +365,7 @@ export function Turmas() {
                     key={`dnd-${liveSelectedTurma.id}`}
                     sensors={sensors}
                     collisionDetection={closestCenter}
+                    onDragStart={onDragStart}
                     onDragEnd={onDragEnd}
                   >
                     <div className="flex lg:flex-row flex-col gap-4 h-full min-h-[300px]">
@@ -370,6 +381,15 @@ export function Turmas() {
                         />
                       ))}
                     </div>
+                    <DragOverlay>
+                      {activeId ? (
+                        <AttendeeCard
+                          id={activeId}
+                          attendee={liveSelectedTurma.attendees?.find(a => a.id === activeId)!}
+                          isOverlay
+                        />
+                      ) : null}
+                    </DragOverlay>
                   </DndContext>
                 </>
               ) : (

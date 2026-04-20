@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useDraggable } from '@dnd-kit/core';
-import { CSS } from '@dnd-kit/utilities';
 import { LogIn, UserX, X, BadgeCheck } from 'lucide-react';
 import { TurmaAttendee } from '../../store/useTurmaStore';
 import { cn } from '../../lib/utils';
@@ -12,27 +11,63 @@ interface AttendeeCardProps {
   onRemove?: () => void;
   onCheckIn?: () => void;
   onNoShow?: () => void;
+  isOverlay?: boolean;
 }
 
-export function AttendeeCard({ 
-  attendee, 
-  id, 
-  onViewDetails, 
-  onRemove, 
-  onCheckIn, 
-  onNoShow 
-}: AttendeeCardProps) {
-  const [confirmingRemove, setConfirmingRemove] = useState(false);
+export function AttendeeCard(props: AttendeeCardProps) {
+  if (props.isOverlay) {
+    return <AttendeeCardUI {...props} isDragging={true} />;
+  }
+  return <AttendeeCardDraggable {...props} />;
+}
 
+function AttendeeCardDraggable(props: AttendeeCardProps) {
+  const { id } = props;
   const {
     attributes,
     listeners,
     setNodeRef,
-    transform,
     isDragging
   } = useDraggable({ id });
 
-  const style = { transform: CSS.Transform.toString(transform) };
+  const style = {
+    opacity: isDragging ? 0.4 : 1,
+  };
+
+  return (
+    <AttendeeCardUI
+      {...props}
+      setNodeRef={setNodeRef}
+      style={style}
+      attributes={attributes}
+      listeners={listeners}
+      isDragging={isDragging}
+    />
+  );
+}
+
+interface AttendeeCardUIProps extends AttendeeCardProps {
+  setNodeRef?: (node: HTMLElement | null) => void;
+  style?: React.CSSProperties;
+  attributes?: any;
+  listeners?: any;
+  isDragging?: boolean;
+}
+
+function AttendeeCardUI({ 
+  attendee, 
+  onViewDetails, 
+  onRemove, 
+  onCheckIn, 
+  onNoShow,
+  isOverlay,
+  setNodeRef,
+  style,
+  attributes,
+  listeners,
+  isDragging
+}: AttendeeCardUIProps) {
+  const [confirmingRemove, setConfirmingRemove] = useState(false);
 
   const isPago = (attendee.valor_recebido ?? 0) > 0;
 
@@ -43,8 +78,11 @@ export function AttendeeCard({
       {...listeners}
       {...attributes}
       className={cn(
-        'bg-white rounded-xl border border-slate-100 p-3 shadow-sm flex flex-col gap-2 transition-all group/card mb-2',
-        isDragging ? 'shadow-xl border-emerald-300 rotate-1 cursor-grabbing scale-[1.02]' : 'hover:border-emerald-200 cursor-grab',
+        'bg-white rounded-xl border border-slate-100 p-3 flex flex-col gap-2 transition-all group/card mb-2',
+        isOverlay 
+          ? 'shadow-2xl border-emerald-300 rotate-2 cursor-grabbing scale-105 z-50' 
+          : 'shadow-sm hover:border-emerald-200 cursor-grab',
+        isDragging && !isOverlay && 'opacity-60 border-dashed border-2'
       )}
     >
       <div className="flex items-start gap-3 w-full">
