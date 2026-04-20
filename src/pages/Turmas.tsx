@@ -165,10 +165,11 @@ export function Turmas() {
     ? turmas.find(t => t.id === selectedTurma.id) ?? selectedTurma
     : null;
 
-  const handleMarkConcluida = () => {
+  const handleToggleConcluida = () => {
     if (!liveSelectedTurma) return;
-    // TODO: Call store updateTurma when implemented
-    console.log('Marking turma as concluida:', liveSelectedTurma.id);
+    const store = useTurmaStore.getState();
+    const newStatus = liveSelectedTurma.status === 'concluida' ? 'agendada' : 'concluida';
+    store.updateTurma(liveSelectedTurma.id, { status: newStatus });
   };
 
 
@@ -302,15 +303,28 @@ export function Turmas() {
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                {liveSelectedTurma.status !== 'concluida' && (
-                  <button
-                    onClick={handleMarkConcluida}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all"
-                  >
-                    <CheckCheck size={14} />
-                    <span className="hidden sm:inline">Turma Concluída</span>
-                  </button>
-                )}
+                <button
+                  onClick={handleToggleConcluida}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all",
+                    liveSelectedTurma.status === 'concluida'
+                      ? "bg-emerald-600 border border-emerald-700 text-white hover:bg-emerald-700 shadow-sm"
+                      : "bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+                  )}
+                  title={liveSelectedTurma.status === 'concluida' ? "Reabrir turma" : "Marcar turma como concluída"}
+                >
+                  {liveSelectedTurma.status === 'concluida' ? (
+                    <>
+                      <CheckCheck size={14} />
+                      <span className="hidden sm:inline">Turma Concluída</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCheck size={14} />
+                      <span className="hidden sm:inline">Concluir Turma</span>
+                    </>
+                  )}
+                </button>
                 <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-0.5">
                   <button
                     onClick={() => setViewMode('kanban')}
