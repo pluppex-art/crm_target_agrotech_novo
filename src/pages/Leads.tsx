@@ -8,6 +8,8 @@ import { LeadsToolbar } from '../components/leads/LeadsToolbar';
 import { LeadsTable } from '../components/leads/LeadsTable';
 import { NewLeadModal } from '../components/leads/NewLeadModal';
 import { LeadDetailsModal } from '../components/leads/LeadDetailsModal';
+import { PageFilters } from '../components/ui/PageFilters';
+import { Filter, User, Package } from 'lucide-react';
 import type { Lead } from '../types/leads';
 
 export function Leads() {
@@ -18,6 +20,9 @@ export function Leads() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterProduct, setFilterProduct] = useState('all');
+  const [filterResponsible, setFilterResponsible] = useState('all');
+  const [filterStage, setFilterStage] = useState('all');
 
   useEffect(() => {
     fetchLeads();
@@ -48,13 +53,31 @@ export function Leads() {
   );
 
   const filteredLeads = useMemo(() => {
-    return leads.filter(lead => 
-      lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.product.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.responsible?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.email?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [leads, searchTerm]);
+    return leads.filter(lead => {
+      // 1. Search text
+      if (searchTerm.trim()) {
+        const q = searchTerm.toLowerCase();
+        const matchesSearch = (
+          lead.name.toLowerCase().includes(q) ||
+          lead.product.toLowerCase().includes(q) ||
+          lead.responsible?.toLowerCase().includes(q) ||
+          lead.email?.toLowerCase().includes(q)
+        );
+        if (!matchesSearch) return false;
+      }
+      
+      // 2. Product
+      if (filterProduct !== 'all' && lead.product !== filterProduct) return false;
+      
+      // 3. Responsible
+      if (filterResponsible !== 'all' && lead.responsible !== filterResponsible) return false;
+      
+      // 4. Stage
+      if (filterStage !== 'all' && lead.stage_id !== filterStage) return false;
+      
+      return true;
+    });
+  }, [leads, searchTerm, filterProduct, filterResponsible, filterStage]);
 
   if (permissionsLoading) {
     return (
@@ -92,24 +115,59 @@ export function Leads() {
         </div>
         
         <div className="flex items-center gap-4">
-          <div className="relative w-full sm:w-80">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input 
-              type="text" 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Filtrar por nome, produto, responsável..." 
-              className="w-full bg-white border border-slate-200 rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
-            />
-          </div>
           <LeadsToolbar 
             isLoading={isLoading} 
             onModalOpen={() => setIsModalOpen(true)}
             hasPermissionExport={hasPermission('leads.export')}
             hasPermissionCreate={hasPermission('leads.create')}
           />
-
         </div>
+      </div>
+
+      <div className="mb-6">
+        <PageFilters
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          searchPlaceholder="Filtrar por nome, email..."
+          onClearAll={() => {
+            setSearchTerm('');
+            setFilterProduct('all');
+            setFilterResponsible('all');
+            setFilterStage('all');
+          }}
+          filters={[
+            {
+              id: 'stage',
+              type: 'select',
+              icon: Filter,
+              placeholder: 'Todos os Estágios',
+              value: filterStage,
+              onChange: setFilterStage,
+              activeColorClass: 'bg-purple-50 text-purple-700 border-purple-100',
+              options: pipelineStages.map(s => ({ value: s.id, label: s.title }))
+            },
+            {
+              id: 'product',
+              type: 'select',
+              icon: Package,
+              placeholder: 'Todos os Produtos',
+              value: filterProduct,
+              onChange: setFilterProduct,
+              activeColorClass: 'bg-amber-50 text-amber-700 border-amber-100',
+              options: Array.from(new Set(leads.map(l => l.product).filter(Boolean))).map(p => ({ value: p, label: p }))
+            },
+            {
+              id: 'responsible',
+              type: 'select',
+              icon: User,
+              placeholder: 'Todos Responsáveis',
+              value: filterResponsible,
+              onChange: setFilterResponsible,
+              activeColorClass: 'bg-teal-50 text-teal-700 border-teal-100',
+              options: responsibles.map(r => ({ value: r, label: r }))
+            }
+          ]}
+        />
       </div>
 
       <LeadsTable

@@ -5,6 +5,8 @@ import { useProductStore } from '../store/useProductStore';
 import { UnifiedTurmaProductForm } from '../components/forms/UnifiedTurmaProductForm';
 import { Product } from '../services/productService';
 import { ProductCard } from '../components/products/ProductCard';
+import { PageFilters } from '../components/ui/PageFilters';
+import { Filter } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export function Products() {
@@ -13,6 +15,7 @@ export function Products() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterCategory, setFilterCategory] = useState('all');
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
 
   useEffect(() => {
@@ -40,12 +43,21 @@ export function Products() {
   }, [editingProduct]);
 
   const filteredProducts = useMemo(() => {
-    if (!searchTerm.trim()) return products;
-    const q = searchTerm.toLowerCase();
-    return products.filter(p =>
-      p.name.toLowerCase().includes(q) || (p.category || '').toLowerCase().includes(q)
-    );
-  }, [products, searchTerm]);
+    return products.filter(p => {
+      // 1. Search text
+      if (searchTerm.trim()) {
+        const q = searchTerm.toLowerCase();
+        if (!p.name.toLowerCase().includes(q) && !(p.category || '').toLowerCase().includes(q)) {
+          return false;
+        }
+      }
+      // 2. Category selection
+      if (filterCategory !== 'all' && p.category !== filterCategory) {
+        return false;
+      }
+      return true;
+    });
+  }, [products, searchTerm, filterCategory]);
 
   if (permissionsLoading) {
     return (
@@ -89,32 +101,45 @@ export function Products() {
       </div>
 
       {/* Filter bar */}
-      <div className="flex items-center gap-3 mb-6">
-        <div className="relative flex-1 max-w-sm">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Buscar por nome ou categoria..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 shadow-sm"
-          />
-        </div>
-        <div className="flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-          <button
-            onClick={() => setViewMode('card')}
-            className={cn('p-2 transition-colors', viewMode === 'card' ? 'bg-emerald-50 text-emerald-600' : 'text-slate-400 hover:text-slate-600')}
-            title="Visualização em cards"
-          >
-            <LayoutGrid size={16} />
-          </button>
-          <button
-            onClick={() => setViewMode('list')}
-            className={cn('p-2 transition-colors', viewMode === 'list' ? 'bg-emerald-50 text-emerald-600' : 'text-slate-400 hover:text-slate-600')}
-            title="Visualização em lista"
-          >
-            <List size={16} />
-          </button>
+      <div className="mb-6">
+        <PageFilters
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          searchPlaceholder="Buscar por nome ou categoria..."
+          onClearAll={() => {
+            setSearchTerm('');
+            setFilterCategory('all');
+          }}
+          filters={[
+            {
+              id: 'category',
+              type: 'select',
+              icon: Filter,
+              placeholder: 'Todas as Categorias',
+              value: filterCategory,
+              onChange: setFilterCategory,
+              activeColorClass: 'bg-indigo-50 text-indigo-700 border-indigo-100',
+              options: Array.from(new Set(products.map(p => p.category).filter(Boolean))).map(c => ({ value: c, label: c }))
+            }
+          ]}
+        />
+        <div className="flex items-center justify-end">
+          <div className="flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+            <button
+              onClick={() => setViewMode('card')}
+              className={cn('p-2 transition-colors', viewMode === 'card' ? 'bg-emerald-50 text-emerald-600' : 'text-slate-400 hover:text-slate-600')}
+              title="Visualização em cards"
+            >
+              <LayoutGrid size={16} />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={cn('p-2 transition-colors', viewMode === 'list' ? 'bg-emerald-50 text-emerald-600' : 'text-slate-400 hover:text-slate-600')}
+              title="Visualização em lista"
+            >
+              <List size={16} />
+            </button>
+          </div>
         </div>
       </div>
 

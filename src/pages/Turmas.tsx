@@ -7,7 +7,6 @@ import {
   Calendar,
   Clock,
   MapPin,
-  Package,
   Users,
   DollarSign,
   LayoutGrid,
@@ -37,13 +36,14 @@ import { cn } from '../lib/utils';
 import { useEffect, useState } from 'react';
 import { usePermissions } from '../hooks/usePermissions';
 import {
-  totalVendasTurma,
   TURMA_STATUS_LABELS,
   STATUS_COLUMNS,
   fetchLeadById
 } from '../lib/turmas';
 import { TurmaCard } from '../components/turmas/TurmaCard';
 import { TurmasRightPanel } from '../components/turmas/TurmasRightPanel';
+import { PageFilters, FilterConfig } from '../components/ui/PageFilters';
+import { Filter, User, Package } from 'lucide-react';
 
 
 
@@ -54,6 +54,9 @@ export function Turmas() {
   const [isNewTurmaOpen, setIsNewTurmaOpen] = useState(false);
   const [editingTurma, setEditingTurma] = useState<Turma | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterProduct, setFilterProduct] = useState('all');
+  const [filterProfessor, setFilterProfessor] = useState('all');
   const [setupRequired] = useState(false);
   const [responsibles, setResponsibles] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<'kanban' | 'lista'>('kanban');
@@ -201,18 +204,51 @@ export function Turmas() {
           </button>
         </div>
 
-        {/* Search */}
-        <div className="px-4 sm:px-6 pb-4">
-          <div className="relative">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Buscar por nome, professor ou produto..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 shadow-sm"
-            />
-          </div>
+        {/* Filters */}
+        <div className="px-4 sm:px-6">
+          <PageFilters
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            searchPlaceholder="Buscar por nome, professor ou produto..."
+            onClearAll={() => {
+              setSearchTerm('');
+              setFilterStatus('all');
+              setFilterProduct('all');
+              setFilterProfessor('all');
+            }}
+            filters={[
+              {
+                id: 'status',
+                type: 'select',
+                icon: Filter,
+                placeholder: 'Todos os Status',
+                value: filterStatus,
+                onChange: setFilterStatus,
+                activeColorClass: 'bg-purple-50 text-purple-700 border-purple-100',
+                options: Object.entries(TURMA_STATUS_LABELS).map(([k, v]) => ({ value: k, label: v.label }))
+              },
+              {
+                id: 'product',
+                type: 'select',
+                icon: Package,
+                placeholder: 'Todos os Produtos',
+                value: filterProduct,
+                onChange: setFilterProduct,
+                activeColorClass: 'bg-amber-50 text-amber-700 border-amber-100',
+                options: Array.from(new Set(turmas.map(t => t.product_name).filter(Boolean))).map(p => ({ value: p, label: p }))
+              },
+              {
+                id: 'professor',
+                type: 'select',
+                icon: User,
+                placeholder: 'Todos os Professores',
+                value: filterProfessor,
+                onChange: setFilterProfessor,
+                activeColorClass: 'bg-teal-50 text-teal-700 border-teal-100',
+                options: Array.from(new Set(turmas.map(t => t.professor_name).filter(Boolean))).map(p => ({ value: p, label: p }))
+              }
+            ]}
+          />
         </div>
 
         {/* Cards Grid */}
@@ -256,13 +292,23 @@ export function Turmas() {
             </div>
           ) : (
             turmas.filter(t => {
-              if (!searchTerm.trim()) return true;
-              const q = searchTerm.toLowerCase();
-              return (
-                t.name.toLowerCase().includes(q) ||
-                (t.professor_name || '').toLowerCase().includes(q) ||
-                t.product_name.toLowerCase().includes(q)
-              );
+              // 1. Search global (name, professor, product)
+              if (searchTerm.trim()) {
+                const q = searchTerm.toLowerCase();
+                const matchesSearch = (
+                  t.name.toLowerCase().includes(q) ||
+                  (t.professor_name || '').toLowerCase().includes(q) ||
+                  t.product_name.toLowerCase().includes(q)
+                );
+                if (!matchesSearch) return false;
+              }
+              // 2. Status
+              if (filterStatus !== 'all' && t.status !== filterStatus) return false;
+              // 3. Product
+              if (filterProduct !== 'all' && t.product_name !== filterProduct) return false;
+              // 4. Professor
+              if (filterProfessor !== 'all' && t.professor_name !== filterProfessor) return false;
+              return true;
             }).map(turma => (
               <TurmaCard
                 key={turma.id}

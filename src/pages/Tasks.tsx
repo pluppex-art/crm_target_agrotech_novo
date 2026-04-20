@@ -7,13 +7,17 @@ import { CalendarView } from '../components/tasks/CalendarView';
 import { ViewToggle } from '../components/tasks/ViewToggle';
 import { TaskItem } from '../components/tasks/TaskItem';
 import { cn } from '../lib/utils';
+import { PageFilters } from '../components/ui/PageFilters';
+import { Filter, Bookmark } from 'lucide-react';
 
 export function Tasks() {
   const { hasPermission } = usePermissions();
   const { tasks, loading, fetchTasks, updateTaskStatus, deleteTask, subscribe } = useTaskStore();
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
     fetchTasks();
@@ -48,9 +52,22 @@ export function Tasks() {
     new Set(tasks.map(t => t.category).filter(Boolean))
   ).sort() as string[];
 
-  const filteredTasks = categoryFilter === 'all'
-    ? tasks
-    : tasks.filter(t => t.category === categoryFilter);
+  const filteredTasks = tasks.filter(t => {
+    // 1. Search global
+    if (searchTerm.trim()) {
+      const q = searchTerm.toLowerCase();
+      const matchesSearch = (
+        t.title.toLowerCase().includes(q) ||
+        (t.description || '').toLowerCase().includes(q)
+      );
+      if (!matchesSearch) return false;
+    }
+    // 2. Status
+    if (statusFilter !== 'all' && t.status !== statusFilter) return false;
+    // 3. Category
+    if (categoryFilter !== 'all' && t.category !== categoryFilter) return false;
+    return true;
+  });
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
@@ -73,34 +90,44 @@ export function Tasks() {
         </div>
       </div>
 
-      {/* Category filter bar */}
-      {categories.length > 0 && viewMode === 'list' && (
-        <div className="flex items-center gap-2 mb-5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'thin' }}>
-          <button
-            onClick={() => setCategoryFilter('all')}
-            className={cn(
-              "shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border transition-all",
-              categoryFilter === 'all'
-                ? "bg-emerald-600 text-white border-emerald-600"
-                : "bg-white text-slate-500 border-slate-200 hover:border-emerald-300 hover:text-emerald-600"
-            )}
-          >
-            Todos
-          </button>
-          {categories.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setCategoryFilter(cat === categoryFilter ? 'all' : cat)}
-              className={cn(
-                "shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border transition-all",
-                categoryFilter === cat
-                  ? "bg-emerald-600 text-white border-emerald-600"
-                  : "bg-white text-slate-500 border-slate-200 hover:border-emerald-300 hover:text-emerald-600"
-              )}
-            >
-              {cat}
-            </button>
-          ))}
+      {/* Filter bar */}
+      {viewMode === 'list' && (
+        <div className="mb-5">
+          <PageFilters
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            searchPlaceholder="Buscar por título ou descrição..."
+            onClearAll={() => {
+              setSearchTerm('');
+              setCategoryFilter('all');
+              setStatusFilter('all');
+            }}
+            filters={[
+              {
+                id: 'status',
+                type: 'select',
+                icon: Filter,
+                placeholder: 'Todos os Status',
+                value: statusFilter,
+                onChange: setStatusFilter,
+                activeColorClass: 'bg-purple-50 text-purple-700 border-purple-100',
+                options: [
+                  { value: 'pending', label: 'Pendente' },
+                  { value: 'completed', label: 'Concluída' }
+                ]
+              },
+              {
+                id: 'category',
+                type: 'select',
+                icon: Bookmark,
+                placeholder: 'Todas as Categorias',
+                value: categoryFilter,
+                onChange: setCategoryFilter,
+                activeColorClass: 'bg-amber-50 text-amber-700 border-amber-100',
+                options: categories.map(c => ({ value: c, label: c }))
+              }
+            ]}
+          />
         </div>
       )}
 

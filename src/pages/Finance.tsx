@@ -7,6 +7,8 @@ import { NewTransactionModal } from '../components/finance/NewTransactionModal';
 import { FinanceMetrics } from '../components/finance/FinanceMetrics';
 import { DateFilter } from '../components/finance/DateFilter';
 import { TransactionTable } from '../components/finance/TransactionTable';
+import { PageFilters } from '../components/ui/PageFilters';
+import { Filter, DollarSign } from 'lucide-react';
 
 export function Finance() {
   const { hasPermission } = usePermissions();
@@ -14,6 +16,9 @@ export function Finance() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
 
   useEffect(() => {
     fetchTransactions();
@@ -25,13 +30,24 @@ export function Finance() {
   }, []);
 
   const filteredTransactions = transactions.filter(t => {
-    if (!startDate && !endDate) return true;
+    // Date filter
     const transactionDate = new Date(t.date);
     const start = startDate ? new Date(startDate) : null;
     const end = endDate ? new Date(endDate) : null;
-
     if (start && transactionDate < start) return false;
     if (end && transactionDate > end) return false;
+
+    // Search filter
+    if (searchTerm.trim()) {
+      if (!t.description.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+    }
+
+    // Type filter
+    if (filterType !== 'all' && t.type !== filterType) return false;
+
+    // Status filter
+    if (filterStatus !== 'all' && t.status !== filterStatus) return false;
+
     return true;
   });
 
@@ -92,16 +108,52 @@ export function Finance() {
         onEndDateChange={setEndDate}
         isLoading={isLoading}
       />
-      <FinanceMetrics 
+      
+      <PageFilters
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Buscar na descrição..."
+        onClearAll={() => {
+          setSearchTerm('');
+          setFilterType('all');
+          setFilterStatus('all');
+        }}
+        filters={[
+          {
+            id: 'type',
+            type: 'select',
+            icon: DollarSign,
+            placeholder: 'Todas Movimentações',
+            value: filterType,
+            onChange: setFilterType,
+            activeColorClass: 'bg-indigo-50 text-indigo-700 border-indigo-100',
+            options: [
+              { value: 'income', label: 'Entradas' },
+              { value: 'expense', label: 'Saídas' }
+            ]
+          },
+          {
+            id: 'status',
+            type: 'select',
+            icon: Filter,
+            placeholder: 'Todos os Status',
+            value: filterStatus,
+            onChange: setFilterStatus,
+            activeColorClass: 'bg-purple-50 text-purple-700 border-purple-100',
+            options: [
+              { value: 'paid', label: 'Pago' },
+              { value: 'pending', label: 'Pendente' }
+            ]
+          }
+        ]}
+      />
+
+      <FinanceMetrics
         totalIncome={totalIncome}
         totalExpense={totalExpense}
         balance={balance}
       />
-      <TransactionTable filteredTransactions={filteredTransactions} />
-
-  {'}'}
-
-      <NewTransactionModal 
+      <TransactionTable filteredTransactions={filteredTransactions} />      <NewTransactionModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
       />

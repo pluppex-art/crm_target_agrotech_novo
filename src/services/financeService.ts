@@ -1,6 +1,7 @@
 import { getSupabaseClient } from '../lib/supabase';
 
 export interface Transaction {
+  status: string;
   id: string;
   description: string;
   category: string;
