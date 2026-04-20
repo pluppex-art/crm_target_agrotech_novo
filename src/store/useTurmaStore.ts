@@ -62,19 +62,15 @@ export const useTurmaStore = create<TurmaState>((set, get) => ({
     }
   },
 
-  updateAttendeeStatus: async (turmaId, attendeeId, status) => {
+  updateAttendeeStatus: async (turmaId: string, attendeeId: string, status: AttendanceStatus) => {
     await turmaService.updateAttendeeStatus(attendeeId, status);
     set((state) => ({
-      turmas: state.turmas.map((t) =>
-        t.id === turmaId
-          ? {
-              ...t,
-              attendees: t.attendees.map((a) =>
-                a.id === attendeeId ? { ...a, status } : a
-              ),
-            }
-          : t
-      ),
+      turmas: state.turmas.map((t) => ({
+        ...t,
+        attendees: t.attendees.map((a) =>
+          a.id === attendeeId ? { ...a, status } : a
+        ),
+      })),
     }));
   },
 
