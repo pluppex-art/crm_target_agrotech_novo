@@ -1,4 +1,4 @@
-import { getSupabaseClient } from '../lib/supabase';
+import { getSupabaseClient, getServiceSupabaseClient } from '../lib/supabase';
 
 export interface CreateProfilePayload {
   name?: string;
@@ -17,7 +17,7 @@ export interface UserProfile extends CreateProfilePayload {
   id: string;
   role_id?: string;
   cargos?: {
-    name?: string;
+    name: any;
     permissions: string[];
   } | null;
 }
@@ -59,22 +59,19 @@ export const profileService = {
 
   async updateProfile(id: string, profile: Partial<UserProfile>): Promise<{ data: UserProfile | null; error: any }> {
     const supabase = getSupabaseClient();
+    const serviceSupabase = getServiceSupabaseClient();
     if (!supabase) return { data: null, error: 'Supabase client not initialized' };
 
-    // Strip fields that are not direct columns or must not appear in the SET clause
-    const { role_id, cargos, cargo_name, id: _id, ...rest } = profile as any;
+    const originalEmail = profile.email;
+    // Remove email from perfis update
+    const { email, role_id, ...updateData } = profile;
+    const finalUpdateData = { id, ...updateData, role_id: role_id || null };
 
-    const finalUpdateData: Record<string, any> = {
-      ...rest,
-      role_id: role_id && role_id !== '' ? role_id : null,
-    };
-
-    // Update perfis (includes email so the column stays in sync with auth)
+    // Update perfis
     const { data, error: perfisError } = await supabase
       .from('perfis')
-      .update(finalUpdateData)
-      .eq('id', id)
-      .select('*, cargos:role_id(*)')
+      .upsert(finalUpdateData)
+      .select()
       .single();
 
     if (perfisError) {
@@ -82,22 +79,14 @@ export const profileService = {
       return { data: null, error: perfisError };
     }
 
-    // Sync email and name to auth user via backend (service role required)
-    if (data) {
-      const authPayload: Record<string, any> = { id };
-      if (profile.email) authPayload.email = profile.email;
-      if (profile.name !== undefined) authPayload.name = profile.name;
-
-      if (authPayload.email || authPayload.name !== undefined) {
-        const resp = await fetch('/api/update-user', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(authPayload),
-        });
-        if (!resp.ok) {
-          const err = await resp.json().catch(() => ({}));
-          console.warn('Auth user sync failed (perfis updated anyway):', err);
-        }
+    // Update auth user email if changed
+    if (serviceSupabase && originalEmail && data) {
+      const { error: authError } = await serviceSupabase.auth.admin.updateUserById(
+        id,
+        { email: originalEmail, email_confirm: true }
+      );
+      if (authError) {
+        console.warn('Auth email update failed (perfis updated anyway):', authError);
       }
     }
 
@@ -108,42 +97,39 @@ export const profileService = {
     const supabase = getSupabaseClient();
     if (!supabase) return { data: null, error: 'Supabase client not initialized' };
 
-    // Create auth user via backend (service role required)
+    // Create auth user first using service role if available
+    const serviceSupabase = getServiceSupabaseClient();
     let userId: string = crypto.randomUUID();
 
-    if (profile.email) {
-      const resp = await fetch('/api/create-user', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: profile.email, password: profile.password, name: profile.name }),
+    if (serviceSupabase && profile.email) {
+      // Create auth user
+      const { data: authUser, error: authError } = await serviceSupabase.auth.admin.createUser({
+        email: profile.email,
+        password: profile.password,
+        email_confirm: true,
+        user_metadata: { name: profile.name }
       });
-      const result = await resp.json();
-      if (!resp.ok) {
-        console.error('Auth user creation failed:', result.error);
-        return { data: null, error: result.error };
+
+      if (authError) {
+        console.error('Auth user creation failed:', authError);
+        return { data: null, error: authError };
       }
-      if (result.id) {
-        userId = result.id;
+
+      if (authUser.user) {
+        userId = authUser.user.id;
       }
     }
-    
-    const insertData = {
+
+    const insertData: UserProfile = {
       id: userId,
-      name: profile.name ?? null,
-      email: profile.email,
-      phone: profile.phone ?? null,
-      department: profile.department,
-      status: profile.status,
-      cpf: profile.cpf ?? null,
-      avatar_url: profile.avatar_url ?? null,
-      role_id: profile.role_id && profile.role_id !== '' ? profile.role_id : null,
-      must_change_password: true,
+      ...profile
     };
+    delete (insertData as any).password;
 
     const { data, error } = await supabase
       .from('perfis')
       .insert([insertData])
-      .select('*, cargos:role_id(*)')
+      .select()
       .single();
 
     if (error) {
