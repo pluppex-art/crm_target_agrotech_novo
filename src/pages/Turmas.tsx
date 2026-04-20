@@ -402,51 +402,7 @@ export function Turmas() {
               </DndContext>
             </div>
 
-            {/* Vendor Sales Table */}
-            <div className="border-t border-slate-100 p-4 bg-white shrink-0">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Performance de Vendas</p>
-                <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-                  <DollarSign size={10} />
-                  Total R$ {totalVendasTurma(liveSelectedTurma).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
-                </div>
-              </div>
 
-              <div className="space-y-2 max-h-[180px] overflow-y-auto custom-scrollbar pr-1">
-                {(liveSelectedTurma.attendees || [])
-                  .slice()
-                  .sort((a, b) => (b.vendas || 0) - (a.vendas || 0))
-                  .map(att => (
-                    <div
-                      key={att.id}
-                      onClick={() => att.lead_id && handleAttendeeClick(att, liveSelectedTurma.id)}
-                      className={cn(
-                        "flex items-center gap-3 px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl hover:border-slate-200 transition-colors",
-                        att.lead_id ? "cursor-pointer hover:bg-emerald-50 hover:border-emerald-200" : ""
-                      )}
-                    >
-                      <img src={att.photo} alt={att.name} className="w-8 h-8 rounded-full object-cover border-2 border-white shadow-sm" referrerPolicy="no-referrer" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-slate-700 truncate">{att.name}</p>
-                        <p className="text-[10px] text-slate-400 truncate">{att.responsible || 'Sem responsável'}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs font-bold text-emerald-700">R$ {(att.vendas || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}</p>
-                        <div className="w-20 h-1 bg-slate-200 rounded-full mt-1 overflow-hidden">
-                          <div
-                            className="h-full bg-emerald-500 rounded-full"
-                            style={{
-                              width: totalVendasTurma(liveSelectedTurma) > 0
-                                ? `${((att.vendas || 0) / totalVendasTurma(liveSelectedTurma)) * 100}%`
-                                : '0%'
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
           </motion.div>
         )}
       </AnimatePresence>
