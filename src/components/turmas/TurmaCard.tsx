@@ -28,11 +28,15 @@ export function TurmaCard({ turma, isSelected, onSelect, onEdit, onDelete }: Tur
       {/* Absolute "X" Ribbon Overlay as explicitly requested */}
       {turma.status === 'concluida' && (
         <div className="absolute inset-0 pointer-events-none z-20 flex items-center justify-center">
-          <div className="absolute w-[150%] bg-emerald-500/90 text-white font-black text-sm tracking-[0.3em] uppercase text-center py-1.5 -rotate-[22deg] shadow-md backdrop-blur-sm">
-            Turma Concluída
+          <div className="absolute w-[2000px] bg-emerald-500/85 backdrop-blur-sm shadow-sm flex items-center justify-center py-1.5 -rotate-[18deg] origin-center">
+            <span className="text-white font-black text-xs tracking-[0.3em] uppercase whitespace-nowrap opacity-90">
+              {Array(15).fill('TURMA CONCLUÍDA').join(' • ')}
+            </span>
           </div>
-          <div className="absolute w-[150%] bg-emerald-500/90 text-white font-black text-sm tracking-[0.3em] uppercase text-center py-1.5 rotate-[22deg] shadow-md backdrop-blur-sm">
-            Turma Concluída
+          <div className="absolute w-[2000px] bg-emerald-500/85 backdrop-blur-sm shadow-sm flex items-center justify-center py-1.5 rotate-[18deg] origin-center">
+            <span className="text-white font-black text-xs tracking-[0.3em] uppercase whitespace-nowrap opacity-90">
+              {Array(15).fill('TURMA CONCLUÍDA').join(' • ')}
+            </span>
           </div>
         </div>
       )}
