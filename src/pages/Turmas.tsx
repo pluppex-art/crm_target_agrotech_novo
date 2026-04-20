@@ -71,7 +71,7 @@ async function fetchLeadById(leadId: string): Promise<Lead | null> {
 
 export function Turmas() {
   const { hasPermission } = usePermissions();
-  const { turmas, fetchTurmas, updateAttendeeStatus, removeTurma, removeAttendee, isLoading, subscribe } = useTurmaStore();
+  const { turmas, fetchTurmas, updateAttendeeStatus, updateTurma, removeTurma, removeAttendee, isLoading, subscribe } = useTurmaStore();
   const [selectedTurma, setSelectedTurma] = useState<Turma | null>(null);
   const [isNewTurmaOpen, setIsNewTurmaOpen] = useState(false);
   const [editingTurma, setEditingTurma] = useState<Turma | null>(null);
@@ -180,8 +180,7 @@ export function Turmas() {
 
   const handleMarkConcluida = () => {
     if (!liveSelectedTurma) return;
-    // TODO: Call store updateTurma when implemented
-    console.log('Marking turma as concluida:', liveSelectedTurma.id);
+    updateTurma(liveSelectedTurma.id, { status: 'concluida' });
   };
 
 
@@ -286,11 +285,36 @@ export function Turmas() {
                   key={turma.id}
                   onClick={() => setSelectedTurma(isSelected ? null : turma)}
                   className={cn(
-                    'bg-white rounded-2xl p-5 border cursor-pointer transition-all shadow-sm hover:shadow-md group',
+                    'bg-white rounded-2xl p-5 border cursor-pointer transition-all shadow-sm hover:shadow-md group relative overflow-hidden',
                     isSelected ? 'border-emerald-400 ring-2 ring-emerald-200' : 'border-slate-100 hover:border-emerald-200'
                   )}
                 >
-                  <div className="flex items-start justify-between mb-3">
+                  {/* Fita "Concluído" inspirada na referência */}
+                  {turma.status === 'concluida' && (
+                    <div className="absolute top-0 right-0 w-32 h-32 pointer-events-none transform translate-x-2 -translate-y-2">
+                       <div 
+                         className="absolute w-40 text-center py-1.5 font-black text-[10px] tracking-widest text-[#064e3b] uppercase shadow-md rotate-45 transform origin-top-left flex items-center justify-center gap-1.5 z-10 decoration-clone"
+                         style={{
+                          top: '1rem',
+                          right: '-4.5rem',
+                           background: `repeating-linear-gradient(
+                             -45deg,
+                             #10b981,
+                             #10b981 10px,
+                             #047857 10px,
+                             #047857 20px
+                           )`,
+                           borderTop: '2px solid #065f46',
+                           borderBottom: '2px solid #065f46',
+                           textShadow: '0 1px 1px rgba(255,255,255,0.4)'
+                         }}
+                       >
+                         CONCLUSO
+                       </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-start justify-between mb-3 relative z-20">
                     <div className="flex-1">
                       <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full', st.color)}>{st.label}</span>
                       <h3 className="font-bold text-slate-800 mt-2 leading-tight">{turma.name}</h3>
