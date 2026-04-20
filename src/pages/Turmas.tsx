@@ -289,27 +289,45 @@ export function Turmas() {
                     isSelected ? 'border-emerald-400 ring-2 ring-emerald-200' : 'border-slate-100 hover:border-emerald-200'
                   )}
                 >
-                  {/* Fita "Concluído" inspirada na referência */}
+                  {/* Fita "Concluído" inspirada na referência de X da tela */}
                   {turma.status === 'concluida' && (
-                    <div className="absolute top-0 right-0 w-32 h-32 pointer-events-none transform translate-x-2 -translate-y-2">
+                    <div className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden z-10 rounded-2xl bg-white/40 backdrop-blur-[1px]">
                        <div 
-                         className="absolute w-40 text-center py-1.5 font-black text-[10px] tracking-widest text-[#064e3b] uppercase shadow-md rotate-45 transform origin-top-left flex items-center justify-center gap-1.5 z-10 decoration-clone"
+                         className="absolute w-[150%] text-center py-1.5 font-black text-[11px] tracking-widest text-[#064e3b] uppercase shadow-emerald-900/20 shadow-xl flex items-center justify-center gap-2"
                          style={{
-                          top: '1rem',
-                          right: '-4.5rem',
+                           transform: 'rotate(18deg)',
                            background: `repeating-linear-gradient(
                              -45deg,
                              #10b981,
-                             #10b981 10px,
-                             #047857 10px,
-                             #047857 20px
+                             #10b981 15px,
+                             #059669 15px,
+                             #059669 30px
                            )`,
                            borderTop: '2px solid #065f46',
                            borderBottom: '2px solid #065f46',
-                           textShadow: '0 1px 1px rgba(255,255,255,0.4)'
+                           textShadow: '0 1px 1px rgba(255,255,255,0.5)'
                          }}
                        >
-                         CONCLUSO
+                         TURMA CONCLUÍDA
+                       </div>
+                       <div 
+                         className="absolute w-[150%] text-center py-1.5 font-black text-[11px] tracking-widest text-[#064e3b] uppercase shadow-emerald-900/20 shadow-xl flex items-center justify-center gap-2"
+                         style={{
+                           transform: 'rotate(-18deg)',
+                           background: `repeating-linear-gradient(
+                             -45deg,
+                             #10b981,
+                             #10b981 15px,
+                             #059669 15px,
+                             #059669 30px
+                           )`,
+                           borderTop: '2px solid #065f46',
+                           borderBottom: '2px solid #065f46',
+                           textShadow: '0 1px 1px rgba(255,255,255,0.5)',
+                           opacity: 0.95
+                         }}
+                       >
+                         TURMA CONCLUÍDA
                        </div>
                     </div>
                   )}
