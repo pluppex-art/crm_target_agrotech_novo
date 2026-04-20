@@ -300,5 +300,21 @@ export const turmaService = {
       return false;
     }
     return true;
-  }
+  },
+
+  async updateAttendeeVendas(leadId: string, vendas: number): Promise<boolean> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return false;
+
+    const { error } = await supabase
+      .from('turma_attendees')
+      .update({ vendas })
+      .eq('lead_id', leadId);
+
+    if (error) {
+      console.error('Error updating attendee vendas:', error);
+      return false;
+    }
+    return true;
+  },
 };

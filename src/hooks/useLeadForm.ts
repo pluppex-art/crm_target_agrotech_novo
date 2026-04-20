@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabaseService } from '../services/supabaseService';
 import { useLeadStore } from '../store/useLeadStore';
 import { usePipelineStore } from '../store/usePipelineStore';
+import { useProductStore } from '../store/useProductStore';
+import { turmaService } from '../services/turmaService';
 import type { Lead } from '../types/leads';
 import { parseBRNumber, getLeadEffectiveValue } from '../lib/utils';
 
@@ -10,7 +12,20 @@ interface UseLeadFormProps {
   onClose: () => void;
 }
 
+const VALUE_AFFECTING_FIELDS = new Set(['value', 'discount', 'discount_applied', 'discount_type', 'product']);
+
 export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
+  const { products } = useProductStore();
+
+  const findEnrollmentFee = useCallback((productName: string) => {
+    const product = products.find(p => {
+      const pName = p.name.toLowerCase().trim();
+      const lName = (productName ?? '').toLowerCase().trim();
+      return lName === pName || lName.includes(pName);
+    });
+    return product?.enrollment_fee ?? 0;
+  }, [products]);
+
   const [formData, setFormData] = useState({
     name: lead.name,
     email: lead.email,
@@ -148,8 +163,11 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
 
       const { updateLead } = useLeadStore.getState();
       const success = await updateLead(lead.id, updateData);
-      
+
       if (success) {
+        const enrollmentFee = findEnrollmentFee(formData.product);
+        const vendas = getLeadEffectiveValue(formData) + enrollmentFee;
+        turmaService.updateAttendeeVendas(lead.id, vendas);
         onClose();
       } else {
         alert('Erro ao salvar alterações no banco de dados.');
@@ -183,7 +201,7 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
     toggleField: async (field: string, value: any) => {
       // 1. Prepare updates
       const updates: any = { [field]: value };
-      
+
       // If we are turning OFF the discount, clear the values
       if (field === 'discount_applied' && value === false) {
         updates.discount = '';
@@ -192,10 +210,18 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
 
       // 2. Update local state
       updateFormField(updates);
-      
+
       // 3. Immediate save to DB
       const { updateLead } = useLeadStore.getState();
       await updateLead(lead.id, updates);
+
+      // 4. Sync turma_attendees.vendas when value-affecting fields change
+      if (VALUE_AFFECTING_FIELDS.has(field)) {
+        const merged = { ...formData, ...updates };
+        const enrollmentFee = findEnrollmentFee(merged.product);
+        const vendas = getLeadEffectiveValue(merged) + enrollmentFee;
+        turmaService.updateAttendeeVendas(lead.id, vendas);
+      }
     }
   };
 };

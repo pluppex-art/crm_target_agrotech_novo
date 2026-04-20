@@ -199,7 +199,7 @@ export const Pipeline: React.FC = () => {
         photo: enrollLead.photo || `https://i.pravatar.cc/150?u=${enrollLead.id}`,
         responsible: enrollLead.responsible || '',
         status: 'matriculado',
-        vendas: getLeadEffectiveValue(enrollLead),
+        vendas: getLeadEffectiveValue(enrollLead) + (findProductForLead(enrollLead.product)?.enrollment_fee ?? 0),
       });
 
       if (result) {
