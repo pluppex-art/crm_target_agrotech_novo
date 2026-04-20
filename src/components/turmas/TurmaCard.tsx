@@ -21,22 +21,19 @@ export function TurmaCard({ turma, isSelected, onSelect, onEdit, onDelete }: Tur
     <div
       onClick={() => onSelect(turma)}
       className={cn(
-        'relative overflow-hidden bg-white rounded-2xl p-5 border cursor-pointer transition-all shadow-sm hover:shadow-md group',
-        isSelected ? 'border-emerald-400 ring-2 ring-emerald-200' : 'border-slate-100 hover:border-emerald-200'
+        'relative bg-white rounded-2xl p-5 border cursor-pointer transition-all shadow-sm hover:shadow-md group',
+        isSelected ? 'border-emerald-400 ring-2 ring-emerald-200' : 'border-slate-100 hover:border-emerald-200',
+        turma.status === 'concluida' ? 'border-t-4 border-t-emerald-500' : ''
       )}
     >
-      {/* Faixa (Ribbon) de Concluída */}
-      {turma.status === 'concluida' && (
-        <div className="absolute top-0 right-0 overflow-hidden w-24 h-24 rounded-tr-2xl pointer-events-none z-0">
-          <div className="absolute top-5 -right-6 w-32 bg-emerald-500 border-y border-emerald-600 text-white text-[9px] font-bold tracking-widest uppercase text-center py-1 rotate-45 shadow-md">
-            Concluída
-          </div>
-        </div>
-      )}
-
-      <div className="flex items-start justify-between mb-3 relative z-10">
+      <div className="flex items-start justify-between mb-3 relative z-30">
         <div className="flex-1">
-          <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full', st.color)}>{st.label}</span>
+          <span className={cn(
+            'text-[10px] font-bold px-2 py-0.5 rounded-full',
+            turma.status === 'concluida' ? 'bg-emerald-100 text-emerald-700' : st.color
+          )}>
+            {st.label}
+          </span>
           <h3 className="font-bold text-slate-800 mt-2 leading-tight">{turma.name}</h3>
           <p className="text-xs text-slate-500 mt-0.5">{turma.professor_name || 'Sem professor'}</p>
         </div>
