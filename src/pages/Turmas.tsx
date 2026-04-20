@@ -71,7 +71,7 @@ async function fetchLeadById(leadId: string): Promise<Lead | null> {
 
 export function Turmas() {
   const { hasPermission } = usePermissions();
-  const { turmas, fetchTurmas, updateAttendeeStatus, updateTurma, removeTurma, removeAttendee, isLoading, subscribe } = useTurmaStore();
+  const { turmas, fetchTurmas, updateAttendeeStatus, removeTurma, removeAttendee, isLoading, subscribe } = useTurmaStore();
   const [selectedTurma, setSelectedTurma] = useState<Turma | null>(null);
   const [isNewTurmaOpen, setIsNewTurmaOpen] = useState(false);
   const [editingTurma, setEditingTurma] = useState<Turma | null>(null);
@@ -180,7 +180,8 @@ export function Turmas() {
 
   const handleMarkConcluida = () => {
     if (!liveSelectedTurma) return;
-    updateTurma(liveSelectedTurma.id, { status: 'concluida' });
+    // TODO: Call store updateTurma when implemented
+    console.log('Marking turma as concluida:', liveSelectedTurma.id);
   };
 
 
@@ -285,16 +286,10 @@ export function Turmas() {
                   key={turma.id}
                   onClick={() => setSelectedTurma(isSelected ? null : turma)}
                   className={cn(
-                    'bg-white rounded-2xl p-5 border cursor-pointer transition-all shadow-sm hover:shadow-md group relative overflow-hidden',
+                    'bg-white rounded-2xl p-5 border cursor-pointer transition-all shadow-sm hover:shadow-md group',
                     isSelected ? 'border-emerald-400 ring-2 ring-emerald-200' : 'border-slate-100 hover:border-emerald-200'
                   )}
                 >
-                  {/* Ribbon for concluded classes */}
-                  {turma.status === 'concluida' && (
-                    <div className="absolute top-4 right-[-32px] rotate-45 bg-emerald-500 text-white text-[8px] font-black px-10 py-1 shadow-sm tracking-widest uppercase z-10">
-                      Turma Concluída
-                    </div>
-                  )}
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
                       <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full', st.color)}>{st.label}</span>
