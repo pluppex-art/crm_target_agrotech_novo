@@ -1,49 +1,36 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
-import { ArrowRight, ArrowUp, ChevronDown, CheckCircle2, Loader2, Leaf, MessageCircle, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  CheckCircle2,
+  ChevronDown,
+  ArrowRight,
+  MessageCircle,
+  Loader2,
+  Leaf,
+  ArrowUp,
+  AlertTriangle
+} from 'lucide-react';
 import { formatPhone } from '../lib/utils';
-import { createClient } from '@supabase/supabase-js';
 
-// ── Supabase anon client (só leitura de produtos) ──────────────────────────
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-const supabaseAnon = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
-const supabase = supabaseUrl && supabaseAnon
-  ? createClient(supabaseUrl, supabaseAnon)
-  : null;
-
-const WHATSAPP_URL = 'https://api.whatsapp.com/send/?phone=5566999763455&text&type=phone_number&app_absent=0';
-
-// ── Tipos ──────────────────────────────────────────────────────────────────
 interface Step {
   id: string;
   question: string;
   hint?: string;
-  type: 'text' | 'email' | 'tel' | 'select';
-  placeholder?: string;
+  type: 'text' | 'tel' | 'email' | 'select';
   options?: string[];
+  placeholder?: string;
   required?: boolean;
 }
 
-// ── Animações ──────────────────────────────────────────────────────────────
-const variants = {
-  enter: (dir: number) => ({
-    y: dir > 0 ? 60 : -60,
-    opacity: 0,
-  }),
-  center: { y: 0, opacity: 1 },
-  exit: (dir: number) => ({
-    y: dir > 0 ? -60 : 60,
-    opacity: 0,
-  }),
+const productPrices: Record<string, number> = {
+  'Curso de Inseminação Artificial em Bovinos': 1500,
+  'Curso de Piloto de Drone Agrícola': 2500,
+  'Outros': 0
 };
 
-// ── Componente ─────────────────────────────────────────────────────────────
-export function PublicForm() {
-  const [products, setProducts] = useState<string[]>([]);
-  const [allCities, setAllCities] = useState<string[]>([]);
-  const [productPrices, setProductPrices] = useState<Record<string, number>>({});
+export default function PublicForm() {
   const [currentStep, setCurrentStep] = useState(0);
-  const [direction, setDirection] = useState(1);
+  const [direction, setDirection] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [inputValue, setInputValue] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -51,23 +38,8 @@ export function PublicForm() {
   const [sellerName, setSellerName] = useState('');
   const [sellerPhone, setSellerPhone] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [allCities, setAllCities] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement | HTMLSelectElement>(null);
-
-  // Bloqueia o botão "voltar" do navegador
-  // Usa capture:true para interceptar antes do React Router processar o evento
-  const submittedRef = useRef(false);
-  submittedRef.current = submitted;
-  useEffect(() => {
-    window.history.pushState(null, '', window.location.href);
-    const handlePopState = (e: PopStateEvent) => {
-      if (!submittedRef.current) {
-        e.stopImmediatePropagation();
-        window.history.pushState(null, '', window.location.href);
-      }
-    };
-    window.addEventListener('popstate', handlePopState, true);
-    return () => window.removeEventListener('popstate', handlePopState, true);
-  }, []);
 
   // Busca cidades do IBGE
   useEffect(() => {
@@ -76,7 +48,6 @@ export function PublicForm() {
         const resp = await fetch('https://servicodados.ibge.gov.br/api/v1/localidades/municipios?orderBy=nome');
         const data = await resp.json();
         if (data && Array.isArray(data)) {
-          // Formato: "Nome - UF" (com fallback seguro para propriedades nulas)
           const formatted = data.map((c: any) => {
             const cityName = c.nome;
             const ufSigla = c.microrregiao?.mesorregiao?.UF?.sigla || c.regiao?.sigla || '';
@@ -89,24 +60,6 @@ export function PublicForm() {
       }
     }
     loadCities();
-  }, []);
-
-  // Busca produtos do banco
-  useEffect(() => {
-    async function loadProducts() {
-      if (!supabase) return;
-      const { data } = await supabase
-        .from('products')
-        .select('name, price')
-        .order('name', { ascending: true });
-      if (data) {
-        setProducts(data.map((p: any) => p.name));
-        const priceMap: Record<string, number> = {};
-        data.forEach((p: any) => { priceMap[p.name] = Number(p.price) || 0; });
-        setProductPrices(priceMap);
-      }
-    }
-    loadProducts();
   }, []);
 
   const steps: Step[] = [
@@ -165,36 +118,25 @@ export function PublicForm() {
     return [];
   }, [allCities, inputValue, step?.id]);
 
-  // Foca o input ao trocar de etapa
   useEffect(() => {
     setTimeout(() => inputRef.current?.focus(), 350);
   }, [currentStep]);
 
-  // Pré-preenche o input com a resposta já salva (ao voltar) ou valor padrão
   useEffect(() => {
     if (step) {
       const savedValue = answers[step.id];
       if (savedValue !== undefined) {
         setInputValue(savedValue);
-      } else if (step.type === 'select') {
-        if (step.id === 'product' && products.length > 0) {
-          setInputValue(''); 
-        } else if (step.options && step.options.length > 0) {
-          setInputValue(step.required ? step.options[0] : '');
-        } else {
-          setInputValue('');
-        }
       } else {
         setInputValue('');
       }
     }
-  }, [currentStep, step?.id, products.length]);
+  }, [currentStep, step?.id]);
 
   const validateInput = (id: string, value: string): string | null => {
     if (id === 'name') {
       const parts = value.trim().split(/\s+/);
       if (parts.length < 2) return 'Por favor, digite seu nome completo.';
-      if (value.length < 3) return 'Nome muito curto.';
     }
     if (id === 'email') {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -270,8 +212,9 @@ export function PublicForm() {
           email: data.email,
           phone: data.phone,
           city: data.city ?? '',
-          product: data.product || 'Interesse Geral',
+          product: data.interest || 'Interesse Geral',
           value: productValue,
+          interest: data.interest,
           notes: notes
         }),
       });
@@ -297,40 +240,65 @@ export function PublicForm() {
     return `https://api.whatsapp.com/send/?phone=${formattedPhone}&text=${text}`;
   };
 
+  const variants = {
+    enter: (direction: number) => ({
+      y: direction > 0 ? 50 : -50,
+      opacity: 0,
+    }),
+    center: {
+      y: 0,
+      opacity: 1,
+    },
+    exit: (direction: number) => ({
+      y: direction < 0 ? 50 : -50,
+      opacity: 0,
+    }),
+  };
+
   // ── Tela de sucesso ──────────────────────────────────────────────────────
   if (submitted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 flex items-center justify-center p-6">
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-          className="text-center max-w-md"
-        >
-          <div className="w-20 h-20 bg-emerald-400/20 border-2 border-emerald-400 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle2 className="w-10 h-10 text-emerald-400" />
-          </div>
-          <h2 className="text-3xl font-bold text-white mb-2">Recebemos!</h2>
-          <p className="text-emerald-100/80 text-lg mb-8">
-            Obrigado, <span className="text-white font-bold">{answers.name?.split(' ')[0]}</span>! 
-            {sellerName ? ` O consultor ${sellerName} ` : ' Nossa equipe '} 
-            entrará em contato em breve pelo WhatsApp.
-          </p>
+      <div className="min-h-screen flex flex-col relative overflow-hidden bg-emerald-950">
+        {/* Background Image with Overlay */}
+        <div 
+          className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
+          style={{ 
+            backgroundImage: 'url("/drone-bg.png")',
+          }}
+        />
+        <div className="absolute inset-0 z-0 bg-gradient-to-br from-emerald-950/95 via-emerald-900/80 to-teal-950/90" />
 
-          <div className="flex flex-col gap-4">
-            <a
-              href={getWhatsAppLink()}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 group shadow-lg shadow-emerald-900/20"
-            >
-              <MessageCircle size={20} className="group-hover:scale-110 transition-transform" />
-              Falar no WhatsApp
-            </a>
-          </div>
+        <div className="flex-1 flex items-center justify-center p-6 relative z-10">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="max-w-md w-full bg-white/10 backdrop-blur-xl border border-white/20 p-10 rounded-3xl text-center shadow-2xl"
+          >
+            <div className="w-20 h-20 bg-emerald-400/20 border-2 border-emerald-400 rounded-full flex items-center justify-center mx-auto mb-6">
+              <CheckCircle2 className="w-10 h-10 text-emerald-400" />
+            </div>
+            <h2 className="text-3xl font-bold text-white mb-2">Recebemos!</h2>
+            <p className="text-emerald-100/80 text-lg mb-8">
+              Obrigado, <span className="text-white font-bold">{answers.name?.split(' ')[0]}</span>! 
+              {sellerName ? ` O consultor ${sellerName} ` : ' Nossa equipe '} 
+              entrará em contato em breve pelo WhatsApp.
+            </p>
 
-          <p className="text-emerald-400/60 text-sm mt-8">Target Agrotech • CRM</p>
-        </motion.div>
+            <div className="flex flex-col gap-4">
+              <a
+                href={getWhatsAppLink()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 group shadow-lg shadow-emerald-900/20"
+              >
+                <MessageCircle size={20} className="group-hover:scale-110 transition-transform" />
+                Falar no WhatsApp
+              </a>
+            </div>
+
+            <p className="text-emerald-400/60 text-sm mt-8">Target Agrotech • CRM</p>
+          </motion.div>
+        </div>
       </div>
     );
   }
