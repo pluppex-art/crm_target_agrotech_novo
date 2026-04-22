@@ -9,7 +9,7 @@ import { usePipelineStore } from '../../store/usePipelineStore';
 import { supabaseService } from '../../services/supabaseService';
 import { LeadStatus, LeadSubStatus } from '../../types/leads';
 import type { Lead } from '../../types/leads';
-import { cn, parseBRNumber, formatCPFCNPJ } from '../../lib/utils';
+import { cn, parseBRNumber, formatCPFCNPJ, formatPhone } from '../../lib/utils';
 import { AlertCircle, CheckSquare, ChevronDown, DollarSign, Loader2, Mail, MapPin, Percent, Phone, Save, X, User, ClipboardCheck, QrCode, Upload, FileText, Eye, X as XIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { uploadLeadFile } from '../../services/leadFilesService';
@@ -132,6 +132,13 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     setFieldErrors({});
+    
+    // Email Validation
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      setFieldErrors({ email: 'Por favor, insira um e-mail válido.' });
+      return;
+    }
+
     setLoading(true);
     try {
       const dupes = await supabaseService.checkDuplicateLead({
@@ -281,9 +288,14 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                   <input
                     type="text"
                     value={formData.phone}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setFormData(prev => ({ ...prev, phone: e.target.value })); setFieldErrors(p => ({ ...p, phone: undefined })); }}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => { 
+                      const formatted = formatPhone(e.target.value);
+                      setFormData(prev => ({...prev, phone: formatted})); 
+                      setFieldErrors(p => ({...p, phone: undefined})); 
+                    }}
                     className={cn("w-full px-4 py-2.5 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700", fieldErrors.phone ? "border-red-400 bg-red-50" : "border-gray-200")}
                     placeholder="(00) 00000-0000"
+                    maxLength={15}
                   />
                   <Phone size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 </div>
