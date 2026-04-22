@@ -427,7 +427,7 @@ export function PublicForm() {
                         style={{ background: 'transparent' }}
                       >
                         <option value="" disabled={step.required} style={{ background: '#064e3b', color: '#fff' }}>
-                          {step.required ? 'Selecione uma opção...' : 'Nenhuma das opções (opcional)'}
+                          Selecione uma opção...
                         </option>
                         {(step.options || []).map(p => (
                           <option key={p} value={p} style={{ background: '#064e3b', color: '#fff' }}>
