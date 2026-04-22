@@ -13,7 +13,7 @@ interface LeadTurmaTabProps {
   leadName?: string;
   valorRecebido?: number | null;
   leadValue?: number;
-  updateAttendeePayment?: (attendeeId: string, valor_recebido: number | null, forma_pagamento: string) => Promise<void>;
+  updateAttendeePayment?: (attendeeId: string, valor_recebido: number, forma_pagamento: string) => Promise<void>;
   onActivityCreated?: () => void;
   formData?: any;
   updateFormField?: (updates: any) => void;
@@ -49,6 +49,7 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
 }) => {
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
   const [paymentStates, setPaymentStates] = useState<Record<string, PaymentState>>({});
+  const [loadingSave, setLoadingSave] = useState<string | null>(null);
 
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -88,12 +89,9 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
   useEffect(() => {
     const initial: Record<string, PaymentState> = {};
     leadTurmas.forEach(({ attendee }: { attendee: TurmaAttendee }) => {
-      const hasPayment = attendee.valor_recebido != null;
       initial[attendee.id] = {
-        open: hasPayment,
-        entries: hasPayment
-          ? [{ valor: attendee.valor_recebido!.toString(), forma: attendee.forma_pagamento ?? '' }]
-          : [{ valor: '', forma: '' }],
+        open: false,
+        entries: [{ valor: '', forma: '' }],
       };
     });
     setPaymentStates(initial);
@@ -108,13 +106,8 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
       [attendeeId]: { ...getPayment(attendeeId), ...updates },
     }));
 
-  const handleToggle = async (attendeeId: string, checked: boolean) => {
-    if (!checked) {
-      updatePaymentState(attendeeId, { open: false, entries: [{ valor: '', forma: '' }] });
-      await updateAttendeePayment?.(attendeeId, null, '');
-    } else {
-      updatePaymentState(attendeeId, { open: true });
-    }
+  const handleToggle = (attendeeId: string, checked: boolean) => {
+    updatePaymentState(attendeeId, { open: checked, entries: [{ valor: '', forma: '' }] });
   };
 
   const handleEntryChange = (attendeeId: string, index: number, field: keyof PaymentEntry, value: string) => {
@@ -123,28 +116,35 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
     updatePaymentState(attendeeId, { entries });
   };
 
-  const addEntry = (attendeeId: string) => {
+  const savePayment = async (attendeeId: string) => {
     const state = getPayment(attendeeId);
-    updatePaymentState(attendeeId, { entries: [...state.entries, { valor: '', forma: '' }] });
-  };
+    const entry = state.entries[0];
+    const val = parseFloat(entry.valor);
+    
+    if (isNaN(val) || val <= 0) {
+      alert('Por favor, insira um valor válido maior que zero.');
+      return;
+    }
+    
+    if (!entry.forma) {
+      alert('Por favor, selecione a forma de pagamento.');
+      return;
+    }
 
-  const removeEntry = (attendeeId: string, index: number) => {
-    const state = getPayment(attendeeId);
-    const entries = state.entries.filter((_, i) => i !== index);
-    updatePaymentState(attendeeId, { entries });
-  };
-
-  const savePayment = async (attendeeId: string, entries?: PaymentEntry[]) => {
-    const state = getPayment(attendeeId);
-    const entriesToSave = entries ?? state.entries;
-    const total = entriesToSave.reduce((sum, e) => sum + (e.valor ? parseFloat(e.valor) : 0), 0);
-    const formas = entriesToSave.filter(e => e.forma).map(e => e.forma).join(', ');
-    await updateAttendeePayment?.(attendeeId, total > 0 ? total : null, formas);
+    setLoadingSave(attendeeId);
+    try {
+      await updateAttendeePayment?.(attendeeId, val, entry.forma);
+      updatePaymentState(attendeeId, { open: false, entries: [{ valor: '', forma: '' }] });
+    } catch (error) {
+      console.error('Error saving payment:', error);
+      alert('Erro ao salvar pagamento.');
+    } finally {
+      setLoadingSave(null);
+    }
   };
 
   return (
     <div className="space-y-4">
-      {/* Header */}
       <div className="flex items-center justify-between py-2">
         <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Turmas vinculadas</h3>
         <button
@@ -156,7 +156,6 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
         </button>
       </div>
 
-      {/* Professor Files Upload */}
       <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
           <FileText size={12} /> Documentação do Professor
@@ -231,11 +230,10 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
         leadTurmas.map(({ turma, attendee }: any) => {
           const payment = getPayment(attendee.id);
           const valorAReceber = financialCalculator.getPendingAmount(formData, products);
-          const totalEfetivoPago = financialCalculator.getPaidAmount(formData, products);
+          const hasSavedPayment = attendee.valor_recebido && attendee.valor_recebido > 0;
 
           return (
             <div key={turma.id} className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-3">
-              {/* Turma header */}
               <div className="flex items-start justify-between">
                 <div>
                   <h4 className="font-bold text-slate-800 text-base">{turma.name}</h4>
@@ -246,7 +244,6 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
                 </span>
               </div>
 
-              {/* Date/time/location */}
               <div className="space-y-1.5 text-xs text-slate-500">
                 <div className="flex items-center gap-2">
                   <Calendar size={12} className="text-emerald-500 shrink-0" />
@@ -262,36 +259,34 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
                 </div>
               </div>
 
-              {/* Valor a Receber — sempre visível baseado no pipeline */}
-              {valorAReceber != null && (
-                <div className="pt-3 border-t border-slate-100 space-y-1.5">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-400">Valor do Curso</span>
-                    <span className="font-semibold text-slate-600">
-                      R$ {leadValue!.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                  {(totalEfetivoPago ?? 0) > 0 && (
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-400 uppercase font-bold text-emerald-600">✓ Pago (Caixa + Taxa)</span>
-                      <span className="font-semibold text-emerald-600">
-                        R$ {totalEfetivoPago.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </span>
+              <div className="pt-3 border-t border-slate-100 space-y-2">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pagamentos Confirmados</p>
+                {hasSavedPayment ? (
+                  <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-3 flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-bold text-emerald-700">R$ {Number(attendee.valor_recebido).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                      <p className="text-[10px] text-emerald-600 opacity-80">{attendee.forma_pagamento || 'Diversas formas'}</p>
                     </div>
-                  )}
-                  <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
-                    <span className="font-bold text-slate-600">Valor Pendente</span>
-                    <span className={cn('font-bold', valorAReceber <= 0 ? 'text-emerald-600' : 'text-orange-600')}>
-                      R$ {valorAReceber.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </span>
+                    <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-white px-2 py-1 rounded-full border border-emerald-100">
+                      <CheckSquare size={10} />
+                      REGISTRADO
+                    </div>
                   </div>
+                ) : (
+                  <p className="text-[10px] text-slate-400 italic">Nenhum pagamento registrado nesta turma.</p>
+                )}
+                
+                <div className="flex items-center justify-between text-xs pt-1">
+                  <span className="font-bold text-slate-500">Saldo Pendente (Total)</span>
+                  <span className={cn('font-bold', (valorAReceber ?? 0) <= 0 ? 'text-emerald-600' : 'text-orange-600')}>
+                    R$ {(valorAReceber ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
                 </div>
-              )}
+              </div>
 
-              {/* Pagamento recebido nesta turma */}
               <div className="pt-3 border-t border-slate-100 space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="flex items-center gap-3 cursor-pointer">
+                  <label className="flex items-center gap-3 cursor-pointer group">
                     <div className="relative">
                       <input
                         type="checkbox"
@@ -301,81 +296,54 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
                       />
                       <div className={cn(
                         'w-5 h-5 border-2 rounded-md transition-all flex items-center justify-center',
-                        payment.open ? 'bg-emerald-600 border-emerald-600' : 'bg-white border-slate-200'
+                        payment.open ? 'bg-emerald-600 border-emerald-600' : 'bg-white border-slate-200 group-hover:border-emerald-200'
                       )}>
                         {payment.open && <CheckSquare size={12} className="text-white" />}
                       </div>
                     </div>
-                    <span className="text-sm font-bold text-slate-700">Pagamento recebido?</span>
+                    <span className="text-sm font-bold text-slate-700">Registrar novo pagamento?</span>
                   </label>
 
                   {payment.open && (
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => addEntry(attendee.id)}
-                        className="flex items-center gap-1 px-2 py-1 text-xs font-bold text-emerald-600 border border-emerald-200 rounded-lg hover:bg-emerald-50 transition-colors"
-                      >
-                        <Plus size={12} />
-                        Adicionar
-                      </button>
-                      <button
-                        onClick={() => savePayment(attendee.id)}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 transition-all shadow-sm"
-                        disabled={payment.entries.every(e => !e.valor.trim())}
-                      >
-                        <CheckSquare size={12} />
-                        Salvar Pagamento
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => savePayment(attendee.id)}
+                      disabled={loadingSave === attendee.id || !payment.entries[0].valor || !payment.entries[0].forma}
+                      className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 transition-all shadow-md disabled:opacity-50"
+                    >
+                      {loadingSave === attendee.id ? <Loader2 size={12} className="animate-spin" /> : <CheckSquare size={12} />}
+                      Salvar Manualmente
+                    </button>
                   )}
                 </div>
 
                 {payment.open && (
-                  <div className="space-y-2">
-                    {payment.entries.map((entry, index) => (
-                      <div key={index} className="flex items-end gap-2">  
-                        <div className="flex flex-col gap-1 flex-1">
-                          {index === 0 && (
-                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Valor (R$)</label>
-                          )}
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={entry.valor}
-                            onChange={(e) => handleEntryChange(attendee.id, index, 'valor', e.target.value)}
-                            onBlur={() => savePayment(attendee.id)}
-                            placeholder="0,00"
-                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-sm font-medium shadow-sm"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1 flex-1">
-                          {index === 0 && (
-                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Forma</label>
-                          )}
-                          <div className="relative">
-                            <select
-                              value={entry.forma}
-                              onChange={(e) => handleEntryChange(attendee.id, index, 'forma', e.target.value)}
-                              onBlur={() => savePayment(attendee.id)}
-                              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none text-sm font-medium shadow-sm cursor-pointer"
-                            >
-                              <option value="">Selecione...</option>
-                              {FORMAS.map(f => <option key={f} value={f}>{f}</option>)}
-                            </select>
-                            <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                          </div>
-                        </div>
-                        {payment.entries.length > 1 && (
-                          <button
-                            onClick={() => removeEntry(attendee.id, index)}
-                            className="mb-0.5 p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                          >
-                            <XIcon size={14} />
-                          </button>
-                        )}
+                  <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-200">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Valor (R$)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={payment.entries[0].valor}
+                        onChange={(e) => handleEntryChange(attendee.id, 0, 'valor', e.target.value)}
+                        placeholder="0,00"
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-sm font-bold shadow-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Forma</label>
+                      <div className="relative">
+                        <select
+                          value={payment.entries[0].forma}
+                          onChange={(e) => handleEntryChange(attendee.id, 0, 'forma', e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none text-sm font-bold shadow-sm cursor-pointer"
+                        >
+                          <option value="">Selecione...</option>
+                          {FORMAS.map(f => <option key={f} value={f}>{f}</option>)}
+                        </select>
+                        <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                       </div>
-                    ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -389,11 +357,10 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
         </div>
       )}
 
-      {/* Activity hint */}
       <div className="border border-dashed border-blue-100 rounded-2xl p-4 flex items-start gap-3 bg-blue-50/40">
         <Activity size={16} className="text-blue-400 mt-0.5 shrink-0" />
         <p className="text-xs text-blue-600 leading-relaxed">
-          Registre atividades relacionadas a este lead — ligações, visitas, reuniões — clicando em <strong>Nova Atividade</strong>. Elas também aparecem na página de Tarefas e no Calendário.
+          Registre atividades relacionadas a este lead clicando em <strong>Nova Atividade</strong>.
         </p>
       </div>
 

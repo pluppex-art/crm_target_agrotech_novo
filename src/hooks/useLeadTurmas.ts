@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { turmaService, Turma, TurmaAttendee } from '../services/turmaService';
 import { useLeadStore } from '../store/useLeadStore';
 import { useProductStore } from '../store/useProductStore';
+import { useAuthStore } from '../store/useAuthStore';
+import { noteService } from '../services/noteService';
 import { financialCalculator } from '../services/financialCalculator';
 
 interface UseLeadTurmasProps {
@@ -11,6 +13,7 @@ interface UseLeadTurmasProps {
 export const useLeadTurmas = ({ leadId }: UseLeadTurmasProps) => {
   const [leadTurmas, setLeadTurmas] = useState<{ turma: Turma; attendee: TurmaAttendee }[]>([]);
   const [loadingTurmas, setLoadingTurmas] = useState(false);
+  const { user } = useAuthStore();
 
   useEffect(() => {
     if (leadId) {
@@ -31,30 +34,45 @@ export const useLeadTurmas = ({ leadId }: UseLeadTurmasProps) => {
     }
   };
 
-  const updateAttendeePayment = async (attendeeId: string, valor_recebido: number | null, forma_pagamento: string) => {
-    // 1. Update the specific attendee payment
-    await turmaService.updateAttendeePayment(attendeeId, valor_recebido, forma_pagamento);
-    
-    // 2. Reload absolute source of truth for this lead's enrollment history
+  const updateAttendeePayment = async (
+    attendeeId: string, 
+    valor_novo: number, 
+    forma_pagamento: string,
+    isLogOnly: boolean = false
+  ) => {
+    // 1. Get current data for sum
     const result = await turmaService.getAttendeeHistory(leadId);
-    setLeadTurmas(result);
+    const existingPaid = result.reduce((sum, item) => sum + (Number(item.attendee.valor_recebido) || 0), 0);
+    
+    // 2. New Total
+    const newTotal = existingPaid + valor_novo;
 
-    // 3. Sync with the main Lead record so the Pipeline/Finance pick it up
-    if (leadId) {
-      const { updateLead } = useLeadStore.getState();
-      const { products } = useProductStore.getState();
-      
-      // Calculate total paid across all enrollments (ensuring numeric values)
-      const totalFromTurmas = result.reduce((sum, item) => {
-        const val = typeof item.attendee.valor_recebido === 'string' 
-          ? financialCalculator.parseBRNumber(item.attendee.valor_recebido)
-          : (item.attendee.valor_recebido || 0);
-        return sum + val;
-      }, 0);
-      
-      await updateLead(leadId, { 
-        valor_recebido: totalFromTurmas,
-        forma_pagamento: forma_pagamento || undefined
+    // 3. Update the specific attendee record (we concatenate payment methods for display)
+    const currentAttendee = result.find(r => r.attendee.id === attendeeId)?.attendee;
+    const combinedFormas = [currentAttendee?.forma_pagamento, forma_pagamento]
+      .filter(f => f && f.trim() !== '')
+      .join(', ');
+
+    await turmaService.updateAttendeePayment(attendeeId, newTotal, combinedFormas);
+    
+    // 4. Reload local state
+    const refreshed = await turmaService.getAttendeeHistory(leadId);
+    setLeadTurmas(refreshed);
+
+    // 5. Sync with the main Lead record
+    const { updateLead } = useLeadStore.getState();
+    await updateLead(leadId, { 
+      valor_recebido: newTotal,
+      forma_pagamento: combinedFormas
+    });
+
+    // 6. Log to History (Notes)
+    if (valor_novo > 0) {
+      const authorName = user?.user_metadata?.full_name || user?.email || 'Professor';
+      await noteService.createNote({
+        lead_id: leadId,
+        author_name: authorName,
+        content: `💰 PAGAMENTO REGISTRADO: ${financialCalculator.formatCurrency(valor_novo)} via ${forma_pagamento}. (Total acumulado: ${financialCalculator.formatCurrency(newTotal)})`
       });
     }
   };
