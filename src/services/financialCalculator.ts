@@ -100,20 +100,29 @@ export const financialCalculator = {
    *
    * Course products: valor_recebido + taxa_matricula_recebido
    *   (or enrollment fee when pix_completed and taxa not yet filled)
-   * Service products: valor_recebido only
-   *   (synced from turma_attendees; enrollment fee and pix logic do not apply)
+   * Service products: valor_recebido when available; if professor_proof_url exists
+   *   but no amount was entered yet, the full contracted value is used as a fallback
+   *   because proof of payment confirms the service was fully paid.
    */
   getPaidAmount: (lead: LeadFinancialData, products: Product[]): number => {
-    let paid = 0;
-    if (lead.valor_recebido != null) paid += lead.valor_recebido;
-
     const productObj = financialCalculator.findProduct(lead.product, products);
-    if (!financialCalculator.isServiceProduct(productObj)) {
-      if (lead.taxa_matricula_recebido != null) {
-        paid += lead.taxa_matricula_recebido;
-      } else if (lead.pix_completed) {
-        paid += financialCalculator.getEnrollmentFee(lead.product, products);
+    const isService = financialCalculator.isServiceProduct(productObj);
+
+    if (isService) {
+      if (lead.valor_recebido != null && lead.valor_recebido > 0) {
+        return Math.round(lead.valor_recebido * 100) / 100;
       }
+      if (lead.professor_proof_url) {
+        return financialCalculator.getTotalContracted(lead, products);
+      }
+      return 0;
+    }
+
+    let paid = lead.valor_recebido ?? 0;
+    if (lead.taxa_matricula_recebido != null) {
+      paid += lead.taxa_matricula_recebido;
+    } else if (lead.pix_completed) {
+      paid += financialCalculator.getEnrollmentFee(lead.product, products);
     }
 
     return Math.round(paid * 100) / 100;
