@@ -393,7 +393,10 @@ export const Pipeline: React.FC = () => {
         pipelineId={currentPipelineId}
         initialStageId={initialStageIdForNewLead}
         onLeadCreated={(lead) => {
-          const isGanho = lead.stage_id && ganhoStageIds.has(lead.stage_id);
+          const targetStage = currentPipeline?.stages.find(s => s.id === lead.stage_id);
+          const stageName = (targetStage?.name || '').toLowerCase();
+          const isGanho = stageName.includes('ganho') || stageName.includes('fechado') || stageName.includes('aprovado');
+          
           if (isGanho) {
             const productObj = products.find(p => p.name === lead.product);
             const categoryName = (productObj?.category || '').toLowerCase();
