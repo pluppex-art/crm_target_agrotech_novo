@@ -7,6 +7,7 @@ import { Lead, LeadSubStatus } from '../../types/leads';
 import { cn, getLeadEffectiveValue } from '../../lib/utils';
 import { useLeadStore } from '../../store/useLeadStore';
 import { useProductStore } from '../../store/useProductStore';
+import { useTaskStore } from '../../store/useTaskStore';
 import { getElapsedHours } from '../../services/alertService';
 
 
@@ -22,6 +23,10 @@ interface LeadCardProps {
 export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragging }: LeadCardProps) {
   const { updateLeadSubStatus, deleteLead, setSelectedLead } = useLeadStore();
   const { products } = useProductStore();
+  const { tasks } = useTaskStore();
+
+  // Has at least one task (pending or completed) - disables inactivity timer
+  const hasTasks = tasks.some(t => t.lead_id === lead.id);
 
   const product = products.find(p => {
     const pName = p.name.toLowerCase().trim();
@@ -40,8 +45,10 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
     stageName.includes('perdido') ||
     stageName.includes('aquecimento') ||
     stageName.includes('desqualificado');
-  const isWarning = elapsedHours >= 12 && elapsedHours < 18 && !isInactiveStage;
-  const isDanger = elapsedHours >= 18 && !isInactiveStage;
+  // Also disable timer if lead has any task assigned
+  const timerDisabled = isInactiveStage || hasTasks;
+  const isWarning = elapsedHours >= 12 && elapsedHours < 18 && !timerDisabled;
+  const isDanger = elapsedHours >= 18 && !timerDisabled;
 
   const { allRequiredCompleted, requiredCompleted, requiredTotal } = useLeadChecklist({
     leadId: lead.id,

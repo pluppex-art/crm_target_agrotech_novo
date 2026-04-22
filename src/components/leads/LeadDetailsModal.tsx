@@ -130,9 +130,24 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
   const currentProduct = products.find(p => p.name === form.formData.product);
   const isServiceProduct = (currentProduct?.category || '').toLowerCase().startsWith('serviço') || (currentProduct?.category || '').toLowerCase().startsWith('servico');
 
-  const canMoveToGanho = isServiceProduct || (form.formData.pix_completed && form.formData.contract_signed);
-  const totalSteps = isServiceProduct ? 0 : 2;
-  const completedSteps = isServiceProduct ? 0 : [form.formData.pix_completed, form.formData.contract_signed].filter(Boolean).length;
+  const canMoveToGanho = isServiceProduct 
+    ? (!!form.formData.professor_proof_url)
+    : (
+        form.formData.pix_completed &&
+        form.formData.contract_signed &&
+        !!form.formData.payment_proof_url &&
+        !!form.formData.contract_url
+      );
+
+  const totalSteps = isServiceProduct ? 1 : 4;
+  const completedSteps = isServiceProduct 
+    ? [!!form.formData.professor_proof_url].filter(Boolean).length
+    : [
+        form.formData.pix_completed,
+        form.formData.contract_signed,
+        !!form.formData.payment_proof_url,
+        !!form.formData.contract_url,
+      ].filter(Boolean).length;
 
   // Checklist blocks advancing to any stage (except Perdido) until all required items are done
   const checklistBlocked = !isTurmaMode && leadChecklist.totalCount > 0 && !leadChecklist.allRequiredCompleted;
@@ -194,7 +209,15 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
                         handleStageChange(ganhoStage?.id || '');
                       }}
                       disabled={!canMoveToGanho || checklistBlocked || currentStageId === ganhoStage?.id}
-                      title={checklistBlocked ? 'Conclua o checklist da etapa antes de avançar' : !canMoveToGanho ? 'Marque PIX realizado e Contrato assinado para avançar para Ganho' : undefined}
+                      title={
+                        checklistBlocked 
+                          ? 'Conclua o checklist da etapa antes de avançar' 
+                          : !canMoveToGanho 
+                            ? (isServiceProduct 
+                                ? 'Necessário: Comprovante ( Professor )' 
+                                : 'Necessário: Taxa Matrícula + Contrato assinado + Comprovante + Contrato ( Vendedor )')
+                            : undefined
+                      }
                       className={cn(
                         "flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-xs font-bold transition-all shadow-sm",
                         currentStageId === ganhoStage?.id
@@ -251,7 +274,15 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
                       key={stage.id}
                       onClick={() => !isDisabled && handleStageChange(stage.id)}
                       disabled={isDisabled}
-                      title={checklistBlocked && !isActive && !isPerdidoBtn ? 'Conclua o checklist da etapa antes de avançar' : isGanhoBtn && !canMoveToGanho ? 'Marque PIX realizado e Contrato assinado para avançar para Ganho' : undefined}
+                      title={
+                        checklistBlocked && !isActive && !isPerdidoBtn 
+                          ? 'Conclua o checklist da etapa antes de avançar' 
+                          : isGanhoBtn && !canMoveToGanho 
+                            ? (isServiceProduct 
+                                ? 'Necessário: Comprovante ( Professor )' 
+                                : 'Necessário: Taxa Matrícula + Contrato assinado + Comprovante + Contrato ( Vendedor )')
+                            : undefined
+                      }
                       className={cn(
                         "px-3 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all border shadow-sm",
                         isActive ? active : inactive,
@@ -351,6 +382,9 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
                 leadName={lead.name}
                 valorRecebido={form.formData.valor_recebido}
                 leadValue={form.calculateFinalValue()}
+                formData={form.formData}
+                updateFormField={form.updateFormField}
+                toggleField={form.toggleField}
               />
             )}
             {activeTab === 'checklist' && (

@@ -1,6 +1,7 @@
 import { Lead } from '../types/leads';
 import { emailService } from './emailService';
 import { useNotificationStore } from '../store/useNotificationStore';
+import { Task } from './taskService';
 
 const ALERT_12H_MS = 12 * 60 * 60 * 1000;
 const ALERT_18H_MS = 18 * 60 * 60 * 1000;
@@ -90,15 +91,30 @@ export interface InactivityCheckResult {
   toTransfer: Lead[];
 }
 
-export function checkLeadInactivity(leads: Lead[], autoTransferHours: number = 48): InactivityCheckResult {
+const INACTIVE_STAGE_KEYWORDS = ['ganho', 'aprovado', 'fechado', 'perdido', 'aquecimento', 'desqualificado'];
+
+function isLeadInInactiveStage(lead: Lead): boolean {
+  const stageLower = (lead.status ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return INACTIVE_STAGE_KEYWORDS.some(kw => stageLower.includes(kw));
+}
+
+export function checkLeadInactivity(
+  leads: Lead[], 
+  autoTransferHours: number = 48,
+  tasks: Task[] = []
+): InactivityCheckResult {
   const autoTransferMs = autoTransferHours * 60 * 60 * 1000;
   const sentAlerts = getSentAlerts();
   const alerts: InactivityAlert[] = [];
   const toTransfer: Lead[] = [];
 
   for (const lead of leads) {
-    // Skip closed leads from inactivity checks
-    if (lead.status === 'closed') continue;
+    // 1. Skip leads in inactive stages
+    if (isLeadInInactiveStage(lead)) continue;
+
+    // 2. Skip leads that have ANY task assigned (pending or completed)
+    const hasTasks = tasks.some(t => t.lead_id === lead.id);
+    if (hasTasks) continue;
 
     const elapsed = getMsWithoutContact(lead);
     const leadSent = sentAlerts[lead.id] || {};

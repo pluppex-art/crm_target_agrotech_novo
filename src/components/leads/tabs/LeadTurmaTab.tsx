@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { GraduationCap, Calendar, Clock, MapPin, Plus, Activity, CheckSquare, ChevronDown, X } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { GraduationCap, Calendar, Clock, MapPin, Plus, Activity, CheckSquare, ChevronDown, Upload, Eye, FileText, Loader2, X as XIcon, QrCode } from 'lucide-react';
 import { NewActivityModal } from '../../tasks/NewActivityModal';
 import { cn } from '../../../lib/utils';
 import type { TurmaAttendee } from '../../../services/turmaService';
+import { uploadLeadFile, deleteLeadFile } from '../../../services/leadFilesService';
 
 interface LeadTurmaTabProps {
   leadTurmas: any[];
@@ -13,6 +14,9 @@ interface LeadTurmaTabProps {
   leadValue?: number;
   updateAttendeePayment?: (attendeeId: string, valor_recebido: number | null, forma_pagamento: string) => Promise<void>;
   onActivityCreated?: () => void;
+  formData?: any;
+  updateFormField?: (updates: any) => void;
+  toggleField?: (field: string, value: any) => Promise<void>;
 }
 
 interface PaymentEntry {
@@ -36,9 +40,47 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
   leadValue,
   updateAttendeePayment,
   onActivityCreated,
+  formData,
+  updateFormField,
+  toggleField,
 }) => {
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
   const [paymentStates, setPaymentStates] = useState<Record<string, PaymentState>>({});
+
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
+  const ALLOWED_EXT = '.jpg,.jpeg,.png,.pdf';
+
+  const handleFileUpload = async (file: File) => {
+    if (!leadId) return;
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      alert('Formato inválido. Use .JPEG, .PNG ou .PDF');
+      return;
+    }
+    setUploading(true);
+    try {
+      const url = await uploadLeadFile(leadId, 'payment_proof', file);
+      if (url) {
+        updateFormField?.({ professor_proof_url: url });
+        await toggleField?.('professor_proof_url', url);
+      } else {
+        alert('Falha ao enviar arquivo.');
+      }
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDeleteFile = async () => {
+    const url = formData?.professor_proof_url;
+    if (!url) return;
+    if (!confirm('Remover este arquivo?')) return;
+    await deleteLeadFile(url);
+    updateFormField?.({ professor_proof_url: null });
+    await toggleField?.('professor_proof_url', null);
+  };
 
   useEffect(() => {
     const initial: Record<string, PaymentState> = {};
@@ -109,6 +151,73 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
           <Plus size={14} />
           Nova Atividade
         </button>
+      </div>
+
+      {/* Professor Files Upload */}
+      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+          <FileText size={12} /> Documentação do Professor
+        </p>
+        
+        <div className="flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] font-bold text-slate-600 flex items-center gap-1.5">
+              <QrCode size={13} className="text-slate-400" /> Comprovante de Pagamento
+              {formData?.professor_proof_url && (
+                <span className="inline-flex items-center gap-0.5 text-[9px] font-black bg-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded-full">
+                  <CheckSquare size={9} /> Enviado
+                </span>
+              )}
+            </p>
+            {formData?.professor_proof_url && (
+              <div className="flex items-center gap-2 mt-1">
+                <a
+                  href={formData.professor_proof_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-700 font-bold truncate max-w-[180px]"
+                >
+                  <Eye size={10} /> Ver comprovante
+                </a>
+                <button
+                  type="button"
+                  onClick={handleDeleteFile}
+                  className="p-0.5 text-red-400 hover:text-red-600 transition-colors"
+                >
+                  <XIcon size={12} />
+                </button>
+              </div>
+            )}
+          </div>
+          
+          <div className="shrink-0">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={ALLOWED_EXT}
+              className="hidden"
+              onChange={e => {
+                const f = e.target.files?.[0];
+                if (f) handleFileUpload(f);
+                e.target.value = '';
+              }}
+            />
+            <button
+              type="button"
+              disabled={uploading}
+              onClick={() => fileInputRef.current?.click()}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border shadow-sm",
+                formData?.professor_proof_url
+                  ? "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"
+                  : "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+              )}
+            >
+              {uploading ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+              {uploading ? 'Enviando...' : formData?.professor_proof_url ? 'Substituir' : 'Anexar Comprovante'}
+            </button>
+          </div>
+        </div>
       </div>
 
       {loadingTurmas ? (
@@ -260,7 +369,7 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
                             onClick={() => removeEntry(attendee.id, index)}
                             className="mb-0.5 p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                           >
-                            <X size={14} />
+                            <XIcon size={14} />
                           </button>
                         )}
                       </div>

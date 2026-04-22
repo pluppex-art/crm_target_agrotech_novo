@@ -49,6 +49,10 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
     margem_percent: lead.margem_percent,
     faixa_comissao: lead.faixa_comissao ?? null,
     motivo_perda: lead.motivo_perda || '',
+    // Attachments
+    payment_proof_url: lead.payment_proof_url ?? null,
+    contract_url: lead.contract_url ?? null,
+    professor_proof_url: lead.professor_proof_url ?? null,
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -79,6 +83,10 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
       margem_percent: lead.margem_percent,
       faixa_comissao: lead.faixa_comissao ?? null,
       motivo_perda: lead.motivo_perda || '',
+      // Attachments
+      payment_proof_url: lead.payment_proof_url ?? null,
+      contract_url: lead.contract_url ?? null,
+      professor_proof_url: lead.professor_proof_url ?? null,
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lead.id]);
@@ -91,12 +99,18 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
       const incomingContract = lead.contract_signed || false;
       const incomingDiscountApplied = lead.discount_applied ?? !!lead.discount;
       const incomingValue = lead.value.toString();
+      const incomingProof = lead.payment_proof_url ?? null;
+      const incomingContractUrl = lead.contract_url ?? null;
+      const incomingProfProof = lead.professor_proof_url ?? null;
 
       if (
         prev.pix_completed !== incomingPix ||
         prev.contract_signed !== incomingContract ||
         prev.value !== incomingValue ||
-        prev.discount_applied !== incomingDiscountApplied
+        prev.discount_applied !== incomingDiscountApplied ||
+        prev.payment_proof_url !== incomingProof ||
+        prev.contract_url !== incomingContractUrl ||
+        prev.professor_proof_url !== incomingProfProof
       ) {
         return {
           ...prev,
@@ -106,6 +120,9 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
           discount: lead.discount || prev.discount,
           discount_type: lead.discount_type || prev.discount_type,
           value: incomingValue,
+          payment_proof_url: incomingProof,
+          contract_url: incomingContractUrl,
+          professor_proof_url: incomingProfProof,
         };
       }
       return prev;
@@ -158,6 +175,7 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
         valor_recebido: formData.valor_recebido ?? undefined,
         forma_pagamento: formData.forma_pagamento || undefined,
         taxa_matricula_recebido: formData.taxa_matricula_recebido ?? undefined,
+        professor_proof_url: formData.professor_proof_url ?? undefined,
       };
 
 

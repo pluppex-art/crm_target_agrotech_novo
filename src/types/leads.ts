@@ -47,6 +47,11 @@ export interface Lead {
   margem_percent?: number;
   faixa_comissao?: 'verde' | 'amarela' | 'vermelha' | null | undefined;
   motivo_perda?: string;
+  // Attachments for Ganho stage (Seller)
+  payment_proof_url?: string | null;
+  contract_url?: string | null;
+  // Attachments for Ganho stage (Professor)
+  professor_proof_url?: string | null;
 }
 
 

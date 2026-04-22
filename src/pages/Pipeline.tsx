@@ -15,6 +15,7 @@ import { usePipelineStore } from '../store/usePipelineStore';
 import { useTurmaStore } from '../store/useTurmaStore';
 import { useProductStore } from '../store/useProductStore';
 import { useProfileStore } from '../store/useProfileStore';
+import { useTaskStore } from '../store/useTaskStore';
 import { useAuthStore } from '../store/useAuthStore';
 import type { Lead } from '../types/leads';
 import { LeadDetailsModal } from '../components/leads/LeadDetailsModal';
@@ -55,6 +56,7 @@ export const Pipeline: React.FC = () => {
 
   const { addAttendee, fetchTurmas, subscribe: subscribeTurmas } = useTurmaStore();
   const { products, fetchProducts, subscribe: subscribeProducts } = useProductStore();
+  const { tasks, fetchTasks, subscribe: subscribeTasks } = useTaskStore();
   const authUser = useAuthStore(state => state.user);
   const { profiles, fetchProfiles } = useProfileStore();
   const permissions = usePermissions();
@@ -73,8 +75,19 @@ export const Pipeline: React.FC = () => {
   const [isNewLeadModalOpen, setIsNewLeadModalOpen] = useState(false);
   const [initialStageIdForNewLead, setInitialStageIdForNewLead] = useState<string | undefined>(undefined);
   const [minimizedColumns, setMinimizedColumns] = useState<Set<string>>(new Set());
+  // Track whether user manually toggled a column (don't auto-reset their choice)
+  const userToggledRef = useRef<Set<string>>(new Set());
+
+  const currentPipeline = pipelines.find(p => p.id === currentPipelineId);
+  
+  const COLUMNS = currentPipeline?.stages.map(s => ({
+    id: s.id,
+    title: s.name,
+    color: s.color || 'bg-blue-500'
+  })) || [];
 
   const toggleColumnMinimized = (colId: string) => {
+    userToggledRef.current.add(colId);
     setMinimizedColumns(prev => {
       const next = new Set(prev);
       if (next.has(colId)) next.delete(colId);
@@ -83,8 +96,29 @@ export const Pipeline: React.FC = () => {
     });
   };
 
+  // Auto-minimize Perdido / Aquecimento / Desqualificado on pipeline load
+  useEffect(() => {
+    if (!currentPipeline?.stages) return;
+    const AUTO_MINIMIZE = ['perdido', 'aquecimento', 'desqualificado'];
+    const toMinimize = currentPipeline.stages
+      .filter(s => {
+        const n = s.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        return AUTO_MINIMIZE.some(kw => n.includes(kw));
+      })
+      .map(s => s.id)
+      .filter(id => !userToggledRef.current.has(id));
+    if (toMinimize.length > 0) {
+      setMinimizedColumns(prev => {
+        const next = new Set(prev);
+        toMinimize.forEach(id => next.add(id));
+        return next;
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPipeline?.id]);
+
   // Background alerts continue firing
-  usePipelineAlerts(leads);
+  usePipelineAlerts(leads, tasks);
 
   // Enroll-in-turma modal state
   const [enrollLead, setEnrollLead] = useState<Lead | null>(null);
@@ -101,7 +135,8 @@ export const Pipeline: React.FC = () => {
     fetchTurmas();
     fetchProducts();
     fetchProfiles();
-  }, [fetchPipelines, fetchTurmas, fetchProducts, fetchProfiles]);
+    fetchTasks();
+  }, [fetchPipelines, fetchTurmas, fetchProducts, fetchProfiles, fetchTasks]);
 
 
 
@@ -116,13 +151,15 @@ export const Pipeline: React.FC = () => {
     const unsubPipelines = subscribePipelines();
     const unsubTurmas = subscribeTurmas();
     const unsubProducts = subscribeProducts();
+    const unsubTasks = subscribeTasks();
     return () => {
       unsubLeads();
       unsubPipelines();
       unsubTurmas();
       unsubProducts();
+      unsubTasks();
     };
-  }, [subscribeToLeads, subscribePipelines, subscribeTurmas, subscribeProducts]);
+  }, [subscribeToLeads, subscribePipelines, subscribeTurmas, subscribeProducts, subscribeTasks]);
 
 
 
@@ -155,16 +192,25 @@ export const Pipeline: React.FC = () => {
     const stageLower = targetStage?.name.toLowerCase() ?? '';
     const isGanhoTarget = stageLower.includes('ganho') || stageLower.includes('fechado') || stageLower.includes('aprovado');
 
-    // Bloqueia arrastar para Ganho sem confirmações
+    // Bloqueia arrastar para Ganho sem confirmações + arquivos
     if (isGanhoTarget) {
       const movedLead = leads.find((l) => l.id === draggableId);
       if (movedLead) {
         const productObj = products.find(p => p.name === movedLead.product);
         const categoryName = (productObj?.category || '').toLowerCase();
         const isService = categoryName.startsWith('serviço') || categoryName.startsWith('servico');
-        if (!isService && !(movedLead.pix_completed && movedLead.contract_signed)) {
-          alert('Para mover para Ganho, marque PIX realizado e Contrato assinado no lead.');
-          return;
+        if (!isService) {
+          const hasFiles = !!movedLead.payment_proof_url && !!movedLead.contract_url;
+          if (!(movedLead.pix_completed && movedLead.contract_signed && hasFiles)) {
+            alert('Para mover para Ganho (Curso) é necessário:\n• Marcar Taxa Matrícula e Contrato assinado\n• Anexar Comprovante e Contrato (Vendedor na aba Informações)');
+            return;
+          }
+        } else {
+          // Requisitos para Professor (Serviço)
+          if (!movedLead.professor_proof_url) {
+            alert('Para mover para Ganho (Serviço) é necessário:\n• Anexar Comprovante de Pagamento (Professor na aba Turma)');
+            return;
+          }
         }
       }
     }
@@ -218,13 +264,6 @@ export const Pipeline: React.FC = () => {
     }
   };
 
-  const currentPipeline = pipelines.find(p => p.id === currentPipelineId);
-  const COLUMNS = currentPipeline?.stages.map(s => ({
-    id: s.id,
-    title: s.name,
-    color: s.color || 'bg-blue-500'
-  })) || [];
-
   const filteredColumns = filters.selectedStatus === 'all'
     ? COLUMNS
     : COLUMNS.filter((col: { id: string }) => col.id === filters.selectedStatus);
@@ -241,15 +280,6 @@ export const Pipeline: React.FC = () => {
     );
   }, [currentPipeline]);
 
-  // Leads na etapa Ganho: base para os totais financeiros
-  const ganhoLeads = useMemo(() => {
-    return leads.filter(l => {
-      if (!l.stage_id || !ganhoStageIds.has(l.stage_id)) return false;
-      if (filters.selectedResponsible !== 'all' && l.responsible !== filters.selectedResponsible) return false;
-      return true;
-    });
-  }, [leads, ganhoStageIds, filters.selectedResponsible]);
-
   // Helper: acha produto pelo nome do lead usando includes (ignora caixa e sufixos de data/local)
   const findProductForLead = (leadProduct: string) =>
     products.find(p => {
@@ -258,27 +288,44 @@ export const Pipeline: React.FC = () => {
       return lName === pName || lName.includes(pName);
     });
 
-  // Ganho Caixa: valor efetivamente recebido (valor_recebido + taxa_matricula_recebido)
+  // Leads na etapa Ganho: segue TODOS os filtros ativos (search, product, responsible, stars)
+  const ganhoLeads = useMemo(() => {
+    return filters.filteredLeads.filter(l =>
+      l.stage_id && ganhoStageIds.has(l.stage_id)
+    );
+  }, [filters.filteredLeads, ganhoStageIds]);
+
+  // Pago: valor efetivamente recebido (valor_recebido + taxa_matricula_recebido)
   const caixaTotalValue = useMemo(() => {
     return ganhoLeads.reduce((sum, lead) => {
-      let total = 0;
-      if (lead.valor_recebido != null) total += lead.valor_recebido;
+      let paid = 0;
+      if (lead.valor_recebido != null) paid += lead.valor_recebido;
       if (lead.taxa_matricula_recebido != null) {
-        total += lead.taxa_matricula_recebido;
+        paid += lead.taxa_matricula_recebido;
       } else if (lead.pix_completed) {
         const product = findProductForLead(lead.product);
-        total += (product?.enrollment_fee ?? 0);
+        paid += (product?.enrollment_fee ?? 0);
       }
-      return sum + total;
+      return sum + paid;
     }, 0);
   }, [ganhoLeads, products]);
 
-  // Competências: valor contratado (valor do produto com desconto + taxa de matrícula)
+  // Pendente: valor contratado total (valor + taxa) menos o que já foi pago
   const competenciaTotalValue = useMemo(() => {
     return ganhoLeads.reduce((sum, lead) => {
       const product = findProductForLead(lead.product);
       const enrollmentFee = product?.enrollment_fee ?? 0;
-      return sum + getLeadEffectiveValue(lead) + enrollmentFee;
+      const totalPotential = getLeadEffectiveValue(lead) + enrollmentFee;
+
+      let alreadyPaid = 0;
+      if (lead.valor_recebido != null) alreadyPaid += lead.valor_recebido;
+      if (lead.taxa_matricula_recebido != null) {
+        alreadyPaid += lead.taxa_matricula_recebido;
+      } else if (lead.pix_completed) {
+        alreadyPaid += enrollmentFee;
+      }
+
+      return sum + Math.max(0, totalPotential - alreadyPaid);
     }, 0);
   }, [ganhoLeads, products]);
 
