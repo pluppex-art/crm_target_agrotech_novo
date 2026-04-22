@@ -57,26 +57,33 @@ export default async function handler(req: any, res: any) {
   let assignedPhone = null;
 
   if (validSellers.length > 0) {
-    // 2. Find the last assigned lead's responsible *from our valid list*
-    const { data: lastLead } = await supabase
-      .from('leads')
-      .select('responsible')
-      .in('responsible', validSellers.map(s => s.name))
-      .order('created_at', { ascending: false })
-      .limit(1)
+    // Prioridade: estado dedicado do rodízio (não afetado por leads criados manualmente)
+    const { data: rrState } = await supabase
+      .from('round_robin_state')
+      .select('last_seller_name')
+      .eq('id', 'form_leads')
       .single();
 
-    if (lastLead && lastLead.responsible) {
-      // Trim comparison to handle trailing spaces in DB
-      const lastResp = lastLead.responsible.trim();
-      const lastIndex = validSellers.findIndex(s => s.name.trim() === lastResp);
-      const nextIndex = (lastIndex + 1) % validSellers.length;
-      assignedResponsible = validSellers[nextIndex].name;
-      assignedPhone = validSellers[nextIndex].phone;
-    } else {
-      assignedResponsible = validSellers[0].name;
-      assignedPhone = validSellers[0].phone;
+    let lastResp: string | null = rrState?.last_seller_name?.trim() ?? null;
+
+    // Fallback: se o estado dedicado estiver vazio, busca o último lead da tabela
+    if (!lastResp) {
+      const { data: lastLead } = await supabase
+        .from('leads')
+        .select('responsible')
+        .in('responsible', validSellers.map(s => s.name))
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      lastResp = lastLead?.responsible?.trim() ?? null;
     }
+
+    const lastIndex = lastResp
+      ? validSellers.findIndex(s => s.name.trim() === lastResp)
+      : -1;
+    const nextIndex = (lastIndex + 1) % validSellers.length;
+    assignedResponsible = validSellers[nextIndex].name;
+    assignedPhone = validSellers[nextIndex].phone;
   }
 
   // ── Insert Lead ─────────────────────────────────────────────────────────
@@ -109,6 +116,13 @@ export default async function handler(req: any, res: any) {
   if (leadError) {
     console.error('Error creating lead:', leadError);
     return res.status(500).json({ error: leadError.message });
+  }
+
+  // ── Atualiza estado do rodízio ───────────────────────────────────────────
+  if (assignedResponsible) {
+    await supabase
+      .from('round_robin_state')
+      .upsert({ id: 'form_leads', last_seller_name: assignedResponsible, updated_at: new Date().toISOString() });
   }
 
   // ── Create Note (Interesse) ──────────────────────────────────────────────
