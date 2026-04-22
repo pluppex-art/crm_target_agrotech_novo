@@ -40,6 +40,7 @@ export default async function handler(req: any, res: any) {
       name,
       department,
       status,
+      phone,
       cargos!role_id ( name )
     `)
     .eq('department', 'Comercial')
@@ -53,6 +54,7 @@ export default async function handler(req: any, res: any) {
   });
 
   let assignedResponsible = null;
+  let assignedPhone = null;
 
   if (validSellers.length > 0) {
     // 2. Find the last assigned lead's responsible
@@ -68,8 +70,10 @@ export default async function handler(req: any, res: any) {
       const lastIndex = validSellers.findIndex(s => s.name === lastLead.responsible);
       const nextIndex = (lastIndex + 1) % validSellers.length;
       assignedResponsible = validSellers[nextIndex].name;
+      assignedPhone = validSellers[nextIndex].phone;
     } else {
       assignedResponsible = validSellers[0].name;
+      assignedPhone = validSellers[0].phone;
     }
   }
 
@@ -106,5 +110,10 @@ export default async function handler(req: any, res: any) {
     return res.status(500).json({ error: error.message });
   }
 
-  return res.status(200).json({ success: true, id: data.id });
+  return res.status(200).json({ 
+    success: true, 
+    id: data.id, 
+    responsibleName: assignedResponsible, 
+    responsiblePhone: assignedPhone 
+  });
 }

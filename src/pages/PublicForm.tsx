@@ -48,6 +48,8 @@ export function PublicForm() {
   const [inputValue, setInputValue] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [sellerName, setSellerName] = useState('');
+  const [sellerPhone, setSellerPhone] = useState('');
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | HTMLSelectElement>(null);
 
@@ -102,18 +104,6 @@ export function PublicForm() {
     }
     loadProducts();
   }, []);
-
-  const cities = [
-    'Sinop - MT',
-    'Sorriso - MT',
-    'Lucas do Rio Verde - MT',
-    'Cuiabá - MT',
-    'Rondonópolis - MT',
-    'Primavera do Leste - MT',
-    'Nova Mutum - MT',
-    'Tangará da Serra - MT',
-    'Outra cidade'
-  ];
 
   const steps: Step[] = [
     {
@@ -191,9 +181,8 @@ export function PublicForm() {
       if (savedValue !== undefined) {
         setInputValue(savedValue);
       } else if (step.type === 'select') {
-        // Se for select, tenta pegar a primeira opção ou vazio se não obrigatório
         if (step.id === 'product' && products.length > 0) {
-          setInputValue(''); // Força escolha ou deixa vazio se opcional
+          setInputValue(''); 
         } else if (step.options && step.options.length > 0) {
           setInputValue(step.required ? step.options[0] : '');
         } else {
@@ -253,7 +242,6 @@ export function PublicForm() {
 
   const goPrev = () => {
     if (currentStep <= 0) {
-      // Reinicia o formulário ao invés de sair para o CRM
       setAnswers({});
       setInputValue('');
       setError(null);
@@ -276,7 +264,6 @@ export function PublicForm() {
     setError(null);
     try {
       const productValue = data.product ? (productPrices[data.product] ?? 0) : 0;
-      // Combina interesse com curso no histórico ou notas se necessário
       const notes = data.interest ? `Interesse principal: ${data.interest}` : '';
 
       const resp = await fetch('/api/submit-lead', {
@@ -294,12 +281,23 @@ export function PublicForm() {
       });
       const result = await resp.json();
       if (!resp.ok) throw new Error(result.error || 'Erro ao enviar.');
+      
+      if (result.responsibleName) setSellerName(result.responsibleName);
+      if (result.responsiblePhone) setSellerPhone(result.responsiblePhone);
+      
       setSubmitted(true);
     } catch (err: any) {
       setError(err.message || 'Erro ao enviar. Tente novamente.');
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const getWhatsAppLink = () => {
+    const phone = sellerPhone ? sellerPhone.replace(/\D/g, '') : '5566999763455';
+    const formattedPhone = phone.startsWith('55') ? phone : `55${phone}`;
+    const text = encodeURIComponent(`Olá! Sou o ${answers.name}, acabei de preencher o formulário no site e gostaria de saber mais sobre ${answers.product || 'os cursos'}.`);
+    return `https://api.whatsapp.com/send/?phone=${formattedPhone}&text=${text}`;
   };
 
   // ── Tela de sucesso ──────────────────────────────────────────────────────
@@ -315,20 +313,24 @@ export function PublicForm() {
           <div className="w-20 h-20 bg-emerald-400/20 border-2 border-emerald-400 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle2 className="w-10 h-10 text-emerald-400" />
           </div>
-          <h2 className="text-3xl font-bold text-white mb-3">Recebemos!</h2>
-          <p className="text-emerald-200 text-lg leading-relaxed mb-8">
-            Obrigado, <strong className="text-white">{answers.name?.split(' ')[0]}</strong>! Nossa equipe entrará em contato em breve pelo WhatsApp.
+          <h2 className="text-3xl font-bold text-white mb-2">Recebemos!</h2>
+          <p className="text-emerald-100/80 text-lg mb-8">
+            Obrigado, <span className="text-white font-bold">{answers.name?.split(' ')[0]}</span>! 
+            {sellerName ? ` O consultor ${sellerName} ` : ' Nossa equipe '} 
+            entrará em contato em breve pelo WhatsApp.
           </p>
 
-          <a
-            href={WHATSAPP_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-3 px-8 py-4 bg-green-500 hover:bg-green-400 text-white font-bold text-lg rounded-2xl transition-all duration-200 shadow-xl shadow-green-900/50"
-          >
-            <MessageCircle className="w-5 h-5" />
-            Falar no WhatsApp
-          </a>
+          <div className="flex flex-col gap-4">
+            <a
+              href={getWhatsAppLink()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 group shadow-lg shadow-emerald-900/20"
+            >
+              <MessageCircle size={20} className="group-hover:scale-110 transition-transform" />
+              Falar no WhatsApp
+            </a>
+          </div>
 
           <p className="text-emerald-400/60 text-sm mt-8">Target Agrotech • CRM</p>
         </motion.div>
