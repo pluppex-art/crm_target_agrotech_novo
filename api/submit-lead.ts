@@ -57,11 +57,11 @@ export default async function handler(req: any, res: any) {
   let assignedPhone = null;
 
   if (validSellers.length > 0) {
-    // 2. Find the last assigned lead's responsible
+    // 2. Find the last assigned lead's responsible *from our valid list*
     const { data: lastLead } = await supabase
       .from('leads')
       .select('responsible')
-      .not('responsible', 'is', null)
+      .in('responsible', validSellers.map(s => s.name))
       .order('created_at', { ascending: false })
       .limit(1)
       .single();

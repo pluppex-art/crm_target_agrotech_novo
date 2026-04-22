@@ -147,15 +147,7 @@ export function PublicForm() {
       question: 'Quais áreas você tem mais interesse?',
       hint: 'Pode selecionar uma opção (Não obrigatório).',
       type: 'select',
-      options: ['Inseminação Artificial', 'Drones', 'Ambas as áreas', 'Outros'],
-      required: false,
-    },
-    {
-      id: 'product',
-      question: 'Deseja algum curso específico agora?',
-      hint: 'Selecione se já souber qual curso quer.',
-      type: 'select',
-      options: products,
+      options: ['Inseminação Artificial', 'Drones', 'Outros'],
       required: false,
     },
   ];
@@ -300,7 +292,8 @@ export function PublicForm() {
   const getWhatsAppLink = () => {
     const phone = sellerPhone ? sellerPhone.replace(/\D/g, '') : '5566999763455';
     const formattedPhone = phone.startsWith('55') ? phone : `55${phone}`;
-    const text = encodeURIComponent(`Olá! Sou o ${answers.name}, acabei de preencher o formulário no site e gostaria de saber mais sobre ${answers.product || 'os cursos'}.`);
+    const interestStr = answers.interest ? ` sobre ${answers.interest}` : '';
+    const text = encodeURIComponent(`Olá! Sou o ${answers.name}, acabei de preencher o formulário no site e gostaria de saber mais${interestStr}.`);
     return `https://api.whatsapp.com/send/?phone=${formattedPhone}&text=${text}`;
   };
 
