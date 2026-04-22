@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { ArrowRight, ArrowUp, ChevronDown, CheckCircle2, Loader2, Leaf, MessageCircle } from 'lucide-react';
+import { ArrowRight, ArrowUp, ChevronDown, CheckCircle2, Loader2, Leaf, MessageCircle, AlertTriangle } from 'lucide-react';
+import { formatPhone } from '../lib/utils';
 import { createClient } from '@supabase/supabase-js';
 
 // ── Supabase anon client (só leitura de produtos) ──────────────────────────
@@ -39,6 +40,7 @@ const variants = {
 // ── Componente ─────────────────────────────────────────────────────────────
 export function PublicForm() {
   const [products, setProducts] = useState<string[]>([]);
+  const [allCities, setAllCities] = useState<string[]>([]);
   const [productPrices, setProductPrices] = useState<Record<string, number>>({});
   const [currentStep, setCurrentStep] = useState(0);
   const [direction, setDirection] = useState(1);
@@ -63,6 +65,24 @@ export function PublicForm() {
     };
     window.addEventListener('popstate', handlePopState, true);
     return () => window.removeEventListener('popstate', handlePopState, true);
+  }, []);
+
+  // Busca cidades do IBGE
+  useEffect(() => {
+    async function loadCities() {
+      try {
+        const resp = await fetch('https://servicodados.ibge.gov.br/api/v1/localidades/municipios?orderBy=nome');
+        const data = await resp.json();
+        if (data && Array.isArray(data)) {
+          // Formato: "Nome - UF"
+          const formatted = data.map((c: any) => `${c.nome} - ${c.microrregiao.mesorregiao.UF.sigla}`);
+          setAllCities(formatted);
+        }
+      } catch (err) {
+        console.error('Erro ao carregar cidades:', err);
+      }
+    }
+    loadCities();
   }, []);
 
   // Busca produtos do banco
@@ -123,9 +143,9 @@ export function PublicForm() {
     {
       id: 'city',
       question: 'De qual cidade você é?',
-      hint: 'Selecione sua cidade.',
-      type: 'select',
-      options: cities,
+      hint: 'Digite para pesquisar sua cidade.',
+      type: 'text',
+      placeholder: 'Pesquise sua cidade...',
       required: true,
     },
     {
@@ -154,12 +174,26 @@ export function PublicForm() {
     setTimeout(() => inputRef.current?.focus(), 350);
   }, [currentStep]);
 
-  // Pré-preenche o input com a resposta já salva (ao voltar)
+  // Pré-preenche o input com a resposta já salva (ao voltar) ou valor padrão
   useEffect(() => {
     if (step) {
-      setInputValue(answers[step.id] ?? (step.type === 'select' && products.length > 0 ? products[0] : ''));
+      const savedValue = answers[step.id];
+      if (savedValue !== undefined) {
+        setInputValue(savedValue);
+      } else if (step.type === 'select') {
+        // Se for select, tenta pegar a primeira opção ou vazio se não obrigatório
+        if (step.id === 'product' && products.length > 0) {
+          setInputValue(''); // Força escolha ou deixa vazio se opcional
+        } else if (step.options && step.options.length > 0) {
+          setInputValue(step.required ? step.options[0] : '');
+        } else {
+          setInputValue('');
+        }
+      } else {
+        setInputValue('');
+      }
     }
-  }, [currentStep, step?.id]);
+  }, [currentStep, step?.id, products.length]);
 
   const validateInput = (id: string, value: string): string | null => {
     if (id === 'name') {
@@ -365,15 +399,18 @@ export function PublicForm() {
                       <select
                         ref={inputRef as React.RefObject<HTMLSelectElement>}
                         value={inputValue}
-                        onChange={e => setInputValue(e.target.value)}
+                        onChange={e => {
+                          setInputValue(e.target.value);
+                          setError(null);
+                        }}
                         onKeyDown={handleKeyDown}
                         className="w-full bg-transparent border-0 border-b-2 border-emerald-500/50 focus:border-emerald-400 outline-none text-white text-xl py-3 appearance-none cursor-pointer transition-colors pr-8"
                         style={{ background: 'transparent' }}
                       >
-                        <option value="" disabled style={{ background: '#064e3b', color: '#fff' }}>
-                          Selecione um curso...
+                        <option value="" disabled={step.required} style={{ background: '#064e3b', color: '#fff' }}>
+                          {step.required ? 'Selecione uma opção...' : 'Nenhuma das opções (opcional)'}
                         </option>
-                        {products.map(p => (
+                        {(step.options || []).map(p => (
                           <option key={p} value={p} style={{ background: '#064e3b', color: '#fff' }}>
                             {p}
                           </option>
@@ -382,20 +419,40 @@ export function PublicForm() {
                       <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-emerald-400 pointer-events-none w-5 h-5" />
                     </div>
                   ) : (
-                    <input
-                      ref={inputRef as React.RefObject<HTMLInputElement>}
-                      type={step.type}
-                      value={inputValue}
-                      onChange={e => setInputValue(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      placeholder={step.placeholder}
-                      className="w-full bg-transparent border-0 border-b-2 border-emerald-500/50 focus:border-emerald-400 outline-none text-white text-xl py-3 placeholder:text-emerald-600/50 transition-colors"
-                      autoComplete={step.type === 'email' ? 'email' : step.type === 'tel' ? 'tel' : 'name'}
-                    />
+                    <div className="relative space-y-2">
+                      <input
+                        ref={inputRef as React.RefObject<HTMLInputElement>}
+                        type={step.type}
+                        value={inputValue}
+                        list={step.id === 'city' ? 'cities-list' : undefined}
+                        onChange={e => {
+                          let val = e.target.value;
+                          if (step.type === 'tel') {
+                            val = formatPhone(val);
+                          }
+                          setInputValue(val);
+                          setError(null);
+                        }}
+                        onKeyDown={handleKeyDown}
+                        placeholder={step.placeholder}
+                        maxLength={step.type === 'tel' ? 15 : undefined}
+                        className="w-full bg-transparent border-0 border-b-2 border-emerald-500/50 focus:border-emerald-400 outline-none text-white text-xl py-3 placeholder:text-emerald-600/50 transition-colors"
+                        autoComplete={step.id === 'email' ? 'email' : step.id === 'phone' ? 'tel' : 'off'}
+                      />
+                      {step.id === 'city' && (
+                        <datalist id="cities-list">
+                          {allCities.slice(0, 100).map(city => (
+                            <option key={city} value={city} />
+                          ))}
+                        </datalist>
+                      )}
+                    </div>
                   )}
 
                   {error && (
-                    <p className="text-red-400 text-sm">{error}</p>
+                    <p className="text-red-300 font-bold text-sm flex items-center gap-2 animate-pulse">
+                      <AlertTriangle size={14} /> {error}
+                    </p>
                   )}
                 </div>
 
