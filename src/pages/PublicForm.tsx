@@ -83,11 +83,23 @@ export function PublicForm() {
     loadProducts();
   }, []);
 
+  const cities = [
+    'Sinop - MT',
+    'Sorriso - MT',
+    'Lucas do Rio Verde - MT',
+    'Cuiabá - MT',
+    'Rondonópolis - MT',
+    'Primavera do Leste - MT',
+    'Nova Mutum - MT',
+    'Tangará da Serra - MT',
+    'Outra cidade'
+  ];
+
   const steps: Step[] = [
     {
       id: 'name',
       question: 'Qual é o seu nome completo?',
-      hint: 'Como podemos te chamar?',
+      hint: 'Digite seu nome e sobrenome.',
       type: 'text',
       placeholder: 'Ex: João Silva',
       required: true,
@@ -95,7 +107,7 @@ export function PublicForm() {
     {
       id: 'phone',
       question: 'Qual é o seu WhatsApp?',
-      hint: 'Com DDD. Ex: (11) 99999-9999',
+      hint: 'Com DDD. Ex: (66) 99999-9999',
       type: 'tel',
       placeholder: '(00) 00000-0000',
       required: true,
@@ -103,7 +115,7 @@ export function PublicForm() {
     {
       id: 'email',
       question: 'Qual é o seu melhor e-mail?',
-      hint: 'Usaremos para entrar em contato.',
+      hint: 'Para envio de materiais e contato.',
       type: 'email',
       placeholder: 'exemplo@email.com',
       required: true,
@@ -111,18 +123,26 @@ export function PublicForm() {
     {
       id: 'city',
       question: 'De qual cidade você é?',
-      hint: 'Cidade e estado, se quiser.',
-      type: 'text',
-      placeholder: 'Ex: Goiânia - GO',
+      hint: 'Selecione sua cidade.',
+      type: 'select',
+      options: cities,
+      required: true,
+    },
+    {
+      id: 'interest',
+      question: 'Quais áreas você tem mais interesse?',
+      hint: 'Pode selecionar uma opção (Não obrigatório).',
+      type: 'select',
+      options: ['IA (Inteligência Artificial)', 'Drones', 'IA & Drones', 'Outros'],
       required: false,
     },
     {
       id: 'product',
-      question: 'Qual curso você tem interesse?',
-      hint: 'Selecione o curso desejado.',
+      question: 'Deseja algum curso específico agora?',
+      hint: 'Selecione se já souber qual curso quer.',
       type: 'select',
       options: products,
-      required: true,
+      required: false,
     },
   ];
 
@@ -141,10 +161,39 @@ export function PublicForm() {
     }
   }, [currentStep, step?.id]);
 
+  const validateInput = (id: string, value: string): string | null => {
+    if (id === 'name') {
+      const parts = value.trim().split(/\s+/);
+      if (parts.length < 2) return 'Por favor, digite seu nome completo.';
+      if (value.length < 3) return 'Nome muito curto.';
+    }
+    if (id === 'email') {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(value)) return 'E-mail inválido.';
+    }
+    if (id === 'phone') {
+      const digits = value.replace(/\D/g, '');
+      if (digits.length < 10) return 'Telefone deve ter DDD + número.';
+    }
+    return null;
+  };
+
   const goNext = useCallback(() => {
     if (!step) return;
     const val = inputValue.trim();
-    if (step.required && !val) return;
+    
+    if (step.required && !val) {
+      setError('Este campo é obrigatório.');
+      return;
+    }
+
+    if (val) {
+      const validationError = validateInput(step.id, val);
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
+    }
 
     setAnswers(prev => ({ ...prev, [step.id]: val }));
     setError(null);
@@ -183,6 +232,9 @@ export function PublicForm() {
     setError(null);
     try {
       const productValue = data.product ? (productPrices[data.product] ?? 0) : 0;
+      // Combina interesse com curso no histórico ou notas se necessário
+      const notes = data.interest ? `Interesse principal: ${data.interest}` : '';
+      
       const resp = await fetch('/api/submit-lead', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -191,8 +243,9 @@ export function PublicForm() {
           email: data.email,
           phone: data.phone,
           city: data.city ?? '',
-          product: data.product,
+          product: data.product || 'Interesse Geral',
           value: productValue,
+          notes: notes
         }),
       });
       const result = await resp.json();

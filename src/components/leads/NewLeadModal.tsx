@@ -384,16 +384,15 @@ taxa_matricula_recebido: formData.taxa_matricula_recebido ?? undefined,
               {/* Product + Value */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Produto <span className="text-red-500">*</span></label>
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Produto</label>
                   <div className="relative">
                     <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                     <select 
-                      required
                       value={formData.product}
                       onChange={handleProductChange}
                       className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"
                     >
-                      <option value="">Selecione um produto</option>
+                      <option value="">Selecione um produto (opcional)</option>
                       {products.map(product => (
                         <option key={`prod-${product.id}`} value={product.name}>
                           {product.name}
