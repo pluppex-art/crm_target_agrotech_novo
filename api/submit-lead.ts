@@ -35,7 +35,7 @@ export default async function handler(req: any, res: any) {
   // 1. Fetch active sellers (Comercial + Cargo Vendedor) sorted by name
   // Join with 'cargos' table to check the role name
   const { data: sellers } = await supabase
-    .from('profiles')
+    .from('perfis')
     .select(`
       name,
       department,
@@ -67,7 +67,9 @@ export default async function handler(req: any, res: any) {
       .single();
 
     if (lastLead && lastLead.responsible) {
-      const lastIndex = validSellers.findIndex(s => s.name === lastLead.responsible);
+      // Trim comparison to handle trailing spaces in DB
+      const lastResp = lastLead.responsible.trim();
+      const lastIndex = validSellers.findIndex(s => s.name.trim() === lastResp);
       const nextIndex = (lastIndex + 1) % validSellers.length;
       assignedResponsible = validSellers[nextIndex].name;
       assignedPhone = validSellers[nextIndex].phone;
