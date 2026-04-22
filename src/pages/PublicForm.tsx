@@ -74,9 +74,9 @@ export default function PublicForm() {
     {
       id: 'phone',
       question: 'Qual é o seu WhatsApp?',
-      hint: 'Com DDD. Ex: (66) 99999-9999',
+      hint: 'Com DDD. Ex: +5566999999999',
       type: 'tel',
-      placeholder: '(00) 00000-0000',
+      placeholder: '+55 (00) 00000-0000',
       required: true,
     },
     {
@@ -144,7 +144,7 @@ export default function PublicForm() {
     }
     if (id === 'phone') {
       const digits = value.replace(/\D/g, '');
-      if (digits.length < 10) return 'Telefone deve ter DDD + número.';
+      if (digits.length < 12) return 'Telefone deve ter código do país + DDD + número.';
     }
     return null;
   };
@@ -421,7 +421,7 @@ export default function PublicForm() {
                         }}
                         onKeyDown={handleKeyDown}
                         placeholder={step.placeholder}
-                        maxLength={step.type === 'tel' ? 15 : undefined}
+                        maxLength={step.type === 'tel' ? 16 : undefined}
                         className="w-full bg-transparent border-0 border-b-2 border-emerald-500/50 focus:border-emerald-400 outline-none text-white text-xl py-3 placeholder:text-emerald-600/50 transition-colors"
                         autoComplete={step.id === 'email' ? 'email' : step.id === 'phone' ? 'tel' : 'off'}
                       />

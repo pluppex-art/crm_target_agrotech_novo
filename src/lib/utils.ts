@@ -118,34 +118,23 @@ export function formatCPFCNPJ(value: string): string {
   }
 }
 
-/** Formats digits as (00) 00000-0000 or international +55... */
+/** Formats digits as international +55... (removing parentheses and dashes) */
 export function formatPhone(value: string): string {
   if (!value) return '';
   
-  // Se começar com +, assume formato internacional e limpa apenas caracteres inválidos
-  if (value.startsWith('+')) {
-    return '+' + value.replace(/\D/g, '');
-  }
-
   const digits = value.replace(/\D/g, '');
   
-  // Se tiver 13 dígitos e começar com 55, trata como internacional sem parênteses
-  if (digits.length === 13 && digits.startsWith('55')) {
+  // Se já começar com 55 e tiver 12 ou 13 dígitos, apenas garante o +
+  if (digits.startsWith('55') && (digits.length === 12 || digits.length === 13)) {
     return '+' + digits;
   }
 
-  if (digits.length <= 10) {
-    // (00) 0000-0000
-    return digits
-      .replace(/(\d{2})(\d)/, '($1) $2')
-      .replace(/(\d{4})(\d)/, '$1-$2')
-      .replace(/(-\d{4})\d+?$/, '$1');
+  // Se não tiver o 55, adiciona automaticamente
+  if (digits.length > 0) {
+    return '+55' + digits;
   }
-  // (00) 00000-0000
-  return digits
-    .replace(/(\d{2})(\d)/, '($1) $2')
-    .replace(/(\d{5})(\d)/, '$1-$2')
-    .replace(/(-\d{4})\d+?$/, '$1');
+
+  return value;
 }
 
 
