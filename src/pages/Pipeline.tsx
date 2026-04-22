@@ -393,8 +393,17 @@ export const Pipeline: React.FC = () => {
         pipelineId={currentPipelineId}
         initialStageId={initialStageIdForNewLead}
         onLeadCreated={(lead) => {
-          setEnrollLead(lead);
-          triggerGanhoAnimation();
+          const isGanho = lead.stage_id && ganhoStageIds.has(lead.stage_id);
+          if (isGanho) {
+            const productObj = products.find(p => p.name === lead.product);
+            const categoryName = (productObj?.category || '').toLowerCase();
+            const isService = categoryName.startsWith('serviço') || categoryName.startsWith('servico');
+
+            if (!isService) {
+              setEnrollLead(lead);
+            }
+            triggerGanhoAnimation();
+          }
         }}
       />
 

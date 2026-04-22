@@ -162,6 +162,17 @@ taxa_matricula_recebido: selectedProduct?.enrollment_fee ?? undefined,
         });
         return;
       }
+      // Validação para Ganho (Curso)
+      const selectedProduct = products.find(p => p.name === formData.product);
+      const isService = (selectedProduct?.category || '').toLowerCase().startsWith('serviço') || (selectedProduct?.category || '').toLowerCase().startsWith('servico');
+
+      if (isGanhoStage && !isService) {
+        if (!formData.pix_completed || !formData.contract_signed || !proofFile || !contractFile) {
+          alert('Para cadastrar em Ganho (Curso) é necessário:\n• Marcar Taxa Matrícula e Contrato assinado\n• Anexar Comprovante e Contrato');
+          setLoading(false);
+          return;
+        }
+      }
       
       const newLeadData = {
         name: formData.name,
@@ -246,6 +257,10 @@ taxa_matricula_recebido: formData.taxa_matricula_recebido ?? undefined,
 
   if (!isOpen) return null;
 
+  const isServiceProduct = useMemo(() => {
+    const product = products.find(p => p.name === formData.product);
+    return (product?.category || '').toLowerCase().startsWith('serviço') || (product?.category || '').toLowerCase().startsWith('servico');
+  }, [formData.product, products]);
 
   return createPortal(
     <AnimatePresence mode="wait">
@@ -488,7 +503,7 @@ taxa_matricula_recebido: formData.taxa_matricula_recebido ?? undefined,
             )}
 
             {/* Ganho Stage Confirmations */}
-            {isGanhoStage && (
+            {isGanhoStage && !isServiceProduct && (
               <div className="space-y-4 p-5 bg-slate-50/50 rounded-2xl border border-slate-100 mt-4">
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] flex items-center gap-1.5">
