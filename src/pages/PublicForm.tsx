@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { ArrowRight, ArrowUp, ChevronDown, CheckCircle2, Loader2, Leaf, MessageCircle, AlertTriangle } from 'lucide-react';
 import { formatPhone } from '../lib/utils';
@@ -153,7 +153,7 @@ export function PublicForm() {
       question: 'Quais áreas você tem mais interesse?',
       hint: 'Pode selecionar uma opção (Não obrigatório).',
       type: 'select',
-      options: ['IA (Inteligência Artificial)', 'Drones', 'IA & Drones', 'Outros'],
+      options: ['Inseminação Artificial', 'Drones', 'Ambas as áreas', 'Outros'],
       required: false,
     },
     {
@@ -168,6 +168,16 @@ export function PublicForm() {
 
   const step = steps[currentStep];
   const progress = ((currentStep + 1) / steps.length) * 100;
+
+  const filteredCities = useMemo(() => {
+    const term = inputValue.toLowerCase().trim();
+    if (step?.id === 'city' && term.length >= 2) {
+      return allCities
+        .filter(c => c.toLowerCase().includes(term))
+        .slice(0, 10);
+    }
+    return [];
+  }, [allCities, inputValue, step?.id]);
 
   // Foca o input ao trocar de etapa
   useEffect(() => {
@@ -215,7 +225,7 @@ export function PublicForm() {
   const goNext = useCallback(() => {
     if (!step) return;
     const val = inputValue.trim();
-    
+
     if (step.required && !val) {
       setError('Este campo é obrigatório.');
       return;
@@ -268,7 +278,7 @@ export function PublicForm() {
       const productValue = data.product ? (productPrices[data.product] ?? 0) : 0;
       // Combina interesse com curso no histórico ou notas se necessário
       const notes = data.interest ? `Interesse principal: ${data.interest}` : '';
-      
+
       const resp = await fetch('/api/submit-lead', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -441,7 +451,7 @@ export function PublicForm() {
                       />
                       {step.id === 'city' && (
                         <datalist id="cities-list">
-                          {allCities.slice(0, 100).map(city => (
+                          {filteredCities.map(city => (
                             <option key={city} value={city} />
                           ))}
                         </datalist>
@@ -492,13 +502,12 @@ export function PublicForm() {
           {steps.map((_, i) => (
             <div
               key={i}
-              className={`h-1 rounded-full transition-all duration-300 ${
-                i === currentStep
+              className={`h-1 rounded-full transition-all duration-300 ${i === currentStep
                   ? 'w-6 bg-emerald-400'
                   : i < currentStep
-                  ? 'w-3 bg-emerald-600'
-                  : 'w-3 bg-emerald-800'
-              }`}
+                    ? 'w-3 bg-emerald-600'
+                    : 'w-3 bg-emerald-800'
+                }`}
             />
           ))}
         </div>

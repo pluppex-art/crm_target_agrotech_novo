@@ -49,7 +49,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
   const [loading, setLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ phone?: string; email?: string }>({});
   const [selectedStageId, setSelectedStageId] = useState<string>(initialStageId ?? '');
-  
+
   type DiscountType = 'percent' | 'money';
 
   const [formData, setFormData] = useState<{
@@ -67,7 +67,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
     discount_type: DiscountType;
     pix_completed: boolean;
     contract_signed: boolean;
-taxa_matricula_recebido: number | null | undefined;
+    taxa_matricula_recebido: number | null | undefined;
     motivo_perda: string;
   }>({
     name: '',
@@ -135,14 +135,14 @@ taxa_matricula_recebido: number | null | undefined;
       ...prev,
       product: e.target.value,
       value: selectedProduct ? selectedProduct.price.toString() : prev.value,
-taxa_matricula_recebido: selectedProduct?.enrollment_fee ?? undefined,
+      taxa_matricula_recebido: selectedProduct?.enrollment_fee ?? undefined,
     }));
   };
 
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     setFieldErrors({});
-    
+
     // Email Validation
     if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       setFieldErrors({ email: 'Por favor, insira um e-mail válido.' });
@@ -173,7 +173,7 @@ taxa_matricula_recebido: selectedProduct?.enrollment_fee ?? undefined,
           return;
         }
       }
-      
+
       const newLeadData = {
         name: formData.name,
         email: formData.email,
@@ -195,7 +195,7 @@ taxa_matricula_recebido: selectedProduct?.enrollment_fee ?? undefined,
         contract_signed: formData.contract_signed,
         valor_recebido: isGanhoStage ? calculateFinalValue() : undefined,
         forma_pagamento: isGanhoStage ? 'PIX' : undefined,
-taxa_matricula_recebido: formData.taxa_matricula_recebido ?? undefined,
+        taxa_matricula_recebido: formData.taxa_matricula_recebido ?? undefined,
         motivo_perda: isPerdidoStage ? formData.motivo_perda : undefined,
         pipeline_id: pipelineId,
         stage_id: selectedStageId || undefined,
@@ -277,7 +277,7 @@ taxa_matricula_recebido: formData.taxa_matricula_recebido ?? undefined,
               <h2 className="text-xl font-bold text-slate-800">Novo Cadastro</h2>
               <p className="text-xs text-slate-400 font-medium">Preencha os dados básicos para iniciar o atendimento.</p>
             </div>
-            <button 
+            <button
               onClick={onClose}
               className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 transition-all"
             >
@@ -293,11 +293,11 @@ taxa_matricula_recebido: formData.taxa_matricula_recebido ?? undefined,
                   Nome Completo <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
-                  <input 
+                  <input
                     required
-                    type="text" 
+                    type="text"
                     value={formData.name}
-                    onChange={(e) => setFormData(prev => ({...prev, name: e.target.value}))}
+                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                     className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm"
                     placeholder="Ex: João Silva"
                   />
@@ -315,10 +315,10 @@ taxa_matricula_recebido: formData.taxa_matricula_recebido ?? undefined,
                     <input
                       type="text"
                       value={formData.phone}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => { 
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                         const formatted = formatPhone(e.target.value);
-                        setFormData(prev => ({...prev, phone: formatted})); 
-                        setFieldErrors(p => ({...p, phone: undefined})); 
+                        setFormData(prev => ({ ...prev, phone: formatted }));
+                        setFieldErrors(p => ({ ...p, phone: undefined }));
                       }}
                       className={cn(
                         "w-full px-4 py-2.5 bg-white border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium pr-10 shadow-sm",
@@ -342,7 +342,7 @@ taxa_matricula_recebido: formData.taxa_matricula_recebido ?? undefined,
                     <input
                       type="email"
                       value={formData.email}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setFormData(prev => ({...prev, email: e.target.value})); setFieldErrors(p => ({...p, email: undefined})); }}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setFormData(prev => ({ ...prev, email: e.target.value })); setFieldErrors(p => ({ ...p, email: undefined })); }}
                       className={cn(
                         "w-full px-4 py-2.5 bg-white border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm",
                         fieldErrors.email ? "border-red-400 bg-red-50" : "border-slate-200"
@@ -367,7 +367,7 @@ taxa_matricula_recebido: formData.taxa_matricula_recebido ?? undefined,
                   <select
                     required
                     value={formData.responsible}
-                    onChange={(e) => setFormData(prev => ({...prev, responsible: e.target.value}))}
+                    onChange={(e) => setFormData(prev => ({ ...prev, responsible: e.target.value }))}
                     className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"
                   >
                     <option value="">Selecione o responsável</option>
@@ -387,7 +387,7 @@ taxa_matricula_recebido: formData.taxa_matricula_recebido ?? undefined,
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Produto</label>
                   <div className="relative">
                     <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                    <select 
+                    <select
                       value={formData.product}
                       onChange={handleProductChange}
                       className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"
@@ -423,10 +423,10 @@ taxa_matricula_recebido: formData.taxa_matricula_recebido ?? undefined,
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Cidade</label>
                   <div className="relative">
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={formData.city}
-                      onChange={(e) => setFormData(prev => ({...prev, city: e.target.value}))}
+                      onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
                       className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm"
                       placeholder="Cidade - UF"
                     />
@@ -440,7 +440,7 @@ taxa_matricula_recebido: formData.taxa_matricula_recebido ?? undefined,
                     <input
                       type="text"
                       value={formData.cnpj}
-                      onChange={(e) => setFormData(prev => ({...prev, cnpj: formatCPFCNPJ(e.target.value)}))}
+                      onChange={(e) => setFormData(prev => ({ ...prev, cnpj: formatCPFCNPJ(e.target.value) }))}
                       className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm"
                       placeholder="000.000.000-00 ou 00.000.000/0000-00"
                       maxLength={18}
@@ -451,7 +451,7 @@ taxa_matricula_recebido: formData.taxa_matricula_recebido ?? undefined,
 
               {/* Pipeline Stage */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-{currentPipelineStages.length > 0 && (
+                {currentPipelineStages.length > 0 && (
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Etapa do Pipeline</label>
                     <div className="relative">
@@ -475,7 +475,7 @@ taxa_matricula_recebido: formData.taxa_matricula_recebido ?? undefined,
                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Qualificação</label>
                     <select
                       value={formData.subStatus}
-                      onChange={(e) => setFormData({...formData, subStatus: e.target.value as LeadSubStatus})}
+                      onChange={(e) => setFormData({ ...formData, subStatus: e.target.value as LeadSubStatus })}
                       className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm"
                     >
                       <option value="qualified">Qualificado</option>
@@ -493,7 +493,7 @@ taxa_matricula_recebido: formData.taxa_matricula_recebido ?? undefined,
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Motivo da Perda</label>
                 <textarea
                   value={formData.motivo_perda}
-                  onChange={(e) => setFormData(prev => ({...prev, motivo_perda: e.target.value}))}
+                  onChange={(e) => setFormData(prev => ({ ...prev, motivo_perda: e.target.value }))}
                   className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all font-medium shadow-sm"
                   placeholder="Descreva o motivo da perda..."
                   rows={2}
@@ -509,7 +509,7 @@ taxa_matricula_recebido: formData.taxa_matricula_recebido ?? undefined,
                     <ClipboardCheck size={13} className="text-emerald-500" /> Confirmações para avançar para Ganho
                   </p>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                   {/* Coluna 1: Checkboxes */}
                   <div className="flex flex-col gap-4">
