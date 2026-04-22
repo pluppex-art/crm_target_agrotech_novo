@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react';
 import { Phone, AlertCircle, Star, CheckSquare, Trash2, Loader2, Save, Percent, DollarSign, ClipboardCheck, QrCode, User, GraduationCap, ChevronDown, Upload, Eye, FileText, X as XIcon } from 'lucide-react';
-import { computeFaixa, getFaixaIcon } from '@/lib/utils';
 import { cn, parseBRNumber, formatCPFCNPJ } from '../../../lib/utils';
 import type { LeadInfoTabProps } from '../types';
 import { uploadLeadFile, deleteLeadFile } from '../../../services/leadFilesService';
@@ -655,83 +654,25 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = ({
           </div>
         </div>
 
-        {/* Semáforo Commission - NEW */}
-        <div className="space-y-3">
-          <label className="flex items-center gap-3 cursor-pointer w-fit">
-            <div className="relative">
-              <input
-                type="checkbox"
-                checked={formData.margem_percent != null}
-                onChange={(e) => {
-                  if (e.target.checked) {
-                    updateFormField({ margem_percent: 0 });
-                  } else {
-                    updateFormField({ margem_percent: null, faixa_comissao: null, motivo_perda: '' });
-                  }
-                }}
-                className="sr-only"
-              />
-              <div className={cn(
-                "w-5 h-5 border-2 rounded-md transition-all flex items-center justify-center",
-                formData.margem_percent != null ? "bg-emerald-600 border-emerald-600" : "bg-white border-slate-200"
-              )}>
-                {formData.margem_percent != null && <CheckSquare size={12} className="text-white" />}
-              </div>
-            </div>
-            <span className="text-sm font-bold text-slate-700">Margem de Comissão</span>
-          </label>
-
-          <div className={cn(
-            "transition-all duration-300",
-            formData.margem_percent != null ? "opacity-100 max-h-[100px]" : "opacity-0 max-h-0 overflow-hidden"
-          )}>
-            <div className="flex items-end gap-3">
-              <div className="flex-1">
-                <label className="text-xs block font-bold text-slate-400 uppercase tracking-wider mb-1.5">Margem (%)</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.1"
-                  value={formData.margem_percent ?? ''}
-                  onChange={(e) => updateFormField({ margem_percent: parseFloat(e.target.value) || null })}
-                  onBlur={() => {
-                    const faixa = computeFaixa(formData.margem_percent ?? null);
-                    updateFormField({ faixa_comissao: faixa || null });
-                  }}
-                  placeholder="Ex: 15.5"
-                  className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm"
-                />
-              </div>
-              <div className="flex items-center justify-center w-16 h-16 bg-slate-50 border-2 border-slate-200 rounded-2xl shrink-0">
-                <span className="text-2xl">
-                  {getFaixaIcon(formData.faixa_comissao ?? computeFaixa(formData.margem_percent ?? null))}
-                </span>
-              </div>
-            </div>
-            {formData.isPerdidoStage && (
-              <div className="mt-3">
-                <label className="text-xs block font-bold text-slate-400 uppercase tracking-wider mb-1.5">Motivo da Perda</label>
-                <select
-                  value={formData.motivo_perda || ''}
-                  onChange={(e) => updateFormField({ motivo_perda: e.target.value || null })}
-                  className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm cursor-pointer"
-                >
-                  <option value="">Selecione...</option>
-                  <option value="Preço alto">Preço alto</option>
-                  <option value="Concorrência">Concorrência</option>
-                  <option value="Orçamento insuficiente">Orçamento insuficiente</option>
-                  <option value="Não atende necessidades">Não atende necessidades</option>
-                  <option value="Outros">Outros</option>
-                </select>
-              </div>
-            )}
+        {/* Motivo da Perda (Visibility based on stage) */}
+        {formData.isPerdidoStage && (
+          <div className="space-y-1.5 px-1">
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Motivo da Perda</label>
+            <select
+              value={formData.motivo_perda || ''}
+              onChange={(e) => updateFormField({ motivo_perda: e.target.value || null })}
+              className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm cursor-pointer"
+            >
+              <option value="">Selecione...</option>
+              <option value="Preço alto">Preço alto</option>
+              <option value="Concorrência">Concorrência</option>
+              <option value="Orçamento insuficiente">Orçamento insuficiente</option>
+              <option value="Não atende necessidades">Não atende necessidades</option>
+              <option value="Outros">Outros</option>
+            </select>
           </div>
-        </div>
-
-
+        )}
       </div>
-
       {/* Footer actions */}
       <div className="flex items-center justify-between pt-4 border-t border-slate-100">
         <button

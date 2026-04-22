@@ -40,13 +40,10 @@ export interface Lead {
   valor_recebido?: number;
   forma_pagamento?: string;
   taxa_matricula_recebido?: number;
-  created_at: string;
   last_contact_at?: string;
   history?: LeadHistory[];
-  // Semáforo fields (new)
-  margem_percent?: number;
-  faixa_comissao?: 'verde' | 'amarela' | 'vermelha' | null | undefined;
   motivo_perda?: string;
+  created_at: string;
   // Attachments for Ganho stage (Seller)
   payment_proof_url?: string | null;
   contract_url?: string | null;

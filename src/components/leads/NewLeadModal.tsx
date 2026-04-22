@@ -9,7 +9,7 @@ import { usePipelineStore } from '../../store/usePipelineStore';
 import { supabaseService } from '../../services/supabaseService';
 import { LeadStatus, LeadSubStatus } from '../../types/leads';
 import type { Lead } from '../../types/leads';
-import { cn, parseBRNumber, formatCPFCNPJ, computeFaixa, getFaixaIcon } from '../../lib/utils';
+import { cn, parseBRNumber, formatCPFCNPJ } from '../../lib/utils';
 import { AlertCircle, CheckSquare, ChevronDown, DollarSign, Loader2, Mail, MapPin, Percent, Phone, Save, X, User } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -63,8 +63,6 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
     discount_applied: boolean;
     discount: string;
     discount_type: DiscountType;
-    margem_percent?: number;
-    faixa_comissao: 'verde' | 'amarela' | 'vermelha' | null;
   }>({
     name: '',
     email: '',
@@ -78,8 +76,6 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
     discount_applied: false,
     discount: '',
     discount_type: 'percent',
-    margem_percent: undefined,
-    faixa_comissao: null,
   });
 
   useEffect(() => {
@@ -157,8 +153,6 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
           taxa_matricula_recebido: isGanhoStage ? (currentProduct?.enrollment_fee ?? 0) : undefined,
           pipeline_id: pipelineId,
           stage_id: selectedStageId || undefined,
-          margem_percent: formData.margem_percent,
-          faixa_comissao: formData.faixa_comissao,
         };
       const newLead = await addLead(newLeadData);
       // Auto-enroll in turma after successful ganho lead
@@ -184,9 +178,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
         subStatus: 'qualified' as LeadSubStatus,
         discount_applied: false,
         discount: '',
-        discount_type: 'percent',
-        margem_percent: undefined,
-        faixa_comissao: null,
+        discount_type: 'percent' as DiscountType,
       });
     } catch (error) {
       console.error('Error adding lead:', error);
@@ -468,54 +460,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
               </div>
             </div>
 
-            {/* Semáforo - NEW */}
-            <div className="space-y-3">
-              <label className="flex items-center gap-3 cursor-pointer w-fit">
-                <div className="relative">
-                  <input
-                    type="checkbox"
-                    checked={formData.margem_percent !== undefined}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setFormData(prev => ({ ...prev, margem_percent: 0, faixa_comissao: computeFaixa(0) || null }));
-                      } else {
-                        setFormData(prev => ({ ...prev, margem_percent: undefined, faixa_comissao: null }));
-                      }
-                    }}
-                    className="sr-only"
-                  />
-                  <div className={cn(
-                    'w-5 h-5 border-2 rounded-md transition-all flex items-center justify-center',
-                    formData.margem_percent !== undefined ? 'bg-emerald-600 border-emerald-600' : 'bg-white border-slate-200'
-                  )}>
-                    {formData.margem_percent !== undefined && <CheckSquare size={12} className="text-white" />}
-                  </div>
-                </div>
-                <span className="text-sm font-bold text-slate-700">Margem de Comissão (%)</span>
-              </label>
-              <div className={cn(
-                'flex items-end gap-3 transition-all duration-300',
-                formData.margem_percent !== undefined ? 'opacity-100' : 'opacity-0 max-h-0 overflow-hidden'
-              )}>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.1"
-                  value={formData.margem_percent ?? ''}
-                  onChange={(e) => {
-                    const value = parseFloat(e.target.value) || 0;
-                    const faixa = computeFaixa(value);
-                    setFormData(prev => ({ ...prev, margem_percent: value, faixa_comissao: faixa ?? null }));
-                  }}
-                  placeholder="Ex: 15.5"
-                  className="flex-1 px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm"
-                />
-                <div className="flex items-center justify-center w-16 h-16 bg-slate-50 border-2 border-slate-200 rounded-2xl shrink-0">
-                  <span className="text-2xl">{getFaixaIcon(formData.faixa_comissao)}</span>
-                </div>
-              </div>
-            </div>
+
 
             <div className="pt-4 flex justify-end gap-3">
               <button 
