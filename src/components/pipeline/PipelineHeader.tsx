@@ -3,6 +3,7 @@ import { Loader2, Download, Plus, Trophy, UserCheck } from 'lucide-react';
 
 import { PipelineSelect } from './PipelineSelect';
 import { cn } from '../../lib/utils';
+import { financialCalculator } from '../../services/financialCalculator';
 
 interface PipelineHeaderProps {
   caixaTotalValue: number;
@@ -55,7 +56,7 @@ export const PipelineHeader: React.FC<PipelineHeaderProps> = ({
               </div>
               <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest leading-none">Pago</p>
               <p className="text-sm font-black text-emerald-700 mt-0.5">
-                R$ {caixaTotalValue.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                {financialCalculator.formatCurrency(caixaTotalValue)}
               </p>
             </div>
             {/* Competências */}
@@ -63,9 +64,9 @@ export const PipelineHeader: React.FC<PipelineHeaderProps> = ({
               <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center shadow-sm mb-1">
                 <UserCheck size={16} className="text-blue-600" />
               </div>
-              <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest leading-none">A Receber</p>
+              <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest leading-none">Pendente</p>
               <p className="text-sm font-black text-blue-700 mt-0.5">
-                R$ {competenciaTotalValue.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                {financialCalculator.formatCurrency(competenciaTotalValue)}
               </p>
             </div>
           </div>

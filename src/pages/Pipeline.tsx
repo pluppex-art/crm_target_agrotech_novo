@@ -25,6 +25,7 @@ import { requestNotificationPermission } from '../services/alertService';
 import { EnrollInTurmaModal } from '../components/pipeline/EnrollInTurmaModal';
 import { LeadCard } from '../components/pipeline/LeadCard';
 import { checklistService } from '../services/checklistService';
+import { financialCalculator } from '../services/financialCalculator';
 
 
 
@@ -196,9 +197,8 @@ export const Pipeline: React.FC = () => {
     if (isGanhoTarget) {
       const movedLead = leads.find((l) => l.id === draggableId);
       if (movedLead) {
-        const productObj = products.find(p => p.name === movedLead.product);
-        const categoryName = (productObj?.category || '').toLowerCase();
-        const isService = categoryName.startsWith('serviço') || categoryName.startsWith('servico');
+        const productObj = financialCalculator.findProduct(movedLead.product, products);
+        const isService = financialCalculator.isServiceProduct(productObj);
         if (!isService) {
           const hasFiles = !!movedLead.payment_proof_url && !!movedLead.contract_url;
           if (!(movedLead.pix_completed && movedLead.contract_signed && hasFiles)) {
@@ -225,9 +225,8 @@ export const Pipeline: React.FC = () => {
     if (isGanhoTarget) {
       const movedLead = leads.find((l) => l.id === draggableId);
       if (movedLead) {
-        const productObj = products.find(p => p.name === movedLead.product);
-        const categoryName = (productObj?.category || '').toLowerCase();
-        const isService = categoryName.startsWith('serviço') || categoryName.startsWith('servico');
+        const productObj = financialCalculator.findProduct(movedLead.product, products);
+        const isService = financialCalculator.isServiceProduct(productObj);
         if (!isService) {
           setEnrollLead(movedLead);
         }
@@ -245,7 +244,7 @@ export const Pipeline: React.FC = () => {
         photo: enrollLead.photo || `https://i.pravatar.cc/150?u=${enrollLead.id}`,
         responsible: enrollLead.responsible || '',
         status: 'matriculado',
-        vendas: getLeadEffectiveValue(enrollLead) + (findProductForLead(enrollLead.product)?.enrollment_fee ?? 0),
+        vendas: financialCalculator.getTotalContracted(enrollLead, products),
       });
 
       if (result) {
@@ -280,14 +279,6 @@ export const Pipeline: React.FC = () => {
     );
   }, [currentPipeline]);
 
-  // Helper: acha produto pelo nome do lead usando includes (ignora caixa e sufixos de data/local)
-  const findProductForLead = (leadProduct: string) =>
-    products.find(p => {
-      const pName = p.name.toLowerCase().trim();
-      const lName = leadProduct.toLowerCase().trim();
-      return lName === pName || lName.includes(pName);
-    });
-
   // Leads na etapa Ganho: segue TODOS os filtros ativos (search, product, responsible, stars)
   const ganhoLeads = useMemo(() => {
     return filters.filteredLeads.filter(l =>
@@ -298,34 +289,14 @@ export const Pipeline: React.FC = () => {
   // Pago: valor efetivamente recebido (valor_recebido + taxa_matricula_recebido)
   const caixaTotalValue = useMemo(() => {
     return ganhoLeads.reduce((sum, lead) => {
-      let paid = 0;
-      if (lead.valor_recebido != null) paid += lead.valor_recebido;
-      if (lead.taxa_matricula_recebido != null) {
-        paid += lead.taxa_matricula_recebido;
-      } else if (lead.pix_completed) {
-        const product = findProductForLead(lead.product);
-        paid += (product?.enrollment_fee ?? 0);
-      }
-      return sum + paid;
+      return sum + financialCalculator.getPaidAmount(lead, products);
     }, 0);
   }, [ganhoLeads, products]);
 
   // Pendente: valor contratado total (valor + taxa) menos o que já foi pago
   const competenciaTotalValue = useMemo(() => {
     return ganhoLeads.reduce((sum, lead) => {
-      const product = findProductForLead(lead.product);
-      const enrollmentFee = product?.enrollment_fee ?? 0;
-      const totalPotential = getLeadEffectiveValue(lead) + enrollmentFee;
-
-      let alreadyPaid = 0;
-      if (lead.valor_recebido != null) alreadyPaid += lead.valor_recebido;
-      if (lead.taxa_matricula_recebido != null) {
-        alreadyPaid += lead.taxa_matricula_recebido;
-      } else if (lead.pix_completed) {
-        alreadyPaid += enrollmentFee;
-      }
-
-      return sum + Math.max(0, totalPotential - alreadyPaid);
+      return sum + financialCalculator.getPendingAmount(lead, products);
     }, 0);
   }, [ganhoLeads, products]);
 

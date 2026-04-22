@@ -15,6 +15,7 @@ import { useLeadTurmas } from '../../hooks/useLeadTurmas';
 import { useLeadChecklist } from '../../hooks/useLeadChecklist';
 import { useProductStore } from '../../store/useProductStore';
 import { useProfileStore } from '../../store/useProfileStore';
+import { financialCalculator } from '../../services/financialCalculator';
 import type { Lead } from '../../types/leads';
 
 import {
@@ -127,8 +128,11 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
   // Must ALWAYS have confirmations to move to Ganho
   if (!lead) return null;
 
-  const currentProduct = products.find(p => p.name === form.formData.product);
-  const isServiceProduct = (currentProduct?.category || '').toLowerCase().startsWith('serviço') || (currentProduct?.category || '').toLowerCase().startsWith('servico');
+  const currentProduct = useMemo(() => 
+    financialCalculator.findProduct(form.formData.product, products),
+  [form.formData.product, products]);
+
+  const isServiceProduct = financialCalculator.isServiceProduct(currentProduct);
 
   const canMoveToGanho = isServiceProduct 
     ? (!!form.formData.professor_proof_url)
@@ -381,10 +385,11 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
                 leadId={lead.id}
                 leadName={lead.name}
                 valorRecebido={form.formData.valor_recebido}
-                leadValue={form.calculateFinalValue()}
+                leadValue={financialCalculator.getTotalContracted(form.formData, products)}
                 formData={form.formData}
                 updateFormField={form.updateFormField}
                 toggleField={form.toggleField}
+                products={products}
               />
             )}
             {activeTab === 'checklist' && (

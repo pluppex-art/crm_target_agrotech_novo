@@ -4,6 +4,7 @@ import { computeFaixa, getFaixaIcon } from '@/lib/utils';
 import { cn, parseBRNumber, formatCPFCNPJ } from '../../../lib/utils';
 import type { LeadInfoTabProps } from '../types';
 import { uploadLeadFile, deleteLeadFile } from '../../../services/leadFilesService';
+import { financialCalculator } from '../../../services/financialCalculator';
 
 export const LeadInfoTab: React.FC<LeadInfoTabProps> = ({
   lead,
@@ -80,12 +81,8 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = ({
   const finalValue = calculateFinalValue();
   const hasDiscount = formData.discount_applied && Math.abs(finalValue - baseValue) > 0.01;
 
-  const currentProduct = products.find(p => {
-    const pName = p.name.toLowerCase().trim();
-    const lName = (formData.product ?? '').toLowerCase().trim();
-    return lName === pName || lName.includes(pName);
-  });
-  const isServiceProduct = (currentProduct?.category || '').toLowerCase().startsWith('serviço') || (currentProduct?.category || '').toLowerCase().startsWith('servico');
+  const currentProduct = products.find(p => p.name === formData.product);
+  const isServiceProduct = financialCalculator.isServiceProduct(currentProduct || null);
   const enrollmentFee = currentProduct?.enrollment_fee ?? 0;
   const totalWithFee = finalValue + enrollmentFee;
 

@@ -4,6 +4,7 @@ import { NewActivityModal } from '../../tasks/NewActivityModal';
 import { cn } from '../../../lib/utils';
 import type { TurmaAttendee } from '../../../services/turmaService';
 import { uploadLeadFile, deleteLeadFile } from '../../../services/leadFilesService';
+import { financialCalculator } from '../../../services/financialCalculator';
 
 interface LeadTurmaTabProps {
   leadTurmas: any[];
@@ -17,6 +18,7 @@ interface LeadTurmaTabProps {
   formData?: any;
   updateFormField?: (updates: any) => void;
   toggleField?: (field: string, value: any) => Promise<void>;
+  products?: any[];
 }
 
 interface PaymentEntry {
@@ -43,6 +45,7 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
   formData,
   updateFormField,
   toggleField,
+  products = [],
 }) => {
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
   const [paymentStates, setPaymentStates] = useState<Record<string, PaymentState>>({});
@@ -227,9 +230,8 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
       ) : leadTurmas.length > 0 ? (
         leadTurmas.map(({ turma, attendee }: any) => {
           const payment = getPayment(attendee.id);
-          const valorAReceber = leadValue != null
-            ? leadValue - (valorRecebido ?? 0)
-            : null;
+          const valorAReceber = financialCalculator.getPendingAmount(formData, products);
+          const totalEfetivoPago = financialCalculator.getPaidAmount(formData, products);
 
           return (
             <div key={turma.id} className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-3">
@@ -269,16 +271,16 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
                       R$ {leadValue!.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
-                  {(valorRecebido ?? 0) > 0 && (
+                  {(totalEfetivoPago ?? 0) > 0 && (
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-400 uppercase font-bold text-emerald-600">✓ Ganho Caixa</span>
+                      <span className="text-slate-400 uppercase font-bold text-emerald-600">✓ Pago (Caixa + Taxa)</span>
                       <span className="font-semibold text-emerald-600">
-                        R$ {Number(valorRecebido).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        R$ {totalEfetivoPago.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
                   )}
                   <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
-                    <span className="font-bold text-slate-600">Valor Competência (a Receber)</span>
+                    <span className="font-bold text-slate-600">Valor Pendente</span>
                     <span className={cn('font-bold', valorAReceber <= 0 ? 'text-emerald-600' : 'text-orange-600')}>
                       R$ {valorAReceber.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </span>

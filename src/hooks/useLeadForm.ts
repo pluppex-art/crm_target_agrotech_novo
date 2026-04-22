@@ -4,8 +4,9 @@ import { useLeadStore } from '../store/useLeadStore';
 import { usePipelineStore } from '../store/usePipelineStore';
 import { useProductStore } from '../store/useProductStore';
 import { turmaService } from '../services/turmaService';
+import { financialCalculator } from '../services/financialCalculator';
 import type { Lead } from '../types/leads';
-import { parseBRNumber, getLeadEffectiveValue } from '../lib/utils';
+import { getLeadEffectiveValue, parseBRNumber } from '@/lib/utils';
 
 interface UseLeadFormProps {
   lead: Lead;
@@ -16,15 +17,6 @@ const VALUE_AFFECTING_FIELDS = new Set(['value', 'discount', 'discount_applied',
 
 export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
   const { products } = useProductStore();
-
-  const findEnrollmentFee = useCallback((productName: string) => {
-    const product = products.find(p => {
-      const pName = p.name.toLowerCase().trim();
-      const lName = (productName ?? '').toLowerCase().trim();
-      return lName === pName || lName.includes(pName);
-    });
-    return product?.enrollment_fee ?? 0;
-  }, [products]);
 
   const [formData, setFormData] = useState({
     name: lead.name,
@@ -88,7 +80,7 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
       contract_url: lead.contract_url ?? null,
       professor_proof_url: lead.professor_proof_url ?? null,
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lead.id]);
 
 
@@ -130,7 +122,7 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
   }, [lead]);
 
   const calculateFinalValue = useCallback(() => {
-    return getLeadEffectiveValue(formData);
+    return financialCalculator.getEffectiveValue(formData);
   }, [formData.value, formData.discount, formData.discount_type, formData.discount_applied]);
 
   const handleSave = useCallback(async () => {
@@ -183,7 +175,7 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
       const success = await updateLead(lead.id, updateData);
 
       if (success) {
-        const enrollmentFee = findEnrollmentFee(formData.product);
+        const enrollmentFee = financialCalculator.getEnrollmentFee(formData.product, products);
         const vendas = getLeadEffectiveValue(formData) + enrollmentFee;
         turmaService.updateAttendeeVendas(lead.id, vendas);
         onClose();
@@ -233,11 +225,10 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
       const { updateLead } = useLeadStore.getState();
       await updateLead(lead.id, updates);
 
-      // 4. Sync turma_attendees.vendas when value-affecting fields change
       if (VALUE_AFFECTING_FIELDS.has(field)) {
         const merged = { ...formData, ...updates };
-        const enrollmentFee = findEnrollmentFee(merged.product);
-        const vendas = getLeadEffectiveValue(merged) + enrollmentFee;
+        const { products } = useProductStore.getState();
+        const vendas = financialCalculator.getTotalContracted(merged, products);
         turmaService.updateAttendeeVendas(lead.id, vendas);
       }
     }
