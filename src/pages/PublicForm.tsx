@@ -147,7 +147,7 @@ export function PublicForm() {
       question: 'Quais áreas você tem mais interesse?',
       hint: 'Pode selecionar uma opção (Não obrigatório).',
       type: 'select',
-      options: ['Inseminação Artificial', 'Drones', 'Outros'],
+      options: ['Curso de Inseminação Artificial em Bovinos', 'Curso de Piloto de Drone Agrícola', 'Outros'],
       required: false,
     },
   ];
