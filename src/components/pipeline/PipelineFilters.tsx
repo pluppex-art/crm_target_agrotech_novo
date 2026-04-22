@@ -1,5 +1,5 @@
 import React from 'react';
-import { Filter, Search, X, GraduationCap, User, ChevronDown, Star } from 'lucide-react';
+import { Filter, Search, X, GraduationCap, User, ChevronDown, Flame } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 interface PipelineFiltersProps {
@@ -7,7 +7,7 @@ interface PipelineFiltersProps {
   selectedStatus: string | 'all';
   selectedProduct: string;
   selectedResponsible: string;
-  selectedStars: number | 'all';
+  selectedStars: number[];
   responsibles: string[];
   products: any[];
   columns: any[];
@@ -15,7 +15,7 @@ interface PipelineFiltersProps {
   onStatusChange: (status: string) => void;
   onProductChange: (product: string) => void;
   onResponsibleChange: (responsible: string) => void;
-  onStarsChange: (stars: number | 'all') => void;
+  onStarsChange: (stars: number[]) => void;
   clearAllFilters: () => void;
   activeFilterCount: number;
   isVendedor?: boolean;
@@ -79,10 +79,10 @@ export const PipelineFilters: React.FC<PipelineFiltersProps> = ({
               <button onClick={() => onResponsibleChange('all')}><X size={11} /></button>
             </span>
           )}
-          {selectedStars !== 'all' && (
-            <span className="flex items-center gap-1 text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-100 px-2 py-0.5 rounded-full">
-              {selectedStars}★
-              <button onClick={() => onStarsChange('all')}><X size={11} /></button>
+          {selectedStars.length > 0 && (
+            <span className="flex items-center gap-1 text-xs font-medium bg-orange-50 text-orange-700 border border-orange-100 px-2 py-0.5 rounded-full">
+              {selectedStars.sort().join(', ')} 🔥
+              <button onClick={() => onStarsChange([])}><X size={11} /></button>
             </span>
           )}
           {activeFilterCount > 0 && (
@@ -177,23 +177,36 @@ export const PipelineFilters: React.FC<PipelineFiltersProps> = ({
           </div>
         )}
 
-        {/* Stars filter */}
+        {/* Fire level filter (Flame) */}
         <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 shrink-0">
-          <Star size={14} className="text-gray-400 mr-1" />
-          {(['all', 1, 2, 3, 4, 5] as const).map((s) => (
-            <button
-              key={s}
-              onClick={() => onStarsChange(s)}
-              className={cn(
-                "px-2 py-0.5 rounded-lg text-xs font-bold transition-all",
-                selectedStars === s
-                  ? "bg-yellow-400 text-white shadow-sm"
-                  : "text-gray-400 hover:text-yellow-500 hover:bg-yellow-50"
-              )}
-            >
-              {s === 'all' ? 'Todas' : `${s}★`}
-            </button>
-          ))}
+          <Flame size={14} className={cn("mr-1 transition-colors", selectedStars.length > 0 ? "text-orange-500" : "text-gray-400")} />
+          {(['all', 1, 2, 3, 4, 5] as const).map((s) => {
+            const isActive = s === 'all' ? selectedStars.length === 0 : selectedStars.includes(s);
+            return (
+              <button
+                key={s}
+                onClick={() => {
+                  if (s === 'all') {
+                    onStarsChange([]);
+                  } else {
+                    const newStars = selectedStars.includes(s)
+                      ? selectedStars.filter(v => v !== s)
+                      : [...selectedStars, s];
+                    onStarsChange(newStars);
+                  }
+                }}
+                className={cn(
+                  "px-2 py-0.5 rounded-lg text-xs font-bold transition-all flex items-center gap-0.5",
+                  isActive
+                    ? "bg-orange-500 text-white shadow-sm"
+                    : "text-gray-400 hover:text-orange-500 hover:bg-orange-50"
+                )}
+              >
+                {s === 'all' ? 'Todos' : s}
+                {s !== 'all' && <Flame size={10} className={cn(isActive ? "text-white" : "text-gray-300")} />}
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

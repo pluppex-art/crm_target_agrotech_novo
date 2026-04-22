@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Phone, AlertCircle, Star, Trash2, Loader2, Save, Percent, DollarSign, User, GraduationCap, ChevronDown, Eye, X as XIcon, ClipboardCheck, CheckSquare, QrCode, Upload, FileText } from 'lucide-react';
+import { Phone, AlertCircle, Flame, Trash2, Loader2, Save, Percent, DollarSign, User, GraduationCap, ChevronDown, Eye, X as XIcon, ClipboardCheck, CheckSquare, QrCode, Upload, FileText } from 'lucide-react';
 import { cn, parseBRNumber, formatCPFCNPJ } from '../../../lib/utils';
 import type { LeadInfoTabProps } from '../types';
 import { uploadLeadFile, deleteLeadFile } from '../../../services/leadFilesService';
@@ -119,11 +119,11 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = ({
                 onMouseLeave={() => setHoverStars(0)}
                 className="focus:outline-none transition-transform hover:scale-110"
               >
-                <Star
+                <Flame
                   size={14}
                   className={cn(
                     "transition-colors",
-                    i <= (hoverStars || formData.stars) ? "fill-yellow-400 text-yellow-400" : "text-slate-200"
+                    i <= (hoverStars || formData.stars) ? "fill-orange-500 text-orange-500" : "text-slate-200"
                   )}
                 />
               </button>

@@ -8,7 +8,7 @@ export const usePipelineFilters = (leads: Lead[], authUserId?: string, isComerci
   const [selectedResponsible, setSelectedResponsible] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string | 'all'>('all');
   const [selectedProduct, setSelectedProduct] = useState<string>('all');
-  const [selectedStars, setSelectedStars] = useState<number | 'all'>('all');
+  const [selectedStars, setSelectedStars] = useState<number[]>([]);
 
   useEffect(() => {
     fetchProfiles();
@@ -86,7 +86,7 @@ export const usePipelineFilters = (leads: Lead[], authUserId?: string, isComerci
       leadProductLower === selectedProductLower ||
       leadProductLower.includes(selectedProductLower) ||
       selectedProductLower.includes(leadProductLower);
-    const matchesStars = selectedStars === 'all' || (lead.stars || 0) === selectedStars;
+    const matchesStars = selectedStars.length === 0 || selectedStars.includes(lead.stars || 0);
     return matchesSearch && matchesResponsible && matchesProduct && matchesStars;
   }), [leads, searchTerm, selectedResponsible, selectedProduct, selectedStars]);
 
@@ -94,7 +94,7 @@ export const usePipelineFilters = (leads: Lead[], authUserId?: string, isComerci
     selectedResponsible !== 'all',
     selectedProduct !== 'all',
     selectedStatus !== 'all',
-    selectedStars !== 'all',
+    selectedStars.length > 0,
     searchTerm !== '',
   ].filter(Boolean).length, [selectedResponsible, selectedProduct, selectedStatus, selectedStars, searchTerm]);
 
@@ -103,7 +103,7 @@ export const usePipelineFilters = (leads: Lead[], authUserId?: string, isComerci
     setSelectedResponsible('all');
     setSelectedProduct('all');
     setSelectedStatus('all');
-    setSelectedStars('all');
+    setSelectedStars([]);
   };
 
   return {

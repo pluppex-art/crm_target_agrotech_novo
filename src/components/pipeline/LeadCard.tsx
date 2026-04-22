@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { Star, Phone, Plus, Trash2, Edit2, CheckSquare, AlertTriangle } from 'lucide-react';
+import { Flame, Phone, Plus, Trash2, Edit2, CheckSquare, AlertTriangle } from 'lucide-react';
 import { useLeadChecklist } from '../../hooks/useLeadChecklist';
 
 import { Lead, LeadSubStatus } from '../../types/leads';
@@ -89,7 +89,7 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
             <h4 className="font-bold text-slate-800 text-sm leading-tight">{lead.name}</h4>
             <div className="flex gap-0.5">
               {[...Array(5)].map((_, i) => (
-                <Star key={i} size={10} className={cn(i < (lead.stars || 0) ? "fill-yellow-400 text-yellow-400" : "text-slate-200")} />
+                <Flame key={i} size={10} className={cn(i < (lead.stars || 0) ? "fill-orange-500 text-orange-500" : "text-slate-200")} />
               ))}
             </div>
           </div>

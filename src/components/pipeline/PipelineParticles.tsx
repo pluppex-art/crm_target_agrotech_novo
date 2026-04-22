@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Rocket, PartyPopper, Star, Sparkles, Trophy, Plane } from 'lucide-react';
+import { Rocket, PartyPopper, Flame, Sparkles, Trophy, Plane } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 // Static particles generated once - moved from Pipeline.tsx
@@ -37,7 +37,7 @@ export const PipelineParticles: React.FC<PipelineParticlesProps> = ({
   showRocket,
   onAnimationComplete
 }) => {
-  const icons = [PartyPopper, Star, Sparkles, Trophy, Plane];
+  const icons = [PartyPopper, Flame, Sparkles, Trophy, Plane];
   const colors = [
     'text-emerald-500',
     'text-yellow-400',
