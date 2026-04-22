@@ -10,7 +10,7 @@ import { supabaseService } from '../../services/supabaseService';
 import { LeadStatus, LeadSubStatus } from '../../types/leads';
 import type { Lead } from '../../types/leads';
 import { cn, parseBRNumber, formatCPFCNPJ, formatPhone } from '../../lib/utils';
-import { AlertCircle, CheckSquare, ChevronDown, DollarSign, Loader2, Mail, MapPin, Percent, Phone, Save, X, User, ClipboardCheck, QrCode, Upload, FileText, Eye, X as XIcon } from 'lucide-react';
+import { AlertCircle, CheckSquare, ChevronDown, DollarSign, Loader2, Mail, MapPin, Percent, Phone, Save, X, User, ClipboardCheck, QrCode, Upload, FileText, Eye, GraduationCap, X as XIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { uploadLeadFile } from '../../services/leadFilesService';
 
@@ -49,6 +49,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
   const [loading, setLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ phone?: string; email?: string }>({});
   const [selectedStageId, setSelectedStageId] = useState<string>(initialStageId ?? '');
+  
   type DiscountType = 'percent' | 'money';
 
   const [formData, setFormData] = useState<{
@@ -66,7 +67,8 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
     discount_type: DiscountType;
     pix_completed: boolean;
     contract_signed: boolean;
-    taxa_matricula_recebido: number | null;
+taxa_matricula_recebido: number | null | undefined;
+    motivo_perda: string;
   }>({
     name: '',
     email: '',
@@ -83,6 +85,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
     pix_completed: false,
     contract_signed: false,
     taxa_matricula_recebido: null,
+    motivo_perda: '',
   });
 
   const [proofFile, setProofFile] = useState<File | null>(null);
@@ -94,8 +97,15 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
     currentPipelineStages.find((s: any) => s.id === selectedStageId),
     [currentPipelineStages, selectedStageId]);
 
-  const stageName = ((selectedStage as any)?.name || '').toLowerCase();
-  const isGanhoStage = stageName.includes('ganho') || stageName.includes('fechado') || stageName.includes('aprovado');
+  const isGanhoStage = useMemo(() => {
+    const name = ((selectedStage as any)?.name || '').toLowerCase();
+    return name.includes('ganho') || name.includes('fechado') || name.includes('aprovado');
+  }, [selectedStage]);
+
+  const isPerdidoStage = useMemo(() => {
+    const name = ((selectedStage as any)?.name || '').toLowerCase();
+    return name.includes('perdido') || name.includes('desistiu') || name.includes('perda');
+  }, [selectedStage]);
 
   useEffect(() => {
     if (isOpen) {
@@ -125,7 +135,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
       ...prev,
       product: e.target.value,
       value: selectedProduct ? selectedProduct.price.toString() : prev.value,
-      taxa_matricula_recebido: selectedProduct ? selectedProduct.enrollment_fee : null
+taxa_matricula_recebido: selectedProduct?.enrollment_fee ?? undefined,
     }));
   };
 
@@ -152,7 +162,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
         });
         return;
       }
-      const currentProduct = products.find((p: any) => p.name === formData.product);
+      
       const newLeadData = {
         name: formData.name,
         email: formData.email,
@@ -174,7 +184,8 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
         contract_signed: formData.contract_signed,
         valor_recebido: isGanhoStage ? calculateFinalValue() : undefined,
         forma_pagamento: isGanhoStage ? 'PIX' : undefined,
-        taxa_matricula_recebido: formData.taxa_matricula_recebido,
+taxa_matricula_recebido: formData.taxa_matricula_recebido ?? undefined,
+        motivo_perda: isPerdidoStage ? formData.motivo_perda : undefined,
         pipeline_id: pipelineId,
         stage_id: selectedStageId || undefined,
       };
@@ -215,13 +226,14 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
         city: '',
         cnpj: '',
         responsible: '',
-        subStatus: 'qualified' as LeadSubStatus,
+        subStatus: 'qualified',
         discount_applied: false,
         discount: '',
-        discount_type: 'percent' as DiscountType,
+        discount_type: 'percent',
         pix_completed: false,
         contract_signed: false,
-        taxa_matricula_recebido: null,
+        taxa_matricula_recebido: undefined,
+        motivo_perda: '',
       });
       setProofFile(null);
       setContractFile(null);
@@ -245,157 +257,103 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]"
         >
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-10">
-            <h2 className="text-xl font-bold text-gray-800">Novo Cliente</h2>
-            {!pipelineId && (
-              <div className="ml-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg text-xs font-bold text-amber-800 flex items-center gap-1 mt-1">
-                <AlertCircle size={12} />
-                Pipeline não selecionado - cliente será criado em um estado padrão
-              </div>
-            )}
-            <button
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
+            <div>
+              <h2 className="text-xl font-bold text-slate-800">Novo Cadastro</h2>
+              <p className="text-xs text-slate-400 font-medium">Preencha os dados básicos para iniciar o atendimento.</p>
+            </div>
+            <button 
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 transition-colors"
+              className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 transition-all"
             >
               <X size={20} />
             </button>
           </div>
 
           <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
-                  Nome do Cliente <span className="text-red-500">*</span>
+            <div className="grid grid-cols-1 gap-5">
+              {/* Nome */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Nome Completo <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
-                  <input
+                  <input 
                     required
-                    type="text"
+                    type="text" 
                     value={formData.name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
+                    onChange={(e) => setFormData(prev => ({...prev, name: e.target.value}))}
+                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm"
                     placeholder="Ex: João Silva"
                   />
-                  <User size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <User size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
-                  Telefone <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={formData.phone}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => { 
-                      const formatted = formatPhone(e.target.value);
-                      setFormData(prev => ({...prev, phone: formatted})); 
-                      setFieldErrors(p => ({...p, phone: undefined})); 
-                    }}
-                    className={cn("w-full px-4 py-2.5 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700", fieldErrors.phone ? "border-red-400 bg-red-50" : "border-gray-200")}
-                    placeholder="(00) 00000-0000"
-                    maxLength={15}
-                  />
-                  <Phone size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              {/* Phone + Email */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                    Telefone <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={formData.phone}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => { 
+                        const formatted = formatPhone(e.target.value);
+                        setFormData(prev => ({...prev, phone: formatted})); 
+                        setFieldErrors(p => ({...p, phone: undefined})); 
+                      }}
+                      className={cn(
+                        "w-full px-4 py-2.5 bg-white border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium pr-10 shadow-sm",
+                        fieldErrors.phone ? "border-red-400 bg-red-50" : "border-slate-200"
+                      )}
+                      placeholder="(00) 00000-0000"
+                      maxLength={15}
+                    />
+                    <Phone size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500" />
+                  </div>
+                  {fieldErrors.phone && (
+                    <p className="flex items-center gap-1 text-xs text-red-600 font-medium">
+                      <AlertCircle size={12} /> {fieldErrors.phone}
+                    </p>
+                  )}
                 </div>
-                {fieldErrors.phone && (
-                  <p className="flex items-center gap-1 text-xs text-red-600 font-medium">
-                    <AlertCircle size={12} /> {fieldErrors.phone}
-                  </p>
-                )}
-              </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">E-mail</label>
-                <div className="relative">
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setFormData(prev => ({ ...prev, email: e.target.value })); setFieldErrors(p => ({ ...p, email: undefined })); }}
-                    className={cn("w-full px-4 py-2.5 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700", fieldErrors.email ? "border-red-400 bg-red-50" : "border-gray-200")}
-                    placeholder="email@exemplo.com"
-                  />
-                  <Mail size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                </div>
-                {fieldErrors.email && (
-                  <p className="flex items-center gap-1 text-xs text-red-600 font-medium">
-                    <AlertCircle size={12} /> {fieldErrors.email}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
-                  Produto de Interesse <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <select
-                    value={formData.product}
-                    onChange={handleProductChange}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 appearance-none cursor-pointer"
-                  >
-                    <option value="">Selecione um produto</option>
-                    {products.map(product => (
-                      <option key={`prod-${product.id}`} value={product.name}>
-                        {product.name}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">E-mail</label>
+                  <div className="relative">
+                    <input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setFormData(prev => ({...prev, email: e.target.value})); setFieldErrors(p => ({...p, email: undefined})); }}
+                      className={cn(
+                        "w-full px-4 py-2.5 bg-white border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm",
+                        fieldErrors.email ? "border-red-400 bg-red-50" : "border-slate-200"
+                      )}
+                      placeholder="email@exemplo.com"
+                    />
+                    <Mail size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  </div>
+                  {fieldErrors.email && (
+                    <p className="flex items-center gap-1 text-xs text-red-600 font-medium">
+                      <AlertCircle size={12} /> {fieldErrors.email}
+                    </p>
+                  )}
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Valor Estimado (R$)</label>
+              {/* Responsible */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Responsável <span className="text-red-500">*</span></label>
                 <div className="relative">
-                  <input
-                    type="text"
-                    value={formData.value ? Number(formData.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : ''}
-                    readOnly
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none transition-all text-slate-500 cursor-not-allowed"
-                    placeholder="0,00"
-                  />
-                  <DollarSign size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Cidade</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={formData.city}
-                    onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
-                    placeholder="Cidade - UF"
-                  />
-                  <MapPin size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">CPF / CNPJ (Opcional)</label>
-                <input
-                  type="text"
-                  value={formData.cnpj}
-                  onChange={(e) => setFormData(prev => ({ ...prev, cnpj: formatCPFCNPJ(e.target.value) }))}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
-                  placeholder="000.000.000-00 ou 00.000.000/0000-00"
-                  maxLength={18}
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
-                  Responsável <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                   <select
                     required
                     value={formData.responsible}
-                    onChange={(e) => setFormData(prev => ({ ...prev, responsible: e.target.value }))}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 appearance-none cursor-pointer"
+                    onChange={(e) => setFormData(prev => ({...prev, responsible: e.target.value}))}
+                    className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"
                   >
                     <option value="">Selecione o responsável</option>
                     {vendedores.map(p => (
@@ -404,44 +362,130 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                       </option>
                     ))}
                   </select>
-                  <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
                 </div>
               </div>
 
-              {currentPipelineStages.length > 0 && (
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Etapa</label>
+              {/* Product + Value */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Produto <span className="text-red-500">*</span></label>
                   <div className="relative">
-                    <select
-                      value={selectedStageId}
-                      onChange={(e) => setSelectedStageId(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 appearance-none cursor-pointer"
+                    <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                    <select 
+                      required
+                      value={formData.product}
+                      onChange={handleProductChange}
+                      className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"
                     >
-                      <option value="">Primeira etapa</option>
-                      {currentPipelineStages.map((stage: any) => (
-                        <option key={stage.id} value={stage.id}>{stage.name}</option>
+                      <option value="">Selecione um produto</option>
+                      {products.map(product => (
+                        <option key={`prod-${product.id}`} value={product.name}>
+                          {product.name}
+                        </option>
                       ))}
                     </select>
-                    <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
                   </div>
                 </div>
-              )}
 
-              {initialStatus === 'qualified' && (
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Sub-status de Qualificação</label>
-                  <select
-                    value={formData.subStatus}
-                    onChange={(e) => setFormData({ ...formData, subStatus: e.target.value as LeadSubStatus })}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
-                  >
-                    <option value="qualified">Qualificado</option>
-                    <option value="warming">Aquecimento</option>
-                    <option value="disqualified">Desqualificado</option>
-                  </select>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Valor (R$)</label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={formData.value ? Number(formData.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : ''}
+                      readOnly
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none font-medium shadow-sm text-slate-500 cursor-not-allowed"
+                      placeholder="0,00"
+                    />
+                    <DollarSign size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  </div>
                 </div>
-              )}
+              </div>
+
+              {/* City + CPF/CNPJ */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Cidade</label>
+                  <div className="relative">
+                    <input 
+                      type="text" 
+                      value={formData.city}
+                      onChange={(e) => setFormData(prev => ({...prev, city: e.target.value}))}
+                      className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm"
+                      placeholder="Cidade - UF"
+                    />
+                    <MapPin size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">CPF / CNPJ</label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={formData.cnpj}
+                      onChange={(e) => setFormData(prev => ({...prev, cnpj: formatCPFCNPJ(e.target.value)}))}
+                      className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm"
+                      placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                      maxLength={18}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Pipeline Stage */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+{currentPipelineStages.length > 0 && (
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Etapa do Pipeline</label>
+                    <div className="relative">
+                      <select
+                        value={selectedStageId}
+                        onChange={(e) => setSelectedStageId(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"
+                      >
+                        <option value="">Primeira etapa</option>
+                        {currentPipelineStages.map((stage: any) => (
+                          <option key={stage.id} value={stage.id}>{stage.name}</option>
+                        ))}
+                      </select>
+                      <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    </div>
+                  </div>
+                )}
+
+                {initialStatus === 'qualified' && (
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Qualificação</label>
+                    <select
+                      value={formData.subStatus}
+                      onChange={(e) => setFormData({...formData, subStatus: e.target.value as LeadSubStatus})}
+                      className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm"
+                    >
+                      <option value="qualified">Qualificado</option>
+                      <option value="warming">Aquecimento</option>
+                      <option value="disqualified">Desqualificado</option>
+                    </select>
+                  </div>
+                )}
+              </div>
             </div>
+
+            {/* Motivo da Perda */}
+            {isPerdidoStage && (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Motivo da Perda</label>
+                <textarea
+                  value={formData.motivo_perda}
+                  onChange={(e) => setFormData(prev => ({...prev, motivo_perda: e.target.value}))}
+                  className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all font-medium shadow-sm"
+                  placeholder="Descreva o motivo da perda..."
+                  rows={2}
+                />
+              </div>
+            )}
 
             {/* Ganho Stage Confirmations */}
             {isGanhoStage && (
@@ -665,7 +709,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
               <button
                 type="button"
                 onClick={onClose}
-                className="px-6 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+                className="px-6 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
               >
                 Cancelar
               </button>
@@ -675,7 +719,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                 className="px-8 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-lg shadow-emerald-200 transition-all flex items-center gap-2 disabled:opacity-50"
               >
                 {loading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-                Criar Cliente
+                Salvar Cadastro
               </button>
             </div>
           </form>

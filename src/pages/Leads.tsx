@@ -179,6 +179,7 @@ export function Leads() {
       <NewLeadModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        pipelineId={pipelines[0]?.id}
       />
 
       {selectedLead && (
