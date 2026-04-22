@@ -255,12 +255,12 @@ taxa_matricula_recebido: formData.taxa_matricula_recebido ?? undefined,
     }
   };
 
-  if (!isOpen) return null;
-
   const isServiceProduct = useMemo(() => {
     const product = products.find(p => p.name === formData.product);
     return (product?.category || '').toLowerCase().startsWith('serviço') || (product?.category || '').toLowerCase().startsWith('servico');
   }, [formData.product, products]);
+
+  if (!isOpen) return null;
 
   return createPortal(
     <AnimatePresence mode="wait">
