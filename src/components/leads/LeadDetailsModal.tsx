@@ -175,12 +175,12 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
     }
   };
 
-  // Must ALWAYS have confirmations to move to Ganho
-  if (!lead) return null;
-
   const currentProduct = useMemo(() => 
     financialCalculator.findProduct(form.formData.product, products),
   [form.formData.product, products]);
+
+  // Must ALWAYS have confirmations to move to Ganho
+  if (!lead) return null;
 
   const isServiceProduct = financialCalculator.isServiceProduct(currentProduct);
 
