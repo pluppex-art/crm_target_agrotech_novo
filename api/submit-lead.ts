@@ -46,10 +46,12 @@ export default async function handler(req: any, res: any) {
     .select('name, phone')
     .eq('department', 'Comercial')
     .or('status.eq.active,status.is.null')
-    .in('role_id', vendedorCargoIds.length > 0 ? vendedorCargoIds : [''])
-    .order('name', { ascending: true });
+    .in('role_id', vendedorCargoIds.length > 0 ? vendedorCargoIds : ['']);
 
-  const validSellers = sellers || [];
+  // Ordena alfabeticamente em pt-BR (ignora maiúsculas/minúsculas e acentos)
+  const validSellers = (sellers || []).sort((a, b) =>
+    a.name.trim().localeCompare(b.name.trim(), 'pt-BR', { sensitivity: 'base' })
+  );
 
   let assignedResponsible = null;
   let assignedPhone = null;
