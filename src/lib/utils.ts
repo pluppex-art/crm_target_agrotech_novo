@@ -118,23 +118,20 @@ export function formatCPFCNPJ(value: string): string {
   }
 }
 
-/** Formats digits as international +55... (removing parentheses and dashes) */
+/** Formats phone as +55XXXXXXXXXXX (WhatsApp international format, no spaces or dashes) */
 export function formatPhone(value: string): string {
   if (!value) return '';
-  
-  const digits = value.replace(/\D/g, '');
-  
-  // Se já começar com 55 e tiver 12 ou 13 dígitos, apenas garante o +
-  if (digits.startsWith('55') && (digits.length === 12 || digits.length === 13)) {
-    return '+' + digits;
+
+  let digits = value.replace(/\D/g, '');
+
+  // Remove o código do país se já presente (55 + pelo menos 10 dígitos de DDD+número)
+  if (digits.startsWith('55') && digits.length >= 12) {
+    digits = digits.slice(2);
   }
 
-  // Se não tiver o 55, adiciona automaticamente
-  if (digits.length > 0) {
-    return '+55' + digits;
-  }
+  if (digits.length === 0) return '';
 
-  return value;
+  return '+55' + digits;
 }
 
 

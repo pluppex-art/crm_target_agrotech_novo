@@ -32,26 +32,24 @@ export default async function handler(req: any, res: any) {
   });
 
   // ── Round Robin (Rodízio) Logic ──────────────────────────────────────────
-  // 1. Fetch active sellers (Comercial + Cargo Vendedor) sorted by name
-  // Join with 'cargos' table to check the role name
+  // 1. Busca IDs dos cargos de Vendedor/Consultor
+  const { data: vendedorCargos } = await supabase
+    .from('cargos')
+    .select('id')
+    .or('name.ilike.%vendedor%,name.ilike.%consultor%');
+
+  const vendedorCargoIds = (vendedorCargos || []).map((c: any) => c.id);
+
+  // 2. Busca vendedores ativos do departamento Comercial com esses cargos
   const { data: sellers } = await supabase
     .from('perfis')
-    .select(`
-      name,
-      department,
-      status,
-      phone,
-      cargos!role_id ( name )
-    `)
+    .select('name, phone')
     .eq('department', 'Comercial')
     .or('status.eq.active,status.is.null')
+    .in('role_id', vendedorCargoIds.length > 0 ? vendedorCargoIds : [''])
     .order('name', { ascending: true });
 
-  // Filter in JS to handle role name check (Supabase join filtering can be tricky)
-  const validSellers = (sellers || []).filter(s => {
-    const cargoName = (s.cargos as any)?.name?.toLowerCase() || '';
-    return cargoName.includes('vendedor') || cargoName.includes('consultor');
-  });
+  const validSellers = sellers || [];
 
   let assignedResponsible = null;
   let assignedPhone = null;
