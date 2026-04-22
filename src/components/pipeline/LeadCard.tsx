@@ -96,7 +96,7 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
         </div>
         <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
-            onClick={(e) => { e.stopPropagation(); deleteLead(lead.id); }}
+            onClick={(e) => { e.stopPropagation(); if (confirm(`Tem certeza que deseja excluir o lead ${lead.name}?`)) deleteLead(lead.id); }}
             className="p-1 text-slate-300 hover:text-red-500 transition-colors"
             title="Excluir lead"
           >
