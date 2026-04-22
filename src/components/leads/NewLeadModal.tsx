@@ -496,9 +496,9 @@ taxa_matricula_recebido: formData.taxa_matricula_recebido ?? undefined,
                   </p>
                 </div>
                 
-                <div className="flex flex-col gap-5">
-                  {/* Row 1: Toggles */}
-                  <div className="flex flex-wrap items-center gap-x-10 gap-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                  {/* Coluna 1: Checkboxes */}
+                  <div className="flex flex-col gap-4">
                     {/* Pix / Taxa */}
                     <div className="flex items-center gap-4">
                       <label className="flex items-center gap-3 cursor-pointer group shrink-0">
@@ -518,10 +518,10 @@ taxa_matricula_recebido: formData.taxa_matricula_recebido ?? undefined,
                         </div>
                         <div className="flex items-center gap-2">
                           <QrCode size={18} className={cn("transition-colors", formData.pix_completed ? "text-emerald-500" : "text-slate-400")} />
-                          <span className="text-[15px] font-bold text-slate-700 tracking-tight">Taxa Matrícula</span>
+                          <span className="text-[14px] font-bold text-slate-700 tracking-tight">Taxa Matrícula</span>
                         </div>
                       </label>
-                      <div className="max-w-[120px]">
+                      <div className="max-w-[100px]">
                         <input
                           type="number"
                           step="0.01"
@@ -531,9 +531,9 @@ taxa_matricula_recebido: formData.taxa_matricula_recebido ?? undefined,
                           onChange={(e) => setFormData(prev => ({ ...prev, taxa_matricula_recebido: e.target.value ? parseFloat(e.target.value) : null }))}
                           placeholder="Valor R$"
                           className={cn(
-                            "w-full px-4 py-2 border rounded-2xl outline-none text-[15px] font-black shadow-sm transition-all text-center",
+                            "w-full px-3 py-1.5 border rounded-xl outline-none text-xs font-black shadow-sm transition-all text-center",
                             formData.pix_completed
-                              ? "bg-white border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 ring-4 ring-slate-100"
+                              ? "bg-white border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                               : "bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed"
                           )}
                         />
@@ -558,15 +558,15 @@ taxa_matricula_recebido: formData.taxa_matricula_recebido ?? undefined,
                       </div>
                       <div className="flex items-center gap-2">
                         <ClipboardCheck size={18} className={cn("transition-colors", formData.contract_signed ? "text-emerald-500" : "text-slate-400")} />
-                        <span className="text-[15px] font-bold text-slate-700 tracking-tight">Contrato assinado</span>
+                        <span className="text-[14px] font-bold text-slate-700 tracking-tight">Contrato assinado</span>
                       </div>
                     </label>
                   </div>
 
-                  {/* Row 2: Uploads */}
-                  <div className="flex flex-wrap items-center gap-4">
+                  {/* Coluna 2: Uploads */}
+                  <div className="flex flex-col gap-3">
                     {/* Comprovante Upload Button */}
-                    <div className="flex items-center gap-2 bg-white p-1 pr-2 rounded-2xl border border-slate-200 shadow-sm">
+                    <div className="flex items-center gap-2 bg-white p-1 pr-2 rounded-2xl border border-slate-200 shadow-sm w-full">
                       <input
                         ref={proofInputRef}
                         type="file"
@@ -578,14 +578,14 @@ taxa_matricula_recebido: formData.taxa_matricula_recebido ?? undefined,
                         type="button"
                         onClick={() => proofInputRef.current?.click()}
                         className={cn(
-                          "flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+                          "flex-1 flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
                           proofFile
                             ? "bg-emerald-50 text-emerald-600"
                             : "bg-slate-50 text-slate-500 hover:bg-slate-100"
                         )}
                       >
                         <QrCode size={14} />
-                        {proofFile ? `Comprovante: ${proofFile.name.slice(0, 10)}...` : 'Comprovante'}
+                        <span className="truncate">{proofFile ? `Comprovante: ${proofFile.name}` : 'Comprovante'}</span>
                       </button>
                       {proofFile && (
                         <button
@@ -599,7 +599,7 @@ taxa_matricula_recebido: formData.taxa_matricula_recebido ?? undefined,
                     </div>
 
                     {/* Contrato Upload Button */}
-                    <div className="flex items-center gap-2 bg-white p-1 pr-2 rounded-2xl border border-slate-200 shadow-sm">
+                    <div className="flex items-center gap-2 bg-white p-1 pr-2 rounded-2xl border border-slate-200 shadow-sm w-full">
                       <input
                         ref={contractInputRef}
                         type="file"
@@ -611,14 +611,14 @@ taxa_matricula_recebido: formData.taxa_matricula_recebido ?? undefined,
                         type="button"
                         onClick={() => contractInputRef.current?.click()}
                         className={cn(
-                          "flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+                          "flex-1 flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
                           contractFile
                             ? "bg-emerald-50 text-emerald-600"
                             : "bg-slate-50 text-slate-500 hover:bg-slate-100"
                         )}
                       >
                         <FileText size={14} />
-                        {contractFile ? `Contrato: ${contractFile.name.slice(0, 10)}...` : 'Contrato'}
+                        <span className="truncate">{contractFile ? `Contrato: ${contractFile.name}` : 'Contrato'}</span>
                       </button>
                       {contractFile && (
                         <button
@@ -632,6 +632,7 @@ taxa_matricula_recebido: formData.taxa_matricula_recebido ?? undefined,
                     </div>
                   </div>
                 </div>
+
               </div>
             )}
 
