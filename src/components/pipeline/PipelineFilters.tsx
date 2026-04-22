@@ -179,7 +179,7 @@ export const PipelineFilters: React.FC<PipelineFiltersProps> = ({
 
         {/* Fire level filter (Flame) */}
         <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 shrink-0">
-          <Flame size={14} className={cn("mr-1 transition-colors", selectedStars.length > 0 ? "text-orange-500" : "text-gray-400")} />
+          <Flame size={16} className={cn("mr-1 transition-colors", selectedStars.length > 0 ? "text-orange-500" : "text-gray-400")} />
           {(['all', 1, 2, 3, 4, 5] as const).map((s) => {
             const isActive = s === 'all' ? selectedStars.length === 0 : selectedStars.includes(s);
             return (
@@ -203,7 +203,7 @@ export const PipelineFilters: React.FC<PipelineFiltersProps> = ({
                 )}
               >
                 {s === 'all' ? 'Todos' : s}
-                {s !== 'all' && <Flame size={10} className={cn(isActive ? "text-white" : "text-gray-300")} />}
+                {s !== 'all' && <Flame size={12} className={cn(isActive ? "text-white" : "text-gray-300")} />}
               </button>
             );
           })}

@@ -89,7 +89,7 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
             <h4 className="font-bold text-slate-800 text-sm leading-tight">{lead.name}</h4>
             <div className="flex gap-0.5">
               {[...Array(5)].map((_, i) => (
-                <Flame key={i} size={10} className={cn(i < (lead.stars || 0) ? "fill-orange-500 text-orange-500" : "text-slate-200")} />
+                <Flame key={i} size={12} className={cn(i < (lead.stars || 0) ? "fill-orange-500 text-orange-500" : "text-slate-200")} />
               ))}
             </div>
           </div>

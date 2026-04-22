@@ -120,7 +120,7 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = ({
                 className="focus:outline-none transition-transform hover:scale-110"
               >
                 <Flame
-                  size={14}
+                  size={18}
                   className={cn(
                     "transition-colors",
                     i <= (hoverStars || formData.stars) ? "fill-orange-500 text-orange-500" : "text-slate-200"
