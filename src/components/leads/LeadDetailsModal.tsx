@@ -25,11 +25,18 @@ import {
   MessageSquare,
   CheckSquare,
   GraduationCap,
+  Upload,
+  Eye,
+  X as XIcon,
+  Loader2,
+  QrCode,
+  FileText,
 } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { LeadDetailsModalProps, TabType } from './types';
 import { cn } from '@/lib/utils';
 import { getSupabaseClient } from '@/lib/supabase';
+import { uploadLeadFile, deleteLeadFile } from '../../services/leadFilesService';
 
 // Maps Tailwind bg-* classes to hex colors for inline styling
 const STAGE_COLOR_MAP: Record<string, string> = {
@@ -82,6 +89,49 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
   const leadTasks = useLeadTasks({ leadId: lead?.id ?? '' });
   const leadTurmas = useLeadTurmas({ leadId: lead?.id ?? '' });
   const leadChecklist = useLeadChecklist({ leadId: lead?.id ?? '', stageId: currentStageId ?? '' });
+
+  // Upload Logic
+  const [uploadingProof, setUploadingProof] = useState(false);
+  const [uploadingContract, setUploadingContract] = useState(false);
+  const proofInputRef = useRef<HTMLInputElement>(null);
+  const contractInputRef = useRef<HTMLInputElement>(null);
+
+  const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
+  const ALLOWED_EXT = '.jpg,.jpeg,.png,.pdf';
+
+  const handleFileUpload = async (
+    file: File,
+    fileType: 'payment_proof' | 'contract',
+    setLoading: (v: boolean) => void
+  ) => {
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      alert('Formato inválido. Use .JPEG, .PNG ou .PDF');
+      return;
+    }
+    setLoading(true);
+    try {
+      const url = await uploadLeadFile(lead!.id, fileType, file);
+      if (url) {
+        const field = fileType === 'payment_proof' ? 'payment_proof_url' : 'contract_url';
+        form.updateFormField({ [field]: url });
+        await form.toggleField(field, url);
+      } else {
+        alert('Falha ao enviar arquivo. Tente novamente.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteFile = async (fileType: 'payment_proof' | 'contract') => {
+    const field = fileType === 'payment_proof' ? 'payment_proof_url' : 'contract_url';
+    const url = form.formData[field];
+    if (!url) return;
+    if (!confirm('Remover este arquivo?')) return;
+    await deleteLeadFile(url);
+    form.updateFormField({ [field]: null });
+    await form.toggleField(field, null);
+  };
 
   // Build vendedores list from Comercial department profiles
   const vendedores = useMemo(() => {
@@ -251,8 +301,103 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
                       <ThumbsDown size={14} className="text-red-500" />
                       <span key="label">Perdido</span>
                     </button>
+
+                    <div className="h-4 w-px bg-slate-200 mx-1" />
+
+                    {/* Proof Upload */}
+                    <div className="flex items-center gap-1">
+                      <input
+                        ref={proofInputRef}
+                        type="file"
+                        accept={ALLOWED_EXT}
+                        className="hidden"
+                        onChange={e => {
+                          const f = e.target.files?.[0];
+                          if (f) handleFileUpload(f, 'payment_proof', setUploadingProof);
+                          e.target.value = '';
+                        }}
+                      />
+                      <button
+                        onClick={() => proofInputRef.current?.click()}
+                        disabled={uploadingProof}
+                        className={cn(
+                          "flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-bold transition-all shadow-sm",
+                          form.formData.payment_proof_url
+                            ? "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200"
+                            : "bg-white text-slate-500 border-slate-200 hover:border-emerald-200 hover:text-emerald-600"
+                        )}
+                      >
+                        {uploadingProof ? <Loader2 size={13} className="animate-spin" /> : <QrCode size={13} />}
+                        {form.formData.payment_proof_url ? 'Comprovante ✅' : 'Comprovante'}
+                      </button>
+                      {form.formData.payment_proof_url && (
+                        <div className="flex items-center gap-0.5">
+                          <a
+                            href={form.formData.payment_proof_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="p-1.5 text-slate-400 hover:text-emerald-500 transition-colors"
+                          >
+                            <Eye size={13} />
+                          </a>
+                          <button
+                            onClick={() => handleDeleteFile('payment_proof')}
+                            className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
+                          >
+                            <XIcon size={13} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Contract Upload */}
+                    <div className="flex items-center gap-1">
+                      <input
+                        ref={contractInputRef}
+                        type="file"
+                        accept={ALLOWED_EXT}
+                        className="hidden"
+                        onChange={e => {
+                          const f = e.target.files?.[0];
+                          if (f) handleFileUpload(f, 'contract', setUploadingContract);
+                          e.target.value = '';
+                        }}
+                      />
+                      <button
+                        onClick={() => contractInputRef.current?.click()}
+                        disabled={uploadingContract}
+                        className={cn(
+                          "flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-bold transition-all shadow-sm",
+                          form.formData.contract_url
+                            ? "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200"
+                            : "bg-white text-slate-500 border-slate-200 hover:border-emerald-200 hover:text-emerald-600"
+                        )}
+                      >
+                        {uploadingContract ? <Loader2 size={13} className="animate-spin" /> : <FileText size={13} />}
+                        {form.formData.contract_url ? 'Contrato ✅' : 'Contrato'}
+                      </button>
+                      {form.formData.contract_url && (
+                        <div className="flex items-center gap-0.5">
+                          <a
+                            href={form.formData.contract_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="p-1.5 text-slate-400 hover:text-emerald-500 transition-colors"
+                          >
+                            <Eye size={13} />
+                          </a>
+                          <button
+                            onClick={() => handleDeleteFile('contract')}
+                            className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
+                          >
+                            <XIcon size={13} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </>
                 )}
+
               </div>
               <button
                 onClick={onClose}

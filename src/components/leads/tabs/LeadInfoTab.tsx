@@ -1,8 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { Phone, AlertCircle, Star, CheckSquare, Trash2, Loader2, Save, Percent, DollarSign, ClipboardCheck, QrCode, User, GraduationCap, ChevronDown, Upload, Eye, FileText, X as XIcon } from 'lucide-react';
+import { Phone, AlertCircle, Star, Trash2, Loader2, Save, Percent, DollarSign, User, GraduationCap, ChevronDown, Eye, X as XIcon, ClipboardCheck, CheckSquare, QrCode } from 'lucide-react';
 import { cn, parseBRNumber, formatCPFCNPJ } from '../../../lib/utils';
 import type { LeadInfoTabProps } from '../types';
-import { uploadLeadFile, deleteLeadFile } from '../../../services/leadFilesService';
 import { financialCalculator } from '../../../services/financialCalculator';
 
 export const LeadInfoTab: React.FC<LeadInfoTabProps> = ({
@@ -31,47 +30,7 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = ({
     updateFormField({ stars });
   };
 
-  const [uploadingProof, setUploadingProof] = useState(false);
-  const [uploadingContract, setUploadingContract] = useState(false);
-  const proofInputRef = useRef<HTMLInputElement>(null);
-  const contractInputRef = useRef<HTMLInputElement>(null);
 
-  const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
-  const ALLOWED_EXT = '.jpg,.jpeg,.png,.pdf';
-
-  const handleFileUpload = async (
-    file: File,
-    fileType: 'payment_proof' | 'contract',
-    setLoading: (v: boolean) => void
-  ) => {
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      alert('Formato inválido. Use .JPEG, .PNG ou .PDF');
-      return;
-    }
-    setLoading(true);
-    try {
-      const url = await uploadLeadFile(lead.id, fileType, file);
-      if (url) {
-        const field = fileType === 'payment_proof' ? 'payment_proof_url' : 'contract_url';
-        updateFormField({ [field]: url });
-        await toggleField?.(field, url);
-      } else {
-        alert('Falha ao enviar arquivo. Tente novamente.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDeleteFile = async (fileType: 'payment_proof' | 'contract') => {
-    const field = fileType === 'payment_proof' ? 'payment_proof_url' : 'contract_url';
-    const url = formData[field];
-    if (!url) return;
-    if (!confirm('Remover este arquivo?')) return;
-    await deleteLeadFile(url);
-    updateFormField({ [field]: null });
-    await toggleField?.(field, null);
-  };
   const [valorRecebidoOpen, setValorRecebidoOpen] = useState(
     formData.valor_recebido != null || !!formData.forma_pagamento
   );
@@ -458,136 +417,7 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = ({
           </div>
         </div>
 
-        {/* ── Documentos para Ganho ─────────────────────────────── */}
-        {!isServiceProduct && (
-          <div className="space-y-3">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-              <FileText size={13} /> Documentos obrigatórios para Ganho
-            </p>
 
-            {/* Comprovante de Pagamento */}
-            <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-slate-600 flex items-center gap-1.5">
-                  <QrCode size={13} /> Comprovante de Pagamento
-                  {formData.payment_proof_url && (
-                    <span className="ml-auto inline-flex items-center gap-0.5 text-[9px] font-black bg-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded-full">
-                      <CheckSquare size={9} /> Enviado
-                    </span>
-                  )}
-                </p>
-                {formData.payment_proof_url && (
-                  <div className="flex items-center gap-2 mt-1.5">
-                    <a
-                      href={formData.payment_proof_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center gap-1 text-[11px] text-emerald-600 hover:text-emerald-700 font-semibold truncate max-w-[160px]"
-                    >
-                      <Eye size={11} /> Visualizar arquivo
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteFile('payment_proof')}
-                      className="p-0.5 text-red-400 hover:text-red-600 transition-colors"
-                      title="Remover comprovante"
-                    >
-                      <XIcon size={12} />
-                    </button>
-                  </div>
-                )}
-              </div>
-              <div className="shrink-0">
-                <input
-                  ref={proofInputRef}
-                  type="file"
-                  accept={ALLOWED_EXT}
-                  className="hidden"
-                  onChange={e => {
-                    const f = e.target.files?.[0];
-                    if (f) handleFileUpload(f, 'payment_proof', setUploadingProof);
-                    e.target.value = '';
-                  }}
-                />
-                <button
-                  type="button"
-                  disabled={uploadingProof}
-                  onClick={() => proofInputRef.current?.click()}
-                  className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border shadow-sm",
-                    formData.payment_proof_url
-                      ? "bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200"
-                      : "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
-                  )}
-                >
-                  {uploadingProof ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
-                  {uploadingProof ? 'Enviando...' : formData.payment_proof_url ? 'Substituir' : 'Anexar'}
-                </button>
-              </div>
-            </div>
-
-            {/* Contrato */}
-            <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-slate-600 flex items-center gap-1.5">
-                  <ClipboardCheck size={13} /> Contrato
-                  {formData.contract_url && (
-                    <span className="ml-auto inline-flex items-center gap-0.5 text-[9px] font-black bg-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded-full">
-                      <CheckSquare size={9} /> Enviado
-                    </span>
-                  )}
-                </p>
-                {formData.contract_url && (
-                  <div className="flex items-center gap-2 mt-1.5">
-                    <a
-                      href={formData.contract_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center gap-1 text-[11px] text-emerald-600 hover:text-emerald-700 font-semibold truncate max-w-[160px]"
-                    >
-                      <Eye size={11} /> Visualizar arquivo
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteFile('contract')}
-                      className="p-0.5 text-red-400 hover:text-red-600 transition-colors"
-                      title="Remover contrato"
-                    >
-                      <XIcon size={12} />
-                    </button>
-                  </div>
-                )}
-              </div>
-              <div className="shrink-0">
-                <input
-                  ref={contractInputRef}
-                  type="file"
-                  accept={ALLOWED_EXT}
-                  className="hidden"
-                  onChange={e => {
-                    const f = e.target.files?.[0];
-                    if (f) handleFileUpload(f, 'contract', setUploadingContract);
-                    e.target.value = '';
-                  }}
-                />
-                <button
-                  type="button"
-                  disabled={uploadingContract}
-                  onClick={() => contractInputRef.current?.click()}
-                  className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border shadow-sm",
-                    formData.contract_url
-                      ? "bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200"
-                      : "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
-                  )}
-                >
-                  {uploadingContract ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
-                  {uploadingContract ? 'Enviando...' : formData.contract_url ? 'Substituir' : 'Anexar'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Valor Recebido toggle */}
         <div className="space-y-3">
