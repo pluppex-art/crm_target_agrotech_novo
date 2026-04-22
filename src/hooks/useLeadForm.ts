@@ -94,6 +94,8 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
       const incomingProof = lead.payment_proof_url ?? null;
       const incomingContractUrl = lead.contract_url ?? null;
       const incomingProfProof = lead.professor_proof_url ?? null;
+      const incomingValorRecebido = lead.valor_recebido ?? null;
+      const incomingTaxaMatricula = lead.taxa_matricula_recebido ?? null;
 
       if (
         prev.pix_completed !== incomingPix ||
@@ -102,7 +104,9 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
         prev.discount_applied !== incomingDiscountApplied ||
         prev.payment_proof_url !== incomingProof ||
         prev.contract_url !== incomingContractUrl ||
-        prev.professor_proof_url !== incomingProfProof
+        prev.professor_proof_url !== incomingProfProof ||
+        prev.valor_recebido !== incomingValorRecebido ||
+        prev.taxa_matricula_recebido !== incomingTaxaMatricula
       ) {
         return {
           ...prev,
@@ -115,6 +119,8 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
           payment_proof_url: incomingProof,
           contract_url: incomingContractUrl,
           professor_proof_url: incomingProfProof,
+          valor_recebido: incomingValorRecebido,
+          taxa_matricula_recebido: incomingTaxaMatricula,
         };
       }
       return prev;

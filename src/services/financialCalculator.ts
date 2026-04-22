@@ -1,11 +1,5 @@
 import type { Product } from './productService';
 
-/**
- * financialCalculator
- * Centralizes all financial logic, currency formatting, and business rules 
- * for course versus service products.
- */
-
 export interface LeadFinancialData {
   value: string | number;
   product: string;
@@ -15,60 +9,46 @@ export interface LeadFinancialData {
   valor_recebido?: number | null;
   taxa_matricula_recebido?: number | null;
   pix_completed?: boolean;
+  professor_proof_url?: string | null;
 }
 
-/**
- * Formats a number as Brazilian Real (R$)
- */
 export const formatCurrency = (value: number | string | undefined | null): string => {
   const amount = typeof value === 'string' ? parseBRNumber(value) : (value ?? 0);
-  return amount.toLocaleString('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  });
+  return amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 };
 
-/**
- * Parses numeric strings in Brazilian format (e.g. "1.234,56" -> 1234.56)
- */
 export function parseBRNumber(val: string | number | undefined | null): number {
   if (val === undefined || val === null) return 0;
   if (typeof val === 'number') return isNaN(val) ? 0 : val;
-  
+
   let clean = val.toString().trim();
   if (!clean) return 0;
 
-  // Remove currency symbols, spaces and common non-numeric chars
   clean = clean.replace(/[R$\s]/g, '');
 
-  // Handle case: 1.234,56
+  // "1.234,56"
   if (clean.includes(',') && clean.includes('.')) {
     return parseFloat(clean.replace(/\./g, '').replace(',', '.')) || 0;
   }
-  
-  // Handle case: 1234,56
+  // "1234,56"
   if (clean.includes(',')) {
     return parseFloat(clean.replace(',', '.')) || 0;
   }
-  
-  // Handle case: 1.234 (likely thousands)
+  // "1.234" (thousands separator — last segment has exactly 3 digits)
   if (clean.includes('.')) {
     const parts = clean.split('.');
     if (parts[parts.length - 1].length === 3) {
       return parseFloat(clean.replace(/\./g, '')) || 0;
     }
   }
-  
+
   const result = parseFloat(clean);
   return isNaN(result) ? 0 : result;
 }
 
-/**
- * Logic to check if a product category belongs to "Services/Professor"
- */
 export const isServiceProduct = (product?: Product | null): boolean => {
   if (!product?.category) return false;
-  const category = product.category.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const category = product.category.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   return category.startsWith('servico') || category.startsWith('serviço');
 };
 
@@ -77,9 +57,6 @@ export const financialCalculator = {
   parseBRNumber,
   isServiceProduct,
 
-  /**
-   * Helper to find a product object by name within a list
-   */
   findProduct: (productName: string, products: Product[]): Product | undefined => {
     if (!productName) return undefined;
     const searchName = productName.toLowerCase().trim();
@@ -89,38 +66,29 @@ export const financialCalculator = {
     });
   },
 
-  /**
-   * Calculate effective course value (Base Value - Discount)
-   */
+  /** Base value minus any discount. */
   getEffectiveValue: (lead: LeadFinancialData): number => {
     const baseValue = parseBRNumber(lead.value);
     if (!lead.discount_applied) return baseValue;
-    
+
     const discountAmount = parseBRNumber(lead.discount);
     if (discountAmount <= 0) return baseValue;
 
-    let total = baseValue;
-    if (lead.discount_type === 'money') {
-      total = baseValue - discountAmount;
-    } else {
-      // default: percent
-      total = baseValue * (1 - discountAmount / 100);
-    }
-    
+    const total =
+      lead.discount_type === 'money'
+        ? baseValue - discountAmount
+        : baseValue * (1 - discountAmount / 100);
+
     return Math.max(0, Math.round(total * 100) / 100);
   },
 
-  /**
-   * Get enrollment fee (taxa) from product data
-   */
+  /** Enrollment fee from the product record (0 for service products). */
   getEnrollmentFee: (leadProduct: string, products: Product[]): number => {
     const product = financialCalculator.findProduct(leadProduct, products);
     return product?.enrollment_fee ?? 0;
   },
 
-  /**
-   * Total contracted amount (Effective Course Value + Enrollment Fee)
-   */
+  /** Effective course value + enrollment fee. */
   getTotalContracted: (lead: LeadFinancialData, products: Product[]): number => {
     const courseValue = financialCalculator.getEffectiveValue(lead);
     const fee = financialCalculator.getEnrollmentFee(lead.product, products);
@@ -128,27 +96,77 @@ export const financialCalculator = {
   },
 
   /**
-   * Total validated payments (received course amount + received fee amount)
+   * Total confirmed payments received.
+   *
+   * Course products: valor_recebido + taxa_matricula_recebido
+   *   (or enrollment fee when pix_completed and taxa not yet filled)
+   * Service products: valor_recebido only
+   *   (synced from turma_attendees; enrollment fee and pix logic do not apply)
    */
   getPaidAmount: (lead: LeadFinancialData, products: Product[]): number => {
     let paid = 0;
     if (lead.valor_recebido != null) paid += lead.valor_recebido;
-    
-    if (lead.taxa_matricula_recebido != null) {
-      paid += lead.taxa_matricula_recebido;
-    } else if (lead.pix_completed) {
-      // PIX marks fee as paid even if specific value not filled
-      paid += financialCalculator.getEnrollmentFee(lead.product, products);
+
+    const productObj = financialCalculator.findProduct(lead.product, products);
+    if (!financialCalculator.isServiceProduct(productObj)) {
+      if (lead.taxa_matricula_recebido != null) {
+        paid += lead.taxa_matricula_recebido;
+      } else if (lead.pix_completed) {
+        paid += financialCalculator.getEnrollmentFee(lead.product, products);
+      }
     }
+
     return Math.round(paid * 100) / 100;
   },
 
   /**
-   * Pending balance (Total Contracted - Total Paid)
+   * Returns the professor's received amount for service products.
+   * valor_recebido is synced from turma_attendees by useLeadTurmas.
    */
+  getProfessorPaidAmount: (lead: LeadFinancialData, products: Product[]): number => {
+    const productObj = financialCalculator.findProduct(lead.product, products);
+    if (!financialCalculator.isServiceProduct(productObj)) return 0;
+    return Math.round((lead.valor_recebido ?? 0) * 100) / 100;
+  },
+
+  /** Whether the professor has uploaded proof of payment (service products only). */
+  isProfessorConfirmed: (lead: LeadFinancialData): boolean => {
+    return !!lead.professor_proof_url;
+  },
+
+  /** Total contracted minus total paid. Never negative. */
   getPendingAmount: (lead: LeadFinancialData, products: Product[]): number => {
     const total = financialCalculator.getTotalContracted(lead, products);
     const paid = financialCalculator.getPaidAmount(lead, products);
     return Math.max(0, Math.round((total - paid) * 100) / 100);
-  }
+  },
+
+  /**
+   * Whether the lead is fully paid, partially paid, or still pending.
+   *
+   * Service products: also requires professor_proof_url to be considered 'paid'.
+   */
+  getPaymentStatus: (lead: LeadFinancialData, products: Product[]): 'paid' | 'partial' | 'pending' => {
+    const productObj = financialCalculator.findProduct(lead.product, products);
+    const isService = financialCalculator.isServiceProduct(productObj);
+    const paid = financialCalculator.getPaidAmount(lead, products);
+    const total = financialCalculator.getTotalContracted(lead, products);
+
+    if (isService) {
+      if (paid <= 0 && !lead.professor_proof_url) return 'pending';
+      if (paid >= total && !!lead.professor_proof_url) return 'paid';
+      return 'partial';
+    }
+
+    if (paid <= 0) return 'pending';
+    return paid >= total ? 'paid' : 'partial';
+  },
+
+  /** Payment progress as a 0–100 percentage. */
+  getPaymentProgress: (lead: LeadFinancialData, products: Product[]): number => {
+    const total = financialCalculator.getTotalContracted(lead, products);
+    if (total <= 0) return 100;
+    const paid = financialCalculator.getPaidAmount(lead, products);
+    return Math.min(100, Math.round((paid / total) * 100));
+  },
 };
