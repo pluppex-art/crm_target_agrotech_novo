@@ -161,169 +161,176 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = ({
             </p>
           </div>
           
-          <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
-            {/* Pix / Taxa */}
-            <div className="flex items-center gap-3 min-w-[200px]">
-              <label className="flex items-center gap-3 cursor-pointer group shrink-0">
+          <div className="flex flex-col gap-5">
+            {/* Row 1: Toggles */}
+            <div className="flex flex-wrap items-center gap-x-10 gap-y-4">
+              {/* Pix / Taxa */}
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-3 cursor-pointer group shrink-0">
+                  <div className="relative shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={pixCompleted ?? false}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        onPixComplete?.(checked);
+                        if (checked && !formData.taxa_matricula_recebido && enrollmentFee > 0) {
+                          updateFormField({ taxa_matricula_recebido: enrollmentFee });
+                          toggleField?.('taxa_matricula_recebido', enrollmentFee);
+                        }
+                      }}
+                      className="sr-only peer"
+                    />
+                    <div className={cn(
+                      "w-6 h-6 border-2 rounded-lg transition-all flex items-center justify-center",
+                      pixCompleted ? "bg-emerald-600 border-emerald-600" : "bg-white border-slate-300"
+                    )}>
+                      {pixCompleted && <CheckSquare size={14} className="text-white" />}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <QrCode size={18} className={cn("transition-colors", pixCompleted ? "text-emerald-500" : "text-slate-400")} />
+                    <span className="text-[15px] font-bold text-slate-700 tracking-tight">Taxa Matrícula</span>
+                  </div>
+                </label>
+                <div className="max-w-[120px]">
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    disabled={!pixCompleted}
+                    value={pixCompleted ? (formData.taxa_matricula_recebido ?? enrollmentFee) : enrollmentFee}
+                    onChange={(e) => updateFormField({ taxa_matricula_recebido: e.target.value ? parseFloat(e.target.value) : null })}
+                    onBlur={(e) => toggleField?.('taxa_matricula_recebido', e.target.value ? parseFloat(e.target.value) : null)}
+                    className={cn(
+                      "w-full px-4 py-2 border rounded-2xl outline-none text-[15px] font-black shadow-sm transition-all text-center",
+                      pixCompleted
+                        ? "bg-white border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 ring-4 ring-slate-100"
+                        : "bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed"
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* Contrato Assinado Checkbox */}
+              <label className="flex items-center gap-3 cursor-pointer group">
                 <div className="relative shrink-0">
                   <input
                     type="checkbox"
-                    checked={pixCompleted ?? false}
-                    onChange={(e) => {
-                      const checked = e.target.checked;
-                      onPixComplete?.(checked);
-                      if (checked && !formData.taxa_matricula_recebido && enrollmentFee > 0) {
-                        updateFormField({ taxa_matricula_recebido: enrollmentFee });
-                        toggleField?.('taxa_matricula_recebido', enrollmentFee);
-                      }
-                    }}
+                    checked={contractSigned ?? false}
+                    onChange={(e) => onContractSign?.(e.target.checked)}
                     className="sr-only peer"
                   />
                   <div className={cn(
-                    "w-5 h-5 border-2 rounded-md transition-all flex items-center justify-center",
-                    pixCompleted ? "bg-emerald-600 border-emerald-600" : "bg-white border-slate-300"
+                    "w-6 h-6 border-2 rounded-lg transition-all flex items-center justify-center",
+                    contractSigned ? "bg-emerald-600 border-emerald-600" : "bg-white border-slate-300"
                   )}>
-                    {pixCompleted && <CheckSquare size={12} className="text-white" />}
+                    {contractSigned && <CheckSquare size={14} className="text-white" />}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <QrCode size={16} className={cn("transition-colors", pixCompleted ? "text-emerald-500" : "text-slate-400")} />
-                  <span className="text-sm font-bold text-slate-700">Taxa Matrícula</span>
+                  <ClipboardCheck size={18} className={cn("transition-colors", contractSigned ? "text-emerald-500" : "text-slate-400")} />
+                  <span className="text-[15px] font-bold text-slate-700 tracking-tight">Contrato assinado</span>
                 </div>
               </label>
-              <div className="flex-1 max-w-[100px]">
+            </div>
+
+            {/* Row 2: Uploads */}
+            <div className="flex flex-wrap items-center gap-4">
+              {/* Comprovante Upload Button */}
+              <div className="flex items-center gap-2 bg-white p-1 pr-2 rounded-2xl border border-slate-200 shadow-sm">
                 <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  disabled={!pixCompleted}
-                  value={pixCompleted ? (formData.taxa_matricula_recebido ?? enrollmentFee) : enrollmentFee}
-                  onChange={(e) => updateFormField({ taxa_matricula_recebido: e.target.value ? parseFloat(e.target.value) : null })}
-                  onBlur={(e) => toggleField?.('taxa_matricula_recebido', e.target.value ? parseFloat(e.target.value) : null)}
+                  ref={proofInputRef}
+                  type="file"
+                  accept={ALLOWED_EXT}
+                  className="hidden"
+                  onChange={e => {
+                    const f = e.target.files?.[0];
+                    if (f) handleFileUpload(f, 'payment_proof', setUploadingProof);
+                    e.target.value = '';
+                  }}
+                />
+                <button
+                  onClick={() => proofInputRef.current?.click()}
+                  disabled={uploadingProof}
                   className={cn(
-                    "w-full px-3 py-1.5 border rounded-xl outline-none text-sm font-bold shadow-sm transition-all text-right",
-                    pixCompleted
-                      ? "bg-white border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                      : "bg-slate-50 border-slate-100 text-slate-400 cursor-not-allowed"
+                    "flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+                    formData.payment_proof_url
+                      ? "bg-emerald-50 text-emerald-600"
+                      : "bg-slate-50 text-slate-500 hover:bg-slate-100"
                   )}
-                />
+                >
+                  {uploadingProof ? <Loader2 size={14} className="animate-spin" /> : <QrCode size={14} />}
+                  {formData.payment_proof_url ? 'Comprovante ✅' : 'Comprovante'}
+                </button>
+                {formData.payment_proof_url && (
+                  <div className="flex items-center gap-0.5 border-l border-slate-100 ml-1 pl-1">
+                    <a
+                      href={formData.payment_proof_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="p-1.5 text-slate-400 hover:text-emerald-500 transition-colors"
+                    >
+                      <Eye size={16} />
+                    </a>
+                    <button
+                      onClick={() => handleDeleteFile('payment_proof')}
+                      className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
+                    >
+                      <XIcon size={16} />
+                    </button>
+                  </div>
+                )}
               </div>
-            </div>
 
-            {/* Contrato Assinado Checkbox */}
-            <label className="flex items-center gap-3 cursor-pointer group">
-              <div className="relative shrink-0">
+              {/* Contrato Upload Button */}
+              <div className="flex items-center gap-2 bg-white p-1 pr-2 rounded-2xl border border-slate-200 shadow-sm">
                 <input
-                  type="checkbox"
-                  checked={contractSigned ?? false}
-                  onChange={(e) => onContractSign?.(e.target.checked)}
-                  className="sr-only peer"
+                  ref={contractInputRef}
+                  type="file"
+                  accept={ALLOWED_EXT}
+                  className="hidden"
+                  onChange={e => {
+                    const f = e.target.files?.[0];
+                    if (f) handleFileUpload(f, 'contract', setUploadingContract);
+                    e.target.value = '';
+                  }}
                 />
-                <div className={cn(
-                  "w-5 h-5 border-2 rounded-md transition-all flex items-center justify-center",
-                  contractSigned ? "bg-emerald-600 border-emerald-600" : "bg-white border-slate-300"
-                )}>
-                  {contractSigned && <CheckSquare size={12} className="text-white" />}
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <ClipboardCheck size={16} className={cn("transition-colors", contractSigned ? "text-emerald-500" : "text-slate-400")} />
-                <span className="text-sm font-bold text-slate-700">Contrato assinado</span>
-              </div>
-            </label>
-
-            {/* Comprovante Upload Button */}
-            <div className="flex items-center gap-1.5 bg-white p-1 pr-2 rounded-xl border border-slate-200 shadow-sm">
-              <input
-                ref={proofInputRef}
-                type="file"
-                accept={ALLOWED_EXT}
-                className="hidden"
-                onChange={e => {
-                  const f = e.target.files?.[0];
-                  if (f) handleFileUpload(f, 'payment_proof', setUploadingProof);
-                  e.target.value = '';
-                }}
-              />
-              <button
-                onClick={() => proofInputRef.current?.click()}
-                disabled={uploadingProof}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all",
-                  formData.payment_proof_url
-                    ? "bg-emerald-50 text-emerald-600"
-                    : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                <button
+                  onClick={() => contractInputRef.current?.click()}
+                  disabled={uploadingContract}
+                  className={cn(
+                    "flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+                    formData.contract_url
+                      ? "bg-emerald-50 text-emerald-600"
+                      : "bg-slate-50 text-slate-500 hover:bg-slate-100"
+                  )}
+                >
+                  {uploadingContract ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />}
+                  {formData.contract_url ? 'Contrato ✅' : 'Contrato'}
+                </button>
+                {formData.contract_url && (
+                  <div className="flex items-center gap-0.5 border-l border-slate-100 ml-1 pl-1">
+                    <a
+                      href={formData.contract_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="p-1.5 text-slate-400 hover:text-emerald-500 transition-colors"
+                    >
+                      <Eye size={16} />
+                    </a>
+                    <button
+                      onClick={() => handleDeleteFile('contract')}
+                      className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
+                    >
+                      <XIcon size={16} />
+                    </button>
+                  </div>
                 )}
-              >
-                {uploadingProof ? <Loader2 size={12} className="animate-spin" /> : <QrCode size={12} />}
-                {formData.payment_proof_url ? 'Comprovante ✅' : 'Comprovante'}
-              </button>
-              {formData.payment_proof_url && (
-                <div className="flex items-center gap-0.5 border-l border-slate-100 ml-0.5 pl-0.5">
-                  <a
-                    href={formData.payment_proof_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="p-1 text-slate-400 hover:text-emerald-500 transition-colors"
-                  >
-                    <Eye size={14} />
-                  </a>
-                  <button
-                    onClick={() => handleDeleteFile('payment_proof')}
-                    className="p-1 text-slate-400 hover:text-red-500 transition-colors"
-                  >
-                    <XIcon size={14} />
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Contrato Upload Button */}
-            <div className="flex items-center gap-1.5 bg-white p-1 pr-2 rounded-xl border border-slate-200 shadow-sm">
-              <input
-                ref={contractInputRef}
-                type="file"
-                accept={ALLOWED_EXT}
-                className="hidden"
-                onChange={e => {
-                  const f = e.target.files?.[0];
-                  if (f) handleFileUpload(f, 'contract', setUploadingContract);
-                  e.target.value = '';
-                }}
-              />
-              <button
-                onClick={() => contractInputRef.current?.click()}
-                disabled={uploadingContract}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all",
-                  formData.contract_url
-                    ? "bg-emerald-50 text-emerald-600"
-                    : "bg-slate-100 text-slate-500 hover:bg-slate-200"
-                )}
-              >
-                {uploadingContract ? <Loader2 size={12} className="animate-spin" /> : <FileText size={12} />}
-                {formData.contract_url ? 'Contrato ✅' : 'Contrato'}
-              </button>
-              {formData.contract_url && (
-                <div className="flex items-center gap-0.5 border-l border-slate-100 ml-0.5 pl-0.5">
-                  <a
-                    href={formData.contract_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="p-1 text-slate-400 hover:text-emerald-500 transition-colors"
-                  >
-                    <Eye size={14} />
-                  </a>
-                  <button
-                    onClick={() => handleDeleteFile('contract')}
-                    className="p-1 text-slate-400 hover:text-red-500 transition-colors"
-                  >
-                    <XIcon size={14} />
-                  </button>
-                </div>
-              )}
+              </div>
             </div>
           </div>
+
         </div>
       )}
 

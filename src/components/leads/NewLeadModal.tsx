@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
 import { useLeadStore } from '../../store/useLeadStore';
@@ -10,8 +10,9 @@ import { supabaseService } from '../../services/supabaseService';
 import { LeadStatus, LeadSubStatus } from '../../types/leads';
 import type { Lead } from '../../types/leads';
 import { cn, parseBRNumber, formatCPFCNPJ } from '../../lib/utils';
-import { AlertCircle, CheckSquare, ChevronDown, DollarSign, Loader2, Mail, MapPin, Percent, Phone, Save, X, User } from 'lucide-react';
+import { AlertCircle, CheckSquare, ChevronDown, DollarSign, Loader2, Mail, MapPin, Percent, Phone, Save, X, User, ClipboardCheck, QrCode, Upload, FileText, Eye, X as XIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { uploadLeadFile } from '../../services/leadFilesService';
 
 interface NewLeadModalProps {
   isOpen: boolean;
@@ -23,7 +24,7 @@ interface NewLeadModalProps {
 }
 
 export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, initialStatus = 'new', pipelineId, initialStageId, onLeadCreated }) => {
-  const { addLead } = useLeadStore();
+  const { addLead, updateLead } = useLeadStore();
   const { products, fetchProducts } = useProductStore();
   const { profiles, fetchProfiles } = useProfileStore();
   const { user } = useAuthStore();
@@ -49,7 +50,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
   const [fieldErrors, setFieldErrors] = useState<{ phone?: string; email?: string }>({});
   const [selectedStageId, setSelectedStageId] = useState<string>(initialStageId ?? '');
   type DiscountType = 'percent' | 'money';
-  
+
   const [formData, setFormData] = useState<{
     name: string;
     email: string;
@@ -63,6 +64,9 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
     discount_applied: boolean;
     discount: string;
     discount_type: DiscountType;
+    pix_completed: boolean;
+    contract_signed: boolean;
+    taxa_matricula_recebido: number | null;
   }>({
     name: '',
     email: '',
@@ -76,7 +80,22 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
     discount_applied: false,
     discount: '',
     discount_type: 'percent',
+    pix_completed: false,
+    contract_signed: false,
+    taxa_matricula_recebido: null,
   });
+
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const [contractFile, setContractFile] = useState<File | null>(null);
+  const proofInputRef = useRef<HTMLInputElement>(null);
+  const contractInputRef = useRef<HTMLInputElement>(null);
+
+  const selectedStage = useMemo(() =>
+    currentPipelineStages.find((s: any) => s.id === selectedStageId),
+    [currentPipelineStages, selectedStageId]);
+
+  const stageName = ((selectedStage as any)?.name || '').toLowerCase();
+  const isGanhoStage = stageName.includes('ganho') || stageName.includes('fechado') || stageName.includes('aprovado');
 
   useEffect(() => {
     if (isOpen) {
@@ -105,7 +124,8 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
     setFormData(prev => ({
       ...prev,
       product: e.target.value,
-      value: selectedProduct ? selectedProduct.price.toString() : prev.value
+      value: selectedProduct ? selectedProduct.price.toString() : prev.value,
+      taxa_matricula_recebido: selectedProduct ? selectedProduct.enrollment_fee : null
     }));
   };
 
@@ -125,44 +145,57 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
         });
         return;
       }
-      const selectedStage = currentPipelineStages.find((s: any) => s.id === selectedStageId);
-      const stageName = ((selectedStage as any)?.name || '').toLowerCase();
-      const isGanhoStage = stageName.includes('ganho') || stageName.includes('fechado') || stageName.includes('aprovado');
       const currentProduct = products.find((p: any) => p.name === formData.product);
-        const newLeadData = {
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          product: formData.product,
-          value: parseBRNumber(formData.value),
-          city: formData.city,
-          cnpj: formData.cnpj,
-          responsible: formData.responsible,
-          status: initialStatus as LeadStatus,
-          subStatus: initialStatus === 'qualified' ? formData.subStatus : null,
-          stars: 0,
-          photo: `https://tfwclxxcgnmndcnbklkx.supabase.co/storage/v1/object/public/icones/5.png`,
-          history: [],
-          discount_applied: formData.discount_applied,
-          discount: formData.discount || '',
-          discount_type: formData.discount_type || 'percent',
-          pix_completed: isGanhoStage,
-          contract_signed: isGanhoStage,
-          valor_recebido: isGanhoStage ? parseBRNumber(formData.value) : undefined,
-          forma_pagamento: isGanhoStage ? 'PIX' : undefined,
-          taxa_matricula_recebido: isGanhoStage ? (currentProduct?.enrollment_fee ?? 0) : undefined,
-          pipeline_id: pipelineId,
-          stage_id: selectedStageId || undefined,
-        };
-      const newLead = await addLead(newLeadData);
-      // Auto-enroll in turma after successful ganho lead
-      if (isGanhoStage && newLead) {
-        const turmaService = (window as any).turmaService || { enrollLeadInTurma: async () => {} };
-        await turmaService.enrollLeadInTurma(newLeadData);
-      }
+      const newLeadData = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        product: formData.product,
+        value: parseBRNumber(formData.value),
+        city: formData.city,
+        cnpj: formData.cnpj,
+        responsible: formData.responsible,
+        status: initialStatus as LeadStatus,
+        subStatus: initialStatus === 'qualified' ? formData.subStatus : null,
+        stars: 0,
+        photo: `https://tfwclxxcgnmndcnbklkx.supabase.co/storage/v1/object/public/icones/5.png`,
+        history: [],
+        discount_applied: formData.discount_applied,
+        discount: formData.discount || '',
+        discount_type: formData.discount_type || 'percent',
+        pix_completed: formData.pix_completed,
+        contract_signed: formData.contract_signed,
+        valor_recebido: isGanhoStage ? calculateFinalValue() : undefined,
+        forma_pagamento: isGanhoStage ? 'PIX' : undefined,
+        taxa_matricula_recebido: formData.taxa_matricula_recebido,
+        pipeline_id: pipelineId,
+        stage_id: selectedStageId || undefined,
+      };
 
-      if (isGanhoStage && newLead) {
-        onLeadCreated?.(newLead);
+      const newLead = await addLead(newLeadData);
+
+      // Upload files if any
+      if (newLead) {
+        let updates: Partial<Lead> = {};
+        if (proofFile) {
+          const url = await uploadLeadFile(newLead.id, 'payment_proof', proofFile);
+          if (url) updates.payment_proof_url = url;
+        }
+        if (contractFile) {
+          const url = await uploadLeadFile(newLead.id, 'contract', contractFile);
+          if (url) updates.contract_url = url;
+        }
+        if (Object.keys(updates).length > 0) {
+          await updateLead(newLead.id, updates);
+        }
+
+        // Auto-enroll in turma after successful ganho lead
+        if (isGanhoStage) {
+          const turmaService = (window as any).turmaService || { enrollLeadInTurma: async () => { } };
+          await turmaService.enrollLeadInTurma({ ...newLeadData, ...updates, id: newLead.id });
+        }
+
+        onLeadCreated?.({ ...newLead, ...updates });
       }
 
       onClose();
@@ -179,7 +212,12 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
         discount_applied: false,
         discount: '',
         discount_type: 'percent' as DiscountType,
+        pix_completed: false,
+        contract_signed: false,
+        taxa_matricula_recebido: null,
       });
+      setProofFile(null);
+      setContractFile(null);
     } catch (error) {
       console.error('Error adding lead:', error);
     } finally {
@@ -188,6 +226,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
   };
 
   if (!isOpen) return null;
+
 
   return createPortal(
     <AnimatePresence mode="wait">
@@ -207,7 +246,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                 Pipeline não selecionado - cliente será criado em um estado padrão
               </div>
             )}
-            <button 
+            <button
               onClick={onClose}
               className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 transition-colors"
             >
@@ -222,11 +261,11 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                   Nome do Cliente <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
-                  <input 
+                  <input
                     required
-                    type="text" 
+                    type="text"
                     value={formData.name}
-                    onChange={(e) => setFormData(prev => ({...prev, name: e.target.value}))}
+                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
                     placeholder="Ex: João Silva"
                   />
@@ -242,7 +281,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                   <input
                     type="text"
                     value={formData.phone}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setFormData(prev => ({...prev, phone: e.target.value})); setFieldErrors(p => ({...p, phone: undefined})); }}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setFormData(prev => ({ ...prev, phone: e.target.value })); setFieldErrors(p => ({ ...p, phone: undefined })); }}
                     className={cn("w-full px-4 py-2.5 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700", fieldErrors.phone ? "border-red-400 bg-red-50" : "border-gray-200")}
                     placeholder="(00) 00000-0000"
                   />
@@ -261,7 +300,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                   <input
                     type="email"
                     value={formData.email}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setFormData(prev => ({...prev, email: e.target.value})); setFieldErrors(p => ({...p, email: undefined})); }}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setFormData(prev => ({ ...prev, email: e.target.value })); setFieldErrors(p => ({ ...p, email: undefined })); }}
                     className={cn("w-full px-4 py-2.5 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700", fieldErrors.email ? "border-red-400 bg-red-50" : "border-gray-200")}
                     placeholder="email@exemplo.com"
                   />
@@ -279,7 +318,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                   Produto de Interesse <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
-                  <select 
+                  <select
                     value={formData.product}
                     onChange={handleProductChange}
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 appearance-none cursor-pointer"
@@ -312,10 +351,10 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Cidade</label>
                 <div className="relative">
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     value={formData.city}
-                    onChange={(e) => setFormData(prev => ({...prev, city: e.target.value}))}
+                    onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
                     placeholder="Cidade - UF"
                   />
@@ -328,7 +367,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                 <input
                   type="text"
                   value={formData.cnpj}
-                  onChange={(e) => setFormData(prev => ({...prev, cnpj: formatCPFCNPJ(e.target.value)}))}
+                  onChange={(e) => setFormData(prev => ({ ...prev, cnpj: formatCPFCNPJ(e.target.value) }))}
                   className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
                   placeholder="000.000.000-00 ou 00.000.000/0000-00"
                   maxLength={18}
@@ -343,7 +382,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                   <select
                     required
                     value={formData.responsible}
-                    onChange={(e) => setFormData(prev => ({...prev, responsible: e.target.value}))}
+                    onChange={(e) => setFormData(prev => ({ ...prev, responsible: e.target.value }))}
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 appearance-none cursor-pointer"
                   >
                     <option value="">Selecione o responsável</option>
@@ -381,7 +420,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Sub-status de Qualificação</label>
                   <select
                     value={formData.subStatus}
-                    onChange={(e) => setFormData({...formData, subStatus: e.target.value as LeadSubStatus})}
+                    onChange={(e) => setFormData({ ...formData, subStatus: e.target.value as LeadSubStatus })}
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
                   >
                     <option value="qualified">Qualificado</option>
@@ -392,13 +431,161 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
               )}
             </div>
 
+            {/* Ganho Stage Confirmations */}
+            {isGanhoStage && (
+              <div className="space-y-4 p-5 bg-slate-50/50 rounded-2xl border border-slate-100 mt-4">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] flex items-center gap-1.5">
+                    <ClipboardCheck size={13} className="text-emerald-500" /> Confirmações para avançar para Ganho
+                  </p>
+                </div>
+                
+                <div className="flex flex-col gap-5">
+                  {/* Row 1: Toggles */}
+                  <div className="flex flex-wrap items-center gap-x-10 gap-y-4">
+                    {/* Pix / Taxa */}
+                    <div className="flex items-center gap-4">
+                      <label className="flex items-center gap-3 cursor-pointer group shrink-0">
+                        <div className="relative shrink-0">
+                          <input
+                            type="checkbox"
+                            checked={formData.pix_completed}
+                            onChange={(e) => setFormData(prev => ({ ...prev, pix_completed: e.target.checked }))}
+                            className="sr-only peer"
+                          />
+                          <div className={cn(
+                            "w-6 h-6 border-2 rounded-lg transition-all flex items-center justify-center",
+                            formData.pix_completed ? "bg-emerald-600 border-emerald-600" : "bg-white border-slate-300"
+                          )}>
+                            {formData.pix_completed && <CheckSquare size={14} className="text-white" />}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <QrCode size={18} className={cn("transition-colors", formData.pix_completed ? "text-emerald-500" : "text-slate-400")} />
+                          <span className="text-[15px] font-bold text-slate-700 tracking-tight">Taxa Matrícula</span>
+                        </div>
+                      </label>
+                      <div className="max-w-[120px]">
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          disabled={!formData.pix_completed}
+                          value={formData.taxa_matricula_recebido ?? ''}
+                          onChange={(e) => setFormData(prev => ({ ...prev, taxa_matricula_recebido: e.target.value ? parseFloat(e.target.value) : null }))}
+                          placeholder="Valor R$"
+                          className={cn(
+                            "w-full px-4 py-2 border rounded-2xl outline-none text-[15px] font-black shadow-sm transition-all text-center",
+                            formData.pix_completed
+                              ? "bg-white border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 ring-4 ring-slate-100"
+                              : "bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed"
+                          )}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Contrato Assinado Checkbox */}
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                      <div className="relative shrink-0">
+                        <input
+                          type="checkbox"
+                          checked={formData.contract_signed}
+                          onChange={(e) => setFormData(prev => ({ ...prev, contract_signed: e.target.checked }))}
+                          className="sr-only peer"
+                        />
+                        <div className={cn(
+                          "w-6 h-6 border-2 rounded-lg transition-all flex items-center justify-center",
+                          formData.contract_signed ? "bg-emerald-600 border-emerald-600" : "bg-white border-slate-300"
+                        )}>
+                          {formData.contract_signed && <CheckSquare size={14} className="text-white" />}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <ClipboardCheck size={18} className={cn("transition-colors", formData.contract_signed ? "text-emerald-500" : "text-slate-400")} />
+                        <span className="text-[15px] font-bold text-slate-700 tracking-tight">Contrato assinado</span>
+                      </div>
+                    </label>
+                  </div>
+
+                  {/* Row 2: Uploads */}
+                  <div className="flex flex-wrap items-center gap-4">
+                    {/* Comprovante Upload Button */}
+                    <div className="flex items-center gap-2 bg-white p-1 pr-2 rounded-2xl border border-slate-200 shadow-sm">
+                      <input
+                        ref={proofInputRef}
+                        type="file"
+                        accept=".jpg,.jpeg,.png,.pdf"
+                        className="hidden"
+                        onChange={e => setProofFile(e.target.files?.[0] || null)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => proofInputRef.current?.click()}
+                        className={cn(
+                          "flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+                          proofFile
+                            ? "bg-emerald-50 text-emerald-600"
+                            : "bg-slate-50 text-slate-500 hover:bg-slate-100"
+                        )}
+                      >
+                        <QrCode size={14} />
+                        {proofFile ? `Comprovante: ${proofFile.name.slice(0, 10)}...` : 'Comprovante'}
+                      </button>
+                      {proofFile && (
+                        <button
+                          type="button"
+                          onClick={() => setProofFile(null)}
+                          className="p-1 px-2 text-slate-400 hover:text-red-500 border-l border-slate-100 ml-1"
+                        >
+                          <XIcon size={14} />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Contrato Upload Button */}
+                    <div className="flex items-center gap-2 bg-white p-1 pr-2 rounded-2xl border border-slate-200 shadow-sm">
+                      <input
+                        ref={contractInputRef}
+                        type="file"
+                        accept=".jpg,.jpeg,.png,.pdf"
+                        className="hidden"
+                        onChange={e => setContractFile(e.target.files?.[0] || null)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => contractInputRef.current?.click()}
+                        className={cn(
+                          "flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+                          contractFile
+                            ? "bg-emerald-50 text-emerald-600"
+                            : "bg-slate-50 text-slate-500 hover:bg-slate-100"
+                        )}
+                      >
+                        <FileText size={14} />
+                        {contractFile ? `Contrato: ${contractFile.name.slice(0, 10)}...` : 'Contrato'}
+                      </button>
+                      {contractFile && (
+                        <button
+                          type="button"
+                          onClick={() => setContractFile(null)}
+                          className="p-1 px-2 text-slate-400 hover:text-red-500 border-l border-slate-100 ml-1"
+                        >
+                          <XIcon size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-3">
               <label className="flex items-center gap-3 cursor-pointer w-fit">
                 <div className="relative">
                   <input
                     type="checkbox"
                     checked={formData.discount_applied}
-                    onChange={(e) => setFormData(prev => ({ ...prev, discount_applied: e.target.checked })) }
+                    onChange={(e) => setFormData(prev => ({ ...prev, discount_applied: e.target.checked }))}
                     className="sr-only"
                   />
                   <div className={cn(
@@ -418,7 +605,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                 <div className="flex rounded-xl overflow-hidden border border-slate-200 shrink-0">
                   <button
                     type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, discount_type: 'percent' })) }
+                    onClick={() => setFormData(prev => ({ ...prev, discount_type: 'percent' }))}
                     className={cn(
                       "px-3 py-2.5 text-xs font-bold transition-colors flex items-center gap-1",
                       formData.discount_type === 'percent'
@@ -430,7 +617,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                   </button>
                   <button
                     type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, discount_type: 'money' })) }
+                    onClick={() => setFormData(prev => ({ ...prev, discount_type: 'money' }))}
                     className={cn(
                       "px-3 py-2.5 text-xs font-bold transition-colors border-l border-slate-200 flex items-center gap-1",
                       formData.discount_type === 'money'
@@ -463,14 +650,14 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
 
 
             <div className="pt-4 flex justify-end gap-3">
-              <button 
+              <button
                 type="button"
                 onClick={onClose}
                 className="px-6 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
               >
                 Cancelar
               </button>
-              <button 
+              <button
                 type="submit"
                 disabled={loading}
                 className="px-8 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-lg shadow-emerald-200 transition-all flex items-center gap-2 disabled:opacity-50"
