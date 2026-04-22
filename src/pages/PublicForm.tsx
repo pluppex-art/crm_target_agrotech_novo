@@ -28,7 +28,7 @@ const productPrices: Record<string, number> = {
   'Outros': 0
 };
 
-export default function PublicForm() {
+export function PublicForm() {
   const [currentStep, setCurrentStep] = useState(0);
   const [direction, setDirection] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
