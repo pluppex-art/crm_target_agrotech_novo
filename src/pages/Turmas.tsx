@@ -44,6 +44,7 @@ import { TurmaCard } from '../components/turmas/TurmaCard';
 import { TurmasRightPanel } from '../components/turmas/TurmasRightPanel';
 import { PageFilters, FilterConfig } from '../components/ui/PageFilters';
 import { Filter, User, Package } from 'lucide-react';
+import { useLeadStore } from '@/store/useLeadStore';
 
 
 
@@ -62,7 +63,7 @@ export function Turmas() {
   const [viewMode, setViewMode] = useState<'kanban' | 'lista'>('kanban');
 
   // Attendee detail modal
-  const [selectedAttendeeLead, setSelectedAttendeeLead] = useState<Lead | null>(null);
+  const { leads, setSelectedLead, selectedLead: storeSelectedLead } = useLeadStore();
   const [selectedAttendeeInfo, setSelectedAttendeeInfo] = useState<{ turmaId: string; attendeeId: string; currentStatus: AttendanceStatus } | null>(null);
   const [loadingAttendeeDetail, setLoadingAttendeeDetail] = useState(false);
   const [modalInitialTab, setModalInitialTab] = useState<'info' | 'turma'>('info');
@@ -149,7 +150,7 @@ export function Turmas() {
     setLoadingAttendeeDetail(false);
     if (lead) {
       setModalInitialTab(tab);
-      setSelectedAttendeeLead(lead);
+      setSelectedLead(lead);
       setSelectedAttendeeInfo({ turmaId, attendeeId: attendee.id, currentStatus: attendee.status });
     }
   };
@@ -365,11 +366,11 @@ export function Turmas() {
       )}
 
       {/* Attendee Lead Detail Modal */}
-      {selectedAttendeeLead && (
+      {storeSelectedLead && (
         <LeadDetailsModal
-          isOpen={!!selectedAttendeeLead}
-          onClose={() => { setSelectedAttendeeLead(null); setSelectedAttendeeInfo(null); }}
-          lead={selectedAttendeeLead}
+          isOpen={!!storeSelectedLead}
+          onClose={() => { setSelectedLead(null); setSelectedAttendeeInfo(null); }}
+          lead={leads.find(l => l.id === storeSelectedLead.id) || storeSelectedLead}
           turmaAttendee={selectedAttendeeInfo ?? undefined}
           currentStageId={selectedAttendeeInfo?.currentStatus}
           responsibles={responsibles}

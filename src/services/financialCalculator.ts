@@ -48,8 +48,9 @@ export function parseBRNumber(val: string | number | undefined | null): number {
 
 export const isServiceProduct = (product?: Product | null): boolean => {
   if (!product?.category) return false;
-  const category = product.category.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-  return category.startsWith('servico') || category.startsWith('serviço');
+  // Normalize to remove accents: "Serviço" -> "servico"
+  const category = product.category.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return category.startsWith('servico');
 };
 
 export const financialCalculator = {
@@ -105,24 +106,22 @@ export const financialCalculator = {
    *   because proof of payment confirms the service was fully paid.
    */
   getPaidAmount: (lead: LeadFinancialData, products: Product[]): number => {
+    let paid = 0;
+    
+    // Ensure valor_recebido is treated as a number
+    const professorRec = typeof lead.valor_recebido === 'string'
+      ? parseBRNumber(lead.valor_recebido)
+      : (lead.valor_recebido ?? 0);
+    
+    paid += professorRec;
+
     const productObj = financialCalculator.findProduct(lead.product, products);
-    const isService = financialCalculator.isServiceProduct(productObj);
-
-    if (isService) {
-      if (lead.valor_recebido != null && lead.valor_recebido > 0) {
-        return Math.round(lead.valor_recebido * 100) / 100;
+    if (!financialCalculator.isServiceProduct(productObj)) {
+      if (lead.taxa_matricula_recebido != null) {
+        paid += lead.taxa_matricula_recebido;
+      } else if (lead.pix_completed) {
+        paid += financialCalculator.getEnrollmentFee(lead.product, products);
       }
-      if (lead.professor_proof_url) {
-        return financialCalculator.getTotalContracted(lead, products);
-      }
-      return 0;
-    }
-
-    let paid = lead.valor_recebido ?? 0;
-    if (lead.taxa_matricula_recebido != null) {
-      paid += lead.taxa_matricula_recebido;
-    } else if (lead.pix_completed) {
-      paid += financialCalculator.getEnrollmentFee(lead.product, products);
     }
 
     return Math.round(paid * 100) / 100;

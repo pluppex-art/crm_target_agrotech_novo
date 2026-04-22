@@ -80,7 +80,7 @@ export const Pipeline: React.FC = () => {
   const userToggledRef = useRef<Set<string>>(new Set());
 
   const currentPipeline = pipelines.find(p => p.id === currentPipelineId);
-  
+
   const COLUMNS = currentPipeline?.stages.map(s => ({
     id: s.id,
     title: s.name,
@@ -115,7 +115,7 @@ export const Pipeline: React.FC = () => {
         return next;
       });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPipeline?.id]);
 
   // Background alerts continue firing

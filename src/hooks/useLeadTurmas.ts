@@ -44,8 +44,13 @@ export const useLeadTurmas = ({ leadId }: UseLeadTurmasProps) => {
       const { updateLead } = useLeadStore.getState();
       const { products } = useProductStore.getState();
       
-      // Calculate total paid across all enrollments
-      const totalFromTurmas = result.reduce((sum, item) => sum + (item.attendee.valor_recebido || 0), 0);
+      // Calculate total paid across all enrollments (ensuring numeric values)
+      const totalFromTurmas = result.reduce((sum, item) => {
+        const val = typeof item.attendee.valor_recebido === 'string' 
+          ? financialCalculator.parseBRNumber(item.attendee.valor_recebido)
+          : (item.attendee.valor_recebido || 0);
+        return sum + val;
+      }, 0);
       
       await updateLead(leadId, { 
         valor_recebido: totalFromTurmas,
