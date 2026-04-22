@@ -338,11 +338,20 @@ export function PublicForm() {
 
   // ── Formulário ───────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 flex flex-col relative overflow-hidden">
-      {/* Decoração */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-32 -right-32 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl" />
+    <div className="min-h-screen flex flex-col relative overflow-hidden bg-emerald-950">
+      {/* Background Image with Overlay */}
+      <div 
+        className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
+        style={{ 
+          backgroundImage: 'url("/drone-bg.png")',
+        }}
+      />
+      <div className="absolute inset-0 z-0 bg-gradient-to-br from-emerald-950/95 via-emerald-900/80 to-teal-950/90" />
+
+      {/* Decoração Adicional */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute -top-32 -right-32 w-96 h-96 bg-emerald-400/10 rounded-full blur-3xl" />
+        <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-teal-400/10 rounded-full blur-3xl" />
       </div>
 
       {/* Barra de progresso */}
