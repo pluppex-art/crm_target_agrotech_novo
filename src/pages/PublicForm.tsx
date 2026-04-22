@@ -76,8 +76,12 @@ export function PublicForm() {
         const resp = await fetch('https://servicodados.ibge.gov.br/api/v1/localidades/municipios?orderBy=nome');
         const data = await resp.json();
         if (data && Array.isArray(data)) {
-          // Formato: "Nome - UF"
-          const formatted = data.map((c: any) => `${c.nome} - ${c.microrregiao.mesorregiao.UF.sigla}`);
+          // Formato: "Nome - UF" (com fallback seguro para propriedades nulas)
+          const formatted = data.map((c: any) => {
+            const cityName = c.nome;
+            const ufSigla = c.microrregiao?.mesorregiao?.UF?.sigla || c.regiao?.sigla || '';
+            return ufSigla ? `${cityName} - ${ufSigla}` : cityName;
+          });
           setAllCities(formatted);
         }
       } catch (err) {

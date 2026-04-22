@@ -84,7 +84,7 @@ export default async function handler(req: any, res: any) {
     extraNotes ? `Notas: ${extraNotes}` : null
   ].filter(Boolean).join('\n');
 
-  const { data, error } = await supabase
+  const { data: leadData, error: leadError } = await supabase
     .from('leads')
     .insert([{
       name: name.trim(),
@@ -99,20 +99,35 @@ export default async function handler(req: any, res: any) {
       stars: 1,
       value: Number(value) || 0,
       substatus: 'qualified',
-      notes: notes,
       photo: `https://ui-avatars.com/api/?name=${encodeURIComponent(name.trim())}&background=059669&color=fff&size=128`,
     }])
     .select()
     .single();
 
-  if (error) {
-    console.error('Error creating lead:', error);
-    return res.status(500).json({ error: error.message });
+  if (leadError) {
+    console.error('Error creating lead:', leadError);
+    return res.status(500).json({ error: leadError.message });
+  }
+
+  // ── Create Note (Interesse) ──────────────────────────────────────────────
+  if (notes) {
+    const { error: noteError } = await supabase
+      .from('notes')
+      .insert([{
+        content: notes,
+        lead_id: leadData.id,
+        author_name: 'Sistema',
+      }]);
+    
+    if (noteError) {
+      console.error('Error creating note:', noteError);
+      // Not a fatal error, we already created the lead
+    }
   }
 
   return res.status(200).json({ 
     success: true, 
-    id: data.id, 
+    id: leadData.id, 
     responsibleName: assignedResponsible, 
     responsiblePhone: assignedPhone 
   });
