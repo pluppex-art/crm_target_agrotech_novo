@@ -122,16 +122,39 @@ export function formatCPFCNPJ(value: string): string {
 export function formatPhone(value: string): string {
   if (!value) return '';
 
-  let digits = value.replace(/\D/g, '');
+  // Strip +55 prefix first so repeated calls don't stack country code
+  const withoutPrefix = value.startsWith('+55') ? value.slice(3) : value;
+  let digits = withoutPrefix.replace(/\D/g, '');
 
-  // Remove o código do país se já presente (55 + pelo menos 10 dígitos de DDD+número)
+  // Handle raw input already containing country code (e.g. paste of 5566999999999)
   if (digits.startsWith('55') && digits.length >= 12) {
     digits = digits.slice(2);
   }
 
   if (digits.length === 0) return '';
 
-  return '+55' + digits;
+  // Cap at 11 local digits (DDD 2 + number 9)
+  digits = digits.slice(0, 11);
+
+  const ddd = digits.slice(0, 2);
+  const number = digits.slice(2);
+
+  let formatted = '+55' + ddd;
+
+  if (number.length === 0) return formatted;
+
+  if (number.length >= 9) {
+    // Mobile complete: XXXXX-XXXX
+    formatted += number.slice(0, 5) + '-' + number.slice(5, 9);
+  } else if (number.length === 8) {
+    // Landline complete: XXXX-XXXX
+    formatted += number.slice(0, 4) + '-' + number.slice(4);
+  } else {
+    // Still typing — no dash yet
+    formatted += number;
+  }
+
+  return formatted;
 }
 
 
