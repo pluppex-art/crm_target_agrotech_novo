@@ -13,6 +13,7 @@ import { cn, parseBRNumber, formatCPFCNPJ, formatPhone } from '../../lib/utils';
 import { AlertCircle, CheckSquare, ChevronDown, DollarSign, Loader2, Mail, MapPin, Percent, Phone, Save, X, User, ClipboardCheck, QrCode, Upload, FileText, Eye, GraduationCap, X as XIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { uploadLeadFile } from '../../services/leadFilesService';
+import { notifyNewLead } from '../../services/leadNotificationService';
 
 interface NewLeadModalProps {
   isOpen: boolean;
@@ -202,6 +203,11 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
       };
 
       const newLead = await addLead(newLeadData);
+
+      // Notify responsible seller about new lead
+      if (newLead) {
+        notifyNewLead(newLead, profiles);
+      }
 
       // Upload files if any
       if (newLead) {

@@ -5,6 +5,8 @@ import { usePipelineStore } from '../store/usePipelineStore';
 import { useProductStore } from '../store/useProductStore';
 import { turmaService } from '../services/turmaService';
 import { financialCalculator } from '../services/financialCalculator';
+import { notifyLeadAssignment } from '../services/leadNotificationService';
+import { useProfileStore } from '../store/useProfileStore';
 import type { Lead } from '../types/leads';
 import { getLeadEffectiveValue, parseBRNumber } from '@/lib/utils';
 
@@ -150,6 +152,10 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
         return;
       }
 
+      const responsibleChanged =
+        formData.responsible &&
+        formData.responsible !== lead.responsible;
+
       const updateData: Partial<Lead> = {
         name: formData.name,
         email: formData.email,
@@ -171,11 +177,14 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
         professor_proof_url: formData.professor_proof_url ?? undefined,
       };
 
-
       const { updateLead } = useLeadStore.getState();
       const success = await updateLead(lead.id, updateData);
 
       if (success) {
+        if (responsibleChanged) {
+          const { profiles } = useProfileStore.getState();
+          notifyLeadAssignment(lead, formData.responsible, profiles);
+        }
         const enrollmentFee = financialCalculator.getEnrollmentFee(formData.product, products);
         const vendas = getLeadEffectiveValue(formData) + enrollmentFee;
         turmaService.updateAttendeeVendas(lead.id, vendas);
@@ -189,7 +198,7 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
     } finally {
       setIsSaving(false);
     }
-  }, [formData, lead.id, onClose]);
+  }, [formData, lead.id, lead.responsible, onClose]);
 
   const updateFormField = useCallback((updates: any) => {
     setFormData(prev => ({ ...prev, ...updates }));

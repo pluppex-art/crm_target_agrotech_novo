@@ -26,6 +26,7 @@ import { EnrollInTurmaModal } from '../components/pipeline/EnrollInTurmaModal';
 import { LeadCard } from '../components/pipeline/LeadCard';
 import { checklistService } from '../services/checklistService';
 import { financialCalculator } from '../services/financialCalculator';
+import { notifyStageChange } from '../services/leadNotificationService';
 
 
 
@@ -221,6 +222,14 @@ export const Pipeline: React.FC = () => {
       last_contact_at: new Date().toISOString(),
       status: targetStage?.name ?? '',
     });
+
+    // Notify coordinator/admin for Contrato, Ganho, Perdido stages
+    if (targetStage?.name) {
+      const movedLeadForNotif = leads.find(l => l.id === draggableId);
+      if (movedLeadForNotif) {
+        notifyStageChange(movedLeadForNotif, targetStage.name, profiles);
+      }
+    }
 
     if (isGanhoTarget) {
       const movedLead = leads.find((l) => l.id === draggableId);

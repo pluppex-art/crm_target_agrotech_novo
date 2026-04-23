@@ -3,12 +3,23 @@ import { emailService } from './emailService';
 import { useNotificationStore } from '../store/useNotificationStore';
 import { Task } from './taskService';
 
-const ALERT_12H_MS = 12 * 60 * 60 * 1000;
-const ALERT_18H_MS = 18 * 60 * 60 * 1000;
+// Inactivity alert levels
+const INACTIVITY_LEVELS = [
+  { key: 'm3',  ms: 3 * 60 * 1000,          label: '3 minutos' },
+  { key: 'm15', ms: 15 * 60 * 1000,         label: '15 minutos' },
+  { key: 'm30', ms: 30 * 60 * 1000,         label: '30 minutos' },
+  { key: 'h1',  ms: 1 * 60 * 60 * 1000,    label: '1 hora' },
+  { key: 'h6',  ms: 6 * 60 * 60 * 1000,    label: '6 horas' },
+  { key: 'h12', ms: 12 * 60 * 60 * 1000,   label: '12 horas' },
+  { key: 'h24', ms: 24 * 60 * 60 * 1000,   label: '24 horas' },
+  { key: 'h36', ms: 36 * 60 * 60 * 1000,   label: '36 horas' },
+] as const;
+
+type AlertKey = typeof INACTIVITY_LEVELS[number]['key'];
 
 const SENT_ALERTS_KEY = 'crm_sent_alerts';
 
-function getSentAlerts(): Record<string, { h12?: boolean; h18?: boolean }> {
+function getSentAlerts(): Record<string, Partial<Record<AlertKey, boolean>>> {
   try {
     return JSON.parse(localStorage.getItem(SENT_ALERTS_KEY) || '{}');
   } catch {
@@ -16,9 +27,9 @@ function getSentAlerts(): Record<string, { h12?: boolean; h18?: boolean }> {
   }
 }
 
-function markAlertSent(leadId: string, type: 'h12' | 'h18') {
+function markAlertSent(leadId: string, key: AlertKey) {
   const sent = getSentAlerts();
-  sent[leadId] = { ...sent[leadId], [type]: true };
+  sent[leadId] = { ...sent[leadId], [key]: true };
   localStorage.setItem(SENT_ALERTS_KEY, JSON.stringify(sent));
 }
 
@@ -28,7 +39,6 @@ function clearAlertRecord(leadId: string) {
   localStorage.setItem(SENT_ALERTS_KEY, JSON.stringify(sent));
 }
 
-// Reset alert records when a lead gets new contact (call this from note/task creation)
 export function resetLeadAlerts(leadId: string) {
   clearAlertRecord(leadId);
 }
@@ -57,21 +67,21 @@ export function openWhatsApp(phone: string, message: string) {
   window.open(url, '_blank');
 }
 
-async function sendEmailAlert(userEmail: string, lead: Lead, hoursElapsed: number) {
+async function sendEmailAlert(userEmail: string, lead: Lead, label: string) {
   try {
     await emailService.sendEmail({
       to: userEmail,
-      subject: `⚠️ Alerta CRM: Cliente "${lead.name}" sem contato há ${hoursElapsed}h`,
+      subject: `⚠️ Alerta CRM: Cliente "${lead.name}" sem contato há ${label}`,
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #dc2626;">⚠️ Alerta de Inatividade</h2>
-          <p>O cliente <strong>${lead.name}</strong> está sem contato há <strong>${hoursElapsed} horas</strong>.</p>
+          <p>O cliente <strong>${lead.name}</strong> está sem contato há <strong>${label}</strong>.</p>
           <table style="width:100%; border-collapse: collapse; margin: 16px 0;">
             <tr><td style="padding:8px; color:#6b7280;">Produto:</td><td style="padding:8px;"><strong>${lead.product}</strong></td></tr>
             <tr><td style="padding:8px; color:#6b7280;">Telefone:</td><td style="padding:8px;"><strong>${lead.phone}</strong></td></tr>
             <tr><td style="padding:8px; color:#6b7280;">Responsável:</td><td style="padding:8px;"><strong>${lead.responsible || 'Não definido'}</strong></td></tr>
           </table>
-          <p style="color:#dc2626; font-weight:bold;">Acesse o CRM e entre em contato imediatamente para não perder esta oportunidade!</p>
+          <p style="color:#dc2626; font-weight:bold;">Acesse o CRM e entre em contato para não perder esta oportunidade!</p>
         </div>
       `,
     });
@@ -82,8 +92,8 @@ async function sendEmailAlert(userEmail: string, lead: Lead, hoursElapsed: numbe
 
 export interface InactivityAlert {
   lead: Lead;
-  hoursElapsed: number;
-  type: '12h' | '18h';
+  label: string;
+  key: AlertKey;
 }
 
 export interface InactivityCheckResult {
@@ -94,12 +104,12 @@ export interface InactivityCheckResult {
 const INACTIVE_STAGE_KEYWORDS = ['ganho', 'aprovado', 'fechado', 'perdido', 'aquecimento', 'desqualificado'];
 
 function isLeadInInactiveStage(lead: Lead): boolean {
-  const stageLower = (lead.status ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const stageLower = (lead.status ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   return INACTIVE_STAGE_KEYWORDS.some(kw => stageLower.includes(kw));
 }
 
 export function checkLeadInactivity(
-  leads: Lead[], 
+  leads: Lead[],
   autoTransferHours: number = 48,
   tasks: Task[] = []
 ): InactivityCheckResult {
@@ -109,10 +119,8 @@ export function checkLeadInactivity(
   const toTransfer: Lead[] = [];
 
   for (const lead of leads) {
-    // 1. Skip leads in inactive stages
     if (isLeadInInactiveStage(lead)) continue;
 
-    // 2. Skip leads that have ANY task assigned (pending or completed)
     const hasTasks = tasks.some(t => t.lead_id === lead.id);
     if (hasTasks) continue;
 
@@ -121,10 +129,16 @@ export function checkLeadInactivity(
 
     if (elapsed >= autoTransferMs) {
       toTransfer.push(lead);
-    } else if (elapsed >= ALERT_18H_MS && !leadSent.h18) {
-      alerts.push({ lead, hoursElapsed: 18, type: '18h' });
-    } else if (elapsed >= ALERT_12H_MS && !leadSent.h12) {
-      alerts.push({ lead, hoursElapsed: 12, type: '12h' });
+      continue;
+    }
+
+    // Find the highest threshold reached that hasn't been sent yet
+    for (let i = INACTIVITY_LEVELS.length - 1; i >= 0; i--) {
+      const level = INACTIVITY_LEVELS[i];
+      if (elapsed >= level.ms && !leadSent[level.key]) {
+        alerts.push({ lead, label: level.label, key: level.key });
+        break;
+      }
     }
   }
 
@@ -137,28 +151,23 @@ export async function fireAlerts(
   userPhone?: string
 ) {
   for (const alert of alerts) {
-    const { lead, hoursElapsed, type } = alert;
-    const title = `⚠️ ${lead.name} sem contato há ${hoursElapsed}h`;
+    const { lead, label, key } = alert;
+    const title = `⚠️ ${lead.name} sem contato há ${label}`;
     const body = `Responsável: ${lead.responsible || 'Não definido'} | Produto: ${lead.product}`;
 
-    // OS Notification
     sendOSNotification(title, body);
 
-    // Email to responsible
     if (userEmail) {
-      await sendEmailAlert(userEmail, lead, hoursElapsed);
+      await sendEmailAlert(userEmail, lead, label);
     }
 
-    // WhatsApp to responsible (if phone provided)
     if (userPhone) {
-      const msg = `⚠️ *Alerta CRM*\n\nO cliente *${lead.name}* está sem contato há *${hoursElapsed} horas*.\n\nProduto: ${lead.product}\nTelefone do cliente: ${lead.phone}\n\nAcesse o CRM e entre em contato!`;
+      const msg = `⚠️ *Alerta CRM*\n\nO cliente *${lead.name}* está sem contato há *${label}*.\n\nProduto: ${lead.product}\nTelefone do cliente: ${lead.phone}\n\nAcesse o CRM e entre em contato!`;
       openWhatsApp(userPhone, msg);
     }
 
-    // Mark as sent
-    markAlertSent(lead.id, type === '12h' ? 'h12' : 'h18');
+    markAlertSent(lead.id, key);
 
-    // Add to in-app notification feed with lead details
     useNotificationStore.getState().addNotification({
       title,
       message: body,
