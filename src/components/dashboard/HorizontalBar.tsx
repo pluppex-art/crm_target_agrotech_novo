@@ -2,27 +2,23 @@ import { cn } from '../../lib/utils';
 
 interface HorizontalBarProps {
   label: string;
-  value: number;
-  max: number;
+  value: number;     // vendas (total committed) — shown as info only
+  received: number;  // valor_recebido (actually paid) — drives bar and %
+  max: number;       // revenue goal
   color: string;
   rank: number;
-  isCurrency?: boolean;
   count?: number;
 }
 
-export function HorizontalBar({ label, value, max, color, rank, isCurrency, count }: HorizontalBarProps) {
-  const pct = max > 0 ? (value / max) * 100 : 0;
+export function HorizontalBar({ label, received, max, color, rank, count }: HorizontalBarProps) {
+  const pct = max > 0 ? Math.min((received / max) * 100, 100) : 0;
+  const barWidth = received > 0 ? Math.max(pct, 6) : 0;
   const medal = rank === 0 ? '🥇' : rank === 1 ? '🥈' : rank === 2 ? '🥉' : `${rank + 1}º`;
-
-  const formattedValue = isCurrency
-    ? `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-    : `${value}%`;
-
-  const barWidth = value > 0 ? Math.max(pct, 8) : 0;
+  const percentage = max > 0 ? Math.round((received / max) * 100) : 0;
 
   return (
     <div className="group">
-      <div className="flex items-center justify-between mb-1.5">
+      <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2 min-w-0 flex-1 mr-2">
           <span className="text-sm shrink-0">{medal}</span>
           <span className="text-sm font-semibold text-slate-700 truncate">{label}</span>
@@ -33,12 +29,12 @@ export function HorizontalBar({ label, value, max, color, rank, isCurrency, coun
               {count} {count === 1 ? 'venda' : 'vendas'}
             </span>
           )}
-<span className="text-xs font-bold text-slate-500">{formattedValue}</span>
+          <span className="text-xs font-bold text-slate-600">{percentage}%</span>
         </div>
       </div>
 
-      <div className="relative h-6 bg-gradient-to-r from-slate-100 to-slate-200 rounded-2xl shadow-inner overflow-hidden group-hover:shadow-md transition-all duration-300">
-        {value > 0 ? (
+<div className="relative h-5 bg-gradient-to-r from-slate-100 to-slate-200 rounded-2xl shadow-inner overflow-hidden group-hover:shadow-md transition-all duration-300">
+        {received > 0 ? (
           <>
             <div
               className={cn('h-full rounded-2xl shadow-lg relative overflow-hidden transition-all duration-1000 ease-out group-hover:shadow-xl', color)}
@@ -50,7 +46,7 @@ export function HorizontalBar({ label, value, max, color, rank, isCurrency, coun
               className="absolute top-1/2 shadow-lg transition-all duration-300"
               style={{ left: `${barWidth}%`, transform: 'translate(-50%, -50%)' }}
             >
-              <span className="text-lg leading-none select-none pointer-events-none drop-shadow-lg">
+              <span className="text-base leading-none select-none pointer-events-none drop-shadow-lg">
                 {rank === 0 ? '🚀' : rank === 1 ? '🥈' : rank === 2 ? '🥉' : '⚡'}
               </span>
             </div>

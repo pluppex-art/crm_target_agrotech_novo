@@ -48,10 +48,10 @@ export function SalesOverview({ sales, currentSellerName, isLoading }: SalesOver
                 <HorizontalBar
                   key={s.label}
                   label={s.label}
-                  value={s.percentage}
-                  max={100}
+                  value={s.value}
+                  received={s.received}
+                  max={s.revenue_goal}
                   rank={i}
-                  isCurrency={false}
                   count={s.count}
                   color={i === 0 ? 'bg-emerald-500' : i === 1 ? 'bg-blue-400' : i === 2 ? 'bg-purple-400' : 'bg-slate-300'}
                 />

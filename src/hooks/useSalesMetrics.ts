@@ -25,8 +25,10 @@ export interface SalesMetrics {
   allSellersRanking: Array<{
     label: string;
     value: number;
+    received: number;
     count: number;
     percentage: number;
+    revenue_goal: number;
   }>;
   pipelineStages: Array<{
     id: string;
@@ -85,22 +87,22 @@ export function useSalesMetrics({
 
   const occupancyData = getOccupancyData(turmas);
 
-  // Seller ranking based on turma attendees (same source as getSellerIncome)
+  // Seller ranking: uses `vendas` (committed sale value) for progress vs goal
+  // `valor_recebido` is only for actual cash received (Ganhos Totais card)
   const salesByResponsible = useMemo(() => {
-    const result: Record<string, { label: string; value: number; count: number }> = {};
+    const result: Record<string, { label: string; value: number; received: number; count: number }> = {};
     turmas.forEach(t => {
       t.attendees
         .filter((a: any) => a.status !== 'cancelado' && a.responsible)
         .forEach((a: any) => {
           const key = a.responsible as string;
-          result[key] = result[key] || { label: key, value: 0, count: 0 };
-          result[key].value += a.valor_recebido || 0;
+          result[key] = result[key] || { label: key, value: 0, received: 0, count: 0 };
+          result[key].value += (a.vendas || a.valor_recebido || 0);
+          result[key].received += (a.valor_recebido || 0);
           result[key].count += 1;
         });
     });
-    return Object.values(result).sort(
-      (a, b) => b.count - a.count
-    );
+    return Object.values(result).sort((a, b) => b.count - a.count);
   }, [turmas]);
 
   // Build seller goal map from goals (trim names to handle trailing spaces in DB)
@@ -133,37 +135,30 @@ export function useSalesMetrics({
 
     const byName: Record<
       string,
-      { label: string; value: number; count: number; percentage: number }
+      { label: string; value: number; received: number; count: number; percentage: number; revenue_goal: number }
     > = {};
 
     // Add vendedores with sales
     vendedorSales.forEach((s) => {
-      byName[s.label] = { ...s, percentage: 0 };
+      byName[s.label] = { ...s, percentage: 0, revenue_goal: 0 };
     });
 
     // Ensure ALL vendedores appear (even with 0 sales)
     vendedorProfiles.forEach((p: any) => {
       const name = p.name!;
       if (!byName[name]) {
-        byName[name] = { label: name, value: 0, count: 0, percentage: 0 };
+        byName[name] = { label: name, value: 0, received: 0, count: 0, percentage: 0, revenue_goal: 0 };
       }
     });
 
-    // Calculate percentage based on goals
-    // Use revenue/revenue_goal when revenue > 0, otherwise count/leads_goal
+    // Calculate percentage: valor_recebido (pago) vs revenue goal
     Object.values(byName).forEach((s: any) => {
       const goal = sellerGoalMap[s.label.trim()];
-      if (goal) {
-        if (s.value > 0 && goal.revenue_goal > 0) {
-          s.percentage = Math.round((s.value / goal.revenue_goal) * 100);
-        } else if (s.count > 0 && goal.leads_goal > 0) {
-          s.percentage = Math.round((s.count / goal.leads_goal) * 100);
-        } else {
-          s.percentage = 0;
-        }
-      } else {
-        s.percentage = 0;
-      }
+      s.revenue_goal = goal?.revenue_goal ?? 0;
+      s.percentage =
+        goal && goal.revenue_goal > 0
+          ? Math.round((s.received / goal.revenue_goal) * 100)
+          : 0;
     });
 
     // Fallback: if no seller has a goal set, rank relative to top performer by count
@@ -180,8 +175,10 @@ export function useSalesMetrics({
     ) as Array<{
       label: string;
       value: number;
+      received: number;
       count: number;
       percentage: number;
+      revenue_goal: number;
     }>;
   }, [salesByResponsible, vendedorProfiles, sellerGoalMap]);
 
