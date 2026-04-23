@@ -187,3 +187,127 @@ export function formatRelativeTime(date: string | Date): string {
   
   return d.toLocaleDateString('pt-BR');
 }
+
+export const fmt = (n: number) =>
+  n.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
+
+import type { Turma, TurmaAttendee, AttendanceStatus } from '../services/turmaService';
+import type { PipelineStage } from '../types/pipelines';
+
+export interface FunnelStage {
+  id: string;
+  label: string;
+  value: number;
+  color: string;
+  rate_from_prev?: number;
+}
+
+export interface OccupancyData {
+  name: string;
+  pct: number;
+  level: 'red' | 'yellow' | 'green';
+  alunos: number;
+  capacity: number;
+  color: string;
+}
+
+/**
+ * Checks if profile is exactly 'Vendedor' cargo.
+ */
+export function isVendedor(profile: { cargos?: { name?: string } | null; role?: string | null; cargo?: string | null }): boolean {
+  const cargoName = profile.cargos?.name?.toLowerCase().trim();
+  const role = profile.role?.toLowerCase().trim();
+  const cargo = profile.cargo?.toLowerCase().trim();
+  
+  return cargoName === 'vendedor' || cargoName === 'vendedora' ||
+         role === 'vendedor' || role === 'vendedora' ||
+         cargo === 'vendedor' || cargo === 'vendedora';
+}
+
+/**
+ * Sum valor_recebido for seller from turmas in date range.
+ * Filters: status !== 'cancelado', responsible === sellerName, turma.date in [start, end].
+ */
+export function getSellerIncome(
+  turmas: Turma[],
+  sellerName: string,
+  startDate?: string,
+  endDate?: string
+): number {
+  return turmas
+    .filter(t => {
+      const d = new Date(t.date);
+      if (startDate && d < new Date(startDate)) return false;
+      if (endDate && d > new Date(endDate)) return false;
+      return true;
+    })
+    .reduce((sum, t) => {
+      return sum + t.attendees
+        .filter(a => a.status !== 'cancelado' && a.responsible === sellerName && a.valor_recebido != null)
+        .reduce((s, a) => s + (a.valor_recebido || 0), 0);
+    }, 0);
+}
+
+/**
+ * Occupancy data per turma for dashboard.
+ */
+export function getOccupancyData(turmas: Turma[]): Array<{
+  name: string;
+  pct: number;
+  level: 'red' | 'yellow' | 'green';
+  alunos: number;
+  capacity: number;
+  color: string;
+}> {
+  return turmas.map((t, i) => {
+    const activeStatuses: AttendanceStatus[] = ['matriculado', 'confirmado'];
+    const active = t.attendees.filter(a => activeStatuses.includes(a.status)).length;
+    const cap = t.capacity || 20;
+    const pct = cap > 0 ? Math.min((active / cap) * 100, 100) : 0;
+    
+    let level: 'red' | 'yellow' | 'green';
+    if (pct >= 70) level = 'green';
+    else if (pct >= 50) level = 'yellow';
+    else level = 'red';
+
+    // Color per turma (rainbow-ish)
+    const hue = (i * 360 / turmas.length) % 360;
+    const color = `hsl(${hue}, 70%, 50%)`;
+
+    return { name: t.name, pct, level, alunos: active, capacity: cap, color };
+  }).sort((a, b) => b.pct - a.pct); // Top occupancy first
+}
+
+/**
+ * Compute funnel rates from stage counts.
+ */
+export function computeFunnelRates(
+  stages: Array<{id: string; label: string; value: number; color: string}>
+): Array<{id: string; label: string; value: number; rate_from_prev?: number; color: string}> {
+  return stages.map((stage, i) => {
+    const prevCount = i > 0 ? stages[i-1].value : 0;
+    const rate = prevCount > 0 ? Math.round((stage.value / prevCount) * 100) : 0;
+    return { ...stage, rate_from_prev: rate };
+  });
+}
+
+/**
+ * Simple revenue projection based on funnel.
+ */
+export function projectedRevenue(
+  funnelConversionRate: number,
+  monthlyLeadsAvg: number,
+  avgTicket: number,
+  projectionMonths: number = 3
+): Array<{label: string; value: number}> {
+  const projectedLeads = monthlyLeadsAvg * projectionMonths;
+  const projectedRevenue = funnelConversionRate / 100 * projectedLeads * avgTicket;
+  
+  // Monthly breakdown
+  return Array.from({length: projectionMonths}, (_, i) => ({
+    label: ['Jan', 'Fev', 'Mar'][i] || `M${i+1}`,
+    value: (projectedRevenue / projectionMonths)
+  }));
+}
+

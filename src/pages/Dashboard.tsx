@@ -1,46 +1,49 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import {
-  TrendingUp, TrendingDown, DollarSign, Users, CheckCircle2,
-  BarChart2, ArrowRight, Loader2, ShoppingBag, Percent, ShieldAlert,
-  Filter, FileText
-} from 'lucide-react';
+import { DateFilter } from '../components/finance/DateFilter';
+import { Loader2, ShieldAlert } from 'lucide-react';
 import { usePermissions } from '../hooks/usePermissions';
 import { useLeadStore } from '../store/useLeadStore';
 import { useFinanceStore } from '../store/useFinanceStore';
 import { useProfileStore } from '../store/useProfileStore';
 import { useTurmaStore } from '../store/useTurmaStore';
+import { useAuthStore } from '../store/useAuthStore';
 import { usePipelineStore } from '../store/usePipelineStore';
-import { goalService, type Goal } from '../services/goalService';
-import { cn, stageNameToStatus, getLeadEffectiveValue } from '../lib/utils';
+import { goalService } from '../services/goalService';
+import { cn, isVendedor } from '../lib/utils';
 
-import { MetricCard } from '../components/dashboard/MetricCard';
-import { CSSBarChart } from '../components/dashboard/CSSBarChart';
-import { HorizontalBar } from '../components/dashboard/HorizontalBar';
-import { LineTrendChart } from '../components/dashboard/LineTrendChart';
-import { DoughnutChart } from '../components/dashboard/DoughnutChart';
-import { FunnelChart } from '../components/dashboard/FunnelChart';
-import { GoalRing } from '../components/dashboard/GoalRing';
-import { ImprovedCSSBarChart } from '../components/dashboard/ImprovedCSSBarChart';
+import { useSalesMetrics } from '../hooks/useSalesMetrics';
+import { useFinanceMetrics } from '../hooks/useFinanceMetrics';
+import { SalesOverview } from '../components/dashboard/SalesOverview';
+import { PipelineFunnel } from '../components/dashboard/PipelineFunnel';
+import { TrendsSection } from '../components/dashboard/TrendsSection';
+import { FinanceOverview } from '../components/dashboard/FinanceOverview';
 
 type View = 'all' | 'sales' | 'finance';
 
 export function Dashboard() {
   const { hasPermission, loading: permissionsLoading } = usePermissions();
   const [view, setView] = useState<View>('all');
-  const navigate = useNavigate();
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
-  const { transactions, fetchTransactions, isLoading: financeLoading, subscribe: subscribeFinance } = useFinanceStore();
-  const { leads, fetchLeads, isLoading: leadsLoading, subscribeToLeads } = useLeadStore();
+  const { fetchTransactions, isLoading: financeLoading, subscribe: subscribeFinance } = useFinanceStore();
+  const { fetchLeads, isLoading: leadsLoading, subscribeToLeads } = useLeadStore();
   const { profiles, fetchProfiles } = useProfileStore();
-  const { turmas, fetchTurmas } = useTurmaStore();
-  const { pipelines, fetchPipelines } = usePipelineStore();
+  const { fetchTurmas } = useTurmaStore();
+  const { user: currentUser } = useAuthStore();
+  const { fetchPipelines } = usePipelineStore();
 
-  const [goals, setGoals] = useState<Goal[]>([]);
+  const [goals, setGoals] = useState<any[]>([]);
 
-  // Use refs to run fetch only once — avoids infinite loop caused by
-  // Zustand functions being recreated on every store update
   const didFetch = useRef(false);
+
+  useEffect(() => {
+    if (startDate || endDate) return;
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+    setStartDate(thirtyDaysAgo.toISOString().split('T')[0]);
+    setEndDate(today.toISOString().split('T')[0]);
+  }, []);
 
   const fetchInitialData = useCallback(async () => {
     if (didFetch.current) return;
@@ -58,7 +61,6 @@ export function Dashboard() {
     fetchInitialData();
   }, [fetchInitialData]);
 
-  // Realtime subscriptions — run once on mount
   useEffect(() => {
     const unsubLeads = subscribeToLeads();
     const unsubFinance = subscribeFinance();
@@ -70,212 +72,17 @@ export function Dashboard() {
 
   const isLoading = leadsLoading || financeLoading;
 
-  // ── Turma income (received payments from attendees) ─────────────
-  const turmaIncome = useMemo(
-    () => turmas.reduce((sum, t) =>
-      sum + t.attendees.reduce((s, a) =>
-        a.status !== 'cancelado' && a.valor_recebido ? s + a.valor_recebido : s, 0
-      ), 0
-    ),
-    [turmas]
-  );
+  const currentSellerName = useMemo(() => {
+    if (!currentUser) return null;
+    const sellerProfile = profiles.find(p => isVendedor(p) && p.name === currentUser.user_metadata?.name);
+    return sellerProfile?.name || null;
+  }, [profiles, currentUser]);
 
-  // ── Finance metrics ──────────────────────────────────────────────
-  const txIncome = useMemo(
-    () => transactions.filter(t => t.type === 'income').reduce((s, t) => s + Math.abs(t.amount), 0),
-    [transactions]
-  );
-  const totalIncome = txIncome + turmaIncome;
-
-  const totalExpense = useMemo(
-    () => transactions.filter(t => t.type === 'expense').reduce((s, t) => s + Math.abs(t.amount), 0),
-    [transactions]
-  );
-
-  const netProfit = totalIncome - totalExpense;
-  const margin = totalIncome > 0 ? (netProfit / totalIncome) * 100 : 0;
-
-  const incomeTransactions = useMemo(() => transactions.filter(t => t.type === 'income'), [transactions]);
-  const avgIncome = incomeTransactions.length > 0 ? totalIncome / incomeTransactions.length : 0;
-
-  // ── Sales metrics ────────────────────────────────────────────────
-  const closedLeads = useMemo(() => leads.filter(l => stageNameToStatus(l.status) === 'closed'), [leads]);
-  const conversionRate = leads.length > 0 ? (closedLeads.length / leads.length) * 100 : 0;
-  const totalSalesValue = useMemo(
-    () => closedLeads.reduce((s, l) => s + getLeadEffectiveValue(l), 0),
-    [closedLeads]
-  );
-
-  // ── Chart data ───────────────────────────────────────────────────
-  const last6Months = useMemo(() =>
-    Array.from({ length: 6 }, (_, i) => {
-      const d = new Date();
-      d.setMonth(d.getMonth() - (5 - i));
-      return {
-        label: d.toLocaleString('pt-BR', { month: 'short' }),
-        month: d.getMonth(),
-        year: d.getFullYear(),
-      };
-    }), []
-  );
-
-  const monthlyIncome = useMemo(() =>
-    last6Months.map(({ label, month, year }) => {
-      const txValue = transactions
-        .filter(t => t.type === 'income' && new Date(t.date).getMonth() === month && new Date(t.date).getFullYear() === year)
-        .reduce((s, t) => s + t.amount, 0);
-      const turmaValue = turmas
-        .filter(t => { const d = new Date(t.date); return d.getMonth() === month && d.getFullYear() === year; })
-        .reduce((sum, t) => sum + t.attendees.reduce((s, a) =>
-          a.status !== 'cancelado' && a.valor_recebido ? s + a.valor_recebido : s, 0
-        ), 0);
-      return { label, value: txValue + turmaValue };
-    }),
-    [last6Months, transactions, turmas]
-  );
-
-  const monthlyExpense = useMemo(() =>
-    last6Months.map(({ label, month, year }) => ({
-      label,
-      value: transactions
-        .filter(t => t.type === 'expense' && new Date(t.date).getMonth() === month && new Date(t.date).getFullYear() === year)
-        .reduce((s, t) => s + Math.abs(t.amount), 0),
-    })),
-    [last6Months, transactions]
-  );
-
-  const salesByProduct = useMemo(() =>
-    Object.values(
-      closedLeads.filter(l => l.product).reduce((acc: Record<string, { label: string; value: number }>, l) => {
-        const key = l.product;
-        acc[key] = acc[key] || { label: key, value: 0 };
-        acc[key].value += getLeadEffectiveValue(l);
-        return acc;
-      }, {})
-    ),
-    [closedLeads]
-  );
-
-const salesByResponsible = useMemo(() =>
-    Object.values(
-      closedLeads.filter(l => l.responsible).reduce((acc: Record<string, { label: string; value: number; count: number }>, l) => {
-        const key = l.responsible!;
-        acc[key] = acc[key] || { label: key, value: 0, count: 0 };
-        acc[key].value += getLeadEffectiveValue(l);
-        acc[key].count += 1;
-        return acc;
-      }, {})
-    ).sort((a, b) => b.value - a.value),
-    [closedLeads]
-  );
-
-  const sellerGoalMap = useMemo(() =>
-    goals.filter(g => g.type === 'seller').reduce((acc: Record<string, number>, g) => {
-      // seller_id stores the seller name in current implementation (upsertSellerGoal passes name as seller_id)
-      const key = g.seller_name || g.seller_id || '';
-      if (key) acc[key] = g.revenue_goal;
-      return acc;
-    }, {} as Record<string, number>),
-    [goals]
-  );
-
-const allSellersRanking = useMemo(() => {
-    const isVendedor = (p: { cargos?: { name?: string } | null }) =>
-      p.cargos?.name?.toLowerCase().includes('vend') ?? false;
-
-    const byName: Record<string, { label: string; value: number; count: number; percentage: number }> = {};
-    salesByResponsible.forEach(s => { 
-      byName[s.label] = { ...s, percentage: 0 };
-    });
-    profiles.filter(p => p.name && isVendedor(p)).forEach(p => {
-      if (!byName[p.name!]) byName[p.name!] = { label: p.name!, value: 0, count: 0, percentage: 0 };
-    });
-
-    Object.values(byName).forEach(s => {
-      const goal = sellerGoalMap[s.label];
-      s.percentage = goal && goal > 0 ? Math.round((s.value / goal) * 100) : 0;
-    });
-
-    return Object.values(byName).sort((a, b) => b.percentage - a.percentage);
-  }, [salesByResponsible, profiles, sellerGoalMap]);
-
-  const incomeByCategory = useMemo(() =>
-    Object.values(
-      transactions.filter(t => t.type === 'income' && t.category).reduce((acc: Record<string, { label: string; value: number }>, t) => {
-        const key = t.category!;
-        acc[key] = acc[key] || { label: key, value: 0 };
-        acc[key].value += t.amount;
-        return acc;
-      }, {})
-    ),
-    [transactions]
-  );
-
-  const expenseByCategory = useMemo(() =>
-    Object.values(
-      transactions.filter(t => t.type === 'expense' && t.category).reduce((acc: Record<string, { label: string; value: number }>, t) => {
-        const key = t.category!;
-        acc[key] = acc[key] || { label: key, value: 0 };
-        acc[key].value += Math.abs(t.amount);
-        return acc;
-      }, {})
-    ),
-    [transactions]
-  );
-
-  const fmt = (n: number) =>
-    n.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-
-  // ── Pipeline columns ─────────────────────────────────────────────
-  // Pipeline stages for charts — use real stages from the first active pipeline
-  // Stages that represent "exit" states (lost/disqualified) — excluded from funnel/distribution
-  const EXCLUDED_STAGE_NAMES = ['perda', 'aquecimento', 'desqualificado'];
-  const isExcludedStage = (name: string) =>
-    EXCLUDED_STAGE_NAMES.some(ex => name.toLowerCase().includes(ex));
-
-  const pipelineStages = useMemo(() => {
-    const activePipeline = pipelines.find(p => p.is_active) ?? pipelines[0];
-    if (activePipeline?.stages?.length) {
-      return activePipeline.stages
-        .filter(s => s.is_active && !isExcludedStage(s.name))
-        .sort((a, b) => a.position - b.position)
-        .map(s => ({
-          id: s.id,
-          label: s.name,
-          value: leads.filter(l => l.stage_id === s.id).length,
-          color: s.color,
-        }));
-    }
-    // Fallback to grouped statuses if no pipeline stages available
-    return [
-      { id: 'new', label: 'Novo', value: leads.filter(l => stageNameToStatus(l.status) === 'new').length, color: 'hsl(210, 80%, 55%)' },
-      { id: 'qualified', label: 'Qualificado', value: leads.filter(l => stageNameToStatus(l.status) === 'qualified').length, color: 'hsl(142, 71%, 45%)' },
-      { id: 'proposal', label: 'Proposta', value: leads.filter(l => stageNameToStatus(l.status) === 'proposal').length, color: 'hsl(262, 80%, 55%)' },
-      { id: 'closed', label: 'Fechado', value: closedLeads.length, color: 'hsl(0, 84%, 60%)' },
-    ];
-  }, [pipelines, leads, closedLeads]);
-
-  const monthlySales = useMemo(() =>
-    last6Months.map(({ label, month, year }) => ({
-      label,
-      value: closedLeads
-        .filter(l => new Date(l.created_at).getMonth() === month && new Date(l.created_at).getFullYear() === year)
-        .reduce((s, l) => s + getLeadEffectiveValue(l), 0),
-    })),
-    [last6Months, closedLeads]
-  );
-
-  const totalSalesGoal = useMemo(() =>
-    goals.reduce((sum, g) => sum + g.revenue_goal, 0),
-    [goals]
-  );
-
-  const pipeline = [
-    { id: 'new', label: 'Em Aberto', color: 'bg-blue-500', light: 'bg-blue-50 text-blue-600' },
-    { id: 'qualified', label: 'Qualificados', color: 'bg-emerald-500', light: 'bg-emerald-50 text-emerald-600' },
-    { id: 'proposal', label: 'Proposta', color: 'bg-purple-500', light: 'bg-purple-50 text-purple-600' },
-    { id: 'closed', label: 'Fechados', color: 'bg-rose-500', light: 'bg-rose-50 text-rose-600' },
-  ] as const;
+  const salesMetrics = useSalesMetrics({ currentSellerName, startDate, endDate, goals });
+  const financeMetrics = useFinanceMetrics();
+  const netProfit = financeMetrics.totalIncome - financeMetrics.totalExpense;
+  const margin = financeMetrics.margin;
+  const totalSalesGoal = goals.reduce((sum, g) => sum + (g.revenue_goal || 0), 0);
 
   if (permissionsLoading) return null;
 
@@ -286,7 +93,9 @@ const allSellersRanking = useMemo(() => {
           <ShieldAlert className="w-16 h-16 text-slate-400" />
         </div>
         <h2 className="text-3xl font-bold text-slate-800 mb-4">Dashboard Privado</h2>
-        <p className="text-xl text-slate-500 max-w-lg mb-8 leading-relaxed">Você precisa da permissão <code className="bg-slate-100 px-3 py-1.5 rounded-xl text-lg font-mono text-slate-700 shadow-sm border">dashboard.view</code> para acessar.</p>
+        <p className="text-xl text-slate-500 max-w-lg mb-8 leading-relaxed">
+          Você precisa da permissão <code className="bg-slate-100 px-3 py-1.5 rounded-xl text-lg font-mono text-slate-700 shadow-sm border">dashboard.view</code> para acessar.
+        </p>
         <p className="text-sm text-slate-400 uppercase tracking-widest font-bold">Contate o administrador</p>
       </div>
     );
@@ -323,206 +132,33 @@ const allSellersRanking = useMemo(() => {
         </div>
       </div>
 
-      {/* ── VENDAS view ─────────────────────────────────────────── */}
+      {/* Period Filter */}
+      {(view === 'sales' || view === 'finance') && (
+        <DateFilter
+          startDate={startDate}
+          endDate={endDate}
+          onStartDateChange={setStartDate}
+          onEndDateChange={setEndDate}
+          isLoading={isLoading}
+        />
+      )}
+
+      {/* Sales View */}
       {(view === 'all' || view === 'sales') && (
         <div>
-          {/* Sales metrics */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-8">
-            <MetricCard label="Leads Ativos" value={String(leads.length)} icon={Users} color="bg-emerald-50 text-emerald-600" />
-            <MetricCard label="Fechados" value={String(closedLeads.length)} icon={CheckCircle2} color="bg-blue-50 text-blue-600" />
-            <MetricCard label="Conversão" value={`${conversionRate.toFixed(1)}%`} icon={Percent} color="bg-purple-50 text-purple-600" />
-            <MetricCard
-              label="Em Proposta"
-              value={String(leads.filter(l => stageNameToStatus(l.status) === 'proposal').length)}
-              icon={ShoppingBag}
-              color="bg-rose-50 text-rose-600"
-            />
-          </div>
-
-          {/* Ranking + Sales by product */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-              <h3 className="font-bold text-slate-800 mb-6">Ranking de Vendedores (% Meta)</h3>
-              {allSellersRanking.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-40 text-slate-300">
-                  <Users className="w-10 h-10 mb-2 opacity-30" />
-                  <p className="text-xs font-medium">Sem dados ainda</p>
-                </div>
-              ) : (
-                <div className="space-y-5">
-                  {allSellersRanking.slice(0, 7).map((s, i) => (
-                    <HorizontalBar
-                      key={`rank-${s.label}-${i}`}
-                      label={s.label}
-                      value={s.percentage}
-                      max={100}
-                      rank={i}
-                      isCurrency={false}
-                      count={s.count}
-                      color={i === 0 ? 'bg-emerald-500' : i === 1 ? 'bg-blue-400' : i === 2 ? 'bg-purple-400' : 'bg-slate-300'}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-              <h3 className="font-bold text-slate-800 mb-4">Vendas por Produto</h3>
-              <ImprovedCSSBarChart data={salesByProduct.slice(0, 6)} color="hsl(210, 80%, 55%)" gradient showValues />
-            </div>
-          </div>
-
-          {/* New charts section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 gap-6 mb-8">
-            <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8">
-              <h3 className="font-bold text-xl text-slate-800 mb-6 flex items-center gap-2">
-                <Users className="w-6 h-6" />
-                Distribuição do Pipeline
-              </h3>
-              <DoughnutChart 
-                data={pipelineStages.map(s => ({ label: s.label, value: s.value, color: s.color }))} 
-                totalLabel="Leads" 
-              />
-            </div>
-
-            <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8">
-              <h3 className="font-bold text-xl text-slate-800 mb-6">Funil de Conversão</h3>
-              <FunnelChart
-                stages={pipelineStages.map((s, i) => ({
-                  label: s.label,
-                  count: s.value,
-                  color: s.color,
-                  icon: i === 0 ? Users : i === pipelineStages.length - 1 ? CheckCircle2 : i % 3 === 1 ? Filter : FileText
-                }))}
-                conversionRate={conversionRate}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <div className="lg:col-span-1 bg-white rounded-3xl border border-slate-100 shadow-xl p-8">
-              <h3 className="font-bold text-xl text-slate-800 mb-6">Tendência de Vendas</h3>
-              <LineTrendChart 
-                data={monthlySales} 
-                color="hsl(142, 71%, 45%)" 
-                trend={monthlySales[monthlySales.length - 1]?.value! > monthlySales[0]?.value! ? 'up' : 'down'}
-                suffix="k"
-              />
-            </div>
-
-            <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8">
-              <h3 className="font-bold text-xl text-slate-800 mb-6">Progresso da Meta Geral</h3>
-              <GoalRing 
-                current={totalSalesValue} 
-                target={totalSalesGoal} 
-                label="Vendas" 
-                color="hsl(142, 71%, 45%)"
-                size="lg"
-              />
-            </div>
-          </div>
-
-          {/* Pipeline summary */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden mb-8">
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="font-bold text-slate-800">Pipeline</h3>
-              <button
-                onClick={() => navigate('/pipeline')}
-                className="flex items-center gap-1 text-xs font-bold text-emerald-600 hover:underline"
-              >
-                Ver completo <ArrowRight className="w-3 h-3" />
-              </button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-100">
-              {pipeline.map(col => {
-                const colLeads = leads.filter(l => stageNameToStatus(l.status) === col.id);
-                const total = colLeads.reduce((s, l) => s + getLeadEffectiveValue(l), 0);
-                return (
-                  <div key={col.id} className="p-4 sm:p-6">
-                    <div className={cn('inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold mb-3', col.light)}>
-                      <span className={cn('w-1.5 h-1.5 rounded-full', col.color)} />
-                      {col.label}
-                    </div>
-                    <p className="text-2xl font-bold text-slate-800">{colLeads.length}</p>
-                    <p className="text-xs text-slate-400 mt-1">R$ {fmt(total)}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          <SalesOverview sales={salesMetrics} currentSellerName={currentSellerName} isLoading={isLoading} />
+          <PipelineFunnel sales={salesMetrics} />
+          <TrendsSection 
+            sales={salesMetrics} 
+            totalIncome={financeMetrics.totalIncome} 
+            totalSalesGoal={totalSalesGoal} 
+          />
         </div>
       )}
 
-      {/* ── FINANCEIRO view ─────────────────────────────────────── */}
+      {/* Finance View */}
       {(view === 'all' || view === 'finance') && (
-        <div>
-          {/* Finance metrics */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
-            <MetricCard label="Receita Total" value={`R$ ${fmt(totalIncome)}`} icon={TrendingUp} color="bg-emerald-50 text-emerald-600" />
-            <MetricCard label="Despesas" value={`R$ ${fmt(totalExpense)}`} icon={TrendingDown} color="bg-rose-50 text-rose-600" />
-            <MetricCard
-              label="Resultado"
-              value={`R$ ${fmt(Math.abs(netProfit))}`}
-              sub={netProfit >= 0 ? 'Positivo' : 'Negativo'}
-              icon={DollarSign}
-              color={netProfit >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}
-            />
-            <MetricCard label="Margem" value={`${margin.toFixed(1)}%`} icon={Percent} color="bg-blue-50 text-blue-600" />
-            <MetricCard label="Transações" value={String(transactions.length)} icon={BarChart2} color="bg-purple-50 text-purple-600" />
-            <MetricCard label="Ticket Médio" value={`R$ ${fmt(avgIncome)}`} icon={ShoppingBag} color="bg-amber-50 text-amber-600" />
-          </div>
-
-          {/* Monthly charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-              <h3 className="font-bold text-slate-800 mb-4">Receitas Mensais</h3>
-              <ImprovedCSSBarChart data={monthlyIncome} color="hsl(142, 71%, 45%)" gradient showValues />
-            </div>
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-              <h3 className="font-bold text-slate-800 mb-4">Despesas Mensais</h3>
-              <ImprovedCSSBarChart data={monthlyExpense} color="hsl(0, 84%, 60%)" gradient showValues />
-            </div>
-          </div>
-
-          {/* Category breakdowns */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-              <h3 className="font-bold text-slate-800 mb-4">Receita por Categoria</h3>
-              <ImprovedCSSBarChart data={incomeByCategory.slice(0, 6)} color="hsl(162, 74%, 47%)" gradient showValues />
-            </div>
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-              <h3 className="font-bold text-slate-800 mb-4">Despesa por Categoria</h3>
-              <ImprovedCSSBarChart data={expenseByCategory.slice(0, 6)} color="hsl(25, 90%, 55%)" gradient showValues />
-            </div>
-          </div>
-
-          {/* Finance trends */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8">
-              <h3 className="font-bold text-xl text-slate-800 mb-6">Tendência de Lucro Líquido</h3>
-              <LineTrendChart 
-                data={monthlyIncome.map((inc: any, i: number) => ({
-                  label: inc.label,
-                  value: inc.value - (monthlyExpense[i]?.value || 0)
-                }))} 
-                color={netProfit >= 0 ? 'hsl(142, 71%, 45%)' : 'hsl(0, 84%, 60%)'}
-                trend={netProfit >= 0 ? 'up' : 'down'}
-                suffix=""
-              />
-            </div>
-
-            <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8">
-              <h3 className="font-bold text-xl text-slate-800 mb-6">Margem de Lucro por Mês</h3>
-              <GoalRing 
-                current={Math.abs(netProfit)} 
-                target={totalIncome} 
-                label="Margem"
-                color={margin >= 20 ? 'hsl(142, 71%, 45%)' : margin >= 10 ? 'hsl(40, 90%, 55%)' : 'hsl(0, 84%, 60%)'}
-                size="lg"
-              />
-            </div>
-          </div>
-        </div>
+        <FinanceOverview finance={financeMetrics} netProfit={netProfit} margin={margin} />
       )}
     </div>
   );

@@ -9,6 +9,7 @@ import { useActivityCategoryStore } from '../../store/useActivityCategoryStore';
 import { useProfileStore } from '../../store/useProfileStore';
 import { cn } from '../../lib/utils';
 import { Task } from '../../services/taskService';
+import { resetLeadAlerts } from '../../services/alertService';
 
 interface NewActivityModalProps {
   isOpen: boolean;
@@ -107,6 +108,7 @@ export const NewActivityModal: React.FC<NewActivityModalProps> = ({
         lead_name: leadName,
         responsible: formData.responsible || undefined,
       });
+      if (leadId) resetLeadAlerts(leadId);
       onCreated?.();
       onClose();
       setFormData({

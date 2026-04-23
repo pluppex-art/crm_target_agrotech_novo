@@ -48,6 +48,34 @@ export async function notifyNewLead(lead: Lead, profiles: UserProfile[]): Promis
   });
 }
 
+export async function notifyLeadTransferred(
+  lead: Lead,
+  newResponsibleName: string,
+  profiles: UserProfile[]
+): Promise<void> {
+  const newResponsible = findProfileByName(newResponsibleName, profiles);
+  if (newResponsible) {
+    await insertNotificationForUser(newResponsible.id, {
+      title: `Lead transferido para você: ${lead.name}`,
+      message: `O lead ficou 48h sem contato e foi transferido. Produto: ${lead.product || 'N/A'} | Tel: ${lead.phone}`,
+      type: 'urgent',
+      category: 'user',
+      link: `/pipeline?lead=${lead.id}`,
+    });
+  }
+
+  const admins = findAdminProfiles(profiles);
+  for (const admin of admins) {
+    await insertNotificationForUser(admin.id, {
+      title: `Lead transferido: ${lead.name}`,
+      message: `Inativo por 48h. Transferido de ${lead.responsible || 'N/A'} para ${newResponsibleName}. Produto: ${lead.product || 'N/A'}`,
+      type: 'urgent',
+      category: 'system',
+      link: `/pipeline?lead=${lead.id}`,
+    });
+  }
+}
+
 export async function notifyLeadAssignment(
   lead: Lead,
   newResponsibleName: string,
@@ -67,6 +95,12 @@ export async function notifyLeadAssignment(
 
 const COORDINATOR_NOTIFY_KEYWORDS = ['contrato', 'ganho', 'fechado', 'aprovado', 'perdido'];
 
+function resolveStageType(stageLower: string): 'success' | 'urgent' | 'info' {
+  if (stageLower.includes('ganho') || stageLower.includes('aprovado') || stageLower.includes('fechado')) return 'success';
+  if (stageLower.includes('perdido')) return 'urgent';
+  return 'info';
+}
+
 export async function notifyStageChange(
   lead: Lead,
   stageName: string,
@@ -76,12 +110,13 @@ export async function notifyStageChange(
   const shouldNotify = COORDINATOR_NOTIFY_KEYWORDS.some(kw => stageLower.includes(kw));
   if (!shouldNotify) return;
 
+  const type = resolveStageType(stageLower);
   const admins = findAdminProfiles(profiles);
   for (const admin of admins) {
     await insertNotificationForUser(admin.id, {
       title: `Lead em "${stageName}": ${lead.name}`,
       message: `Responsável: ${lead.responsible || 'N/A'} | Produto: ${lead.product || 'N/A'} | Tel: ${lead.phone}`,
-      type: 'info',
+      type,
       category: 'system',
       link: `/pipeline?lead=${lead.id}`,
     });

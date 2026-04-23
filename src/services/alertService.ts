@@ -5,14 +5,15 @@ import { Task } from './taskService';
 
 // Inactivity alert levels
 const INACTIVITY_LEVELS = [
-  { key: 'm3',  ms: 3 * 60 * 1000,          label: '3 minutos' },
-  { key: 'm15', ms: 15 * 60 * 1000,         label: '15 minutos' },
-  { key: 'm30', ms: 30 * 60 * 1000,         label: '30 minutos' },
-  { key: 'h1',  ms: 1 * 60 * 60 * 1000,    label: '1 hora' },
-  { key: 'h6',  ms: 6 * 60 * 60 * 1000,    label: '6 horas' },
-  { key: 'h12', ms: 12 * 60 * 60 * 1000,   label: '12 horas' },
-  { key: 'h24', ms: 24 * 60 * 60 * 1000,   label: '24 horas' },
-  { key: 'h36', ms: 36 * 60 * 60 * 1000,   label: '36 horas' },
+  { key: 'm3', ms: 3 * 60 * 1000, label: '3 minutos', isTransfer: false },
+  { key: 'm15', ms: 15 * 60 * 1000, label: '15 minutos', isTransfer: false },
+  { key: 'm30', ms: 30 * 60 * 1000, label: '30 minutos', isTransfer: false },
+  { key: 'h1', ms: 1 * 60 * 60 * 1000, label: '1 hora', isTransfer: false },
+  { key: 'h6', ms: 6 * 60 * 60 * 1000, label: '6 horas', isTransfer: false },
+  { key: 'h12', ms: 12 * 60 * 60 * 1000, label: '12 horas', isTransfer: false },
+  { key: 'h24', ms: 24 * 60 * 60 * 1000, label: '24 horas', isTransfer: false },
+  { key: 'h36', ms: 36 * 60 * 60 * 1000, label: '36 horas', isTransfer: false },
+  { key: 'h48', ms: 48 * 60 * 60 * 1000, label: '48 horas', isTransfer: true },
 ] as const;
 
 type AlertKey = typeof INACTIVITY_LEVELS[number]['key'];
@@ -94,6 +95,7 @@ export interface InactivityAlert {
   lead: Lead;
   label: string;
   key: AlertKey;
+  isTransfer: boolean;
 }
 
 export interface InactivityCheckResult {
@@ -127,18 +129,18 @@ export function checkLeadInactivity(
     const elapsed = getMsWithoutContact(lead);
     const leadSent = sentAlerts[lead.id] || {};
 
-    if (elapsed >= autoTransferMs) {
-      toTransfer.push(lead);
-      continue;
-    }
-
-    // Find the highest threshold reached that hasn't been sent yet
+    // Find the highest threshold reached that hasn't been sent yet (includes h48)
     for (let i = INACTIVITY_LEVELS.length - 1; i >= 0; i--) {
       const level = INACTIVITY_LEVELS[i];
       if (elapsed >= level.ms && !leadSent[level.key]) {
-        alerts.push({ lead, label: level.label, key: level.key });
+        alerts.push({ lead, label: level.label, key: level.key, isTransfer: level.isTransfer });
         break;
       }
+    }
+
+    // Flag for transfer separately (after alert check so h48 still fires)
+    if (elapsed >= autoTransferMs) {
+      toTransfer.push(lead);
     }
   }
 
@@ -151,9 +153,13 @@ export async function fireAlerts(
   userPhone?: string
 ) {
   for (const alert of alerts) {
-    const { lead, label, key } = alert;
-    const title = `⚠️ ${lead.name} sem contato há ${label}`;
-    const body = `Responsável: ${lead.responsible || 'Não definido'} | Produto: ${lead.product}`;
+    const { lead, label, key, isTransfer } = alert;
+    const title = isTransfer
+      ? `🔄 ${lead.name} foi transferido para novo responsável`
+      : `⚠️ ${lead.name} sem contato há ${label}`;
+    const body = isTransfer
+      ? `Lead sem contato há ${label}. Transferido para novo responsável.`
+      : `Responsável: ${lead.responsible || 'Não definido'} | Produto: ${lead.product}`;
 
     sendOSNotification(title, body);
 

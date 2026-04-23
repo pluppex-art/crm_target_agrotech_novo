@@ -4,18 +4,18 @@ import { useSettingsStore } from '../store/useSettingsStore';
 import { useProfileStore } from '../store/useProfileStore';
 import type { Lead } from '../types/leads';
 import { checkLeadInactivity, fireAlerts } from '../services/alertService';
+import { notifyLeadTransferred } from '../services/leadNotificationService';
 import type { Task } from '../services/taskService';
 
 export const usePipelineAlerts = (leads: Lead[], tasks: Task[] = []) => {
   const { user } = useAuthStore();
-  const { autoTransferHours, fetchSettings } = useSettingsStore();
+  const { autoTransferHours, notificationPrefs, fetchSettings } = useSettingsStore();
   const { profiles } = useProfileStore();
 
   useEffect(() => {
     fetchSettings();
   }, [fetchSettings]);
 
-  // Only check inactivity for leads assigned to the current user
   const myLeads = useMemo(() => {
     if (!user) return [];
     const myProfile = profiles.find(p => p.id === user.id);
@@ -26,12 +26,20 @@ export const usePipelineAlerts = (leads: Lead[], tasks: Task[] = []) => {
 
   const runInactivityCheck = useCallback(() => {
     if (myLeads.length === 0) return;
-    const { alerts } = checkLeadInactivity(myLeads, autoTransferHours, tasks);
+    if (!notificationPrefs.leadInactive) return;
+
+    const { alerts, toTransfer } = checkLeadInactivity(myLeads, autoTransferHours, tasks);
+
     if (alerts.length > 0) {
       const userEmail = user?.email || '';
       fireAlerts(alerts, userEmail);
     }
-  }, [myLeads, autoTransferHours, user, tasks]);
+
+    // Notify admins/coordinators for leads that reached the transfer threshold
+    for (const lead of toTransfer) {
+      notifyLeadTransferred(lead, lead.responsible || '', profiles);
+    }
+  }, [myLeads, autoTransferHours, notificationPrefs, user, tasks, profiles]);
 
   useEffect(() => {
     runInactivityCheck();

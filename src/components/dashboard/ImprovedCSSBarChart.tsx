@@ -19,7 +19,7 @@ export function ImprovedCSSBarChart({
 
   if (!hasData) {
     return (
-      <div className="flex flex-col items-center justify-center h-44 text-slate-300 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50">
+      <div className="flex flex-col items-center justify-center flex-1 min-h-[180px] text-slate-300 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50">
         <BarChart2 className="w-10 h-10 mb-2 opacity-40" />
         <p className="text-sm font-semibold text-slate-400">{emptyLabel}</p>
       </div>
@@ -34,25 +34,22 @@ export function ImprovedCSSBarChart({
       : n.toLocaleString('pt-BR');
 
   return (
-    <div className="w-full">
-      <div className="flex items-end justify-between gap-2 h-44 pb-1">
+    <div className="w-full flex flex-col flex-1">
+      <div className="flex items-end gap-2 flex-1 min-h-[180px] pb-1">
         {data.map((d, i) => {
           const pct = Math.max((d.value / max) * 100, 3);
           return (
             <div
               key={`${d.label}-${i}`}
-              className="flex-1 flex flex-col items-center justify-end gap-1 h-full group"
+              className="flex-1 flex flex-col items-center justify-end gap-1 h-full group min-w-0"
             >
-              {/* Value above bar */}
               {showValues && (
                 <span className="text-[11px] font-bold text-slate-600 leading-none">
                   {fmt(d.value)}
                 </span>
               )}
-
-              {/* Bar */}
               <div
-                className="w-full rounded-t-lg transition-all duration-500 group-hover:opacity-80"
+                className="w-full rounded-t-lg transition-all duration-500 group-hover:opacity-80 min-w-[20px]"
                 style={{
                   height: `${pct}%`,
                   backgroundColor: color,
@@ -64,15 +61,14 @@ export function ImprovedCSSBarChart({
         })}
       </div>
 
-      {/* X-axis labels */}
-      <div className="flex justify-between gap-2 mt-2 border-t border-slate-100 pt-2">
+      <div className="flex gap-2 mt-2 border-t border-slate-100 pt-2">
         {data.map((d, i) => (
-          <div key={`label-${i}`} className="flex-1 text-center">
+          <div key={`label-${i}`} className="flex-1 text-center min-w-0">
             <span
-              className="text-[10px] font-medium text-slate-500 leading-tight block"
+              className="text-[10px] font-medium text-slate-500 leading-tight block truncate px-0.5"
               title={d.label}
             >
-              {d.label.length > 10 ? d.label.slice(0, 10) + '…' : d.label}
+              {d.label}
             </span>
           </div>
         ))}

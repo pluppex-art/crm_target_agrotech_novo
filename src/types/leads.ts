@@ -1,54 +1,23 @@
-export type LeadStatus = string;
-export type LeadSubStatus = 'qualified' | 'warming' | 'disqualified';
+export type LeadStatus = 'new' | 'qualified' | 'proposal' | 'closed';
 
-export interface LeadHistory {
-  id: string;
-  date: string;
-  time: string;
-  description: string;
-}
+export type LeadSubStatus = string | null;
 
 export interface Lead {
   id: string;
   name: string;
   phone: string;
-  email: string;
-  product: string;
-  value: number;
-  stars: number;
-  photo: string;
+  email: string | null;
   status: LeadStatus;
-  subStatus: LeadSubStatus | null;
-  pipeline_id?: string;
-  stage_id?: string;
-  stage?: {
-    name: string;
-    color: string;
-    position: number;
-  };
-  pipeline?: {
-    name: string;
-  };
-  cnpj?: string;
-  city?: string;
-  discount?: string;
+  subStatus: LeadSubStatus;
+  stage_id: string;
+  pipeline_id: string;
+  responsible: string | null;
+  value: string | number;
+  discount?: string | number;
   discount_type?: 'percent' | 'money';
   discount_applied?: boolean;
-  responsible?: string;
-  pix_completed?: boolean;
-  contract_signed?: boolean;
-  valor_recebido?: number;
-  forma_pagamento?: string;
-  taxa_matricula_recebido?: number;
-  last_contact_at?: string;
-  history?: LeadHistory[];
-  motivo_perda?: string;
+  product: string | null;
   created_at: string;
-  // Attachments for Ganho stage (Seller)
-  payment_proof_url?: string | null;
-  contract_url?: string | null;
-  // Attachments for Ganho stage (Professor)
-  professor_proof_url?: string | null;
+  updated_at: string | null;
 }
-
 
