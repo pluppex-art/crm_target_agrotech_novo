@@ -103,13 +103,21 @@ export function useSalesMetrics({
     );
   }, [turmas]);
 
-  // Build seller goal map from goals
+  // Build seller goal map from goals (trim names to handle trailing spaces in DB)
   const sellerGoalMap = useMemo(() => {
-    return goals.reduce((acc: Record<string, number>, g: any) => {
-      const key = g.seller_name || g.seller_id || '';
-      if (key && g.revenue_goal) acc[key] = g.revenue_goal;
-      return acc;
-    }, {});
+    return goals.reduce(
+      (acc: Record<string, { revenue_goal: number; leads_goal: number }>, g: any) => {
+        const key = (g.seller_name || g.seller_id || '').trim();
+        if (key) {
+          acc[key] = {
+            revenue_goal: g.revenue_goal || 0,
+            leads_goal: g.leads_goal || 0,
+          };
+        }
+        return acc;
+      },
+      {}
+    );
   }, [goals]);
 
   const allSellersRanking = useMemo(() => {
@@ -142,18 +150,28 @@ export function useSalesMetrics({
     });
 
     // Calculate percentage based on goals
+    // Use revenue/revenue_goal when revenue > 0, otherwise count/leads_goal
     Object.values(byName).forEach((s: any) => {
-      const goal = sellerGoalMap[s.label];
-      s.percentage =
-        goal && goal > 0 ? Math.round((s.value / goal) * 100) : 0;
+      const goal = sellerGoalMap[s.label.trim()];
+      if (goal) {
+        if (s.value > 0 && goal.revenue_goal > 0) {
+          s.percentage = Math.round((s.value / goal.revenue_goal) * 100);
+        } else if (s.count > 0 && goal.leads_goal > 0) {
+          s.percentage = Math.round((s.count / goal.leads_goal) * 100);
+        } else {
+          s.percentage = 0;
+        }
+      } else {
+        s.percentage = 0;
+      }
     });
 
-    // Fallback: if no seller has a goal set, rank relative to top performer by value
+    // Fallback: if no seller has a goal set, rank relative to top performer by count
     const hasGoals = Object.values(byName).some((s: any) => s.percentage > 0);
-    if (!hasGoals && Object.values(byName).some((s: any) => s.value > 0)) {
-      const maxValue = Math.max(...Object.values(byName).map((s: any) => s.value), 1);
+    if (!hasGoals) {
+      const maxCount = Math.max(...Object.values(byName).map((s: any) => s.count), 1);
       Object.values(byName).forEach((s: any) => {
-        s.percentage = Math.round((s.value / maxValue) * 100);
+        s.percentage = Math.round((s.count / maxCount) * 100);
       });
     }
 
