@@ -192,8 +192,7 @@ export const fmt = (n: number) =>
   n.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
 
-import type { Turma, TurmaAttendee, AttendanceStatus } from '../services/turmaService';
-import type { PipelineStage } from '../types/pipelines';
+import type { Turma, AttendanceStatus } from '../services/turmaService';
 
 export interface FunnelStage {
   id: string;
@@ -259,6 +258,7 @@ export function getOccupancyData(turmas: Turma[]): Array<{
   alunos: number;
   capacity: number;
   color: string;
+  category: string;
 }> {
   return turmas.map((t, i) => {
     const activeStatuses: AttendanceStatus[] = ['matriculado', 'confirmado'];
@@ -275,7 +275,13 @@ export function getOccupancyData(turmas: Turma[]): Array<{
     const hue = (i * 360 / turmas.length) % 360;
     const color = `hsl(${hue}, 70%, 50%)`;
 
-    return { name: t.name, pct, level, alunos: active, capacity: cap, color };
+    const nameLower = t.name.toLowerCase();
+    const nameText = nameLower.replace(/^[^a-z]*/i, ''); // strip leading emojis/spaces
+    const effectiveCategory =
+      nameText.startsWith('drone') ? 'Drone' :
+      nameText.startsWith('ia') ? 'Inseminação Artificial' :
+      t.category;
+    return { name: t.name, pct, level, alunos: active, capacity: cap, color, category: effectiveCategory };
   }).sort((a, b) => b.pct - a.pct); // Top occupancy first
 }
 

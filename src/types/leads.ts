@@ -19,5 +19,8 @@ export interface Lead {
   product: string | null;
   created_at: string;
   updated_at: string | null;
+  lead_source?: string | null;
+  valor_recebido?: number | null;
+  taxa_matricula_recebido?: number | null;
 }
 

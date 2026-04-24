@@ -1,6 +1,5 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
-import { DateFilter } from '../components/finance/DateFilter';
-import { Loader2, ShieldAlert } from 'lucide-react';
+import { Loader2, ShieldAlert, Users, Filter, Search, ChevronDown, X, Calendar, GitBranch, Package, User } from 'lucide-react';
 import { usePermissions } from '../hooks/usePermissions';
 import { useLeadStore } from '../store/useLeadStore';
 import { useFinanceStore } from '../store/useFinanceStore';
@@ -9,20 +8,90 @@ import { useTurmaStore } from '../store/useTurmaStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { usePipelineStore } from '../store/usePipelineStore';
 import { goalService } from '../services/goalService';
-import { cn, isVendedor } from '../lib/utils';
+import { isVendedor, fmt } from '../lib/utils';
 
 import { useSalesMetrics } from '../hooks/useSalesMetrics';
 import { useFinanceMetrics } from '../hooks/useFinanceMetrics';
-import { SalesOverview } from '../components/dashboard/SalesOverview';
-import { PipelineFunnel } from '../components/dashboard/PipelineFunnel';
+import { MetricCard } from '../components/dashboard/MetricCard';
+import { HorizontalBar } from '../components/dashboard/HorizontalBar';
+import { DoughnutChart } from '../components/dashboard/DoughnutChart';
+import { FunnelChart } from '../components/dashboard/FunnelChart';
 import { TrendsSection } from '../components/dashboard/TrendsSection';
-import { FinanceOverview } from '../components/dashboard/FinanceOverview';
+import { ImprovedCSSBarChart } from '../components/dashboard/ImprovedCSSBarChart';
 
-type View = 'all' | 'sales' | 'finance';
+type OccupancyItem = { name: string; pct: number; level: 'red' | 'yellow' | 'green'; alunos: number; capacity: number; color: string; category: string };
+
+const CATEGORY_ICONS: Record<string, string> = {
+  'Drone': '🚁',
+  'Inseminação Artificial': '🐄',
+  'Inseminação': '🐄',
+  'Inseminacao': '🐄',
+};
+
+function OccupancyCard({ occupancyData }: { occupancyData: OccupancyItem[] }) {
+  const categories = useMemo(() => {
+    const seen = new Set<string>();
+    occupancyData.forEach(d => seen.add(d.category));
+    return Array.from(seen).sort();
+  }, [occupancyData]);
+
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+
+  // Auto-select the category with the most turmas once data loads
+  useEffect(() => {
+    if (activeCategory === null && categories.length > 0) {
+      const best = categories.reduce((a, b) =>
+        occupancyData.filter(d => d.category === b).length > occupancyData.filter(d => d.category === a).length ? b : a
+      , categories[0]);
+      setActiveCategory(best);
+    }
+  }, [categories, activeCategory, occupancyData]);
+
+  const filtered = activeCategory
+    ? occupancyData.filter(d => d.category === activeCategory)
+    : occupancyData;
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col">
+      <div className="flex items-center justify-between mb-5">
+        <h3 className="font-bold text-slate-800">Taxa de Ocupação por Turma</h3>
+        {categories.length > 1 && (
+          <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1">
+            {categories.map(cat => {
+              const icon = CATEGORY_ICONS[cat] ?? cat.charAt(0);
+              const isActive = activeCategory === cat;
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
+                  title={cat}
+                  className={`w-8 h-8 rounded-lg text-base flex items-center justify-center transition-all ${
+                    isActive ? 'bg-white shadow-sm' : 'opacity-50 hover:opacity-75'
+                  }`}
+                >
+                  {icon}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+      <ImprovedCSSBarChart
+        data={filtered.map(d => ({
+          label: d.name,
+          value: d.alunos,
+          color: d.alunos > 0 ? '#10b981' : '#cbd5e1',
+        }))}
+        emptyLabel="Nenhuma turma cadastrada"
+        minBarWidth={72}
+        chartHeight={240}
+      />
+    </div>
+  );
+}
 
 export function Dashboard() {
   const { hasPermission, loading: permissionsLoading } = usePermissions();
-  const [view, setView] = useState<View>('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
@@ -34,8 +103,47 @@ export function Dashboard() {
   const { fetchPipelines } = usePipelineStore();
 
   const [goals, setGoals] = useState<any[]>([]);
-
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStage, setFilterStage] = useState('all');
+  const [filterProduct, setFilterProduct] = useState('all');
+  const [filterResponsible, setFilterResponsible] = useState('all');
+  const [selectedMonth, setSelectedMonth] = useState('all');
   const didFetch = useRef(false);
+
+  const monthOptions = useMemo(() => Array.from({ length: 12 }, (_, i) => {
+    const d = new Date();
+    d.setDate(1);
+    d.setMonth(d.getMonth() - i);
+    const year = d.getFullYear();
+    const month = d.getMonth();
+    return {
+      value: `${year}-${String(month + 1).padStart(2, '0')}`,
+      label: d.toLocaleString('pt-BR', { month: 'long', year: 'numeric' }),
+    };
+  }), []);
+
+  const handleMonthSelect = useCallback((val: string) => {
+    setSelectedMonth(val);
+    if (val === 'all') return;
+    const [y, m] = val.split('-').map(Number);
+    const start = new Date(y, m - 1, 1);
+    const end = new Date(y, m, 0);
+    setStartDate(start.toISOString().split('T')[0]);
+    setEndDate(end.toISOString().split('T')[0]);
+  }, []);
+
+  const handleStartDateChange = useCallback((v: string) => { setStartDate(v); setSelectedMonth('all'); }, []);
+  const handleEndDateChange = useCallback((v: string) => { setEndDate(v); setSelectedMonth('all'); }, []);
+
+  const clearAllFilters = useCallback(() => {
+    setSearchTerm('');
+    setFilterStage('all');
+    setFilterProduct('all');
+    setFilterResponsible('all');
+    setSelectedMonth('all');
+    setStartDate('');
+    setEndDate('');
+  }, []);
 
   useEffect(() => {
     if (startDate || endDate) return;
@@ -57,17 +165,12 @@ export function Dashboard() {
     setGoals(goalsData);
   }, [fetchLeads, fetchTransactions, fetchProfiles, fetchTurmas, fetchPipelines]);
 
-  useEffect(() => {
-    fetchInitialData();
-  }, [fetchInitialData]);
+  useEffect(() => { fetchInitialData(); }, [fetchInitialData]);
 
   useEffect(() => {
     const unsubLeads = subscribeToLeads();
     const unsubFinance = subscribeFinance();
-    return () => {
-      unsubLeads?.();
-      unsubFinance?.();
-    };
+    return () => { unsubLeads?.(); unsubFinance?.(); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isLoading = leadsLoading || financeLoading;
@@ -78,10 +181,11 @@ export function Dashboard() {
     return sellerProfile?.name || null;
   }, [profiles, currentUser]);
 
-  const salesMetrics = useSalesMetrics({ currentSellerName, startDate, endDate, goals });
+  const salesMetrics = useSalesMetrics({
+    currentSellerName, startDate, endDate, goals,
+    searchTerm, filterStage, filterProduct, filterResponsible,
+  });
   const financeMetrics = useFinanceMetrics();
-  const netProfit = financeMetrics.totalIncome - financeMetrics.totalExpense;
-  const margin = financeMetrics.margin;
   const totalSalesGoal = goals.reduce((sum, g) => sum + (g.revenue_goal || 0), 0);
 
   if (permissionsLoading) return null;
@@ -104,62 +208,223 @@ export function Dashboard() {
   return (
     <div className="flex-1 overflow-y-auto p-6 bg-[#f3f6f9] min-h-full">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">
-            {view === 'all' ? 'Dashboard' : view === 'sales' ? 'Dashboard de Vendas' : 'Dashboard Financeiro'}
-          </h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            {view === 'all' ? 'Visão geral do CRM.' : view === 'sales' ? 'Performance comercial e pipeline.' : 'Fluxo de caixa e transações.'}
-          </p>
+          <h1 className="text-2xl font-bold text-slate-800">Dashboard de Vendas</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Performance comercial e pipeline.</p>
         </div>
-        <div className="flex items-center gap-3">
-          {isLoading && <Loader2 className="w-4 h-4 text-emerald-600 animate-spin" />}
-          <div className="bg-white border border-slate-200 p-1 rounded-xl flex gap-1">
-            {(['all', 'sales', 'finance'] as View[]).map(v => (
-              <button
-                key={v}
-                onClick={() => setView(v)}
-                className={cn(
-                  'px-4 py-1.5 text-xs font-bold rounded-lg transition-all',
-                  view === v ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'
+        {isLoading && <Loader2 className="w-5 h-5 text-emerald-600 animate-spin" />}
+      </div>
+
+      {/* Unified Filters */}
+      {(() => {
+        const activeCount = [
+          searchTerm,
+          filterStage !== 'all' ? filterStage : '',
+          filterProduct !== 'all' ? filterProduct : '',
+          filterResponsible !== 'all' ? filterResponsible : '',
+          startDate || endDate ? 'date' : '',
+        ].filter(Boolean).length;
+
+        const selectCls = (active: boolean) =>
+          `w-full pr-8 py-2 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none cursor-pointer text-sm font-medium transition-all text-ellipsis whitespace-nowrap overflow-hidden ${
+            active ? 'bg-emerald-50/50 border-emerald-300 text-emerald-800' : 'border-gray-200 text-gray-700'
+          }`;
+
+        return (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm mb-6">
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+              <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                <Filter size={16} className={activeCount > 0 ? 'text-emerald-600' : 'text-gray-400'} />
+                <span>Filtros</span>
+                {activeCount > 0 && (
+                  <span className="flex items-center justify-center min-w-[20px] h-5 px-1 text-[10px] font-black bg-emerald-600 text-white rounded-full">
+                    {activeCount}
+                  </span>
                 )}
-              >
-                {v === 'all' ? 'Tudo' : v === 'sales' ? 'Vendas' : 'Financeiro'}
-              </button>
-            ))}
+              </div>
+              <div className="flex items-center gap-2">
+                {isLoading && <Loader2 className="w-4 h-4 text-emerald-600 animate-spin" />}
+                {activeCount > 0 && (
+                  <button onClick={clearAllFilters} className="text-xs font-semibold text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded-lg transition-colors">
+                    Limpar
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Inputs */}
+            <div className="flex flex-wrap items-center gap-3 p-4">
+              {/* Search */}
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
+                <input
+                  type="text"
+                  placeholder="Buscar por nome, produto ou responsável..."
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  className="w-full pl-9 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-sm"
+                />
+                {searchTerm && (
+                  <button onClick={() => setSearchTerm('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
+
+              {/* Month */}
+              <div className="relative min-w-[160px] shrink-0">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+                <select
+                  value={selectedMonth}
+                  onChange={e => handleMonthSelect(e.target.value)}
+                  className={`pl-9 ${selectCls(selectedMonth !== 'all')}`}
+                >
+                  <option value="all">Todos os meses</option>
+                  {monthOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={13} />
+              </div>
+
+              {/* De */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="text-xs font-bold text-slate-400 uppercase">De:</span>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={e => handleStartDateChange(e.target.value)}
+                  className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
+                />
+              </div>
+
+              {/* Até */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="text-xs font-bold text-slate-400 uppercase">Até:</span>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={e => handleEndDateChange(e.target.value)}
+                  className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
+                />
+              </div>
+
+              {/* Stage */}
+              <div className="relative min-w-[160px] shrink-0">
+                <GitBranch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+                <select value={filterStage} onChange={e => setFilterStage(e.target.value)} className={`pl-9 ${selectCls(filterStage !== 'all')}`}>
+                  <option value="all">Todos os estágios</option>
+                  {salesMetrics.pipelineStages.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                </select>
+                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={13} />
+              </div>
+
+              {/* Product */}
+              <div className="relative min-w-[160px] shrink-0">
+                <Package className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+                <select value={filterProduct} onChange={e => setFilterProduct(e.target.value)} className={`pl-9 ${selectCls(filterProduct !== 'all')}`}>
+                  <option value="all">Todos os produtos</option>
+                  {salesMetrics.availableProducts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={13} />
+              </div>
+
+              {/* Responsible */}
+              <div className="relative min-w-[160px] shrink-0">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+                <select value={filterResponsible} onChange={e => setFilterResponsible(e.target.value)} className={`pl-9 ${selectCls(filterResponsible !== 'all')}`}>
+                  <option value="all">Todos responsáveis</option>
+                  {salesMetrics.availableResponsibles.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={13} />
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* KPI Metrics */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
+        <MetricCard label="Leads Ativos" value={String(salesMetrics.leadsCount)} icon={Users} color="bg-emerald-50 text-emerald-600" />
+        <MetricCard label="Ganhos Totais" value={`R$ ${fmt(salesMetrics.totalGanhos)}`} icon={Users} color="bg-emerald-50 text-emerald-600" />
+        {currentSellerName ? (
+          <>
+            <MetricCard label="Meus Ganhos" value={`R$ ${fmt(salesMetrics.myGanhos)}`} icon={Users} color="bg-blue-50 text-blue-600" />
+            <MetricCard label="Equipe" value={`R$ ${fmt(salesMetrics.teamGanhos)}`} icon={Users} color="bg-purple-50 text-purple-600" />
+          </>
+        ) : (
+          <MetricCard label="Conversão" value={`${salesMetrics.conversionRate.toFixed(1)}%`} icon={Users} color="bg-purple-50 text-purple-600" />
+        )}
+        <MetricCard label="Em Proposta" value={String(salesMetrics.pipelineStages.find(s => s.label === 'Proposta')?.value || 0)} icon={Users} color="bg-rose-50 text-rose-600" />
+      </div>
+
+      {/* ── Ranking + Taxa de Ocupação ── */}
+      <div className="flex flex-col gap-6 mb-6">
+
+        {/* Ranking de Vendedores */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col">
+          <h3 className="font-bold text-slate-800 mb-5">Ranking de Vendedores</h3>
+          {salesMetrics.allSellersRanking.length === 0 ? (
+            <div className="flex flex-col items-center justify-center flex-1 py-10 text-slate-300">
+              <Users className="w-10 h-10 mb-2 opacity-30" />
+              <p className="text-xs font-medium">Sem vendedores cadastrados</p>
+            </div>
+          ) : (
+            <div className="space-y-5 flex-1">
+              {salesMetrics.allSellersRanking.slice(0, 7).map((s, i) => (
+                <HorizontalBar
+                  key={s.label}
+                  label={s.label}
+                  value={s.value}
+                  received={s.received}
+                  max={s.revenue_goal}
+                  percentage={s.percentage}
+                  rank={i}
+                  count={s.count}
+                  color={i === 0 ? 'bg-emerald-500' : i === 1 ? 'bg-blue-400' : i === 2 ? 'bg-purple-400' : 'bg-slate-300'}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Taxa de Ocupação por Turma */}
+        <OccupancyCard occupancyData={salesMetrics.occupancyData} />
+      </div>
+
+      {/* ── Linha 2: Pipeline + Funil ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col overflow-hidden">
+          <h3 className="font-bold text-slate-800 mb-5">Distribuição do Pipeline</h3>
+          <div className="flex-1 flex items-center justify-center overflow-hidden">
+            <DoughnutChart
+              data={salesMetrics.pipelineStages.map(s => ({ label: s.label, value: s.value, color: s.color }))}
+              totalLabel="Leads"
+            />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col overflow-hidden">
+          <h3 className="font-bold text-slate-800 mb-5">Funil de Conversão</h3>
+          <div className="flex-1 overflow-hidden">
+            <FunnelChart
+              stages={salesMetrics.funnelStagesWithRates.map(s => ({
+                label: s.label,
+                count: s.value,
+                color: s.color,
+              }))}
+              conversionRate={salesMetrics.totalConversionRate}
+            />
           </div>
         </div>
       </div>
 
-      {/* Period Filter */}
-      {(view === 'sales' || view === 'finance') && (
-        <DateFilter
-          startDate={startDate}
-          endDate={endDate}
-          onStartDateChange={setStartDate}
-          onEndDateChange={setEndDate}
-          isLoading={isLoading}
-        />
-      )}
-
-      {/* Sales View */}
-      {(view === 'all' || view === 'sales') && (
-        <div>
-          <SalesOverview sales={salesMetrics} currentSellerName={currentSellerName} isLoading={isLoading} />
-          <PipelineFunnel sales={salesMetrics} />
-          <TrendsSection 
-            sales={salesMetrics} 
-            totalIncome={financeMetrics.totalIncome} 
-            totalSalesGoal={totalSalesGoal} 
-          />
-        </div>
-      )}
-
-      {/* Finance View */}
-      {(view === 'all' || view === 'finance') && (
-        <FinanceOverview finance={financeMetrics} netProfit={netProfit} margin={margin} />
-      )}
+      {/* Trends + Meta */}
+      <TrendsSection
+        sales={salesMetrics}
+        totalIncome={financeMetrics.totalIncome}
+        totalSalesGoal={totalSalesGoal}
+      />
     </div>
   );
 }

@@ -2,19 +2,20 @@ import { cn } from '../../lib/utils';
 
 interface HorizontalBarProps {
   label: string;
-  value: number;     // vendas (total committed) — shown as info only
-  received: number;  // valor_recebido (actually paid) — drives bar and %
-  max: number;       // revenue goal
+  value: number;
+  received: number;
+  max: number;
+  percentage: number; // pre-computed fallback when max=0
   color: string;
   rank: number;
   count?: number;
 }
 
-export function HorizontalBar({ label, received, max, color, rank, count }: HorizontalBarProps) {
-  const pct = max > 0 ? Math.min((received / max) * 100, 100) : 0;
-  const barWidth = received > 0 ? Math.max(pct, 6) : 0;
+export function HorizontalBar({ label, received, max, percentage: precomputedPct, color, rank, count }: HorizontalBarProps) {
+  const pct = (max > 0 && received > 0) ? Math.min((received / max) * 100, 100) : precomputedPct;
+  const barWidth = pct > 0 ? Math.max(pct, 6) : 0;
   const medal = rank === 0 ? '🥇' : rank === 1 ? '🥈' : rank === 2 ? '🥉' : `${rank + 1}º`;
-  const percentage = max > 0 ? Math.round((received / max) * 100) : 0;
+  const percentage = Math.round(pct);
 
   return (
     <div className="group">
@@ -34,7 +35,7 @@ export function HorizontalBar({ label, received, max, color, rank, count }: Hori
       </div>
 
 <div className="relative h-5 bg-gradient-to-r from-slate-100 to-slate-200 rounded-2xl shadow-inner overflow-hidden group-hover:shadow-md transition-all duration-300">
-        {received > 0 ? (
+        {barWidth > 0 ? (
           <>
             <div
               className={cn('h-full rounded-2xl shadow-lg relative overflow-hidden transition-all duration-1000 ease-out group-hover:shadow-xl', color)}

@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/layout/Layout';
+import { SettingsLayout } from './components/layout/SettingsLayout';
 import { Dashboard } from './pages/Dashboard';
 import { Pipeline } from './pages/Pipeline';
 import { Leads } from './pages/Leads';
 import { Tasks } from './pages/Tasks';
-import { Settings } from './pages/Settings';
 import { Permissions } from './pages/Permissions';
 import { Profile } from './pages/settings/Profile';
 import { Notifications } from './pages/settings/Notifications';
@@ -18,6 +18,8 @@ import { ManageCargos } from './pages/settings/ManageCargos';
 import { ManageCategories } from './pages/settings/ManageCategories';
 import { ManageActivityCategories } from './pages/settings/ManageActivityCategories';
 import { ManageGoals } from './pages/settings/ManageGoals';
+import { ManageCommissions } from './pages/settings/ManageCommissions';
+import { ManageTurmas } from './pages/settings/ManageTurmas';
 import { Finance } from './pages/Finance';
 import { AIChat } from './pages/AIChat';
 import { Contracts } from './pages/Contracts';
@@ -109,19 +111,23 @@ export default function App() {
           <Route path="/tasks" element={<Tasks />} />
           <Route path="/turmas" element={<Turmas />} />
           <Route path="/notifications" element={<NotificationsPage />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/settings/permissions" element={<Permissions />} />
-          <Route path="/settings/profile" element={<Profile />} />
-          <Route path="/settings/users" element={<Users />} />
-          <Route path="/settings/notifications" element={<Notifications />} />
-          <Route path="/settings/security" element={<Security />} />
-          <Route path="/settings/integrations" element={<Integrations />} />
-        <Route path="/settings/pipelines" element={<ManagePipelines />} />
-        <Route path="/settings/checklists" element={<ManageStageChecklists />} />
-        <Route path="/settings/cargos" element={<ManageCargos />} />
-  <Route path="/settings/categories" element={<ManageCategories />} />
-  <Route path="/settings/activity-categories" element={<ManageActivityCategories />} />
-  <Route path="/settings/goals" element={<ManageGoals />} />
+          <Route path="/settings" element={<SettingsLayout />}>
+            <Route index element={<Navigate to="/settings/profile" replace />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="users" element={<Users />} />
+            <Route path="goals" element={<ManageGoals />} />
+            <Route path="checklists" element={<ManageStageChecklists />} />
+            <Route path="turmas" element={<ManageTurmas />} />
+            <Route path="notifications" element={<Notifications />} />
+            <Route path="security" element={<Security />} />
+            <Route path="integrations" element={<Integrations />} />
+            <Route path="permissions" element={<Permissions />} />
+            <Route path="cargos" element={<ManageCargos />} />
+            <Route path="pipelines" element={<ManagePipelines />} />
+            <Route path="categories" element={<ManageCategories />} />
+            <Route path="activity-categories" element={<ManageActivityCategories />} />
+            <Route path="commissions" element={<ManageCommissions />} />
+          </Route>
   <Route path="/analytics" element={<Dashboard />} /> {/* Placeholder */}
         </Route>
       </Routes>

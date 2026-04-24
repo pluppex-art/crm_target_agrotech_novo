@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useLeadStore } from '../store/useLeadStore';
 import { useTurmaStore } from '../store/useTurmaStore';
 import { useProfileStore } from '../store/useProfileStore';
+import { usePipelineStore } from '../store/usePipelineStore';
 import {
   isVendedor,
   getSellerIncome,
@@ -46,6 +47,8 @@ export interface SalesMetrics {
     value: number;
     color: string;
   }>;
+  availableProducts: Array<{ value: string; label: string }>;
+  availableResponsibles: Array<{ value: string; label: string }>;
 }
 
 interface UseSalesMetricsProps {
@@ -53,6 +56,10 @@ interface UseSalesMetricsProps {
   startDate?: string;
   endDate?: string;
   goals?: Array<{ seller_id?: string; seller_name?: string; revenue_goal?: number }>;
+  searchTerm?: string;
+  filterStage?: string;
+  filterProduct?: string;
+  filterResponsible?: string;
 }
 
 export function useSalesMetrics({
@@ -60,11 +67,44 @@ export function useSalesMetrics({
   startDate,
   endDate,
   goals = [],
+  searchTerm = '',
+  filterStage = 'all',
+  filterProduct = 'all',
+  filterResponsible = 'all',
 }: UseSalesMetricsProps): SalesMetrics {
   const { leads } = useLeadStore();
   const { turmas } = useTurmaStore();
   const { profiles } = useProfileStore();
+  const { pipelines } = usePipelineStore();
   const vendedorProfiles = useMemo(() => profiles.filter(isVendedor), [profiles]);
+
+  const availableProducts = useMemo(() => {
+    const seen = new Set<string>();
+    leads.forEach((l: any) => { if (l.product) seen.add(l.product); });
+    return Array.from(seen).sort().map(p => ({ value: p, label: p }));
+  }, [leads]);
+
+  const availableResponsibles = useMemo(() => {
+    const seen = new Set<string>();
+    leads.forEach((l: any) => { if (l.responsible) seen.add(l.responsible); });
+    return Array.from(seen).sort().map(r => ({ value: r, label: r }));
+  }, [leads]);
+
+  const filteredLeads = useMemo(() => {
+    let result = leads as any[];
+    if (searchTerm) {
+      const q = searchTerm.toLowerCase();
+      result = result.filter(l =>
+        l.name?.toLowerCase().includes(q) ||
+        l.product?.toLowerCase().includes(q) ||
+        l.responsible?.toLowerCase().includes(q)
+      );
+    }
+    if (filterStage !== 'all') result = result.filter(l => l.stage_id === filterStage);
+    if (filterProduct !== 'all') result = result.filter(l => l.product === filterProduct);
+    if (filterResponsible !== 'all') result = result.filter(l => l.responsible === filterResponsible);
+    return result;
+  }, [leads, searchTerm, filterStage, filterProduct, filterResponsible]);
 
   const totalGanhos = getSellerIncome(turmas, '', startDate, endDate);
   const myGanhos = currentSellerName
@@ -72,13 +112,13 @@ export function useSalesMetrics({
     : 0;
   const teamGanhos = totalGanhos - myGanhos;
 
-  const closedLeadsFiltered = leads.filter(
+  const closedLeadsFiltered = filteredLeads.filter(
     (l: any) => l.status === 'closed' || stageNameToStatus(l.status) === 'closed'
   );
   const closedLeadsCount = closedLeadsFiltered.length;
 
   const conversionRate =
-    leads.length > 0 ? (closedLeadsCount / leads.length) * 100 : 0;
+    filteredLeads.length > 0 ? (closedLeadsCount / filteredLeads.length) * 100 : 0;
 
   const totalSalesValue = closedLeadsFiltered.reduce(
     (s: number, l: any) => s + getLeadEffectiveValue(l),
@@ -161,14 +201,13 @@ export function useSalesMetrics({
           : 0;
     });
 
-    // Fallback: if no seller has a goal set, rank relative to top performer by count
-    const hasGoals = Object.values(byName).some((s: any) => s.percentage > 0);
-    if (!hasGoals) {
-      const maxCount = Math.max(...Object.values(byName).map((s: any) => s.count), 1);
-      Object.values(byName).forEach((s: any) => {
+    // For any seller with 0% but positive count, show progress relative to top performer
+    const maxCount = Math.max(...Object.values(byName).map((s: any) => s.count), 1);
+    Object.values(byName).forEach((s: any) => {
+      if (s.percentage === 0 && s.count > 0) {
         s.percentage = Math.round((s.count / maxCount) * 100);
-      });
-    }
+      }
+    });
 
     return Object.values(byName).sort(
       (a: any, b: any) => b.percentage - a.percentage || b.count - a.count
@@ -182,38 +221,36 @@ export function useSalesMetrics({
     }>;
   }, [salesByResponsible, vendedorProfiles, sellerGoalMap]);
 
-  // Pipeline stages
-  const pipelineStages = [
-    {
-      id: 'new',
-      label: 'Novo',
-      value: leads.filter((l: any) => stageNameToStatus(l.status) === 'new')
-        .length,
-      color: 'hsl(210, 80%, 55%)',
-    },
-    {
-      id: 'qualified',
-      label: 'Qualificado',
-      value: leads.filter(
-        (l: any) => stageNameToStatus(l.status) === 'qualified'
-      ).length,
-      color: 'hsl(142, 71%, 45%)',
-    },
-    {
-      id: 'proposal',
-      label: 'Proposta',
-      value: leads.filter(
-        (l: any) => stageNameToStatus(l.status) === 'proposal'
-      ).length,
-      color: 'hsl(262, 80%, 55%)',
-    },
-    {
-      id: 'closed',
-      label: 'Fechado',
-      value: closedLeadsCount,
-      color: 'hsl(0, 84%, 60%)',
-    },
-  ];
+  const EXCLUDED_STAGES = new Set(['Perdido', 'Aquecimento', 'Desqualificado']);
+
+  // Pipeline stages — uses real pipeline stages from DB when available, falls back to status groups
+  const pipelineStages = useMemo(() => {
+    const pipeline = pipelines[0];
+    if (pipeline?.stages?.length) {
+      const stageCountMap: Record<string, number> = {};
+      filteredLeads.forEach((l: any) => {
+        if (l.stage_id) {
+          stageCountMap[l.stage_id] = (stageCountMap[l.stage_id] || 0) + 1;
+        }
+      });
+      return [...pipeline.stages]
+        .sort((a, b) => a.position - b.position)
+        .filter(stage => !EXCLUDED_STAGES.has(stage.name))
+        .map(stage => ({
+          id: stage.id,
+          label: stage.name,
+          value: stageCountMap[stage.id] || 0,
+          color: stage.color,
+        }));
+    }
+    // Fallback: group by status when no real pipeline data
+    return [
+      { id: 'new', label: 'Novo', value: filteredLeads.filter((l: any) => stageNameToStatus(l.status) === 'new').length, color: 'hsl(210, 80%, 55%)' },
+      { id: 'qualified', label: 'Qualificado', value: filteredLeads.filter((l: any) => stageNameToStatus(l.status) === 'qualified').length, color: 'hsl(142, 71%, 45%)' },
+      { id: 'proposal', label: 'Proposta', value: filteredLeads.filter((l: any) => stageNameToStatus(l.status) === 'proposal').length, color: 'hsl(262, 80%, 55%)' },
+      { id: 'closed', label: 'Fechado', value: closedLeadsCount, color: 'hsl(16, 85%, 55%)' },
+    ];
+  }, [pipelines, filteredLeads, closedLeadsCount]);
 
   const funnelStagesWithRates = useMemo(
     () => computeFunnelRates(pipelineStages),
@@ -297,7 +334,7 @@ export function useSalesMetrics({
     totalGanhos,
     myGanhos,
     teamGanhos,
-    leadsCount: leads.length,
+    leadsCount: filteredLeads.length,
     closedLeadsCount,
     conversionRate,
     totalSalesValue,
@@ -310,5 +347,7 @@ export function useSalesMetrics({
     trendData,
     totalConversionRate,
     attendeeStages,
+    availableProducts,
+    availableResponsibles,
   };
 }

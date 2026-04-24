@@ -1,4 +1,3 @@
-import React from 'react';
 import { Users } from 'lucide-react';
 
 interface DoughnutChartProps {
@@ -29,9 +28,8 @@ export function DoughnutChart({
   const CY = 100;
   const R = 72;
   const SW = 24;
-  const C = 2 * Math.PI * R; // circumference ≈ 452
+  const C = 2 * Math.PI * R;
 
-  // Build segments with cumulative start angles (degrees)
   let cumAngle = 0;
   const segments = data.map(d => {
     const pct = d.value / total;
@@ -40,12 +38,13 @@ export function DoughnutChart({
     return { ...d, pct, startAngle };
   });
 
+  const maxValue = Math.max(...data.map(d => d.value), 1);
+
   return (
-    <div className="p-4">
-      {/* SVG Doughnut */}
-      <div className="relative mx-auto w-48 h-48">
+    <div className="flex flex-col items-center w-full gap-4">
+      {/* Donut ring — centered */}
+      <div className="relative w-48 h-48 flex-shrink-0">
         <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="w-full h-full">
-          {/* Background ring */}
           <circle
             cx={CX}
             cy={CY}
@@ -54,11 +53,6 @@ export function DoughnutChart({
             stroke="hsl(210 40% 94%)"
             strokeWidth={SW}
           />
-
-          {/* Segments — each rotated to its cumulative start angle.
-              strokeDasharray shows exactly pct of the arc;
-              strokeDashoffset=C/4 shifts the dash start to 12 o'clock
-              (SVG paths start at 3 o'clock; C/4 = 90° shift) */}
           {segments.map((seg) => (
             <circle
               key={seg.label}
@@ -76,7 +70,6 @@ export function DoughnutChart({
           ))}
         </svg>
 
-        {/* Center label */}
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
           <div className="w-20 h-20 bg-white/90 rounded-2xl border-2 border-white/60 shadow-xl flex flex-col items-center justify-center">
             <div className="text-2xl font-bold text-slate-800">{total}</div>
@@ -87,23 +80,39 @@ export function DoughnutChart({
         </div>
       </div>
 
-      {/* Legend */}
-      <div className="mt-5 space-y-2">
-        {data.map(d => (
-          <div key={d.label} className="flex items-center gap-3">
-            <div
-              className="w-3 h-3 rounded-full flex-shrink-0"
-              style={{ backgroundColor: d.color }}
-            />
-            <span className="text-sm font-medium text-slate-700 truncate flex-1">{d.label}</span>
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              <span className="text-xs font-bold text-slate-700">{d.value}</span>
-              <span className="text-xs text-slate-400">
-                ({Math.round((d.value / total) * 100)}%)
-              </span>
+      {/* Legend — aligned below, all stages visible, two columns when many */}
+      <div className="w-full grid grid-cols-1 gap-2">
+        {data.map(d => {
+          const pct = Math.round((d.value / total) * 100);
+          const barW = Math.min(100, Math.round((d.value / maxValue) * 100));
+          return (
+            <div key={d.label} className="min-w-0">
+              <div className="flex items-center gap-2 mb-0.5">
+                <div
+                  className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: d.color }}
+                />
+                <span
+                  className="text-xs font-medium text-slate-600 truncate flex-1 leading-tight"
+                  title={d.label}
+                >
+                  {d.label}
+                </span>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <span className="text-xs font-bold text-slate-700 tabular-nums">{d.value}</span>
+                  <span className="text-[10px] text-slate-400 tabular-nums">({pct}%)</span>
+                </div>
+              </div>
+              {/* Proportion bar */}
+              <div className="ml-4 mr-1 h-1 bg-slate-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${barW}%`, backgroundColor: d.color }}
+                />
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { Settings as SettingsIcon, User, Bell, Lock, Globe, Shield, UserPlus, Tag, Activity, Target, ClipboardList } from 'lucide-react';
+import { Settings as SettingsIcon, User, Bell, Lock, Globe, Shield, UserPlus, Tag, Activity, Target, ClipboardList, Percent } from 'lucide-react';
 
 const sections = [
   { icon: User, label: 'Perfil', description: 'Gerencie suas informações pessoais e foto.', path: '/settings/profile' },
@@ -13,6 +13,7 @@ const sections = [
   { icon: SettingsIcon, label: 'Pipelines', description: 'Gerencie tipos de pipeline, status e seções.', path: '/settings/pipelines' },
   { icon: Tag, label: 'Categorias de Produto', description: 'Gerencie categorias e regras para cursos e serviços.', path: '/settings/categories' },
   { icon: Activity, label: 'Categorias de Atividade', description: 'Gerencie os tipos de atividade (ligação, visita, reunião…).', path: '/settings/activity-categories' },
+  { icon: Percent, label: 'Comissões', description: 'Configure o percentual de comissão por vendedor.', path: '/settings/commissions' },
 ];
 
 interface SettingsSectionProps {
