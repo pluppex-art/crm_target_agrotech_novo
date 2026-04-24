@@ -1,5 +1,5 @@
-import React from 'react';
-import { Filter, Search, X, GraduationCap, User, ChevronDown, Flame } from 'lucide-react';
+import React, { useState } from 'react';
+import { Filter, Search, X, GraduationCap, User, ChevronDown, ChevronUp, Flame } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 interface PipelineFiltersProps {
@@ -39,10 +39,15 @@ export const PipelineFilters: React.FC<PipelineFiltersProps> = ({
   activeFilterCount,
   isVendedor = false,
 }) => {
+  const [open, setOpen] = useState(true);
+
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">
-      {/* Header da barra de filtros */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+      {/* Header — clicável para minimizar */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors rounded-t-2xl"
+      >
         <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
           <Filter size={16} className={activeFilterCount > 0 ? "text-emerald-600" : "text-gray-400"} />
           Filtros
@@ -54,50 +59,51 @@ export const PipelineFilters: React.FC<PipelineFiltersProps> = ({
         </div>
 
         <div className="flex items-center gap-1.5 flex-wrap">
-          {/* Active filter pills */}
           {searchTerm && (
             <span className="flex items-center gap-1 text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded-full">
               "{searchTerm}"
-              <button onClick={() => onSearchChange('')}><X size={11} /></button>
+              <span role="button" onClick={e => { e.stopPropagation(); onSearchChange(''); }}><X size={11} /></span>
             </span>
           )}
           {selectedStatus !== 'all' && columns.find((c: any) => c.id === selectedStatus) && (
             <span className="flex items-center gap-1 text-xs font-medium bg-purple-50 text-purple-700 border border-purple-100 px-2 py-0.5 rounded-full">
               {columns.find((c: any) => c.id === selectedStatus)?.title}
-              <button onClick={() => onStatusChange('all')}><X size={11} /></button>
+              <span role="button" onClick={e => { e.stopPropagation(); onStatusChange('all'); }}><X size={11} /></span>
             </span>
           )}
           {selectedProduct !== 'all' && (
             <span className="flex items-center gap-1 text-xs font-medium bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded-full">
               {selectedProduct}
-              <button onClick={() => onProductChange('all')}><X size={11} /></button>
+              <span role="button" onClick={e => { e.stopPropagation(); onProductChange('all'); }}><X size={11} /></span>
             </span>
           )}
           {selectedResponsible !== 'all' && (
             <span className="flex items-center gap-1 text-xs font-medium bg-teal-50 text-teal-700 border border-teal-100 px-2 py-0.5 rounded-full">
               {selectedResponsible}
-              <button onClick={() => onResponsibleChange('all')}><X size={11} /></button>
+              <span role="button" onClick={e => { e.stopPropagation(); onResponsibleChange('all'); }}><X size={11} /></span>
             </span>
           )}
           {selectedStars.length > 0 && (
             <span className="flex items-center gap-1 text-xs font-medium bg-orange-50 text-orange-700 border border-orange-100 px-2 py-0.5 rounded-full">
               {selectedStars.sort().join(', ')} 🔥
-              <button onClick={() => onStarsChange([])}><X size={11} /></button>
+              <span role="button" onClick={e => { e.stopPropagation(); onStarsChange([]); }}><X size={11} /></span>
             </span>
           )}
           {activeFilterCount > 0 && (
-            <button
-              onClick={clearAllFilters}
+            <span
+              role="button"
+              onClick={e => { e.stopPropagation(); clearAllFilters(); }}
               className="text-xs font-semibold text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded-lg transition-colors"
             >
               Limpar todos
-            </button>
+            </span>
           )}
+          {open ? <ChevronUp size={16} className="text-gray-400 shrink-0" /> : <ChevronDown size={16} className="text-gray-400 shrink-0" />}
         </div>
-      </div>
+      </button>
 
-      {/* Filter inputs */}
-      <div
+      {/* Filter inputs — colapsável */}
+      {open && <div
         className="flex flex-nowrap items-center gap-3 p-4 overflow-x-auto"
         style={{ scrollbarWidth: 'thin', scrollbarColor: '#e5e7eb transparent' }}
       >
@@ -208,7 +214,7 @@ export const PipelineFilters: React.FC<PipelineFiltersProps> = ({
             );
           })}
         </div>
-      </div>
+      </div>}
     </div>
   );
 };

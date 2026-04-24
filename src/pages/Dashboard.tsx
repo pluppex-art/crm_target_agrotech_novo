@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
-import { Loader2, ShieldAlert, Users, Filter, Search, ChevronDown, X, Calendar, GitBranch, Package, User } from 'lucide-react';
+import { Loader2, ShieldAlert, Users, Filter, Search, ChevronDown, ChevronUp, X, Calendar, GitBranch, Package, User } from 'lucide-react';
 import { usePermissions } from '../hooks/usePermissions';
 import { useLeadStore } from '../store/useLeadStore';
 import { useFinanceStore } from '../store/useFinanceStore';
@@ -8,7 +8,7 @@ import { useTurmaStore } from '../store/useTurmaStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { usePipelineStore } from '../store/usePipelineStore';
 import { goalService } from '../services/goalService';
-import { isVendedor, fmt } from '../lib/utils';
+import { isVendedor } from '../lib/utils';
 
 import { useSalesMetrics } from '../hooks/useSalesMetrics';
 import { useFinanceMetrics } from '../hooks/useFinanceMetrics';
@@ -80,7 +80,8 @@ function OccupancyCard({ occupancyData }: { occupancyData: OccupancyItem[] }) {
         data={filtered.map(d => ({
           label: d.name,
           value: d.alunos,
-          color: d.alunos > 0 ? '#10b981' : '#cbd5e1',
+          sublabel: `${d.alunos}/${d.capacity}`,
+          color: d.level === 'green' ? '#10b981' : d.level === 'yellow' ? '#f59e0b' : '#ef4444',
         }))}
         emptyLabel="Nenhuma turma cadastrada"
         minBarWidth={72}
@@ -108,6 +109,7 @@ export function Dashboard() {
   const [filterProduct, setFilterProduct] = useState('all');
   const [filterResponsible, setFilterResponsible] = useState('all');
   const [selectedMonth, setSelectedMonth] = useState('all');
+  const [filtersOpen, setFiltersOpen] = useState(true);
   const didFetch = useRef(false);
 
   const monthOptions = useMemo(() => Array.from({ length: 12 }, (_, i) => {
@@ -186,7 +188,8 @@ export function Dashboard() {
     searchTerm, filterStage, filterProduct, filterResponsible,
   });
   const financeMetrics = useFinanceMetrics();
-  const totalSalesGoal = goals.reduce((sum, g) => sum + (g.revenue_goal || 0), 0);
+  const companyGoal = goals.find(g => g.type === 'company');
+  const totalSalesGoal = companyGoal?.revenue_goal ?? 0;
 
   if (permissionsLoading) return null;
 
@@ -233,8 +236,11 @@ export function Dashboard() {
 
         return (
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm mb-6">
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+            {/* Header — clicável para minimizar */}
+            <button
+              onClick={() => setFiltersOpen(o => !o)}
+              className="w-full flex items-center justify-between px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors rounded-t-2xl"
+            >
               <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
                 <Filter size={16} className={activeCount > 0 ? 'text-emerald-600' : 'text-gray-400'} />
                 <span>Filtros</span>
@@ -247,98 +253,105 @@ export function Dashboard() {
               <div className="flex items-center gap-2">
                 {isLoading && <Loader2 className="w-4 h-4 text-emerald-600 animate-spin" />}
                 {activeCount > 0 && (
-                  <button onClick={clearAllFilters} className="text-xs font-semibold text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded-lg transition-colors">
+                  <span
+                    role="button"
+                    onClick={e => { e.stopPropagation(); clearAllFilters(); }}
+                    className="text-xs font-semibold text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded-lg transition-colors"
+                  >
                     Limpar
-                  </button>
+                  </span>
                 )}
+                {filtersOpen ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
               </div>
-            </div>
+            </button>
 
-            {/* Inputs */}
-            <div className="flex flex-wrap items-center gap-3 p-4">
-              {/* Search */}
-              <div className="relative flex-1 min-w-[200px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
-                <input
-                  type="text"
-                  placeholder="Buscar por nome, produto ou responsável..."
-                  value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
-                  className="w-full pl-9 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-sm"
-                />
-                {searchTerm && (
-                  <button onClick={() => setSearchTerm('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                    <X size={13} />
-                  </button>
-                )}
-              </div>
+            {/* Inputs — colapsável */}
+            {filtersOpen && (
+              <div className="flex flex-wrap items-center gap-3 p-4">
+                {/* Search */}
+                <div className="relative flex-1 min-w-[200px]">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
+                  <input
+                    type="text"
+                    placeholder="Buscar por nome, produto ou responsável..."
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    className="w-full pl-9 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-sm"
+                  />
+                  {searchTerm && (
+                    <button onClick={() => setSearchTerm('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                      <X size={13} />
+                    </button>
+                  )}
+                </div>
 
-              {/* Month */}
-              <div className="relative min-w-[160px] shrink-0">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
-                <select
-                  value={selectedMonth}
-                  onChange={e => handleMonthSelect(e.target.value)}
-                  className={`pl-9 ${selectCls(selectedMonth !== 'all')}`}
-                >
-                  <option value="all">Todos os meses</option>
-                  {monthOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={13} />
-              </div>
+                {/* Month */}
+                <div className="relative min-w-[160px] shrink-0">
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+                  <select
+                    value={selectedMonth}
+                    onChange={e => handleMonthSelect(e.target.value)}
+                    className={`pl-9 ${selectCls(selectedMonth !== 'all')}`}
+                  >
+                    <option value="all">Todos os meses</option>
+                    {monthOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={13} />
+                </div>
 
-              {/* De */}
-              <div className="flex items-center gap-1.5 shrink-0">
-                <span className="text-xs font-bold text-slate-400 uppercase">De:</span>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={e => handleStartDateChange(e.target.value)}
-                  className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
-                />
-              </div>
+                {/* De */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="text-xs font-bold text-slate-400 uppercase">De:</span>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={e => handleStartDateChange(e.target.value)}
+                    className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
+                  />
+                </div>
 
-              {/* Até */}
-              <div className="flex items-center gap-1.5 shrink-0">
-                <span className="text-xs font-bold text-slate-400 uppercase">Até:</span>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={e => handleEndDateChange(e.target.value)}
-                  className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
-                />
-              </div>
+                {/* Até */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="text-xs font-bold text-slate-400 uppercase">Até:</span>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={e => handleEndDateChange(e.target.value)}
+                    className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
+                  />
+                </div>
 
-              {/* Stage */}
-              <div className="relative min-w-[160px] shrink-0">
-                <GitBranch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
-                <select value={filterStage} onChange={e => setFilterStage(e.target.value)} className={`pl-9 ${selectCls(filterStage !== 'all')}`}>
-                  <option value="all">Todos os estágios</option>
-                  {salesMetrics.pipelineStages.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-                </select>
-                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={13} />
-              </div>
+                {/* Stage */}
+                <div className="relative min-w-[160px] shrink-0">
+                  <GitBranch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+                  <select value={filterStage} onChange={e => setFilterStage(e.target.value)} className={`pl-9 ${selectCls(filterStage !== 'all')}`}>
+                    <option value="all">Todos os estágios</option>
+                    {salesMetrics.pipelineStages.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                  </select>
+                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={13} />
+                </div>
 
-              {/* Product */}
-              <div className="relative min-w-[160px] shrink-0">
-                <Package className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
-                <select value={filterProduct} onChange={e => setFilterProduct(e.target.value)} className={`pl-9 ${selectCls(filterProduct !== 'all')}`}>
-                  <option value="all">Todos os produtos</option>
-                  {salesMetrics.availableProducts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={13} />
-              </div>
+                {/* Product */}
+                <div className="relative min-w-[160px] shrink-0">
+                  <Package className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+                  <select value={filterProduct} onChange={e => setFilterProduct(e.target.value)} className={`pl-9 ${selectCls(filterProduct !== 'all')}`}>
+                    <option value="all">Todos os produtos</option>
+                    {salesMetrics.availableProducts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={13} />
+                </div>
 
-              {/* Responsible */}
-              <div className="relative min-w-[160px] shrink-0">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
-                <select value={filterResponsible} onChange={e => setFilterResponsible(e.target.value)} className={`pl-9 ${selectCls(filterResponsible !== 'all')}`}>
-                  <option value="all">Todos responsáveis</option>
-                  {salesMetrics.availableResponsibles.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={13} />
+                {/* Responsible */}
+                <div className="relative min-w-[160px] shrink-0">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+                  <select value={filterResponsible} onChange={e => setFilterResponsible(e.target.value)} className={`pl-9 ${selectCls(filterResponsible !== 'all')}`}>
+                    <option value="all">Todos responsáveis</option>
+                    {salesMetrics.availableResponsibles.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={13} />
+                </div>
               </div>
-            </div>
+            )}
           </div>
         );
       })()}
@@ -346,16 +359,10 @@ export function Dashboard() {
       {/* KPI Metrics */}
       <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
         <MetricCard label="Leads Ativos" value={String(salesMetrics.leadsCount)} icon={Users} color="bg-emerald-50 text-emerald-600" />
-        <MetricCard label="Ganhos Totais" value={`R$ ${fmt(salesMetrics.totalGanhos)}`} icon={Users} color="bg-emerald-50 text-emerald-600" />
-        {currentSellerName ? (
-          <>
-            <MetricCard label="Meus Ganhos" value={`R$ ${fmt(salesMetrics.myGanhos)}`} icon={Users} color="bg-blue-50 text-blue-600" />
-            <MetricCard label="Equipe" value={`R$ ${fmt(salesMetrics.teamGanhos)}`} icon={Users} color="bg-purple-50 text-purple-600" />
-          </>
-        ) : (
-          <MetricCard label="Conversão" value={`${salesMetrics.conversionRate.toFixed(1)}%`} icon={Users} color="bg-purple-50 text-purple-600" />
-        )}
+        <MetricCard label="Fechamentos" value={String(salesMetrics.closedLeadsCount)} icon={Users} color="bg-emerald-50 text-emerald-600" />
+        <MetricCard label="Conversão" value={`${salesMetrics.conversionRate.toFixed(1)}%`} icon={Users} color="bg-purple-50 text-purple-600" />
         <MetricCard label="Em Proposta" value={String(salesMetrics.pipelineStages.find(s => s.label === 'Proposta')?.value || 0)} icon={Users} color="bg-rose-50 text-rose-600" />
+        <MetricCard label="Qualificados" value={String(salesMetrics.pipelineStages.find(s => s.label === 'Qualificado')?.value || 0)} icon={Users} color="bg-blue-50 text-blue-600" />
       </div>
 
       {/* ── Ranking + Taxa de Ocupação ── */}
@@ -381,7 +388,7 @@ export function Dashboard() {
                   percentage={s.percentage}
                   rank={i}
                   count={s.count}
-                  color={i === 0 ? 'bg-emerald-500' : i === 1 ? 'bg-blue-400' : i === 2 ? 'bg-purple-400' : 'bg-slate-300'}
+                  color={i === 0 ? 'bg-emerald-500' : i === 1 ? 'bg-blue-400' : i === 2 ? 'bg-amber-400' : i === 3 ? 'bg-rose-400' : 'bg-slate-300'}
                 />
               ))}
             </div>

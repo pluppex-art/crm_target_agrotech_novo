@@ -263,12 +263,13 @@ export function getOccupancyData(turmas: Turma[]): Array<{
   return turmas.map((t, i) => {
     const activeStatuses: AttendanceStatus[] = ['matriculado', 'confirmado'];
     const active = t.attendees.filter(a => activeStatuses.includes(a.status)).length;
-    const cap = t.capacity || 20;
+    const cap = t.meta ?? 0;
     const pct = cap > 0 ? Math.min((active / cap) * 100, 100) : 0;
-    
+
+    // Color based on absolute student count: 0-10 red, 11-19 yellow, 20+ green
     let level: 'red' | 'yellow' | 'green';
-    if (pct >= 70) level = 'green';
-    else if (pct >= 50) level = 'yellow';
+    if (active >= 20) level = 'green';
+    else if (active >= 11) level = 'yellow';
     else level = 'red';
 
     // Color per turma (rainbow-ish)

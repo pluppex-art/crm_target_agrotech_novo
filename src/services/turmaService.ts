@@ -27,7 +27,7 @@ export interface Turma {
   enrollment_fee?: number; // From join
   category: string;       // From join
   location: string;
-  capacity?: number;
+  meta?: number;
   status: 'agendada' | 'em_andamento' | 'concluida' | 'cancelada';
   attendees: TurmaAttendee[];
 }
@@ -60,7 +60,7 @@ export const turmaService = {
       enrollment_fee: t.products?.enrollment_fee ?? 0,
       category: t.products?.category ?? 'Geral',
       location: t.location,
-      capacity: t.capacity ?? 20,
+      meta: t.meta ?? undefined,
       status: t.status,
       attendees: (t.turma_attendees || []).map((a: any) => ({
         id: a.id,

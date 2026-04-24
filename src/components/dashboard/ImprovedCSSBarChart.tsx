@@ -73,7 +73,7 @@ export function ImprovedCSSBarChart({
                 {/* Value number above bar */}
                 {showValues && (
                   <span className="text-[11px] font-bold text-slate-700 leading-none mb-0.5 shrink-0">
-                    {fmt(d.value)}
+                    {d.sublabel ?? fmt(d.value)}
                   </span>
                 )}
 

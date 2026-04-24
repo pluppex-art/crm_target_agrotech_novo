@@ -6,19 +6,19 @@ export function ManageTurmas() {
   const { turmas, updateTurma } = useTurmaStore();
   const [saving, setSaving] = useState<Record<string, boolean>>({});
   const [saved, setSaved] = useState<Record<string, boolean>>({});
-  const [localCapacity, setLocalCapacity] = useState<Record<string, string>>({});
+  const [localMeta, setLocalMeta] = useState<Record<string, string>>({});
 
   const handleSave = async (turmaId: string) => {
-    const raw = localCapacity[turmaId];
+    const raw = localMeta[turmaId];
     if (raw === undefined) return;
-    const capacity = parseInt(raw);
-    if (isNaN(capacity) || capacity < 0) return;
+    const meta = parseInt(raw);
+    if (isNaN(meta) || meta < 0) return;
 
     setSaving(s => ({ ...s, [turmaId]: true }));
-    await updateTurma(turmaId, { capacity });
+    await updateTurma(turmaId, { meta });
     setSaving(s => ({ ...s, [turmaId]: false }));
     setSaved(s => ({ ...s, [turmaId]: true }));
-    setLocalCapacity(prev => { const next = { ...prev }; delete next[turmaId]; return next; });
+    setLocalMeta(prev => { const next = { ...prev }; delete next[turmaId]; return next; });
     setTimeout(() => setSaved(s => ({ ...s, [turmaId]: false })), 2000);
   };
 
@@ -26,7 +26,7 @@ export function ManageTurmas() {
     <div className="p-6 max-w-3xl">
       <div className="mb-6">
         <h1 className="text-xl font-bold text-slate-800">Configuração de Turmas</h1>
-        <p className="text-sm text-slate-500 mt-1">Defina a capacidade máxima de alunos por turma.</p>
+        <p className="text-sm text-slate-500 mt-1">Defina a meta de alunos por turma.</p>
       </div>
 
       {turmas.length === 0 ? (
@@ -38,8 +38,8 @@ export function ManageTurmas() {
         <div className="space-y-2">
           {turmas.map(t => {
             const activeAttendees = t.attendees.filter(a => a.status !== 'cancelado').length;
-            const isDirty = localCapacity[t.id] !== undefined;
-            const displayValue = isDirty ? localCapacity[t.id] : (t.capacity?.toString() ?? '');
+            const isDirty = localMeta[t.id] !== undefined;
+            const displayValue = isDirty ? localMeta[t.id] : (t.meta?.toString() ?? '');
 
             return (
               <div
@@ -61,23 +61,21 @@ export function ManageTurmas() {
                 </div>
 
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  <div className="relative">
-                    <input
-                      type="number"
-                      min={0}
-                      value={displayValue}
-                      onChange={e =>
-                        setLocalCapacity(prev => ({ ...prev, [t.id]: e.target.value }))
-                      }
-                      placeholder="Vagas"
-                      className="w-24 rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
-                    />
-                  </div>
+                  <input
+                    type="number"
+                    min={0}
+                    value={displayValue}
+                    onChange={e =>
+                      setLocalMeta(prev => ({ ...prev, [t.id]: e.target.value }))
+                    }
+                    placeholder="Meta"
+                    className="w-24 rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
+                  />
 
                   <button
                     onClick={() => handleSave(t.id)}
                     disabled={saving[t.id] || !isDirty}
-                    title="Salvar capacidade"
+                    title="Salvar meta"
                     className={`p-1.5 rounded-lg text-white transition-colors flex-shrink-0 ${
                       saved[t.id]
                         ? 'bg-emerald-400'
