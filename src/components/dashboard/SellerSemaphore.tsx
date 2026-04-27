@@ -17,20 +17,51 @@ interface SellerSemaphoreProps {
   }>;
   currentSellerName?: string | null;
   isAdmin: boolean;
+  companyRevenueGoal?: number;
 }
 
-export function SellerSemaphore({ data, currentSellerName, isAdmin }: SellerSemaphoreProps) {
+export function SellerSemaphore({ data, currentSellerName, isAdmin, companyRevenueGoal }: SellerSemaphoreProps) {
   const visibleData = isAdmin
     ? data
     : data.filter((s) => s.label === currentSellerName);
 
-  const [selectedSellerName, setSelectedSellerName] = useState<string>(
-    isAdmin && visibleData.length > 0 ? visibleData[0].label : ''
-  );
+  const [selectedSellerName, setSelectedSellerName] = useState<string>('Total da Empresa');
 
-  const activeSeller = isAdmin
-    ? visibleData.find((s) => s.label === selectedSellerName) || visibleData[0]
-    : visibleData[0];
+  const activeSeller = useMemo(() => {
+    if (!isAdmin) {
+      return visibleData[0] || data[0];
+    }
+    
+    if (selectedSellerName !== 'Total da Empresa') {
+      return visibleData.find((s) => s.label === selectedSellerName) || visibleData[0];
+    }
+    
+    // Calculate totals for the company
+    const totalReceived = visibleData.reduce((acc, curr) => acc + curr.received, 0);
+    const totalValue = visibleData.reduce((acc, curr) => acc + curr.value, 0);
+    const totalCount = visibleData.reduce((acc, curr) => acc + curr.count, 0);
+    const goal = companyRevenueGoal || 1; // Prevent division by zero
+    const pct = Math.min((totalReceived / goal) * 100, 100);
+    
+    let color: 'red' | 'yellow' | 'green' | 'gold' = 'red';
+    let barColor = '#ef4444';
+    if (pct >= 100) { color = 'gold'; barColor = '#eab308'; }
+    else if (pct >= 70) { color = 'green'; barColor = '#10b981'; }
+    else if (pct >= 40) { color = 'yellow'; barColor = '#f59e0b'; }
+
+    return {
+      label: 'Total da Empresa',
+      value: totalValue,
+      received: totalReceived,
+      count: totalCount,
+      percentage: pct,
+      revenue_goal: companyRevenueGoal || 0,
+      pct: Math.round(pct),
+      color,
+      colorClass: `bg-${color}-500`,
+      barColor
+    };
+  }, [isAdmin, visibleData, data, companyRevenueGoal, selectedSellerName]);
 
   const statusLabels: Record<string, string> = {
     red: 'Abaixo da Meta',
@@ -106,6 +137,7 @@ export function SellerSemaphore({ data, currentSellerName, isAdmin }: SellerSema
               onChange={(e) => setSelectedSellerName(e.target.value)}
               className="appearance-none text-xs font-semibold border border-slate-200 rounded-lg pl-3 pr-7 py-1.5 bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-200 cursor-pointer hover:bg-slate-100 transition-colors"
             >
+              <option value="Total da Empresa">Total da Empresa</option>
               {visibleData.map((seller) => (
                 <option key={seller.label} value={seller.label}>
                   {seller.label}

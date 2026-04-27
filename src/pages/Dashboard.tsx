@@ -128,7 +128,11 @@ export function Dashboard() {
 
   const handleMonthSelect = useCallback((val: string) => {
     setSelectedMonth(val);
-    if (val === 'all') return;
+    if (val === 'all') {
+      setStartDate('');
+      setEndDate('');
+      return;
+    }
     const [y, m] = val.split('-').map(Number);
     const start = new Date(y, m - 1, 1);
     const end = new Date(y, m, 0);
@@ -150,11 +154,7 @@ export function Dashboard() {
   }, []);
 
   useEffect(() => {
-    if (startDate || endDate) return;
-    const today = new Date();
-    const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-    setStartDate(thirtyDaysAgo.toISOString().split('T')[0]);
-    setEndDate(today.toISOString().split('T')[0]);
+    // No default date filter; matches 'Todos os meses' default state.
   }, []);
 
   const fetchInitialData = useCallback(async () => {
@@ -360,7 +360,7 @@ export function Dashboard() {
 
       {/* KPI Metrics */}
       <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
-        <MetricCard label="Leads Ativos" value={String(salesMetrics.leadsCount)} icon={Users} color="bg-emerald-50 text-emerald-600" />
+        <MetricCard label="Total de Leads" value={String(salesMetrics.leadsCount)} icon={Users} color="bg-emerald-50 text-emerald-600" />
         <MetricCard label="Ganhos" value={String(salesMetrics.closedLeadsCount)} icon={Users} color="bg-emerald-50 text-emerald-600" />
         <MetricCard label="Conversão" value={`${salesMetrics.conversionRate.toFixed(1)}%`} icon={Users} color="bg-purple-50 text-purple-600" />
         <MetricCard label="Em Proposta" value={String(salesMetrics.pipelineStages.find(s => s.label === 'Proposta')?.value || 0)} icon={Users} color="bg-rose-50 text-rose-600" />
@@ -401,6 +401,7 @@ export function Dashboard() {
           data={salesMetrics.sellerSemaphoreData}
           currentSellerName={currentSellerName}
           isAdmin={hasPermission('admin.all')}
+          companyRevenueGoal={companyGoal?.revenue_goal || 0}
         />
       </div>
 

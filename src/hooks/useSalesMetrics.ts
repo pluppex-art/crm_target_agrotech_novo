@@ -559,7 +559,7 @@ export function useSalesMetrics({
     totalGanhos,
     myGanhos,
     teamGanhos,
-    leadsCount: activeLeadsCount,
+    leadsCount: filteredLeads.length,
     closedLeadsCount,
     conversionRate,
     totalSalesValue,
