@@ -9,8 +9,8 @@ interface SellerGoalsListProps {
   sellerGoals: Record<string, { revenue: string; leads: string }>;
   savingSeller: string | null;
   savedSeller: string | null;
-  updateSeller: (name: string, field: 'revenue' | 'leads', value: string) => void;
-  handleSaveSeller: (name: string) => void;
+  updateSeller: (id: string, field: 'revenue' | 'leads', value: string) => void;
+  handleSaveSeller: (profile: UserProfile) => void;
 }
 
 function SellerGoalsList({ sellers, sellerGoals, savingSeller, savedSeller, updateSeller, handleSaveSeller }: SellerGoalsListProps) {
@@ -25,9 +25,9 @@ function SellerGoalsList({ sellers, sellerGoals, savingSeller, savedSeller, upda
     <div className="space-y-6">
       {sellers.map(profile => {
         const name = profile.name || profile.email || '?';
-        const g = sellerGoals[name] || { revenue: '', leads: '' };
-        const isSaving = savingSeller === name;
-        const isSaved = savedSeller === name;
+        const g = sellerGoals[profile.id] || { revenue: '', leads: '' };
+        const isSaving = savingSeller === profile.id;
+        const isSaved = savedSeller === profile.id;
         return (
           <div key={profile.id} className="border border-slate-100 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-3">
@@ -46,17 +46,17 @@ function SellerGoalsList({ sellers, sellerGoals, savingSeller, savedSeller, upda
                 label="Receita (R$)"
                 prefix="R$"
                 value={g.revenue}
-                onChange={v => updateSeller(name, 'revenue', v)}
+                onChange={v => updateSeller(profile.id, 'revenue', v)}
               />
               <GoalInput
                 label="Leads fechados"
                 value={g.leads}
-                onChange={v => updateSeller(name, 'leads', v.replace(/\D/g, ''))}
+                onChange={v => updateSeller(profile.id, 'leads', v.replace(/\D/g, ''))}
               />
             </div>
             <div className="flex justify-end">
               <button
-                onClick={() => handleSaveSeller(name)}
+                onClick={() => handleSaveSeller(profile)}
                 disabled={isSaving}
                 className="flex items-center gap-1.5 px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-sm transition-all disabled:opacity-60"
               >
@@ -136,11 +136,14 @@ export function ManageGoals() {
     }
 
     const sellerMap: Record<string, { revenue: string; leads: string }> = {};
-    goals.filter(g => g.type === 'seller' && g.seller_name).forEach(g => {
-      sellerMap[g.seller_name!] = {
-        revenue: g.revenue_goal ? g.revenue_goal.toLocaleString('pt-BR') : '',
-        leads: g.leads_goal ? String(g.leads_goal) : '',
-      };
+    goals.filter(g => g.type === 'seller').forEach(g => {
+      const key = g.seller_id || g.seller_name;
+      if (key) {
+        sellerMap[key] = {
+          revenue: g.revenue_goal ? g.revenue_goal.toLocaleString('pt-BR') : '',
+          leads: g.leads_goal ? String(g.leads_goal) : '',
+        };
+      }
     });
     setSellerGoals(sellerMap);
     setLoading(false);
@@ -150,25 +153,37 @@ export function ManageGoals() {
 
   const handleSaveCompany = async () => {
     setSavingCompany(true);
-    await goalService.upsertCompanyGoal(parseBR(companyRevenue), Number(companyLeads) || 0);
+    const result = await goalService.upsertCompanyGoal(parseBR(companyRevenue), Number(companyLeads) || 0);
     setSavingCompany(false);
-    setSavedCompany(true);
-    setTimeout(() => setSavedCompany(false), 2000);
+    if (result) {
+      setSavedCompany(true);
+      setTimeout(() => setSavedCompany(false), 2000);
+      await loadGoals();
+    } else {
+      alert('Erro ao salvar meta da empresa. Verifique o console.');
+    }
   };
 
-  const handleSaveSeller = async (name: string) => {
-    setSavingSeller(name);
-    const g = sellerGoals[name] || { revenue: '', leads: '' };
-    await goalService.upsertSellerGoal(name, parseBR(g.revenue), Number(g.leads) || 0);
+  const handleSaveSeller = async (profile: UserProfile) => {
+    const id = profile.id;
+    const name = profile.name || profile.email || 'Vendedor';
+    setSavingSeller(id);
+    const g = sellerGoals[id] || { revenue: '', leads: '' };
+    const result = await goalService.upsertSellerGoal(id, name, parseBR(g.revenue), Number(g.leads) || 0);
     setSavingSeller(null);
-    setSavedSeller(name);
-    setTimeout(() => setSavedSeller(null), 2000);
+    if (result) {
+      setSavedSeller(id);
+      setTimeout(() => setSavedSeller(null), 2000);
+      await loadGoals();
+    } else {
+      alert(`Erro ao salvar meta de ${name}. Verifique o console.`);
+    }
   };
 
-  const updateSeller = (name: string, field: 'revenue' | 'leads', value: string) => {
+  const updateSeller = (id: string, field: 'revenue' | 'leads', value: string) => {
     setSellerGoals(prev => ({
       ...prev,
-      [name]: { ...(prev[name] || { revenue: '', leads: '' }), [field]: value },
+      [id]: { ...(prev[id] || { revenue: '', leads: '' }), [field]: value },
     }));
   };
 

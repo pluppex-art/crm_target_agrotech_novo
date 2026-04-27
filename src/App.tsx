@@ -19,7 +19,6 @@ import { ManageCategories } from './pages/settings/ManageCategories';
 import { ManageActivityCategories } from './pages/settings/ManageActivityCategories';
 import { ManageGoals } from './pages/settings/ManageGoals';
 import { ManageCommissions } from './pages/settings/ManageCommissions';
-import { ManageTurmas } from './pages/settings/ManageTurmas';
 import { Finance } from './pages/Finance';
 import { AIChat } from './pages/AIChat';
 import { Contracts } from './pages/Contracts';
@@ -31,6 +30,7 @@ import { ForgotPassword } from './pages/ForgotPassword';
 import { ResetPassword } from './pages/ResetPassword';
 import { PublicForm } from './pages/PublicForm';
 import { NotificationsPage } from './pages/NotificationsPage';
+import { LeadRotationSettings } from './pages/settings/LeadRotationSettings';
 import { useAuthStore } from './store/useAuthStore';
 import { supabase } from './lib/supabase';
 import { ChangePasswordModal } from './components/auth/ChangePasswordModal';
@@ -117,7 +117,7 @@ export default function App() {
             <Route path="users" element={<Users />} />
             <Route path="goals" element={<ManageGoals />} />
             <Route path="checklists" element={<ManageStageChecklists />} />
-            <Route path="turmas" element={<ManageTurmas />} />
+            <Route path="turmas" element={<Navigate to="/products" replace />} />
             <Route path="notifications" element={<Notifications />} />
             <Route path="security" element={<Security />} />
             <Route path="integrations" element={<Integrations />} />
@@ -127,6 +127,7 @@ export default function App() {
             <Route path="categories" element={<ManageCategories />} />
             <Route path="activity-categories" element={<ManageActivityCategories />} />
             <Route path="commissions" element={<ManageCommissions />} />
+            <Route path="rotation" element={<LeadRotationSettings />} />
           </Route>
   <Route path="/analytics" element={<Dashboard />} /> {/* Placeholder */}
         </Route>

@@ -11,6 +11,7 @@ import {
   LogIn,
   UserX,
   BadgeCheck,
+  Users,
 } from 'lucide-react';
 import { DndContext, useSensors, useSensor, PointerSensor, closestCenter, DragOverlay, DragStartEvent, DragEndEvent } from '@dnd-kit/core';
 import { TurmaColumn } from './TurmaColumn';
@@ -73,6 +74,7 @@ export function TurmasRightPanel({
             <span className="flex items-center gap-1"><Calendar size={11} className="text-emerald-500" />{liveSelectedTurma.date ? new Date(liveSelectedTurma.date + 'T00:00:00').toLocaleDateString('pt-BR') : '--'}</span>
             <span className="flex items-center gap-1"><Clock size={11} className="text-emerald-500" />{liveSelectedTurma.time || '--:--'}</span>
             <div className="hidden sm:flex items-center gap-1"><MapPin size={11} className="text-emerald-500" />{liveSelectedTurma.location || '--'}</div>
+            <span className="flex items-center gap-1"><Users size={11} className="text-emerald-500" />Meta: {liveSelectedTurma.meta ?? '--'} alunos</span>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">

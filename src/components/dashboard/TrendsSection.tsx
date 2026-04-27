@@ -5,13 +5,13 @@ import { fmt } from '../../lib/utils';
 
 interface TrendsSectionProps {
   sales: SalesMetrics;
-  totalIncome: number;
-  totalSalesGoal: number;
+  totalAchieved: number;
+  totalGoal: number;
 }
 
-export function TrendsSection({ sales, totalIncome, totalSalesGoal }: TrendsSectionProps) {
-  const totalPct = totalSalesGoal > 0 ? Math.min((totalIncome / totalSalesGoal) * 100, 100) : 0;
-  const remaining = Math.max(totalSalesGoal - totalIncome, 0);
+export function TrendsSection({ sales, totalAchieved, totalGoal }: TrendsSectionProps) {
+  const totalPct = totalGoal > 0 ? Math.min((totalAchieved / totalGoal) * 100, 100) : 0;
+  const remaining = Math.max(totalGoal - totalAchieved, 0);
 
   const statusColor =
     totalPct >= 100
@@ -53,11 +53,11 @@ export function TrendsSection({ sales, totalIncome, totalSalesGoal }: TrendsSect
           </span>
         </div>
 
-        {totalSalesGoal === 0 ? (
+        {totalGoal === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-3 py-8 text-slate-300">
             <Target className="w-12 h-12 opacity-40" />
             <p className="text-sm font-medium text-slate-400 text-center">
-              Defina a meta da empresa em<br />
+              Defina a meta de leads da empresa em<br />
               <span className="font-bold text-slate-500">Configurações → Metas</span>
             </p>
           </div>
@@ -68,19 +68,19 @@ export function TrendsSection({ sales, totalIncome, totalSalesGoal }: TrendsSect
               <div className="flex flex-col gap-0.5">
                 <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1">
                   <TrendingUp size={10} />
-                  Receita
+                  Ganhos
                 </span>
                 <span className="text-lg font-black text-slate-900 leading-tight">
-                  R$ {fmt(totalIncome)}
+                  {totalAchieved}
                 </span>
               </div>
               <div className="flex flex-col gap-0.5">
                 <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1">
                   <Target size={10} />
-                  Meta
+                  Meta (Leads)
                 </span>
                 <span className="text-lg font-bold text-slate-600">
-                  R$ {fmt(totalSalesGoal)}
+                  {totalGoal}
                 </span>
               </div>
               {remaining > 0 && (
@@ -90,7 +90,7 @@ export function TrendsSection({ sales, totalIncome, totalSalesGoal }: TrendsSect
                     Faltam
                   </span>
                   <span className="text-base font-bold" style={{ color: statusColor.bar }}>
-                    R$ {fmt(remaining)}
+                    {remaining}
                   </span>
                 </div>
               )}

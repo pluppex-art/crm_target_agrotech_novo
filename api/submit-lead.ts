@@ -40,12 +40,13 @@ export default async function handler(req: any, res: any) {
 
   const vendedorCargoIds = (vendedorCargos || []).map((c: any) => c.id);
 
-  // 2. Busca vendedores ativos do departamento Comercial com esses cargos
+  // 2. Busca vendedores ativos do departamento Comercial com esses cargos que estão no rodízio
   const { data: sellers } = await supabase
     .from('perfis')
     .select('name, phone')
     .eq('department', 'Comercial')
     .or('status.eq.active,status.is.null')
+    .neq('in_round_robin', false)
     .in('role_id', vendedorCargoIds.length > 0 ? vendedorCargoIds : ['']);
 
   // Ordena alfabeticamente em pt-BR (ignora maiúsculas/minúsculas e acentos)

@@ -73,6 +73,7 @@ export const usePipelineFilters = (leads: Lead[], authUserId?: string, isComerci
     const matchesSearch =
       lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lead.product.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (lead.phone && lead.phone.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (lead.responsible && lead.responsible.toLowerCase().includes(searchTerm.toLowerCase()));
     const selectedResponsibleLower = selectedResponsible.trim().toLowerCase();
     const leadResponsibleLower = (lead.responsible ?? '').trim().toLowerCase();

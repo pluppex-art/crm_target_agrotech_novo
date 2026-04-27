@@ -1,16 +1,15 @@
-import { NavLink, Outlet, Navigate } from 'react-router-dom';
+import { NavLink, Outlet } from 'react-router-dom';
 import {
   User, Bell, Lock, Globe, Shield, UserPlus, Tag, Activity,
-  Target, ClipboardList, Percent, GraduationCap, Settings as SettingsIcon,
+  Target, ClipboardList, Percent, Settings as SettingsIcon, RefreshCcw
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 const settingsNav = [
-  { icon: User,           label: 'Perfil',              path: '/settings/profile' },
+  { icon: User,           label: 'Perfil',               path: '/settings/profile' },
   { icon: UserPlus,       label: 'Usuários',             path: '/settings/users' },
   { icon: Target,         label: 'Metas',                path: '/settings/goals' },
   { icon: ClipboardList,  label: 'Checklists',           path: '/settings/checklists' },
-  { icon: GraduationCap,  label: 'Turmas',               path: '/settings/turmas' },
   { icon: Bell,           label: 'Notificações',         path: '/settings/notifications' },
   { icon: Lock,           label: 'Segurança',            path: '/settings/security' },
   { icon: Globe,          label: 'Integrações',          path: '/settings/integrations' },
@@ -20,6 +19,7 @@ const settingsNav = [
   { icon: Tag,            label: 'Categorias',           path: '/settings/categories' },
   { icon: Activity,       label: 'Atividades',           path: '/settings/activity-categories' },
   { icon: Percent,        label: 'Comissões',            path: '/settings/commissions' },
+  { icon: RefreshCcw,    label: 'Rodízio de Leads',     path: '/settings/rotation' },
 ];
 
 export function SettingsLayout() {

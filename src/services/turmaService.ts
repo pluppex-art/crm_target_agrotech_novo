@@ -60,7 +60,7 @@ export const turmaService = {
       enrollment_fee: t.products?.enrollment_fee ?? 0,
       category: t.products?.category ?? 'Geral',
       location: t.location,
-      meta: t.meta ?? undefined,
+      meta: t.meta ?? t.products?.student_goal ?? undefined,
       status: t.status,
       attendees: (t.turma_attendees || []).map((a: any) => ({
         id: a.id,
@@ -201,6 +201,7 @@ export const turmaService = {
         date: turmaData.date || null,
         time: turmaData.time || null,
         location: turmaData.location || null,
+        meta: turmaData.meta ?? null,
         status: turmaData.status,
       }])
       .select('*, products(*), turma_attendees(*)')

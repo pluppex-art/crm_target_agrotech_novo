@@ -17,7 +17,9 @@ import { HorizontalBar } from '../components/dashboard/HorizontalBar';
 import { DoughnutChart } from '../components/dashboard/DoughnutChart';
 import { FunnelChart } from '../components/dashboard/FunnelChart';
 import { TrendsSection } from '../components/dashboard/TrendsSection';
+import { GoalVsIncomeChart } from '../components/dashboard/GoalVsIncomeChart';
 import { ImprovedCSSBarChart } from '../components/dashboard/ImprovedCSSBarChart';
+import { SellerSemaphore } from '../components/dashboard/SellerSemaphore';
 
 type OccupancyItem = { name: string; pct: number; level: 'red' | 'yellow' | 'green'; alunos: number; capacity: number; color: string; category: string };
 
@@ -189,7 +191,7 @@ export function Dashboard() {
   });
   const financeMetrics = useFinanceMetrics();
   const companyGoal = goals.find(g => g.type === 'company');
-  const totalSalesGoal = companyGoal?.revenue_goal ?? 0;
+  const totalLeadsGoal = companyGoal?.leads_goal ?? 0;
 
   if (permissionsLoading) return null;
 
@@ -359,15 +361,14 @@ export function Dashboard() {
       {/* KPI Metrics */}
       <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
         <MetricCard label="Leads Ativos" value={String(salesMetrics.leadsCount)} icon={Users} color="bg-emerald-50 text-emerald-600" />
-        <MetricCard label="Fechamentos" value={String(salesMetrics.closedLeadsCount)} icon={Users} color="bg-emerald-50 text-emerald-600" />
+        <MetricCard label="Ganhos" value={String(salesMetrics.closedLeadsCount)} icon={Users} color="bg-emerald-50 text-emerald-600" />
         <MetricCard label="Conversão" value={`${salesMetrics.conversionRate.toFixed(1)}%`} icon={Users} color="bg-purple-50 text-purple-600" />
         <MetricCard label="Em Proposta" value={String(salesMetrics.pipelineStages.find(s => s.label === 'Proposta')?.value || 0)} icon={Users} color="bg-rose-50 text-rose-600" />
         <MetricCard label="Qualificados" value={String(salesMetrics.pipelineStages.find(s => s.label === 'Qualificado')?.value || 0)} icon={Users} color="bg-blue-50 text-blue-600" />
       </div>
 
-      {/* ── Ranking + Taxa de Ocupação ── */}
-      <div className="flex flex-col gap-6 mb-6">
-
+      {/* ── Ranking + Semáforo + Taxa de Ocupação ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Ranking de Vendedores */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col">
           <h3 className="font-bold text-slate-800 mb-5">Ranking de Vendedores</h3>
@@ -383,8 +384,8 @@ export function Dashboard() {
                   key={s.label}
                   label={s.label}
                   value={s.value}
-                  received={s.received}
-                  max={s.revenue_goal}
+                  received={s.count}
+                  max={s.leads_goal}
                   percentage={s.percentage}
                   rank={i}
                   count={s.count}
@@ -395,7 +396,16 @@ export function Dashboard() {
           )}
         </div>
 
-        {/* Taxa de Ocupação por Turma */}
+        {/* Semáforo dos Vendedores */}
+        <SellerSemaphore
+          data={salesMetrics.sellerSemaphoreData}
+          currentSellerName={currentSellerName}
+          isAdmin={hasPermission('admin.all')}
+        />
+      </div>
+
+      {/* Taxa de Ocupação por Turma */}
+      <div className="mb-6">
         <OccupancyCard occupancyData={salesMetrics.occupancyData} />
       </div>
 
@@ -429,8 +439,8 @@ export function Dashboard() {
       {/* Trends + Meta */}
       <TrendsSection
         sales={salesMetrics}
-        totalIncome={financeMetrics.totalIncome}
-        totalSalesGoal={totalSalesGoal}
+        totalAchieved={salesMetrics.closedLeadsCount}
+        totalGoal={totalLeadsGoal}
       />
     </div>
   );

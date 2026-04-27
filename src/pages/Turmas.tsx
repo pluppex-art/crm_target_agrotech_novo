@@ -236,7 +236,7 @@ export function Turmas() {
                 value: filterProduct,
                 onChange: setFilterProduct,
                 activeColorClass: 'bg-amber-50 text-amber-700 border-amber-100',
-                options: Array.from(new Set(turmas.map(t => t.product_name).filter(Boolean))).map(p => ({ value: p, label: p }))
+                options: Array.from(new Set(turmas.map(t => t.product_name).filter((p): p is string => !!p))).map(p => ({ value: p, label: p }))
               },
               {
                 id: 'professor',
@@ -246,7 +246,7 @@ export function Turmas() {
                 value: filterProfessor,
                 onChange: setFilterProfessor,
                 activeColorClass: 'bg-teal-50 text-teal-700 border-teal-100',
-                options: Array.from(new Set(turmas.map(t => t.professor_name).filter(Boolean))).map(p => ({ value: p, label: p }))
+                options: Array.from(new Set(turmas.map(t => t.professor_name).filter((p): p is string => !!p))).map(p => ({ value: p, label: p }))
               }
             ]}
           />

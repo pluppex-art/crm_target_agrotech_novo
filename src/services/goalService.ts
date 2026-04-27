@@ -31,56 +31,86 @@ export const goalService = {
     const supabase = getSupabaseClient();
     if (!supabase) return null;
 
-    const existing = await goalService.getCompanyGoal();
-    if (existing) {
-      const { data, error } = await supabase
-        .from('goals')
-        .update({ revenue_goal, leads_goal, updated_at: new Date().toISOString() })
-        .eq('id', existing.id)
-        .select()
-        .single();
-      if (error) { console.error(error); return null; }
-      return data;
-    } else {
-      const { data, error } = await supabase
-        .from('goals')
-        .insert([{ type: 'company', seller_name: null, revenue_goal, leads_goal }])
-        .select()
-        .single();
-      if (error) { console.error(error); return null; }
-      return data;
+    const { data, error } = await supabase
+      .from('goals')
+      .upsert({ 
+        type: 'company', 
+        revenue_goal, 
+        leads_goal, 
+        updated_at: new Date().toISOString() 
+      }, { onConflict: 'type' })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error upserting company goal:', error);
+      // Fallback manual update/insert if unique index doesn't exist yet
+      const existing = await goalService.getCompanyGoal();
+      if (existing) {
+        const { error: updErr } = await supabase
+          .from('goals')
+          .update({ revenue_goal, leads_goal, updated_at: new Date().toISOString() })
+          .eq('id', existing.id);
+        if (updErr) return null;
+        return { ...existing, revenue_goal, leads_goal };
+      } else {
+        const { data: insData, error: insErr } = await supabase
+          .from('goals')
+          .insert([{ type: 'company', revenue_goal, leads_goal }])
+          .select()
+          .single();
+        if (insErr) return null;
+        return insData;
+      }
     }
+    return data;
   },
 
-  async upsertSellerGoal(seller_id: string, revenue_goal: number, leads_goal: number): Promise<Goal | null> {
+  async upsertSellerGoal(seller_id: string, seller_name: string, revenue_goal: number, leads_goal: number): Promise<Goal | null> {
     const supabase = getSupabaseClient();
     if (!supabase) return null;
 
-    const { data: existing } = await supabase
+    const { data, error } = await supabase
       .from('goals')
-      .select('*')
-      .eq('type', 'seller')
-      .eq('seller_id', seller_id)
-      .maybeSingle();
+      .upsert({
+        type: 'seller',
+        seller_id,
+        seller_name,
+        revenue_goal,
+        leads_goal,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'type,seller_id' })
+      .select()
+      .single();
 
-    if (existing) {
-      const { data, error } = await supabase
+    if (error) {
+      console.error('Error upserting seller goal:', error);
+      // Fallback manual check
+      const { data: existing } = await supabase
         .from('goals')
-        .update({ revenue_goal, leads_goal, updated_at: new Date().toISOString() })
-        .eq('id', existing.id)
-        .select()
-        .single();
-      if (error) { console.error(error); return null; }
-      return data;
-    } else {
-      const { data, error } = await supabase
-        .from('goals')
-        .insert([{ type: 'seller', seller_id, revenue_goal, leads_goal }])
-        .select()
-        .single();
-      if (error) { console.error(error); return null; }
-      return data;
+        .select('*')
+        .eq('type', 'seller')
+        .eq('seller_id', seller_id)
+        .maybeSingle();
+
+      if (existing) {
+        const { error: updErr } = await supabase
+          .from('goals')
+          .update({ seller_name, revenue_goal, leads_goal, updated_at: new Date().toISOString() })
+          .eq('id', existing.id);
+        if (updErr) return null;
+        return { ...existing, seller_name, revenue_goal, leads_goal };
+      } else {
+        const { data: insData, error: insErr } = await supabase
+          .from('goals')
+          .insert([{ type: 'seller', seller_id, seller_name, revenue_goal, leads_goal }])
+          .select()
+          .single();
+        if (insErr) return null;
+        return insData;
+      }
     }
+    return data;
   },
 
   async deleteGoal(id: string): Promise<boolean> {

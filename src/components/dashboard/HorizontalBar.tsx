@@ -27,7 +27,7 @@ export function HorizontalBar({ label, received, max, percentage: precomputedPct
         <div className="flex items-center gap-2 shrink-0">
           {count !== undefined && (
             <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md">
-              {count} {count === 1 ? 'venda' : 'vendas'}
+              {count}{max > 0 ? ` / ${max}` : ''} {count === 1 && max <= 0 ? 'ganho' : 'ganhos'}
             </span>
           )}
           <span className="text-xs font-bold text-slate-600">{percentage}%</span>

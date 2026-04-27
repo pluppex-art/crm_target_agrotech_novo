@@ -2,25 +2,30 @@ import { useEffect, useState, useMemo } from 'react';
 import { Plus, Loader2, Package, ShieldAlert, Search, LayoutGrid, List, Edit2 } from 'lucide-react';
 import { usePermissions } from '../hooks/usePermissions';
 import { useProductStore } from '../store/useProductStore';
+import { useTurmaStore } from '../store/useTurmaStore';
 import { UnifiedTurmaProductForm } from '../components/forms/UnifiedTurmaProductForm';
 import { Product } from '../services/productService';
 import { ProductCard } from '../components/products/ProductCard';
 import { PageFilters } from '../components/ui/PageFilters';
-import { Filter } from 'lucide-react';
+import { Filter, GraduationCap } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { TURMA_STATUS_LABELS } from '../lib/turmas';
 
 export function Products() {
   const { hasPermission, loading: permissionsLoading } = usePermissions();
   const { products, loading, fetchProducts, subscribe } = useProductStore();
+  const { turmas, fetchTurmas } = useTurmaStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
+  const [filterTurmaStatus, setFilterTurmaStatus] = useState('ativo');
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
 
   useEffect(() => {
     fetchProducts();
-  }, [fetchProducts]);
+    fetchTurmas();
+  }, [fetchProducts, fetchTurmas]);
 
   useEffect(() => {
     const unsubscribe = subscribe();
@@ -42,6 +47,20 @@ export function Products() {
     return { id: editingProduct.id, name: editingProduct.name, category: editingProduct.category } as any;
   }, [editingProduct]);
 
+  const getProductTurmaStatus = (product: Product) => {
+    const productTurmas = turmas.filter(t =>
+      t.product_id === product.id || t.product_name === product.name
+    );
+    if (productTurmas.length === 0) return null;
+    const hasActive = productTurmas.some(t => t.status === 'agendada' || t.status === 'em_andamento');
+    if (hasActive) return 'ativo';
+    const hasConcluida = productTurmas.some(t => t.status === 'concluida');
+    if (hasConcluida) return 'concluida';
+    const hasCancelada = productTurmas.some(t => t.status === 'cancelada');
+    if (hasCancelada) return 'cancelada';
+    return null;
+  };
+
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
       // 1. Search text
@@ -55,9 +74,20 @@ export function Products() {
       if (filterCategory !== 'all' && p.category !== filterCategory) {
         return false;
       }
+      // 3. Turma status
+      if (filterTurmaStatus !== 'all') {
+        const productStatus = getProductTurmaStatus(p);
+        if (filterTurmaStatus === 'ativo') {
+          if (productStatus !== 'ativo') return false;
+        } else if (filterTurmaStatus === 'concluida') {
+          if (productStatus !== 'concluida') return false;
+        } else if (filterTurmaStatus === 'cancelada') {
+          if (productStatus !== 'cancelada') return false;
+        }
+      }
       return true;
     });
-  }, [products, searchTerm, filterCategory]);
+  }, [products, searchTerm, filterCategory, filterTurmaStatus, turmas]);
 
   if (permissionsLoading) {
     return (
@@ -109,6 +139,7 @@ export function Products() {
           onClearAll={() => {
             setSearchTerm('');
             setFilterCategory('all');
+            setFilterTurmaStatus('ativo');
           }}
           filters={[
             {
@@ -119,7 +150,22 @@ export function Products() {
               value: filterCategory,
               onChange: setFilterCategory,
               activeColorClass: 'bg-indigo-50 text-indigo-700 border-indigo-100',
-              options: Array.from(new Set(products.map(p => p.category).filter(Boolean))).map(c => ({ value: c, label: c }))
+              options: Array.from(new Set(products.map(p => p.category).filter((c): c is string => !!c))).map(c => ({ value: c, label: c }))
+            },
+            {
+              id: 'turmaStatus',
+              type: 'select',
+              icon: GraduationCap,
+              placeholder: 'Status da Turma',
+              value: filterTurmaStatus,
+              onChange: setFilterTurmaStatus,
+              activeColorClass: 'bg-purple-50 text-purple-700 border-purple-100',
+              options: [
+                { value: 'ativo', label: 'Ativo' },
+                { value: 'concluida', label: 'Concluída' },
+                { value: 'cancelada', label: 'Cancelada' },
+                { value: 'all', label: 'Todos' },
+              ]
             }
           ]}
         />
@@ -155,7 +201,12 @@ export function Products() {
       ) : viewMode === 'card' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {filteredProducts.map((product) => (
-            <ProductCard key={product.id} product={product} onEdit={handleEdit} />
+            <ProductCard
+              key={product.id}
+              product={product}
+              onEdit={handleEdit}
+              turmaStatus={getProductTurmaStatus(product)}
+            />
           ))}
         </div>
       ) : (
@@ -167,6 +218,7 @@ export function Products() {
                 <th className="text-left px-5 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Categoria</th>
                 <th className="text-right px-5 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Preço</th>
                 <th className="text-right px-5 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Taxa Matrícula</th>
+                <th className="text-right px-5 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Meta Alunos</th>
                 <th className="px-5 py-3" />
               </tr>
             </thead>
@@ -181,6 +233,11 @@ export function Products() {
                   <td className="px-5 py-3 text-right text-amber-600 font-semibold">
                     {(product as any).enrollment_fee > 0
                       ? `R$ ${Number((product as any).enrollment_fee).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                      : '—'}
+                  </td>
+                  <td className="px-5 py-3 text-right font-semibold text-slate-700">
+                    {(product as any).student_goal != null
+                      ? (product as any).student_goal
                       : '—'}
                   </td>
                   <td className="px-5 py-3 text-right">
@@ -207,3 +264,4 @@ export function Products() {
     </div>
   );
 }
+

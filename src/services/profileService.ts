@@ -59,15 +59,12 @@ export const profileService = {
 
   async updateProfile(id: string, profile: Partial<UserProfile>): Promise<{ data: UserProfile | null; error: any }> {
     const supabase = getSupabaseClient();
-    const serviceSupabase = getServiceSupabaseClient();
     if (!supabase) return { data: null, error: 'Supabase client not initialized' };
 
-    const originalEmail = profile.email;
-    // Remove email from perfis update
-    const { email, role_id, ...updateData } = profile;
+    const { email, password, role_id, ...updateData } = profile;
     const finalUpdateData = { id, ...updateData, role_id: role_id || null };
 
-    // Update perfis
+    // Update perfis table
     const { data, error: perfisError } = await supabase
       .from('perfis')
       .upsert(finalUpdateData)
@@ -79,14 +76,20 @@ export const profileService = {
       return { data: null, error: perfisError };
     }
 
-    // Update auth user email if changed
-    if (serviceSupabase && originalEmail && data) {
-      const { error: authError } = await serviceSupabase.auth.admin.updateUserById(
-        id,
-        { email: originalEmail, email_confirm: true }
-      );
-      if (authError) {
-        console.warn('Auth email update failed (perfis updated anyway):', authError);
+    // Update auth user email/password via API
+    if (email || password) {
+      try {
+        const resp = await fetch('/api/update-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, email, password }),
+        });
+        if (!resp.ok) {
+          const err = await resp.json();
+          console.warn('Auth update via API failed:', err);
+        }
+      } catch (err) {
+        console.warn('Auth update via API failed (network):', err);
       }
     }
 
@@ -97,43 +100,42 @@ export const profileService = {
     const supabase = getSupabaseClient();
     if (!supabase) return { data: null, error: 'Supabase client not initialized' };
 
-    // Create auth user first using service role if available
-    const serviceSupabase = getServiceSupabaseClient();
-    let userId: string = crypto.randomUUID();
+    let userId: string;
 
-    if (serviceSupabase && profile.email) {
-      // Create auth user
-      const { data: authUser, error: authError } = await serviceSupabase.auth.admin.createUser({
-        email: profile.email,
-        password: profile.password,
-        email_confirm: true,
-        user_metadata: { name: profile.name }
+    // Create auth user via API
+    try {
+      const resp = await fetch('/api/create-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: profile.email,
+          password: profile.password,
+          name: profile.name,
+        }),
       });
-
-      if (authError) {
-        console.error('Auth user creation failed:', authError);
-        return { data: null, error: authError };
-      }
-
-      if (authUser.user) {
-        userId = authUser.user.id;
-      }
+      const result = await resp.json();
+      if (!resp.ok) throw new Error(result.error || 'Erro ao criar usuário auth.');
+      userId = result.id;
+    } catch (err: any) {
+      console.error('Auth creation via API failed:', err.message);
+      return { data: null, error: err.message };
     }
 
-    const insertData: UserProfile = {
+    const { password, ...insertData } = profile;
+    const finalInsertData = {
       id: userId,
-      ...profile
+      ...insertData
     };
-    delete (insertData as any).password;
 
     const { data, error } = await supabase
       .from('perfis')
-      .insert([insertData])
+      .insert([finalInsertData])
       .select()
       .single();
 
     if (error) {
-      console.error('Error creating profile:', error);
+      console.error('Error creating profile record:', error);
+      // Optional: cleanup auth user if profile record fails?
       return { data: null, error };
     }
 
@@ -143,6 +145,17 @@ export const profileService = {
   async deleteProfile(id: string): Promise<boolean> {
     const supabase = getSupabaseClient();
     if (!supabase) return false;
+
+    // Delete auth user via API
+    try {
+      await fetch('/api/delete-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+    } catch (err) {
+      console.warn('Auth deletion via API failed:', err);
+    }
 
     const { error } = await supabase
       .from('perfis')

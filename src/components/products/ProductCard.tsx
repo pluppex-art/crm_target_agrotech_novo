@@ -1,18 +1,24 @@
-import { Package, Edit3, Trash2, MoreHorizontal, ShieldAlert } from 'lucide-react';
+import { Package, Edit3, Trash2, MoreHorizontal, ShieldAlert, GraduationCap, Users } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useProductStore } from '../../store/useProductStore';
 import { Product } from '../../services/productService';
 import { DollarSign } from 'lucide-react';
-
+import { TURMA_STATUS_LABELS } from '../../lib/turmas';
+import { cn } from '../../lib/utils';
 
 interface ProductCardProps {
   product: Product;
   onEdit: (product: Product) => void;
+  turmaStatus?: string | null;
 }
 
-export function ProductCard({ product, onEdit }: ProductCardProps) {
+export function ProductCard({ product, onEdit, turmaStatus }: ProductCardProps) {
   const { hasPermission, loading: permissionsLoading } = usePermissions();
   const { deleteProduct } = useProductStore();
+
+  const turmaStatusLabel = turmaStatus
+    ? TURMA_STATUS_LABELS[turmaStatus] || { label: turmaStatus, color: 'bg-slate-100 text-slate-600' }
+    : null;
 
   if (permissionsLoading) {
     return (
@@ -39,7 +45,15 @@ export function ProductCard({ product, onEdit }: ProductCardProps) {
       </div>
       <div className="p-5">
         <div className="flex items-center justify-between mb-2">
-          <span className="px-2 py-1 bg-slate-100 text-slate-500 rounded text-[8px] font-bold uppercase">{product.category || 'Geral'}</span>
+          <div className="flex items-center gap-1.5">
+            <span className="px-2 py-1 bg-slate-100 text-slate-500 rounded text-[8px] font-bold uppercase">{product.category || 'Geral'}</span>
+            {turmaStatusLabel && (
+              <span className={cn('px-2 py-1 rounded text-[8px] font-bold uppercase', turmaStatusLabel.color)}>
+                <GraduationCap className="w-3 h-3 inline mr-0.5" />
+                {turmaStatusLabel.label}
+              </span>
+            )}
+          </div>
           <button className="p-1 text-slate-300 hover:text-slate-600">
             <MoreHorizontal className="w-4 h-4" />
           </button>
@@ -53,6 +67,13 @@ export function ProductCard({ product, onEdit }: ProductCardProps) {
             <span className="text-[10px] text-slate-400 font-medium">Taxa Matrícula:</span>
             <span className="text-xs font-bold text-emerald-600">
               R$ {(product.enrollment_fee || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </span>
+          </div>
+          <div className="flex items-baseline gap-1">
+            <Users size={10} className="text-slate-400" />
+            <span className="text-[10px] text-slate-400 font-medium">Meta Alunos:</span>
+            <span className="text-xs font-bold text-blue-600">
+              {product.student_goal != null ? `${product.student_goal} alunos` : '—'}
             </span>
           </div>
           <div className="flex items-center justify-between">

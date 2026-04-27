@@ -76,7 +76,7 @@ export function TurmaCard({ turma, isSelected, onSelect, onEdit, onDelete }: Tur
         <div className="flex items-center gap-1.5 text-xs">
           <Users size={12} className="text-slate-400" />
           <span className="font-semibold text-slate-700">{confirmados}</span>
-          <span className="text-slate-400">/ {(turma.attendees || []).length} confirmados</span>
+          <span className="text-slate-400">/ {turma.meta ?? '?'} meta</span>
         </div>
         <span className="text-xs font-bold text-emerald-700">
           R$ {totalVendasTurma(turma).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
@@ -87,7 +87,7 @@ export function TurmaCard({ turma, isSelected, onSelect, onEdit, onDelete }: Tur
       <div className="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
         <div
           className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-          style={{ width: (turma.attendees || []).length ? `${(confirmados / turma.attendees.length) * 100}%` : '0%' }}
+          style={{ width: (turma.meta && turma.meta > 0) ? `${Math.min((confirmados / turma.meta) * 100, 100)}%` : '0%' }}
         />
       </div>
     </div>

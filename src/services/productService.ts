@@ -10,6 +10,7 @@ export interface Product {
   category?: string;
   stock: number;
   image_url?: string;
+  student_goal?: number;
 }
 
 

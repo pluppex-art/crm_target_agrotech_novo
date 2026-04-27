@@ -230,7 +230,26 @@ async function startServer() {
         email_confirm: true,
         user_metadata: { name },
       });
+
       if (error) {
+        const isAlreadyRegistered = error.message.toLowerCase().includes('registered') || 
+                                    error.message.toLowerCase().includes('already exists');
+        
+        if (isAlreadyRegistered) {
+          console.log(`[create-user] User ${email} already exists in Auth. Fetching ID...`);
+          // If user exists, fetch their ID
+          const { data: listData, error: listError } = await supabaseAdmin.auth.admin.listUsers({
+            perPage: 1000 // Try to get all to avoid pagination issues
+          });
+          
+          if (!listError) {
+            const existingUser = listData.users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
+            if (existingUser) {
+              console.log(`[create-user] Found existing ID: ${existingUser.id}`);
+              return res.status(200).json({ id: existingUser.id });
+            }
+          }
+        }
         console.error("[create-user] Erro:", error.message);
         return res.status(400).json({ error: error.message });
       }

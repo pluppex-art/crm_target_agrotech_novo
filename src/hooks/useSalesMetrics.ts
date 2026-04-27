@@ -29,7 +29,19 @@ export interface SalesMetrics {
     received: number;
     count: number;
     percentage: number;
+    leads_goal: number;
+  }>;
+  sellerSemaphoreData: Array<{
+    label: string;
+    value: number;
+    received: number;
+    count: number;
+    percentage: number;
     revenue_goal: number;
+    pct: number;
+    color: 'red' | 'yellow' | 'green' | 'gold';
+    colorClass: string;
+    barColor: string;
   }>;
   pipelineStages: Array<{
     id: string;
@@ -55,7 +67,9 @@ interface UseSalesMetricsProps {
   currentSellerName?: string | null;
   startDate?: string;
   endDate?: string;
-  goals?: Array<{ seller_id?: string; seller_name?: string; revenue_goal?: number }>;
+  goals?: Array<{
+    type: string; seller_id?: string; seller_name?: string; leads_goal?: number; revenue_goal?: number
+  }>;
   searchTerm?: string;
   filterStage?: string;
   filterProduct?: string;
@@ -92,6 +106,18 @@ export function useSalesMetrics({
 
   const filteredLeads = useMemo(() => {
     let result = leads as any[];
+
+    // Date filtering
+    if (startDate) {
+      const start = new Date(startDate);
+      result = result.filter(l => new Date(l.created_at) >= start);
+    }
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      result = result.filter(l => new Date(l.created_at) <= end);
+    }
+
     if (searchTerm) {
       const q = searchTerm.toLowerCase();
       result = result.filter(l =>
@@ -103,18 +129,35 @@ export function useSalesMetrics({
     if (filterStage !== 'all') result = result.filter(l => l.stage_id === filterStage);
     if (filterProduct !== 'all') result = result.filter(l => l.product === filterProduct);
     if (filterResponsible !== 'all') result = result.filter(l => l.responsible === filterResponsible);
+
+    // Privacy filter: if not admin, only show own data
+    if (currentSellerName) {
+      result = result.filter(l => l.responsible === currentSellerName);
+    }
+
     return result;
-  }, [leads, searchTerm, filterStage, filterProduct, filterResponsible]);
+  }, [leads, searchTerm, filterStage, filterProduct, filterResponsible, startDate, endDate, currentSellerName]);
 
-  const totalGanhos = getSellerIncome(turmas, '', startDate, endDate);
-  const myGanhos = currentSellerName
-    ? getSellerIncome(turmas, currentSellerName, startDate, endDate)
-    : 0;
-  const teamGanhos = totalGanhos - myGanhos;
 
-  const closedLeadsFiltered = filteredLeads.filter(
-    (l: any) => l.status === 'closed' || stageNameToStatus(l.status) === 'closed'
-  );
+
+  const closedLeadsFiltered = useMemo(() => {
+    const pipeline = pipelines[0];
+    const stageMap = new Map(pipeline?.stages?.map(s => [s.id, s.name]) || []);
+
+    return filteredLeads.filter((l: any) => {
+      // Check status field directly (legacy/manual)
+      if (l.status === 'closed' || stageNameToStatus(l.status) === 'closed') return true;
+
+      // Check via stage_id and stage name
+      if (l.stage_id) {
+        const stageName = stageMap.get(l.stage_id);
+        if (stageName && stageNameToStatus(stageName) === 'closed') return true;
+      }
+
+      return false;
+    });
+  }, [filteredLeads, pipelines]);
+
   const closedLeadsCount = closedLeadsFiltered.length;
 
   const conversionRate =
@@ -125,36 +168,130 @@ export function useSalesMetrics({
     0
   );
 
+  const totalGanhos = useMemo(() => {
+    const start = startDate ? new Date(startDate) : null;
+    const end = endDate ? new Date(endDate) : null;
+    if (end) end.setHours(23, 59, 59, 999);
+
+    const targetSeller = (currentSellerName || (filterResponsible !== 'all' ? filterResponsible : '')).trim().toLowerCase();
+
+    // Source 1: Leads
+    const leadsIncome = leads.reduce((sum, l) => {
+      const leadSeller = (l.responsible || '').trim().toLowerCase();
+      if (filterProduct !== 'all' && l.product !== filterProduct) return sum;
+      if (targetSeller && leadSeller !== targetSeller) return sum;
+
+      const cDate = new Date(l.created_at);
+      const uDate = l.updated_at ? new Date(l.updated_at) : cDate;
+      const matchesDate = (!start || cDate >= start || uDate >= start) && 
+                          (!end || cDate <= end || uDate <= end);
+      
+      if (!matchesDate) return sum;
+      return sum + (Number(l.valor_recebido) || 0) + (Number(l.taxa_matricula_recebido) || 0);
+    }, 0);
+
+    // Source 2: Turmas
+    const turmasIncome = turmas.reduce((sum, t) => {
+      const tDate = new Date(t.date);
+      if ((start && tDate < start) || (end && tDate > end)) return sum;
+      if (filterProduct !== 'all' && t.product_name !== filterProduct) return sum;
+
+      return sum + t.attendees
+        .filter((a: any) => {
+          const attendeeSeller = (a.responsible || '').trim().toLowerCase();
+          return a.status !== 'cancelado' && 
+                 (!targetSeller || attendeeSeller === targetSeller) &&
+                 a.valor_recebido != null;
+        })
+        .reduce((s: number, a: any) => s + (a.valor_recebido || 0), 0);
+    }, 0);
+
+    return leadsIncome + turmasIncome;
+  }, [leads, turmas, startDate, endDate, filterProduct, filterResponsible, currentSellerName]);
+
+  const myGanhos = totalGanhos; // totalGanhos already considers currentSellerName/filterResponsible
+  const teamGanhos = 0; // Not used in this view but keeping for compatibility
+
   const occupancyData = getOccupancyData(turmas);
 
-  // Seller ranking: uses `vendas` (committed sale value) for progress vs goal
-  // `valor_recebido` is only for actual cash received (Ganhos Totais card)
+  // Seller ranking: uses pipeline closed lead counts for ranking, and combined lead + turret payments for received
   const salesByResponsible = useMemo(() => {
     const result: Record<string, { label: string; value: number; received: number; count: number }> = {};
-    turmas.forEach(t => {
-      t.attendees
-        .filter((a: any) => a.status !== 'cancelado' && a.responsible)
-        .forEach((a: any) => {
-          const key = a.responsible as string;
-          result[key] = result[key] || { label: key, value: 0, received: 0, count: 0 };
-          result[key].value += (a.vendas || a.valor_recebido || 0);
-          result[key].received += (a.valor_recebido || 0);
-          result[key].count += 1;
-        });
+    const start = startDate ? new Date(startDate) : null;
+    const end = endDate ? new Date(endDate) : null;
+    if (end) end.setHours(23, 59, 59, 999);
+    
+    const globalTargetSeller = (currentSellerName || '').trim().toLowerCase();
+
+    // 1. Process Leads
+    leads.forEach((l: any) => {
+      if (l.responsible) {
+        const rawKey = l.responsible.trim();
+        const lowerKey = rawKey.toLowerCase();
+        
+        if (filterProduct !== 'all' && l.product !== filterProduct) return;
+        if (globalTargetSeller && lowerKey !== globalTargetSeller) return;
+
+        if (!result[lowerKey]) {
+          result[lowerKey] = { label: rawKey, value: 0, received: 0, count: 0 };
+        }
+        
+        const cDate = new Date(l.created_at);
+        const uDate = l.updated_at ? new Date(l.updated_at) : cDate;
+        
+        // Count Won Leads (by creation date)
+        if ((!start || cDate >= start) && (!end || cDate <= end)) {
+          const isClosed = stageNameToStatus(l.status) === 'closed' || 
+                           (l.stage_id && pipelines[0]?.stages.find(s => s.id === l.stage_id && stageNameToStatus(s.name) === 'closed'));
+          if (isClosed) {
+            result[lowerKey].count += 1;
+            result[lowerKey].value += getLeadEffectiveValue(l);
+          }
+        }
+        
+        // Add Lead Payments (by inclusive date)
+        if ((!start || cDate >= start || uDate >= start) && (!end || cDate <= end || uDate <= end)) {
+          result[lowerKey].received += (Number(l.valor_recebido) || 0) + (Number(l.taxa_matricula_recebido) || 0);
+        }
+      }
     });
+
+    // 2. Process Turmas (Payments by turret date)
+    turmas.forEach(t => {
+      const tDate = new Date(t.date);
+      if ((start && tDate < start) || (end && tDate > end)) return;
+      if (filterProduct !== 'all' && t.product_name !== filterProduct) return;
+
+      t.attendees.forEach(a => {
+        if (a.status !== 'cancelado' && a.responsible && a.valor_recebido != null) {
+          const rawKey = a.responsible.trim();
+          const lowerKey = rawKey.toLowerCase();
+          if (globalTargetSeller && lowerKey !== globalTargetSeller) return;
+
+          if (!result[lowerKey]) {
+            result[lowerKey] = { label: rawKey, value: 0, received: 0, count: 0 };
+          }
+          result[lowerKey].received += (a.valor_recebido || 0);
+        }
+      });
+    });
+
     return Object.values(result).sort((a, b) => b.count - a.count);
-  }, [turmas]);
+  }, [leads, turmas, pipelines, startDate, endDate, filterProduct, filterResponsible, currentSellerName]);
 
   // Build seller goal map from goals (trim names to handle trailing spaces in DB)
   const sellerGoalMap = useMemo(() => {
     return goals.reduce(
-      (acc: Record<string, { revenue_goal: number; leads_goal: number }>, g: any) => {
-        const key = (g.seller_name || g.seller_id || '').trim();
-        if (key) {
-          acc[key] = {
-            revenue_goal: g.revenue_goal || 0,
-            leads_goal: g.leads_goal || 0,
-          };
+      (acc: Record<string, { leads_goal: number; revenue_goal: number }>, g: any) => {
+        const goalData = {
+          leads_goal: g.leads_goal || 0,
+          revenue_goal: g.revenue_goal || 0
+        };
+        if (g.seller_name) {
+          acc[g.seller_name.trim()] = goalData;
+        }
+        if (g.seller_id) {
+          acc[g.seller_id.trim()] = goalData;
         }
         return acc;
       },
@@ -163,41 +300,68 @@ export function useSalesMetrics({
   }, [goals]);
 
   const allSellersRanking = useMemo(() => {
-    // Get names of all vendedores
-    const vendedorNames = new Set(
-      vendedorProfiles.map((p: any) => p.name).filter(Boolean)
-    );
-
-    // Filter sales to only include actual vendedores
-    const vendedorSales = salesByResponsible.filter((s) =>
-      vendedorNames.has(s.label)
-    );
-
     const byName: Record<
       string,
-      { label: string; value: number; received: number; count: number; percentage: number; revenue_goal: number }
+      { label: string; value: number; received: number; count: number; percentage: number; leads_goal: number; profileId?: string }
     > = {};
 
-    // Add vendedores with sales
-    vendedorSales.forEach((s) => {
-      byName[s.label] = { ...s, percentage: 0, revenue_goal: 0 };
-    });
+    // Get individual goal IDs (type 'seller')
+    const individualGoalIds = new Set(
+      goals.filter(g => g.type === 'seller').map(g => g.seller_id).filter(Boolean)
+    );
+    const individualGoalNames = new Set(
+      goals.filter(g => g.type === 'seller').map(g => g.seller_name?.trim()).filter(Boolean)
+    );
 
-    // Ensure ALL vendedores appear (even with 0 sales)
-    vendedorProfiles.forEach((p: any) => {
-      const name = p.name!;
-      if (!byName[name]) {
-        byName[name] = { label: name, value: 0, received: 0, count: 0, percentage: 0, revenue_goal: 0 };
+    // 1. Add everyone who actually has sales
+    salesByResponsible.forEach((s) => {
+      const trimmedLabel = s.label.trim();
+      if (!trimmedLabel) return;
+
+      const profile = profiles.find(p => p.name?.trim() === trimmedLabel);
+
+      // Only include if:
+      // a) Is an official vendedor
+      // b) Has an individual goal set
+      const isOfficialVendedor = profile ? isVendedor(profile) : false;
+      const hasIndividualGoal = individualGoalNames.has(trimmedLabel) || (profile && individualGoalIds.has(profile.id));
+
+      if (isOfficialVendedor || hasIndividualGoal) {
+        byName[trimmedLabel] = {
+          ...s,
+          label: trimmedLabel,
+          percentage: 0,
+          leads_goal: 0,
+          profileId: profile?.id
+        };
       }
     });
 
-    // Calculate percentage: valor_recebido (pago) vs revenue goal
+    // 2. Add all official vendedores (even if they have 0 sales)
+    vendedorProfiles.forEach((p: any) => {
+      const name = (p.name || '').trim();
+      if (name && !byName[name]) {
+        byName[name] = {
+          label: name,
+          value: 0,
+          received: 0,
+          count: 0,
+          percentage: 0,
+          leads_goal: 0,
+          profileId: p.id
+        };
+      }
+    });
+
+    // 3. Calculate percentage and fetch goals
     Object.values(byName).forEach((s: any) => {
-      const goal = sellerGoalMap[s.label.trim()];
-      s.revenue_goal = goal?.revenue_goal ?? 0;
+      const trimmedName = s.label.trim();
+      const goal = sellerGoalMap[trimmedName] || (s.profileId ? sellerGoalMap[s.profileId] : null);
+
+      s.leads_goal = goal?.leads_goal ?? 0;
       s.percentage =
-        goal && goal.revenue_goal > 0
-          ? Math.round((s.received / goal.revenue_goal) * 100)
+        goal && goal.leads_goal > 0
+          ? Math.round((s.count / goal.leads_goal) * 100)
           : 0;
     });
 
@@ -209,19 +373,53 @@ export function useSalesMetrics({
       }
     });
 
+    // Sort by count (quantity of sales) descending — competition ranking
     return Object.values(byName).sort(
-      (a: any, b: any) => b.percentage - a.percentage || b.count - a.count
+      (a: any, b: any) => b.count - a.count || b.percentage - a.percentage
     ) as Array<{
       label: string;
       value: number;
       received: number;
       count: number;
       percentage: number;
-      revenue_goal: number;
+      leads_goal: number;
     }>;
   }, [salesByResponsible, vendedorProfiles, sellerGoalMap]);
 
-  const EXCLUDED_STAGES = new Set(['Perdido', 'Aquecimento', 'Desqualificado']);
+  // Seller Semaphore data: received vs goal with color coding (Monetary based)
+  const sellerSemaphoreData = useMemo(() => {
+    return allSellersRanking.map((s) => {
+      const goal = sellerGoalMap[s.label.trim()];
+      const revGoal = goal?.revenue_goal ?? 0;
+      // Calculate pct based on actual money received vs revenue goal
+      const pct = revGoal > 0 ? Math.round((s.received / revGoal) * 100) : 0;
+      let color: 'red' | 'yellow' | 'green' | 'gold';
+      let colorClass: string;
+      let barColor: string;
+
+      if (pct < 50) {
+        color = 'red';
+        colorClass = 'bg-red-50 text-red-700 border-red-200';
+        barColor = '#ef4444';
+      } else if (pct < 70) {
+        color = 'yellow';
+        colorClass = 'bg-amber-50 text-amber-700 border-amber-200';
+        barColor = '#f59e0b';
+      } else if (pct <= 100) {
+        color = 'green';
+        colorClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+        barColor = '#10b981';
+      } else {
+        color = 'gold';
+        colorClass = 'bg-yellow-50 text-yellow-700 border-yellow-200';
+        barColor = '#fbbf24';
+      }
+
+      return { ...s, pct, color, colorClass, barColor, revenue_goal: revGoal };
+    }).sort((a, b) => b.pct - a.pct);
+  }, [allSellersRanking]);
+
+  const EXCLUDED_STAGES = new Set(['Perdido', 'Desqualificado']);
 
   // Pipeline stages — uses real pipeline stages from DB when available, falls back to status groups
   const pipelineStages = useMemo(() => {
@@ -325,22 +523,50 @@ export function useSalesMetrics({
         i === 0
           ? 'hsl(210, 80%, 55%)'
           : i === 1
-          ? 'hsl(142, 71%, 45%)'
-          : 'hsl(0, 84%, 60%)',
+            ? 'hsl(142, 71%, 45%)'
+            : 'hsl(0, 84%, 60%)',
     }));
   }, [turmas]);
+
+  const activeLeadsCount = useMemo(() => {
+    const pipeline = pipelines[0];
+    const stageMap = new Map(pipeline?.stages?.map(s => [s.id, s.name]) || []);
+    const EXCLUDED_STAGES = new Set(['Perdido', 'Desqualificado']);
+
+    return leads.filter((l: any) => {
+      // 1. Basic Filters (Search, Product, Responsible)
+      if (searchTerm) {
+        const q = searchTerm.toLowerCase();
+        if (!l.name?.toLowerCase().includes(q) && !l.product?.toLowerCase().includes(q) && !l.responsible?.toLowerCase().includes(q)) return false;
+      }
+      if (filterProduct !== 'all' && l.product !== filterProduct) return false;
+      if (filterResponsible !== 'all' && l.responsible !== filterResponsible) return false;
+      if (currentSellerName && l.responsible !== currentSellerName) return false;
+
+      // 2. Filter by Active Stages only
+      const stageName = l.stage_id ? stageMap.get(l.stage_id) : l.status;
+      if (!stageName) return true; // Include if no stage yet (new)
+      
+      const isExcluded = EXCLUDED_STAGES.has(stageName) || 
+                         stageName.toLowerCase().includes('perdido') || 
+                         stageName.toLowerCase().includes('desqualificado');
+      
+      return !isExcluded;
+    }).length;
+  }, [leads, searchTerm, filterProduct, filterResponsible, currentSellerName, pipelines]);
 
   return {
     totalGanhos,
     myGanhos,
     teamGanhos,
-    leadsCount: filteredLeads.length,
+    leadsCount: activeLeadsCount,
     closedLeadsCount,
     conversionRate,
     totalSalesValue,
     occupancyData,
     vendedorProfiles,
     allSellersRanking,
+    sellerSemaphoreData,
     pipelineStages,
     funnelStagesWithRates,
     monthlySales,
@@ -351,3 +577,4 @@ export function useSalesMetrics({
     availableResponsibles,
   };
 }
+

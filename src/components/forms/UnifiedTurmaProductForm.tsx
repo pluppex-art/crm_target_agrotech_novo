@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  X, Save, Loader2, GraduationCap, DollarSign, Calendar, Clock, MapPin, User, Package, Tag,
+  X, Save, Loader2, GraduationCap, DollarSign, Calendar, Clock, MapPin, User, Package, Tag, Users,
 } from 'lucide-react';
 import { useTurmaStore } from '../../store/useTurmaStore';
 import { useProductStore } from '../../store/useProductStore';
@@ -19,6 +19,7 @@ const blankForm = {
   name: '',
   price: '',
   enrollment_fee: '',
+  student_goal: '',
   description: '',
   category: 'Cursos',
   professor_name: '',
@@ -65,6 +66,7 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
         name: associatedTurma?.name || initialData.name || matchingProduct?.name || '',
         price: matchingProduct ? matchingProduct.price.toString() : '',
         enrollment_fee: matchingProduct?.enrollment_fee != null ? matchingProduct.enrollment_fee.toString() : '',
+        student_goal: matchingProduct?.student_goal != null ? matchingProduct.student_goal.toString() : (associatedTurma?.meta != null ? associatedTurma.meta.toString() : ''),
         description: matchingProduct ? matchingProduct.description || '' : '',
         category: associatedTurma?.category || initialData.category || matchingProduct?.category || 'Cursos',
         professor_name: associatedTurma?.professor_name ?? initialData.professor_name ?? '',
@@ -91,14 +93,15 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
 
       let productId = matchingProduct?.id;
 
-      // 1. Handle Product Update/Creation
       const enrollmentFee = formData.enrollment_fee ? parseFloat(formData.enrollment_fee) : null;
+      const studentGoal = formData.student_goal ? parseInt(formData.student_goal) : null;
 
       if (isProductEditing) {
         await updateProduct(matchingProduct!.id, {
           name: formData.name,
           price: parseFloat(formData.price) || 0,
           enrollment_fee: enrollmentFee ?? undefined,
+          student_goal: studentGoal ?? undefined,
           description: formData.description,
           category: formData.category,
         });
@@ -107,6 +110,7 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
           name: formData.name,
           price: parseFloat(formData.price) || 0,
           enrollment_fee: enrollmentFee ?? undefined,
+          student_goal: studentGoal ?? undefined,
           description: formData.description,
           category: formData.category,
           image_url: `https://picsum.photos/seed/${encodeURIComponent(formData.name)}/400/300`,
@@ -131,6 +135,7 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
             date: formData.date,
             time: formData.time,
             location: formData.location,
+            meta: studentGoal ?? undefined,
           });
         } else {
           await addTurma({
@@ -141,6 +146,7 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
             date: formData.date,
             time: formData.time,
             location: formData.location,
+            meta: studentGoal ?? undefined,
             status: 'agendada',
           });
         }
@@ -230,6 +236,11 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
                   type: 'number',
                   placeholder: '0.00',
                   icon: <DollarSign size={16} />,
+                })}
+                {field('Meta de Alunos', 'student_goal', {
+                  type: 'number',
+                  placeholder: 'Ex: 20',
+                  icon: <Users size={16} />,
                 })}
               </div>
 

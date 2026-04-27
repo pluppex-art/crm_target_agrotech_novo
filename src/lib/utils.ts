@@ -215,13 +215,13 @@ export interface OccupancyData {
  * Checks if profile is exactly 'Vendedor' cargo.
  */
 export function isVendedor(profile: { cargos?: { name?: string } | null; role?: string | null; cargo?: string | null }): boolean {
-  const cargoName = profile.cargos?.name?.toLowerCase().trim();
-  const role = profile.role?.toLowerCase().trim();
-  const cargo = profile.cargo?.toLowerCase().trim();
+  const cargoName = profile.cargos?.name?.toLowerCase().trim() || '';
+  const role = profile.role?.toLowerCase().trim() || '';
+  const cargo = profile.cargo?.toLowerCase().trim() || '';
   
-  return cargoName === 'vendedor' || cargoName === 'vendedora' ||
-         role === 'vendedor' || role === 'vendedora' ||
-         cargo === 'vendedor' || cargo === 'vendedora';
+  return cargoName.includes('vendedor') || cargoName.includes('vendedora') ||
+         role.includes('vendedor') || role.includes('vendedora') ||
+         cargo.includes('vendedor') || cargo.includes('vendedora');
 }
 
 /**
@@ -229,7 +229,8 @@ export function isVendedor(profile: { cargos?: { name?: string } | null; role?: 
  * Filters: status !== 'cancelado', responsible === sellerName, turma.date in [start, end].
  */
 export function getSellerIncome(
-  turmas: Turma[],
+  turmas: any[],
+  leads: any[],
   sellerName: string,
   startDate?: string,
   endDate?: string
@@ -243,13 +244,22 @@ export function getSellerIncome(
     })
     .reduce((sum, t) => {
       return sum + t.attendees
-        .filter(a => a.status !== 'cancelado' && a.responsible === sellerName && a.valor_recebido != null)
-        .reduce((s, a) => s + (a.valor_recebido || 0), 0);
+        .filter((a: any) => 
+          a.status !== 'cancelado' && 
+          (!sellerName || a.responsible?.trim() === sellerName.trim()) &&
+          a.valor_recebido != null
+        )
+        .reduce((s: number, a: any) => {
+          const lead = leads.find(l => l.id === a.lead_id);
+          const taxa = Number(lead?.taxa_matricula_recebido) || 0;
+          return s + (a.valor_recebido || 0) + taxa;
+        }, 0);
     }, 0);
 }
 
 /**
  * Occupancy data per turma for dashboard.
+ * Excludes concluida and cancelada turmas.
  */
 export function getOccupancyData(turmas: Turma[]): Array<{
   name: string;
@@ -260,7 +270,9 @@ export function getOccupancyData(turmas: Turma[]): Array<{
   color: string;
   category: string;
 }> {
-  return turmas.map((t, i) => {
+  return turmas
+    .filter(t => t.status !== 'concluida' && t.status !== 'cancelada')
+    .map((t, i) => {
     const activeStatuses: AttendanceStatus[] = ['matriculado', 'confirmado'];
     const active = t.attendees.filter(a => activeStatuses.includes(a.status)).length;
     const cap = t.meta ?? 0;

@@ -30,6 +30,20 @@ export default async function handler(req: any, res: any) {
   });
 
   if (error) {
+    const isAlreadyRegistered = error.message.toLowerCase().includes('registered') || 
+                                error.message.toLowerCase().includes('already exists');
+    
+    if (isAlreadyRegistered) {
+      const { data: listData, error: listError } = await supabaseAdmin.auth.admin.listUsers({
+        perPage: 1000
+      });
+      if (!listError) {
+        const existingUser = listData.users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
+        if (existingUser) {
+          return res.status(200).json({ id: existingUser.id });
+        }
+      }
+    }
     return res.status(400).json({ error: error.message });
   }
 
