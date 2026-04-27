@@ -23,7 +23,10 @@ interface SellerSemaphoreProps {
 export function SellerSemaphore({ data, currentSellerName, isAdmin, companyRevenueGoal }: SellerSemaphoreProps) {
   const visibleData = isAdmin
     ? data
-    : data.filter((s) => s.label === currentSellerName);
+    : data.filter((s) => {
+        if (!currentSellerName) return false;
+        return s.label.trim().toLowerCase() === currentSellerName.trim().toLowerCase();
+      });
 
   const [selectedSellerName, setSelectedSellerName] = useState<string>('Total da Empresa');
 

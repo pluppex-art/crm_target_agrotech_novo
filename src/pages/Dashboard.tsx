@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
-import { Loader2, ShieldAlert, Users, Filter, Search, ChevronDown, ChevronUp, X, Calendar, GitBranch, Package, User } from 'lucide-react';
+import { Loader2, ShieldAlert, Users, Filter, Search, ChevronDown, ChevronUp, X, Calendar, GitBranch, Package, User, Clock, AlertCircle } from 'lucide-react';
 import { usePermissions } from '../hooks/usePermissions';
 import { useLeadStore } from '../store/useLeadStore';
 import { useFinanceStore } from '../store/useFinanceStore';
@@ -186,7 +186,8 @@ export function Dashboard() {
   }, [profiles, currentUser]);
 
   const salesMetrics = useSalesMetrics({
-    currentSellerName, startDate, endDate, goals,
+    currentSellerName: null, // Always compute global context for the dashboard cards
+    startDate, endDate, goals,
     searchTerm, filterStage, filterProduct, filterResponsible,
   });
   const financeMetrics = useFinanceMetrics();
@@ -363,8 +364,8 @@ export function Dashboard() {
         <MetricCard label="Total de Leads" value={String(salesMetrics.leadsCount)} icon={Users} color="bg-emerald-50 text-emerald-600" />
         <MetricCard label="Ganhos" value={String(salesMetrics.closedLeadsCount)} icon={Users} color="bg-emerald-50 text-emerald-600" />
         <MetricCard label="Conversão" value={`${salesMetrics.conversionRate.toFixed(1)}%`} icon={Users} color="bg-purple-50 text-purple-600" />
-        <MetricCard label="Em Proposta" value={String(salesMetrics.pipelineStages.find(s => s.label === 'Proposta')?.value || 0)} icon={Users} color="bg-rose-50 text-rose-600" />
-        <MetricCard label="Qualificados" value={String(salesMetrics.pipelineStages.find(s => s.label === 'Qualificado')?.value || 0)} icon={Users} color="bg-blue-50 text-blue-600" />
+        <MetricCard label="Ciclo Médio (Dias)" value={String(salesMetrics.averageSalesCycle)} icon={Clock} color="bg-rose-50 text-rose-600" />
+        <MetricCard label="Sem Atividade (>2 dias)" value={String(salesMetrics.inactiveLeadsCount)} icon={AlertCircle} color="bg-amber-50 text-amber-600" />
       </div>
 
       {/* ── Ranking + Semáforo + Taxa de Ocupação ── */}
@@ -392,6 +393,20 @@ export function Dashboard() {
                   color={i === 0 ? 'bg-emerald-500' : i === 1 ? 'bg-blue-400' : i === 2 ? 'bg-amber-400' : i === 3 ? 'bg-rose-400' : 'bg-slate-300'}
                 />
               ))}
+
+              {salesMetrics.otherSellersRanking.length > 0 && (
+                <div className="pt-4 mt-6 border-t border-slate-100">
+                  <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Outros Ganhos</h4>
+                  <div className="space-y-2">
+                    {salesMetrics.otherSellersRanking.map(s => (
+                      <div key={s.label} className="flex items-center justify-between text-sm">
+                        <span className="text-slate-600 font-medium">{s.label}</span>
+                        <span className="text-slate-500 bg-slate-50 px-2.5 py-1 rounded-md border border-slate-100">{s.count} {s.count === 1 ? 'ganho' : 'ganhos'}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

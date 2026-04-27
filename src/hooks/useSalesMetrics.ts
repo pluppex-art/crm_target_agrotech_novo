@@ -3,6 +3,9 @@ import { useLeadStore } from '../store/useLeadStore';
 import { useTurmaStore } from '../store/useTurmaStore';
 import { useProfileStore } from '../store/useProfileStore';
 import { usePipelineStore } from '../store/usePipelineStore';
+import { useTaskStore } from '../store/useTaskStore';
+import { useProductStore } from '../store/useProductStore';
+import { financialCalculator } from '../services/financialCalculator';
 import {
   isVendedor,
   getSellerIncome,
@@ -20,6 +23,8 @@ export interface SalesMetrics {
   leadsCount: number;
   closedLeadsCount: number;
   conversionRate: number;
+  averageSalesCycle: number;
+  inactiveLeadsCount: number;
   totalSalesValue: number;
   occupancyData: ReturnType<typeof getOccupancyData>;
   vendedorProfiles: any[];
@@ -30,6 +35,12 @@ export interface SalesMetrics {
     count: number;
     percentage: number;
     leads_goal: number;
+  }>;
+  otherSellersRanking: Array<{
+    label: string;
+    value: number;
+    received: number;
+    count: number;
   }>;
   sellerSemaphoreData: Array<{
     label: string;
@@ -90,6 +101,8 @@ export function useSalesMetrics({
   const { turmas } = useTurmaStore();
   const { profiles } = useProfileStore();
   const { pipelines } = usePipelineStore();
+  const { tasks } = useTaskStore();
+  const { products } = useProductStore();
   const vendedorProfiles = useMemo(() => profiles.filter(isVendedor), [profiles]);
 
   const availableProducts = useMemo(() => {
@@ -163,51 +176,71 @@ export function useSalesMetrics({
   const conversionRate =
     filteredLeads.length > 0 ? (closedLeadsCount / filteredLeads.length) * 100 : 0;
 
+  const averageSalesCycle = useMemo(() => {
+    if (closedLeadsFiltered.length === 0) return 0;
+    
+    const totalDays = closedLeadsFiltered.reduce((sum, l) => {
+      const created = new Date(l.created_at).getTime();
+      const updated = new Date(l.updated_at || l.created_at).getTime();
+      let diffDays = Math.round((updated - created) / (1000 * 60 * 60 * 24));
+      return sum + (diffDays === 0 ? 1 : diffDays); // Minimum 1 day
+    }, 0);
+    
+    return Math.round(totalDays / closedLeadsFiltered.length);
+  }, [closedLeadsFiltered]);
+
+  const inactiveLeadsCount = useMemo(() => {
+    const pipeline = pipelines[0];
+    const stageMap = new Map(pipeline?.stages?.map(s => [s.id, s.name]) || []);
+    
+    const now = new Date().getTime();
+    const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
+    
+    return filteredLeads.filter((l: any) => {
+      // Must NOT be closed (Ganho)
+      const isClosed = l.status === 'closed' || stageNameToStatus(l.status) === 'closed' || 
+                       (l.stage_id && stageNameToStatus(stageMap.get(l.stage_id) || '') === 'closed');
+      if (isClosed) return false;
+      
+      // Must NOT be lost or disqualified
+      const stageName = l.stage_id ? stageMap.get(l.stage_id) : l.status;
+      if (stageName && (stageName.toLowerCase().includes('perdido') || stageName.toLowerCase().includes('desqualificado'))) return false;
+      
+      // Check for recent updates to the lead
+      const lastUpdate = new Date(l.updated_at || l.created_at).getTime();
+      const hasRecentUpdate = (now - lastUpdate) <= TWO_DAYS_MS;
+      
+      // Check for recent task activity or future scheduled tasks
+      const hasRecentTask = tasks.some(t => {
+        if (t.lead_id !== l.id) return false;
+        
+        // If it has a pending task scheduled for the future, it's NEVER inactive
+        const isPendingFuture = t.status === 'pending' && t.due_date && new Date(t.due_date).getTime() >= now;
+        if (isPendingFuture) return true;
+        
+        // Otherwise, check if the task was created recently
+        const taskTime = new Date((t as any).updated_at || t.created_at).getTime();
+        return (now - taskTime) <= TWO_DAYS_MS;
+      });
+      
+      // If it has ANY recent activity (update or task) or a future scheduled task, it is NOT inactive
+      if (hasRecentUpdate || hasRecentTask) return false;
+      
+      return true;
+    }).length;
+  }, [filteredLeads, pipelines, tasks]);
+
+
   const totalSalesValue = closedLeadsFiltered.reduce(
     (s: number, l: any) => s + getLeadEffectiveValue(l),
     0
   );
 
   const totalGanhos = useMemo(() => {
-    const start = startDate ? new Date(startDate) : null;
-    const end = endDate ? new Date(endDate) : null;
-    if (end) end.setHours(23, 59, 59, 999);
-
-    const targetSeller = (currentSellerName || (filterResponsible !== 'all' ? filterResponsible : '')).trim().toLowerCase();
-
-    // Source 1: Leads
-    const leadsIncome = leads.reduce((sum, l) => {
-      const leadSeller = (l.responsible || '').trim().toLowerCase();
-      if (filterProduct !== 'all' && l.product !== filterProduct) return sum;
-      if (targetSeller && leadSeller !== targetSeller) return sum;
-
-      const cDate = new Date(l.created_at);
-      const uDate = l.updated_at ? new Date(l.updated_at) : cDate;
-      const matchesDate = (!start || cDate >= start || uDate >= start) && 
-                          (!end || cDate <= end || uDate <= end);
-      
-      if (!matchesDate) return sum;
-      return sum + (Number(l.valor_recebido) || 0) + (Number(l.taxa_matricula_recebido) || 0);
+    return closedLeadsFiltered.reduce((sum, l) => {
+      return sum + financialCalculator.getPaidAmount(l, products);
     }, 0);
-
-    // Source 2: Turmas
-    const turmasIncome = turmas.reduce((sum, t) => {
-      const tDate = new Date(t.date);
-      if ((start && tDate < start) || (end && tDate > end)) return sum;
-      if (filterProduct !== 'all' && t.product_name !== filterProduct) return sum;
-
-      return sum + t.attendees
-        .filter((a: any) => {
-          const attendeeSeller = (a.responsible || '').trim().toLowerCase();
-          return a.status !== 'cancelado' && 
-                 (!targetSeller || attendeeSeller === targetSeller) &&
-                 a.valor_recebido != null;
-        })
-        .reduce((s: number, a: any) => s + (a.valor_recebido || 0), 0);
-    }, 0);
-
-    return leadsIncome + turmasIncome;
-  }, [leads, turmas, startDate, endDate, filterProduct, filterResponsible, currentSellerName]);
+  }, [closedLeadsFiltered, products]);
 
   const myGanhos = totalGanhos; // totalGanhos already considers currentSellerName/filterResponsible
   const teamGanhos = 0; // Not used in this view but keeping for compatibility
@@ -239,45 +272,21 @@ export function useSalesMetrics({
         const cDate = new Date(l.created_at);
         const uDate = l.updated_at ? new Date(l.updated_at) : cDate;
         
-        // Count Won Leads (by creation date)
+        // Count Won Leads (by creation date) and accumulate their paid amount
         if ((!start || cDate >= start) && (!end || cDate <= end)) {
           const isClosed = stageNameToStatus(l.status) === 'closed' || 
                            (l.stage_id && pipelines[0]?.stages.find(s => s.id === l.stage_id && stageNameToStatus(s.name) === 'closed'));
           if (isClosed) {
             result[lowerKey].count += 1;
             result[lowerKey].value += getLeadEffectiveValue(l);
+            result[lowerKey].received += financialCalculator.getPaidAmount(l, products);
           }
-        }
-        
-        // Add Lead Payments (by inclusive date)
-        if ((!start || cDate >= start || uDate >= start) && (!end || cDate <= end || uDate <= end)) {
-          result[lowerKey].received += (Number(l.valor_recebido) || 0) + (Number(l.taxa_matricula_recebido) || 0);
         }
       }
     });
 
-    // 2. Process Turmas (Payments by turret date)
-    turmas.forEach(t => {
-      const tDate = new Date(t.date);
-      if ((start && tDate < start) || (end && tDate > end)) return;
-      if (filterProduct !== 'all' && t.product_name !== filterProduct) return;
-
-      t.attendees.forEach(a => {
-        if (a.status !== 'cancelado' && a.responsible && a.valor_recebido != null) {
-          const rawKey = a.responsible.trim();
-          const lowerKey = rawKey.toLowerCase();
-          if (globalTargetSeller && lowerKey !== globalTargetSeller) return;
-
-          if (!result[lowerKey]) {
-            result[lowerKey] = { label: rawKey, value: 0, received: 0, count: 0 };
-          }
-          result[lowerKey].received += (a.valor_recebido || 0);
-        }
-      });
-    });
-
     return Object.values(result).sort((a, b) => b.count - a.count);
-  }, [leads, turmas, pipelines, startDate, endDate, filterProduct, filterResponsible, currentSellerName]);
+  }, [leads, pipelines, startDate, endDate, filterProduct, filterResponsible, currentSellerName, products]);
 
   // Build seller goal map from goals (trim names to handle trailing spaces in DB)
   const sellerGoalMap = useMemo(() => {
@@ -384,15 +393,57 @@ export function useSalesMetrics({
       percentage: number;
       leads_goal: number;
     }>;
-  }, [salesByResponsible, vendedorProfiles, sellerGoalMap]);
+  }, [salesByResponsible, profiles, vendedorProfiles, goals, sellerGoalMap]);
+
+  const otherSellersRanking = useMemo(() => {
+    // Get individual goal IDs (type 'seller')
+    const individualGoalIds = new Set(
+      goals.filter(g => g.type === 'seller').map(g => g.seller_id).filter(Boolean)
+    );
+    const individualGoalNames = new Set(
+      goals.filter(g => g.type === 'seller').map(g => g.seller_name?.trim()).filter(Boolean)
+    );
+
+    const others: Array<{ label: string; value: number; received: number; count: number }> = [];
+
+    salesByResponsible.forEach((s) => {
+      const trimmedLabel = s.label.trim();
+      if (!trimmedLabel || s.count === 0) return;
+
+      const profile = profiles.find(p => p.name?.trim() === trimmedLabel);
+      const isOfficialVendedor = profile ? isVendedor(profile) : false;
+      const hasIndividualGoal = individualGoalNames.has(trimmedLabel) || (profile && individualGoalIds.has(profile.id));
+
+      if (!isOfficialVendedor && !hasIndividualGoal) {
+        others.push({
+          label: trimmedLabel,
+          value: s.value,
+          received: s.received,
+          count: s.count
+        });
+      }
+    });
+
+    return others.sort((a, b) => b.count - a.count);
+  }, [salesByResponsible, profiles, goals]);
 
   // Seller Semaphore data: received vs goal with color coding (Monetary based)
   const sellerSemaphoreData = useMemo(() => {
-    return allSellersRanking.map((s) => {
+    const combinedSellers = [...allSellersRanking, ...otherSellersRanking];
+
+    return combinedSellers.map((s: any) => {
       const goal = sellerGoalMap[s.label.trim()];
       const revGoal = goal?.revenue_goal ?? 0;
+      
       // Calculate pct based on actual money received vs revenue goal
-      const pct = revGoal > 0 ? Math.round((s.received / revGoal) * 100) : 0;
+      let pct = 0;
+      if (revGoal > 0) {
+        pct = Math.round((s.received / revGoal) * 100);
+      } else if (s.count > 0 || s.received > 0) {
+        // If there's no goal but they made sales, show as 100% (Meta Atingida)
+        pct = 100;
+      }
+
       let color: 'red' | 'yellow' | 'green' | 'gold';
       let colorClass: string;
       let barColor: string;
@@ -417,7 +468,7 @@ export function useSalesMetrics({
 
       return { ...s, pct, color, colorClass, barColor, revenue_goal: revGoal };
     }).sort((a, b) => b.pct - a.pct);
-  }, [allSellersRanking]);
+  }, [allSellersRanking, otherSellersRanking, sellerGoalMap]);
 
   const EXCLUDED_STAGES = new Set(['Perdido', 'Desqualificado']);
 
@@ -562,10 +613,13 @@ export function useSalesMetrics({
     leadsCount: filteredLeads.length,
     closedLeadsCount,
     conversionRate,
+    averageSalesCycle,
+    inactiveLeadsCount,
     totalSalesValue,
     occupancyData,
     vendedorProfiles,
     allSellersRanking,
+    otherSellersRanking,
     sellerSemaphoreData,
     pipelineStages,
     funnelStagesWithRates,
