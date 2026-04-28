@@ -638,8 +638,7 @@ export function useSalesMetrics({
     [turmas]
   );
 
-  const totalConversionRate =
-    leads.length > 0 ? (totalPaidAttendees / leads.length) * 100 : 0;
+  // totalConversionRate was moved below activeLeadsCount
 
   const attendeeStages = useMemo(() => {
     const statusCounts: Record<string, number> = {};
@@ -689,6 +688,9 @@ export function useSalesMetrics({
       return !isExcluded;
     }).length;
   }, [leads, searchTerm, filterProduct, filterResponsible, currentSellerName, pipelines]);
+
+  const totalConversionRate =
+    activeLeadsCount > 0 ? (closedLeadsCount / activeLeadsCount) * 100 : 0;
 
   return {
     totalGanhos,
