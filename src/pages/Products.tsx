@@ -20,7 +20,7 @@ export function Products() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterTurmaStatus, setFilterTurmaStatus] = useState('ativo');
-  const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
+  const [viewMode, setViewMode] = useState<'card' | 'list'>('list');
 
   useEffect(() => {
     fetchProducts();
