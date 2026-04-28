@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
-import { Loader2, ShieldAlert, Users, Filter, Search, ChevronDown, ChevronUp, X, Calendar, GitBranch, Package, User, Clock, AlertCircle } from 'lucide-react';
+import { Loader2, ShieldAlert, Users, Filter, Search, ChevronDown, ChevronUp, X, Calendar, GitBranch, Package, User, Clock, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { usePermissions } from '../hooks/usePermissions';
 import { useLeadStore } from '../store/useLeadStore';
 import { useFinanceStore } from '../store/useFinanceStore';
@@ -425,26 +425,33 @@ export function Dashboard() {
         <OccupancyCard occupancyData={salesMetrics.occupancyData} />
       </div>
 
-      {/* ── Linha 2: Pipeline + Funil ── */}
+      {/* ── Linha 2: Funil + Turmas ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col overflow-hidden">
-          <h3 className="font-bold text-slate-800 mb-5">Distribuição do Pipeline</h3>
-          <div className="flex-1 flex items-center justify-center overflow-hidden">
-            <DoughnutChart
-              data={salesMetrics.pipelineStages.map(s => ({ label: s.label, value: s.value, color: s.color }))}
-              totalLabel="Leads"
-            />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col overflow-hidden">
-          <h3 className="font-bold text-slate-800 mb-5">Funil de Conversão</h3>
+        {/* Funil de Conversão */}
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8 flex flex-col overflow-hidden w-full">
+          <h3 className="font-bold text-xl text-slate-800 mb-6">Funil de Conversão</h3>
           <div className="flex-1 overflow-hidden">
             <FunnelChart
               stages={salesMetrics.funnelStagesWithRates.map(s => ({
                 label: s.label,
                 count: s.value,
                 color: s.color,
+              }))}
+              conversionRate={salesMetrics.totalConversionRate}
+            />
+          </div>
+        </div>
+
+        {/* Pipeline Turmas */}
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8 flex flex-col overflow-hidden w-full">
+          <h3 className="font-bold text-xl text-slate-800 mb-6">Pipeline Turmas</h3>
+          <div className="flex-1 overflow-hidden">
+            <FunnelChart
+              stages={salesMetrics.attendeeStages.map((s, i) => ({
+                label: s.label,
+                count: s.value,
+                color: s.color,
+                icon: i === 0 ? Users : i === salesMetrics.attendeeStages.length - 1 ? CheckCircle2 : Filter,
               }))}
               conversionRate={salesMetrics.totalConversionRate}
             />

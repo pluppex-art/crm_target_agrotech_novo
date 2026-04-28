@@ -1,5 +1,4 @@
-import { FunnelChart } from './FunnelChart';
-import { Users, CheckCircle2, Filter, Trophy, TrendingUp, Target } from 'lucide-react';
+import { Trophy, TrendingUp, Target } from 'lucide-react';
 import type { SalesMetrics } from '../../hooks/useSalesMetrics';
 import { fmt } from '../../lib/utils';
 
@@ -29,92 +28,75 @@ export function TrendsSection({ sales, totalAchieved, totalGoal }: TrendsSection
     '🎯 No início';
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-      {/* Pipeline Turmas */}
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8">
-        <h3 className="font-bold text-xl text-slate-800 mb-6">Pipeline Turmas</h3>
-        <FunnelChart
-          stages={sales.attendeeStages.map((s, i) => ({
-            label: s.label,
-            count: s.value,
-            color: s.color,
-            icon: i === 0 ? Users : i === sales.attendeeStages.length - 1 ? CheckCircle2 : Filter,
-          }))}
-          conversionRate={sales.totalConversionRate}
-        />
+    <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8 flex flex-col gap-6 w-full">
+      <div className="flex items-center justify-between">
+        <h3 className="font-bold text-xl text-slate-800">Progresso da Meta Geral</h3>
+        <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${statusColor.badge}`}>
+          {statusLabel}
+        </span>
       </div>
 
-      {/* Progresso da Meta Geral */}
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8 flex flex-col gap-6">
-        <div className="flex items-center justify-between">
-          <h3 className="font-bold text-xl text-slate-800">Progresso da Meta Geral</h3>
-          <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${statusColor.badge}`}>
-            {statusLabel}
-          </span>
+      {totalGoal === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center gap-3 py-8 text-slate-300">
+          <Target className="w-12 h-12 opacity-40" />
+          <p className="text-sm font-medium text-slate-400 text-center">
+            Defina a meta de leads da empresa em<br />
+            <span className="font-bold text-slate-500">Configurações → Metas</span>
+          </p>
         </div>
-
-        {totalGoal === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center gap-3 py-8 text-slate-300">
-            <Target className="w-12 h-12 opacity-40" />
-            <p className="text-sm font-medium text-slate-400 text-center">
-              Defina a meta de leads da empresa em<br />
-              <span className="font-bold text-slate-500">Configurações → Metas</span>
-            </p>
+      ) : (
+        <>
+          {/* Resumo compacto */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                <TrendingUp size={10} />
+                Ganhos
+              </span>
+              <span className="text-lg font-black text-slate-900 leading-tight">
+                {totalAchieved}
+              </span>
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                <Target size={10} />
+                Meta (Leads)
+              </span>
+              <span className="text-lg font-bold text-slate-600">
+                {totalGoal}
+              </span>
+            </div>
+            {remaining > 0 && (
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                  <Trophy size={10} />
+                  Faltam
+                </span>
+                <span className="text-base font-bold" style={{ color: statusColor.bar }}>
+                  {remaining}
+                </span>
+              </div>
+            )}
           </div>
-        ) : (
-          <>
-            {/* Resumo compacto */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="flex flex-col gap-0.5">
-                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                  <TrendingUp size={10} />
-                  Ganhos
-                </span>
-                <span className="text-lg font-black text-slate-900 leading-tight">
-                  {totalAchieved}
-                </span>
-              </div>
-              <div className="flex flex-col gap-0.5">
-                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                  <Target size={10} />
-                  Meta (Leads)
-                </span>
-                <span className="text-lg font-bold text-slate-600">
-                  {totalGoal}
-                </span>
-              </div>
-              {remaining > 0 && (
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                    <Trophy size={10} />
-                    Faltam
-                  </span>
-                  <span className="text-base font-bold" style={{ color: statusColor.bar }}>
-                    {remaining}
-                  </span>
-                </div>
-              )}
-            </div>
 
-            {/* Barra de progresso resumida */}
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-center justify-between text-xs font-semibold text-slate-500">
-                <span>0%</span>
-                <span className="font-black text-sm" style={{ color: statusColor.bar }}>
-                  {totalPct.toFixed(1)}%
-                </span>
-                <span>100%</span>
-              </div>
-              <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden relative">
-                <div
-                  className="h-full rounded-full transition-all duration-1000 ease-out"
-                  style={{ width: `${totalPct}%`, backgroundColor: statusColor.bar }}
-                />
-              </div>
+          {/* Barra de progresso resumida */}
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between text-xs font-semibold text-slate-500">
+              <span>0%</span>
+              <span className="font-black text-sm" style={{ color: statusColor.bar }}>
+                {totalPct.toFixed(1)}%
+              </span>
+              <span>100%</span>
             </div>
-          </>
-        )}
-      </div>
+            <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden relative">
+              <div
+                className="h-full rounded-full transition-all duration-1000 ease-out"
+                style={{ width: `${totalPct}%`, backgroundColor: statusColor.bar }}
+              />
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
