@@ -18,7 +18,7 @@ import { useCategoryStore } from '../../store/useCategoryStore';
 import { useNotificationStore } from '../../store/useNotificationStore';
 
 export function Layout() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const { user } = useAuthStore();
 
