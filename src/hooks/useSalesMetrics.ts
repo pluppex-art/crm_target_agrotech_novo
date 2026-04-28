@@ -72,6 +72,7 @@ export interface SalesMetrics {
   }>;
   availableProducts: Array<{ value: string; label: string }>;
   availableResponsibles: Array<{ value: string; label: string }>;
+  activeLeadsCount: number;
 }
 
 interface UseSalesMetricsProps {
@@ -477,9 +478,12 @@ export function useSalesMetrics({
     const pipeline = pipelines[0];
     if (pipeline?.stages?.length) {
       const stageCountMap: Record<string, number> = {};
+      const firstStageId = pipeline.stages[0]?.id;
+      
       filteredLeads.forEach((l: any) => {
-        if (l.stage_id) {
-          stageCountMap[l.stage_id] = (stageCountMap[l.stage_id] || 0) + 1;
+        const stageId = l.stage_id || firstStageId;
+        if (stageId) {
+          stageCountMap[stageId] = (stageCountMap[stageId] || 0) + 1;
         }
       });
       return [...pipeline.stages]
@@ -506,24 +510,104 @@ export function useSalesMetrics({
     [pipelineStages]
   );
 
-  const last6Months = useMemo(
-    () =>
-      Array.from({ length: 6 }, (_, i) => {
+  const dateIntervals = useMemo(() => {
+    if (!startDate && !endDate) {
+      return Array.from({ length: 6 }, (_, i) => {
         const d = new Date();
         d.setMonth(d.getMonth() - (5 - i));
-        return d.toLocaleString('pt-BR', { month: 'short' });
-      }),
-    []
-  );
+        return {
+          type: 'month',
+          month: d.getMonth(),
+          year: d.getFullYear(),
+          label: d.toLocaleString('pt-BR', { month: 'short' }).replace('.', ''),
+          key: `${d.getFullYear()}-${d.getMonth()}`
+        };
+      });
+    }
 
-  const monthlySales = useMemo(
-    () =>
-      last6Months.map((label) => ({
-        label,
-        value: 0,
-      })),
-    [last6Months]
-  );
+    const start = startDate ? new Date(startDate + "T00:00:00") : new Date(new Date().setMonth(new Date().getMonth() - 6));
+    const end = endDate ? new Date(endDate + "T00:00:00") : new Date();
+    
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays <= 60) {
+      const days = [];
+      for (let i = 0; i <= diffDays; i++) {
+        const d = new Date(start);
+        d.setDate(d.getDate() + i);
+        days.push({
+          type: 'day',
+          day: d.getDate(),
+          month: d.getMonth(),
+          year: d.getFullYear(),
+          label: `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`,
+          key: `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+        });
+      }
+      return days;
+    } else {
+      const months = [];
+      let d = new Date(start);
+      d.setDate(1);
+      const endMonth = new Date(end);
+      endMonth.setDate(1);
+      
+      while (d <= endMonth) {
+        months.push({
+          type: 'month',
+          month: d.getMonth(),
+          year: d.getFullYear(),
+          label: d.toLocaleString('pt-BR', { month: 'short' }).replace('.', ''),
+          key: `${d.getFullYear()}-${d.getMonth()}`
+        });
+        d.setMonth(d.getMonth() + 1);
+      }
+      return months;
+    }
+  }, [startDate, endDate]);
+
+  const monthlySales = useMemo(() => {
+    const closedLeads = filteredLeads.filter((l: any) => {
+      const p = pipelines[0];
+      const stageMap = new Map(p?.stages?.map(s => [s.id, s.name.toLowerCase()]) || []);
+      const stageName = l.stage_id ? stageMap.get(l.stage_id) : l.status?.toLowerCase();
+      if (!stageName) return false;
+      return stageName.includes('ganho') || stageName.includes('fechado') || stageName.includes('aprovado') || stageNameToStatus(stageName) === 'closed';
+    });
+
+    const isDaily = dateIntervals.length > 0 && dateIntervals[0].type === 'day';
+
+    const grouped = closedLeads.reduce((acc: Record<string, number>, lead: any) => {
+      const dateStr = lead.last_contact_at || lead.created_at;
+      if (!dateStr) return acc;
+      const d = new Date(dateStr);
+      const keyMonth = `${d.getFullYear()}-${d.getMonth()}`;
+      const keyDay = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      
+      const key = isDaily ? keyDay : keyMonth;
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+
+    let cumulative = 0;
+    
+    return dateIntervals.map((d) => {
+      const val = grouped[d.key] || 0;
+      if (isDaily) {
+        cumulative += val;
+        return {
+          label: d.label,
+          value: cumulative,
+        };
+      } else {
+        return {
+          label: d.label,
+          value: val,
+        };
+      }
+    });
+  }, [filteredLeads, pipelines, dateIntervals]);
 
   const avgMonthlyLeads =
     monthlySales.reduce((sum, m) => sum + m.value, 0) / monthlySales.length ||
@@ -629,6 +713,7 @@ export function useSalesMetrics({
     attendeeStages,
     availableProducts,
     availableResponsibles,
+    activeLeadsCount,
   };
 }
 

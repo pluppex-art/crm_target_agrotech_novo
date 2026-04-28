@@ -174,6 +174,15 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
           ))}
         </div>
       )}
+
+      {/* Data de criação */}
+      {lead.created_at && (
+        <div className="mt-3 pt-2 border-t border-slate-50 flex justify-end opacity-60">
+          <span className="text-[9px] text-slate-400 font-medium tracking-wide">
+            Criado em {new Date(lead.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })} às {new Date(lead.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+          </span>
+        </div>
+      )}
     </div>
   );
 }

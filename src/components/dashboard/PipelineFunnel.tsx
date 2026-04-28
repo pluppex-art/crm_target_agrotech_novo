@@ -21,17 +21,34 @@ export function PipelineFunnel({ sales }: PipelineFunnelProps) {
         />
       </div>
 
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8">
-        <h3 className="font-bold text-xl text-slate-800 mb-6">Funil de Conversão</h3>
-        <FunnelChart
-          stages={sales.funnelStagesWithRates.map((s, i) => ({
-            label: `${s.label} (${s.rate_from_prev ?? 0}%)`,
-            count: s.value,
-            color: s.color,
-            icon: i === 0 ? Users : i === sales.funnelStagesWithRates.length - 1 ? CheckCircle2 : i % 3 === 1 ? Filter : FileText
-          }))}
-          conversionRate={sales.totalConversionRate}
-        />
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8 flex flex-col relative">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="font-bold text-xl text-slate-800">Funil de Conversão</h3>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 text-white rounded-lg shadow-sm">
+              <Users className="w-4 h-4 text-emerald-50" />
+              <span className="text-sm font-bold">
+                {sales.activeLeadsCount} Ativos
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 text-white rounded-lg shadow-sm">
+              <CheckCircle2 className="w-4 h-4 text-emerald-50" />
+              <span className="text-sm font-bold">
+                {sales.totalConversionRate.toFixed(1)}% Conv.
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="flex-1">
+          <FunnelChart
+            stages={sales.funnelStagesWithRates.map((s, i) => ({
+              label: s.label,
+              count: s.value,
+              color: s.color,
+              icon: i === 0 ? Users : i === sales.funnelStagesWithRates.length - 1 ? CheckCircle2 : i % 3 === 1 ? Filter : FileText
+            }))}
+          />
+        </div>
       </div>
     </div>
   );

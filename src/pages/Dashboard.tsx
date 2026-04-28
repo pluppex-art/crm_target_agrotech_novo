@@ -95,8 +95,14 @@ function OccupancyCard({ occupancyData }: { occupancyData: OccupancyItem[] }) {
 
 export function Dashboard() {
   const { hasPermission, loading: permissionsLoading } = usePermissions();
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
+  });
+  const [endDate, setEndDate] = useState(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0];
+  });
 
   const { fetchTransactions, isLoading: financeLoading, subscribe: subscribeFinance } = useFinanceStore();
   const { fetchLeads, isLoading: leadsLoading, subscribeToLeads } = useLeadStore();
@@ -110,8 +116,11 @@ export function Dashboard() {
   const [filterStage, setFilterStage] = useState('all');
   const [filterProduct, setFilterProduct] = useState('all');
   const [filterResponsible, setFilterResponsible] = useState('all');
-  const [selectedMonth, setSelectedMonth] = useState('all');
-  const [filtersOpen, setFiltersOpen] = useState(true);
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const didFetch = useRef(false);
 
   const monthOptions = useMemo(() => Array.from({ length: 12 }, (_, i) => {
@@ -148,13 +157,10 @@ export function Dashboard() {
     setFilterStage('all');
     setFilterProduct('all');
     setFilterResponsible('all');
-    setSelectedMonth('all');
-    setStartDate('');
-    setEndDate('');
-  }, []);
-
-  useEffect(() => {
-    // No default date filter; matches 'Todos os meses' default state.
+    const d = new Date();
+    setSelectedMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    setStartDate(new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0]);
+    setEndDate(new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0]);
   }, []);
 
   const fetchInitialData = useCallback(async () => {
@@ -420,16 +426,27 @@ export function Dashboard() {
         />
       </div>
 
-      {/* Taxa de Ocupação por Turma */}
-      <div className="mb-6">
-        <OccupancyCard occupancyData={salesMetrics.occupancyData} />
-      </div>
-
       {/* ── Linha 2: Funil + Turmas ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Funil de Conversão */}
-        <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8 flex flex-col overflow-hidden w-full">
-          <h3 className="font-bold text-xl text-slate-800 mb-6">Funil de Conversão</h3>
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8 flex flex-col overflow-hidden w-full relative">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="font-bold text-xl text-slate-800">Funil de Conversão</h3>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 text-white rounded-lg shadow-sm">
+                <Users className="w-4 h-4 text-emerald-50" />
+                <span className="text-sm font-bold">
+                  {salesMetrics.activeLeadsCount} Ativos
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 text-white rounded-lg shadow-sm">
+                <CheckCircle2 className="w-4 h-4 text-emerald-50" />
+                <span className="text-sm font-bold">
+                  {salesMetrics.totalConversionRate.toFixed(1)}% Conv.
+                </span>
+              </div>
+            </div>
+          </div>
           <div className="flex-1 overflow-hidden">
             <FunnelChart
               stages={salesMetrics.funnelStagesWithRates.map(s => ({
@@ -437,26 +454,29 @@ export function Dashboard() {
                 count: s.value,
                 color: s.color,
               }))}
-              conversionRate={salesMetrics.totalConversionRate}
             />
           </div>
         </div>
 
         {/* Pipeline Turmas */}
         <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8 flex flex-col overflow-hidden w-full">
-          <h3 className="font-bold text-xl text-slate-800 mb-6">Pipeline Turmas</h3>
-          <div className="flex-1 overflow-hidden">
-            <FunnelChart
-              stages={salesMetrics.attendeeStages.map((s, i) => ({
+          <h3 className="font-bold text-xl text-slate-800 mb-6">Status dos Alunos (Turmas)</h3>
+          <div className="flex-1 overflow-hidden flex flex-col justify-center">
+            <DoughnutChart
+              data={salesMetrics.attendeeStages.map(s => ({
                 label: s.label,
-                count: s.value,
+                value: s.value,
                 color: s.color,
-                icon: i === 0 ? Users : i === salesMetrics.attendeeStages.length - 1 ? CheckCircle2 : Filter,
               }))}
-              conversionRate={salesMetrics.totalConversionRate}
+              totalLabel="Alunos"
             />
           </div>
         </div>
+      </div>
+
+      {/* Taxa de Ocupação por Turma */}
+      <div className="mb-6">
+        <OccupancyCard occupancyData={salesMetrics.occupancyData} />
       </div>
 
       {/* Trends + Meta */}

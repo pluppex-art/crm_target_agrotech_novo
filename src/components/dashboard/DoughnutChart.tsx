@@ -44,7 +44,7 @@ export function DoughnutChart({
     <div className="flex flex-col items-center w-full gap-4">
       {/* Donut ring — centered */}
       <div className="relative w-48 h-48 flex-shrink-0">
-        <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="w-full h-full">
+        <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="w-full h-full -rotate-90">
           <circle
             cx={CX}
             cy={CY}
@@ -64,7 +64,6 @@ export function DoughnutChart({
               strokeWidth={SW}
               strokeLinecap="butt"
               strokeDasharray={`${seg.pct * C} ${C}`}
-              strokeDashoffset={C / 4}
               transform={`rotate(${seg.startAngle} ${CX} ${CY})`}
             />
           ))}

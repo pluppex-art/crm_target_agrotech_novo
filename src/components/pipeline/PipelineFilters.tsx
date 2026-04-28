@@ -39,7 +39,7 @@ export const PipelineFilters: React.FC<PipelineFiltersProps> = ({
   activeFilterCount,
   isVendedor = false,
 }) => {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">

@@ -1,4 +1,4 @@
-import { CheckCircle, TrendingDown } from 'lucide-react';
+import { CheckCircle, TrendingDown, Users } from 'lucide-react';
 
 interface FunnelStageItem {
   label: string;
@@ -9,12 +9,14 @@ interface FunnelStageItem {
 interface FunnelChartProps {
   stages: FunnelStageItem[];
   conversionRate?: number;
+  activeLeadsCount?: number;
   emptyLabel?: string;
 }
 
 export function FunnelChart({
   stages,
   conversionRate,
+  activeLeadsCount,
   emptyLabel = 'Sem dados de pipeline',
 }: FunnelChartProps) {
   const hasData = stages.some(s => s.count > 0);
@@ -41,9 +43,9 @@ export function FunnelChart({
         const widthPct = Math.round(100 - i * step);
         const prev = i > 0 ? stages[i - 1] : null;
 
-        // Only show conversion rate when it makes sense (≤ 100%)
+        // Calculate the ratio between the current stage and the previous stage
         const convFromPrev =
-          prev && prev.count > 0 && stage.count <= prev.count
+          prev && prev.count > 0
             ? Math.round((stage.count / prev.count) * 100)
             : null;
 
