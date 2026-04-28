@@ -60,7 +60,7 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
     <div
       onDoubleClick={onDoubleClick}
       className={cn(
-        "bg-white p-4 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition-all group relative",
+        "bg-white p-3 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition-all group relative",
         isDragging ? "shadow-xl border-emerald-500 rotate-2" : "",
         isDanger ? "border-red-200 hover:border-red-300" : isWarning ? "border-amber-200 hover:border-amber-300" : "hover:border-emerald-200"
       )}
@@ -77,12 +77,12 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
   )}
 
       {/* Card Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center gap-2.5">
           <img
             src={lead.photo || 'https://via.placeholder.com/150'}
             alt={lead.name}
-            className="w-12 h-12 rounded-full object-cover border-2 border-slate-50 shadow-sm"
+            className="w-10 h-10 rounded-full object-cover border-2 border-slate-50 shadow-sm"
             referrerPolicy="no-referrer"
           />
           <div className="space-y-0.5">
@@ -113,7 +113,7 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
       </div>
 
       {/* Card Body */}
-      <div className="space-y-2.5">
+      <div className="space-y-1.5">
         <div className="flex items-center gap-2 text-slate-500">
           <Phone size={14} className="text-emerald-500" />
           <span className="text-xs font-medium">{lead.phone}</span>
@@ -131,7 +131,7 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
           )}
         </div>
 
-        <div className="flex items-center justify-between pt-2">
+        <div className="flex items-center justify-between pt-1.5">
           <span className="text-sm font-bold text-slate-800">
             R$ {totalDisplayValue.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
           </span>
@@ -153,7 +153,7 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
       </div>
 
       {lead.status === 'qualified' && (
-        <div className="mt-4 pt-3 border-t border-slate-50 flex flex-wrap gap-2">
+        <div className="mt-3 pt-2.5 border-t border-slate-50 flex flex-wrap gap-2">
           {[
             { id: 'qualified' as LeadSubStatus, label: 'Qualificado', color: 'bg-emerald-50 text-emerald-600 border-emerald-100' },
             { id: 'warming' as LeadSubStatus, label: 'Aquecimento', color: 'bg-amber-50 text-amber-600 border-amber-100' },
@@ -177,7 +177,7 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
 
       {/* Data de criação */}
       {lead.created_at && (
-        <div className="mt-3 pt-2 border-t border-slate-50 flex justify-end opacity-60">
+        <div className="mt-2 pt-1.5 border-t border-slate-50 flex justify-end opacity-60">
           <span className="text-[9px] text-slate-400 font-medium tracking-wide">
             Criado em {new Date(lead.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })} às {new Date(lead.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
           </span>

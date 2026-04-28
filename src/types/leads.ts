@@ -23,5 +23,12 @@ export interface Lead {
   lead_source?: string | null;
   valor_recebido?: number | null;
   taxa_matricula_recebido?: number | null;
+  photo?: string | null;
+  payment_proof_url?: string | null;
+  contract_url?: string | null;
+  pix_completed?: boolean;
+  contract_signed?: boolean;
+  professor_proof_url?: string | null;
+  last_contact_at?: string | null;
 }
 
