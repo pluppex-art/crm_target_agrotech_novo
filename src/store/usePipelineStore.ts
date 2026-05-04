@@ -29,11 +29,15 @@ export const usePipelineStore = create<PipelineState>((set, get) => ({
     set({ isLoading: true });
     try {
       const pipelines = await pipelineService.getPipelines();
-      set({ 
+      set((state) => ({
         pipelines,
-        currentPipelineId: pipelines[0]?.id || undefined 
-      });
+        // Keep current selection if it still exists, otherwise pick first
+        currentPipelineId: pipelines.some(p => p.id === state.currentPipelineId)
+          ? state.currentPipelineId
+          : pipelines[0]?.id,
+      }));
     } catch (error) {
+      // Preserve existing pipelines on error — don't blank the board
       console.error('Error fetching pipelines:', error);
     } finally {
       set({ isLoading: false });

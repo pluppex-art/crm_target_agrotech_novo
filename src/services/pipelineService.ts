@@ -7,7 +7,7 @@ import { Pipeline, PipelineStage, PipelineWithStages } from '../types/pipelines'
 export const pipelineService = {
   async getPipelines(): Promise<PipelineWithStages[]> {
     const supabase = getSupabaseClient();
-    if (!supabase) return [];
+    if (!supabase) throw new Error('Supabase client not available');
 
     const { data: pipelines, error: pipelineError } = await supabase
       .from('pipelines')
@@ -22,7 +22,7 @@ export const pipelineService = {
 
     if (pipelineError) {
       console.error('Error fetching pipelines:', pipelineError);
-      return [];
+      throw pipelineError;
     }
 
     return (pipelines || []).map((p: any) => ({
