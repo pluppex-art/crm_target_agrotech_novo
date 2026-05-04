@@ -19,7 +19,7 @@ export interface Lead {
   discount_applied?: boolean;
   product: string | null;
   created_at: string;
-  updated_at: string | null;
+  updated_at?: string | null;
   lead_source?: string | null;
   valor_recebido?: number | null;
   taxa_matricula_recebido?: number | null;
@@ -30,5 +30,10 @@ export interface Lead {
   contract_signed?: boolean;
   professor_proof_url?: string | null;
   last_contact_at?: string | null;
+  city?: string | null;
+  forma_pagamento?: string | null;
+  motivo_perda?: string | null;
+  cnpj?: string | null;
+  history?: any[];
 }
 

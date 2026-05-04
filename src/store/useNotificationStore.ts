@@ -9,7 +9,7 @@ interface NotificationState {
   
   fetchNotifications: () => Promise<void>;
   subscribe: () => () => void;
-  addNotification: (notification: Omit<Notification, 'id' | 'created_at' | 'read'>) => Promise<void>;
+  addNotification: (notification: Omit<Notification, 'id' | 'created_at' | 'read'>, userId?: string) => Promise<void>;
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   removeNotification: (id: string) => Promise<void>;
@@ -30,7 +30,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
-        .or(`user_id.eq.${user.id},user_id.is.null`)
+        .eq('user_id', user.id) // Strictly fetch for this user
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -47,70 +47,74 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   },
 
   subscribe: () => {
-    const channelId = `notifications-${Math.random().toString(36).substring(7)}`;
-    const channel = supabase
-      .channel(channelId)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notifications'
-        },
-        async (payload) => {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user) return;
+    let cleanup = () => {};
 
-          // Only process if it belongs to this user or is system-wide
-          const newNotif = payload.new as Notification;
-          if (newNotif.user_id && newNotif.user_id !== user.id) return;
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
 
-          if (payload.eventType === 'INSERT') {
-            set((state) => {
-              const newNotifications = [newNotif, ...state.notifications];
-              return {
-                notifications: newNotifications,
-                unreadCount: newNotifications.filter(n => !n.read).length
-              };
-            });
-          } else if (payload.eventType === 'UPDATE') {
-            set((state) => {
-              const newNotifications = state.notifications.map(n => 
-                n.id === newNotif.id ? newNotif : n
-              );
-              return {
-                notifications: newNotifications,
-                unreadCount: newNotifications.filter(n => !n.read).length
-              };
-            });
-          } else if (payload.eventType === 'DELETE') {
-            set((state) => {
-              const newNotifications = state.notifications.filter(n => n.id !== payload.old.id);
-              return {
-                notifications: newNotifications,
-                unreadCount: newNotifications.filter(n => !n.read).length
-              };
-            });
+      const channel = supabase
+        .channel(`notifications-${user.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`
+          },
+          (payload) => {
+            if (payload.eventType === 'INSERT') {
+              const newNotif = payload.new as Notification;
+              set((state) => {
+                const newNotifications = [newNotif, ...state.notifications];
+                return {
+                  notifications: newNotifications,
+                  unreadCount: newNotifications.filter(n => !n.read).length
+                };
+              });
+            } else if (payload.eventType === 'UPDATE') {
+              const updated = payload.new as Notification;
+              set((state) => {
+                const newNotifications = state.notifications.map(n =>
+                  n.id === updated.id ? updated : n
+                );
+                return {
+                  notifications: newNotifications,
+                  unreadCount: newNotifications.filter(n => !n.read).length
+                };
+              });
+            } else if (payload.eventType === 'DELETE') {
+              set((state) => {
+                const newNotifications = state.notifications.filter(n => n.id !== payload.old.id);
+                return {
+                  notifications: newNotifications,
+                  unreadCount: newNotifications.filter(n => !n.read).length
+                };
+              });
+            }
           }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+      cleanup = () => supabase.removeChannel(channel);
+    });
+
+    return () => cleanup();
   },
 
-  addNotification: async (notif) => {
+  addNotification: async (notif, userId) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user && !userId) return;
+
+      const targetUserId = userId || user?.id;
+      if (!targetUserId) return;
 
       const { error } = await supabase
         .from('notifications')
         .insert([{
           ...notif,
-          user_id: user.id,
+          user_id: targetUserId,
           read: false
         }]);
 
@@ -191,18 +195,28 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   },
 
   clearAll: async () => {
+    // Optimistic update first so UI responds instantly
+    set({ notifications: [], unreadCount: 0 });
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { error } = await supabase
-        .from('notifications')
-        .delete()
-        .eq('user_id', user.id);
+      // Delete in batches to avoid timeout on large datasets
+      while (true) {
+        const { data } = await supabase
+          .from('notifications')
+          .select('id')
+          .eq('user_id', user.id)
+          .limit(500);
 
-      if (error) throw error;
+        if (!data || data.length === 0) break;
 
-      set({ notifications: [], unreadCount: 0 });
+        await supabase
+          .from('notifications')
+          .delete()
+          .in('id', data.map(n => n.id));
+      }
     } catch (error) {
       console.error('Error clearing notifications:', error);
     }

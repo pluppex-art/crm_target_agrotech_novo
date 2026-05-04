@@ -9,7 +9,8 @@ export const supabaseService = {
     let query = supabase
       .from('leads')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(1000); // Prevent fetching massive amounts of data in one go
 
     if (pipelineId) {
       query = query.eq('pipeline_id', pipelineId);
@@ -141,24 +142,36 @@ export const supabaseService = {
     const normalizedPhone = params.phone ? params.phone.replace(/\D/g, '') : '';
 
     if (normalizedPhone.length >= 10) {
-      const { data } = await supabase.from('leads').select('id, phone');
-      if (data) {
-        result.phone = data.some(
-          (l) =>
-            l.id !== params.excludeId &&
-            l.phone &&
-            l.phone.replace(/\D/g, '') === normalizedPhone
-        );
+      // Optimized: Check directly in DB instead of fetching all leads
+      let query = supabase
+        .from('leads')
+        .select('id')
+        // Using a pattern match or exact match depending on how phone is stored
+        .or(`phone.ilike.%${normalizedPhone}%,phone.eq.${params.phone}`);
+      
+      if (params.excludeId) {
+        query = query.neq('id', params.excludeId);
+      }
+
+      const { data, error } = await query.limit(1);
+      if (!error && data && data.length > 0) {
+        result.phone = true;
       }
     }
 
     if (params.email?.trim()) {
-      const { data } = await supabase
+      let query = supabase
         .from('leads')
         .select('id')
         .ilike('email', params.email.trim());
-      if (data) {
-        result.email = data.some((l) => l.id !== params.excludeId);
+      
+      if (params.excludeId) {
+        query = query.neq('id', params.excludeId);
+      }
+
+      const { data, error } = await query.limit(1);
+      if (!error && data && data.length > 0) {
+        result.email = true;
       }
     }
 

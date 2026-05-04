@@ -10,7 +10,7 @@ import { NewLeadModal } from '../components/leads/NewLeadModal';
 import { LeadDetailsModal } from '../components/leads/LeadDetailsModal';
 import { PageFilters } from '../components/ui/PageFilters';
 import { Filter, User, Package } from 'lucide-react';
-import type { Lead } from '../types/leads';
+import type { Lead, LeadStatus } from '../types/leads';
 
 export function Leads() {
   const { hasPermission, loading: permissionsLoading } = usePermissions();
@@ -194,7 +194,7 @@ export function Leads() {
           onStageChange={(stageId) => {
             const targetStage = selectedLeadPipeline?.stages.find(s => s.id === stageId);
             updateLeadStage(selectedLead.id, stageId);
-            updateLead(selectedLead.id, { status: targetStage?.name ?? '' });
+            updateLead(selectedLead.id, { status: (targetStage?.name ?? '') as LeadStatus });
           }}
         />
       )}

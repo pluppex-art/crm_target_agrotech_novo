@@ -1,13 +1,13 @@
 import { create } from 'zustand';
-import { Transaction, financeService } from '../services/financeService';
+import { LegacyTransaction, financeService } from '../services/financeService';
 import { getSupabaseClient } from '../lib/supabase';
 
 interface FinanceStore {
-  transactions: Transaction[];
+  transactions: LegacyTransaction[];
   isLoading: boolean;
   error: string | null;
   fetchTransactions: () => Promise<void>;
-  addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<void>;
+  addTransaction: (transaction: Omit<LegacyTransaction, 'id'>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   subscribe: () => () => void;
 }
@@ -71,11 +71,11 @@ export const useFinanceStore = create<FinanceStore>((set, get) => ({
         set((state) => {
           let updated = [...state.transactions];
           if (eventType === 'INSERT') {
-            if (!updated.some(t => t.id === (newRecord as Transaction).id)) {
-              updated = [newRecord as Transaction, ...updated];
+            if (!updated.some(t => t.id === (newRecord as LegacyTransaction).id)) {
+              updated = [newRecord as LegacyTransaction, ...updated];
             }
           } else if (eventType === 'UPDATE') {
-            updated = updated.map(t => t.id === (newRecord as Transaction).id ? { ...t, ...newRecord } : t);
+            updated = updated.map(t => t.id === (newRecord as LegacyTransaction).id ? { ...t, ...newRecord } : t);
           } else if (eventType === 'DELETE') {
             updated = updated.filter(t => t.id !== (oldRecord as any).id);
           }

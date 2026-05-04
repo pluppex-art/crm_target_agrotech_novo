@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { Flame, Phone, Plus, Trash2, Edit2, CheckSquare, AlertTriangle } from 'lucide-react';
+import { Flame, Phone, Plus, Trash2, Edit2, CheckSquare, AlertTriangle, Clock } from 'lucide-react';
 import { useLeadChecklist } from '../../hooks/useLeadChecklist';
 
 import { Lead, LeadSubStatus } from '../../types/leads';
@@ -8,7 +8,7 @@ import { cn, getLeadEffectiveValue } from '../../lib/utils';
 import { useLeadStore } from '../../store/useLeadStore';
 import { useProductStore } from '../../store/useProductStore';
 import { useTaskStore } from '../../store/useTaskStore';
-import { getElapsedHours } from '../../services/alertService';
+import { useSettingsStore } from '../../store/useSettingsStore';
 
 
 interface LeadCardProps {
@@ -36,7 +36,30 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
   const enrollmentFee = product?.enrollment_fee ?? 0;
   const totalDisplayValue = getLeadEffectiveValue(lead) + enrollmentFee;
 
-  const elapsedHours = getElapsedHours(lead);
+  const { autoTransferHours, fetchSettings } = useSettingsStore();
+
+  React.useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
+  const [now, setNow] = React.useState(() => Date.now());
+  React.useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const referenceTime = lead.last_contact_at ?? lead.created_at;
+  const elapsedMs = now - new Date(referenceTime).getTime();
+  const elapsedHours = Math.floor(elapsedMs / (60 * 60 * 1000));
+  const remainingMs = Math.max(0, autoTransferHours * 60 * 60 * 1000 - elapsedMs);
+  const remainingHours = Math.floor(remainingMs / (60 * 60 * 1000));
+  const remainingMinutes = Math.floor((remainingMs % (60 * 60 * 1000)) / 60_000);
+  const remainingLabel = remainingMs === 0
+    ? 'Expirado'
+    : remainingHours < 1
+      ? `${remainingMinutes}min restantes`
+      : `${remainingHours}h restantes`;
+
   const stageName = (lead.status ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const isInactiveStage =
     stageName.includes('ganho') ||
@@ -45,10 +68,13 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
     stageName.includes('perdido') ||
     stageName.includes('aquecimento') ||
     stageName.includes('desqualificado');
+
   // Also disable timer if lead has any task assigned
   const timerDisabled = isInactiveStage || hasTasks;
-  const isWarning = elapsedHours >= 12 && elapsedHours < 18 && !timerDisabled;
-  const isDanger = elapsedHours >= 18 && !timerDisabled;
+
+  // Danger when 25% or less time remains, Warning when 50% or less time remains
+  const isWarning = remainingHours <= (autoTransferHours / 2) && remainingHours > (autoTransferHours / 4) && !timerDisabled;
+  const isDanger = remainingHours <= (autoTransferHours / 4) && !timerDisabled;
 
   const { allRequiredCompleted, requiredCompleted, requiredTotal } = useLeadChecklist({
     leadId: lead.id,
@@ -65,16 +91,16 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
         isDanger ? "border-red-200 hover:border-red-300" : isWarning ? "border-amber-200 hover:border-amber-300" : "hover:border-emerald-200"
       )}
     >
-  {/* Inactivity badge */}
-  {(isWarning || isDanger) && (
-    <div className={cn(
-      "absolute top-2 right-2 flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full",
-      isDanger ? "bg-red-100 text-red-600" : "bg-amber-100 text-amber-600"
-    )}>
-      <AlertTriangle size={9} />
-      {elapsedHours}h
-    </div>
-  )}
+      {/* Inactivity badge (Countdown) */}
+      {!timerDisabled && (isWarning || isDanger) && (
+        <div className={cn(
+          "absolute top-2 right-2 flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full",
+          isDanger ? "bg-red-100 text-red-600" : "bg-amber-100 text-amber-600"
+        )}>
+          <Clock size={9} />
+          {remainingLabel}
+        </div>
+      )}
 
       {/* Card Header */}
       <div className="flex items-start justify-between mb-3">
@@ -136,18 +162,18 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
             R$ {totalDisplayValue.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
           </span>
           <button
-              onClick={(e) => { e.stopPropagation(); setSelectedLead(lead); }}
-              title="Checklist"
-              className={cn(
-                "flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all",
-                allRequiredCompleted
-                  ? "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100"
-                  : "bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100"
-              )}
-            >
-              <CheckSquare size={11} />
-              {requiredCompleted}/{requiredTotal}
-            </button>
+            onClick={(e) => { e.stopPropagation(); setSelectedLead(lead); }}
+            title="Checklist"
+            className={cn(
+              "flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all",
+              allRequiredCompleted
+                ? "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100"
+                : "bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100"
+            )}
+          >
+            <CheckSquare size={11} />
+            {requiredCompleted}/{requiredTotal}
+          </button>
 
         </div>
       </div>

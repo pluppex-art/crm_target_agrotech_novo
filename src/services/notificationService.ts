@@ -13,15 +13,16 @@ export interface Notification {
 }
 
 export const notificationService = {
-  async addNotification(notification: Omit<Notification, 'id' | 'read' | 'created_at'>): Promise<void> {
+  async addNotification(notification: Omit<Notification, 'id' | 'read' | 'created_at'>, userId?: string): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    const targetUserId = userId || user?.id;
+    if (!targetUserId) return;
 
     const { error } = await supabase
       .from('notifications')
       .insert([{
         ...notification,
-        user_id: user.id,
+        user_id: targetUserId,
         read: false,
       }]);
 

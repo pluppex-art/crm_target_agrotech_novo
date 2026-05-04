@@ -17,7 +17,7 @@ import { useProductStore } from '../store/useProductStore';
 import { useProfileStore } from '../store/useProfileStore';
 import { useTaskStore } from '../store/useTaskStore';
 import { useAuthStore } from '../store/useAuthStore';
-import type { Lead } from '../types/leads';
+import type { Lead, LeadStatus } from '../types/leads';
 import { LeadDetailsModal } from '../components/leads/LeadDetailsModal';
 import { NewLeadModal } from '../components/leads/NewLeadModal';
 import { cn, getLeadEffectiveValue } from '../lib/utils';
@@ -220,7 +220,7 @@ export const Pipeline: React.FC = () => {
 
     await updateLead(draggableId, {
       last_contact_at: new Date().toISOString(),
-      status: targetStage?.name ?? '',
+      status: (targetStage?.name ?? '') as LeadStatus,
     });
 
     // Notify coordinator/admin for Contrato, Ganho, Perdido stages
@@ -379,7 +379,7 @@ export const Pipeline: React.FC = () => {
           onStageChange={(stageId: string) => {
             const targetStage = currentPipeline?.stages.find(s => s.id === stageId);
             updateLeadStage(selectedLead.id, stageId);
-            updateLead(selectedLead.id, { status: targetStage?.name ?? '' });
+            updateLead(selectedLead.id, { status: (targetStage?.name ?? '') as LeadStatus });
             const stageLower = targetStage?.name.toLowerCase() ?? '';
             if (stageLower.includes('ganho') || stageLower.includes('fechado') || stageLower.includes('aprovado')) {
               const productObj = products.find(p => p.name === selectedLead.product);

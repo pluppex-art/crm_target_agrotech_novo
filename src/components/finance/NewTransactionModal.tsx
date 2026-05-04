@@ -1,38 +1,71 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, DollarSign, Calendar, Tag, Save, Loader2, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
-import { useFinanceStore } from '../../store/useFinanceStore';
+import { X, DollarSign, Calendar, Tag, Save, Loader2, ArrowUpCircle, ArrowDownCircle, CheckCircle2, Clock } from 'lucide-react';
+import { categoryService } from '../../services/categoryService';
+import { transactionService } from '../../services/transactionService';
+import { FinancialCategory } from '../../types/finance_v2';
+import { cn } from '../../lib/utils';
 
 interface NewTransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
-export const NewTransactionModal: React.FC<NewTransactionModalProps> = ({ isOpen, onClose }) => {
-  const { addTransaction } = useFinanceStore();
+export const NewTransactionModal: React.FC<NewTransactionModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState<FinancialCategory[]>([]);
   const [formData, setFormData] = useState({
     description: '',
     amount: '',
-    type: 'income' as 'income' | 'expense',
-    category: '',
+    type: 'INCOME' as 'INCOME' | 'EXPENSE',
+    status: 'PAID' as 'PAID' | 'PENDING',
+    category_id: '',
     date: new Date().toISOString().split('T')[0],
   });
 
+  useEffect(() => {
+    if (isOpen) {
+      categoryService.getByType(formData.type).then(cats => {
+        setCategories(cats);
+        if (cats.length > 0 && !cats.find(c => c.id === formData.category_id)) {
+          setFormData(prev => ({ ...prev, category_id: cats[0].id }));
+        }
+      });
+    }
+  }, [isOpen, formData.type]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.date) return;
+    
     setLoading(true);
     try {
-      await addTransaction({
-        ...formData,
+      await transactionService.create({
+        description: formData.description,
         amount: parseFloat(formData.amount) || 0,
+        type: formData.type,
+        status: formData.status,
+        category_id: formData.category_id,
+        origin_type: 'MANUAL',
+        payment_date: formData.status === 'PAID' ? formData.date : null,
+        due_date: formData.date, // always save due date
+        lead_id: null,
+        class_id: null,
+        user_id: null,
+        source_transaction_id: null,
+        partner_origin: null,
+        cancellation_reason: null,
+        cancelled_at: null,
       });
       onClose();
+      if (onSuccess) onSuccess();
       setFormData({
         description: '',
         amount: '',
-        type: 'income',
-        category: '',
+        type: 'INCOME',
+        status: 'PAID',
+        category_id: '',
         date: new Date().toISOString().split('T')[0],
       });
     } catch (error) {
@@ -64,12 +97,12 @@ export const NewTransactionModal: React.FC<NewTransactionModalProps> = ({ isOpen
           </div>
 
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
-            <div className="flex gap-4 mb-4">
+            <div className="flex gap-4 mb-2">
               <button
                 type="button"
-                onClick={() => setFormData({...formData, type: 'income'})}
+                onClick={() => setFormData({...formData, type: 'INCOME'})}
                 className={`flex-1 py-3 rounded-xl border-2 flex items-center justify-center gap-2 font-bold transition-all ${
-                  formData.type === 'income' 
+                  formData.type === 'INCOME' 
                     ? 'border-emerald-500 bg-emerald-50 text-emerald-600' 
                     : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200'
                 }`}
@@ -79,16 +112,48 @@ export const NewTransactionModal: React.FC<NewTransactionModalProps> = ({ isOpen
               </button>
               <button
                 type="button"
-                onClick={() => setFormData({...formData, type: 'expense'})}
+                onClick={() => setFormData({...formData, type: 'EXPENSE'})}
                 className={`flex-1 py-3 rounded-xl border-2 flex items-center justify-center gap-2 font-bold transition-all ${
-                  formData.type === 'expense' 
-                    ? 'border-red-500 bg-red-50 text-red-600' 
+                  formData.type === 'EXPENSE' 
+                    ? 'border-rose-500 bg-rose-50 text-rose-600' 
                     : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200'
                 }`}
               >
                 <ArrowDownCircle size={20} />
                 Despesa
               </button>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Status</label>
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={() => setFormData({...formData, status: 'PAID'})}
+                  className={cn(
+                    "flex-1 py-2.5 rounded-xl border-2 flex items-center justify-center gap-2 text-sm font-bold transition-all",
+                    formData.status === 'PAID'
+                      ? "border-indigo-500 bg-indigo-50 text-indigo-600"
+                      : "border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200"
+                  )}
+                >
+                  <CheckCircle2 size={16} />
+                  {formData.type === 'INCOME' ? 'Recebida' : 'Paga'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({...formData, status: 'PENDING'})}
+                  className={cn(
+                    "flex-1 py-2.5 rounded-xl border-2 flex items-center justify-center gap-2 text-sm font-bold transition-all",
+                    formData.status === 'PENDING'
+                      ? "border-amber-500 bg-amber-50 text-amber-600"
+                      : "border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200"
+                  )}
+                >
+                  <Clock size={16} />
+                  {formData.type === 'INCOME' ? 'A Receber' : 'A Pagar'}
+                </button>
+              </div>
             </div>
 
             <div className="space-y-1.5">
@@ -123,7 +188,9 @@ export const NewTransactionModal: React.FC<NewTransactionModalProps> = ({ isOpen
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Data</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  {formData.status === 'PAID' ? 'Data de Pagamento' : 'Data de Vencimento'}
+                </label>
                 <input 
                   required
                   type="date" 
@@ -137,15 +204,18 @@ export const NewTransactionModal: React.FC<NewTransactionModalProps> = ({ isOpen
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Categoria</label>
               <div className="relative">
-                <input 
+                <select
                   required
-                  type="text" 
-                  value={formData.category}
-                  onChange={(e) => setFormData({...formData, category: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
-                  placeholder="Ex: Vendas, Marketing..."
-                />
-                <Tag size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  value={formData.category_id}
+                  onChange={(e) => setFormData({...formData, category_id: e.target.value})}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 appearance-none"
+                >
+                  <option value="" disabled>Selecione uma categoria</option>
+                  {categories.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+                <Tag size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
               </div>
             </div>
 
@@ -159,7 +229,7 @@ export const NewTransactionModal: React.FC<NewTransactionModalProps> = ({ isOpen
               </button>
               <button 
                 type="submit"
-                disabled={loading}
+                disabled={loading || !formData.category_id || !formData.date}
                 className="px-8 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-lg shadow-emerald-200 transition-all flex items-center gap-2 disabled:opacity-50"
               >
                 {loading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
@@ -172,3 +242,4 @@ export const NewTransactionModal: React.FC<NewTransactionModalProps> = ({ isOpen
     </AnimatePresence>
   );
 };
+

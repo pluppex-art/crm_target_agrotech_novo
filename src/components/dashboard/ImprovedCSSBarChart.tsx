@@ -10,6 +10,7 @@ interface BarItem {
 interface ImprovedCSSBarChartProps {
   data: BarItem[];
   color?: string;
+  gradient?: boolean;
   showValues?: boolean;
   emptyLabel?: string;
   minBarWidth?: number;

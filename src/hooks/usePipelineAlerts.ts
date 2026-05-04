@@ -32,7 +32,7 @@ export const usePipelineAlerts = (leads: Lead[], tasks: Task[] = []) => {
 
     if (alerts.length > 0) {
       const userEmail = user?.email || '';
-      fireAlerts(alerts, userEmail);
+      fireAlerts(alerts, userEmail, undefined, user?.id);
     }
 
     // Notify admins/coordinators for leads that reached the transfer threshold

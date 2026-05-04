@@ -150,7 +150,8 @@ export function checkLeadInactivity(
 export async function fireAlerts(
   alerts: InactivityAlert[],
   userEmail: string,
-  userPhone?: string
+  userPhone?: string,
+  targetUserId?: string
 ) {
   for (const alert of alerts) {
     const { lead, label, key, isTransfer } = alert;
@@ -186,7 +187,7 @@ export async function fireAlerts(
         product: lead.product,
         responsible: lead.responsible || 'Não definido'
       })
-    });
+    }, targetUserId);
   }
 }
 

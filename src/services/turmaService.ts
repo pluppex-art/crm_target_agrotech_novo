@@ -30,6 +30,7 @@ export interface Turma {
   meta?: number;
   status: 'agendada' | 'em_andamento' | 'concluida' | 'cancelada';
   attendees: TurmaAttendee[];
+  capacity?: number;
 }
 
 export const turmaService = {
@@ -40,7 +41,8 @@ export const turmaService = {
     const { data, error } = await supabase
       .from('turmas')
       .select('*, products(*), turma_attendees(*)')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(100); // Prevent loading hundreds of classes at once
 
     if (error) { 
         console.error('Error fetching turmas:', error.message); 
