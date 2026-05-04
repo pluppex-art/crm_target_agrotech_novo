@@ -18,7 +18,6 @@ import { ManageCargos } from './pages/settings/ManageCargos';
 import { ManageCategories } from './pages/settings/ManageCategories';
 import { ManageActivityCategories } from './pages/settings/ManageActivityCategories';
 import { ManageGoals } from './pages/settings/ManageGoals';
-import { ManageCommissions } from './pages/settings/ManageCommissions';
 import { Finance } from './pages/Finance';
 import { AIChat } from './pages/AIChat';
 import { Contracts } from './pages/Contracts';
@@ -126,7 +125,6 @@ export default function App() {
             <Route path="pipelines" element={<ManagePipelines />} />
             <Route path="categories" element={<ManageCategories />} />
             <Route path="activity-categories" element={<ManageActivityCategories />} />
-            <Route path="commissions" element={<ManageCommissions />} />
             <Route path="rotation" element={<LeadRotationSettings />} />
           </Route>
   <Route path="/analytics" element={<Dashboard />} /> {/* Placeholder */}

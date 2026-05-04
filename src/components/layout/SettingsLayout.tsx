@@ -1,7 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import {
   User, Bell, Lock, Globe, Shield, UserPlus, Tag, Activity,
-  Target, ClipboardList, Percent, Settings as SettingsIcon, RefreshCcw
+  Target, ClipboardList, Settings as SettingsIcon, RefreshCcw
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -18,7 +18,6 @@ const settingsNav = [
   { icon: SettingsIcon,   label: 'Pipelines',            path: '/settings/pipelines' },
   { icon: Tag,            label: 'Categorias',           path: '/settings/categories' },
   { icon: Activity,       label: 'Atividades',           path: '/settings/activity-categories' },
-  { icon: Percent,        label: 'Comissões',            path: '/settings/commissions' },
   { icon: RefreshCcw,    label: 'Rodízio de Leads',     path: '/settings/rotation' },
 ];
 
