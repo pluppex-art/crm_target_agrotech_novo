@@ -100,24 +100,24 @@ export const oteService = {
         } else if (profile.role_type === 'MANAGER') {
           const supabase = getSupabaseClient();
           if (!supabase) return { success: false };
-          
+
           const { data: squadData } = await supabase
-            .from('squad_members')
-            .select('squad_id')
-            .eq('user_id', profile.user_id)
+            .from('squads')
+            .select('id')
+            .eq('manager_id', profile.user_id)
             .eq('active', true)
             .limit(1)
             .maybeSingle();
 
-          if (!squadData?.squad_id) {
+          if (!squadData?.id) {
             return {
               success: false,
-              warning: `Gestor ${profile.user_name || profile.user_id.substring(0, 8)} não está vinculado a um squad ativo.`
+              warning: `Gestor ${profile.user_name || profile.user_id.substring(0, 8)} não está vinculado a nenhum squad ativo. Configure em Perfis OTE.`
             };
           }
 
           const result = await this.calculateAndUpsertManagerCommission(
-            profile.user_id, squadData.squad_id, periodMonthDate, profile.level
+            profile.user_id, squadData.id, periodMonthDate, profile.level
           );
           if (result) return { success: true };
           return {

@@ -50,11 +50,13 @@ type EditingState = {
   level: string;
   start_date: string;
   end_date: string | null;
+  squad_id: string | null;
 };
 
 function OteProfilesSection() {
   const [profiles, setProfiles] = useState<(UserCompensationProfile & { user_name?: string })[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [squads, setSquads] = useState<{ id: string; name: string; manager_id: string | null }[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -66,15 +68,21 @@ function OteProfilesSection() {
     level: 'Junior 1',
     start_date: new Date().toISOString().split('T')[0],
     end_date: null as string | null,
+    squad_id: '',
     active: true,
   });
 
   const load = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [p, u] = await Promise.all([compensationProfileService.getAll(), profileService.getProfiles()]);
+      const [p, u, s] = await Promise.all([
+        compensationProfileService.getAll(),
+        profileService.getProfiles(),
+        compensationProfileService.getSquads(),
+      ]);
       setProfiles(p);
       setUsers(u);
+      setSquads(s);
     } finally { setIsLoading(false); }
   }, []);
 
@@ -83,13 +91,21 @@ function OteProfilesSection() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.user_id) return;
+    if (form.role_type === 'MANAGER' && !form.squad_id) {
+      setSaveError('Selecione o squad que este gestor gerencia.');
+      return;
+    }
     setIsSaving(true);
     setSaveError(null);
     try {
-      const result = await compensationProfileService.create({ ...form, end_date: form.end_date || null });
+      const { squad_id: _squad, ...profileData } = form;
+      const result = await compensationProfileService.create({ ...profileData, end_date: form.end_date || null });
       if (!result) {
         setSaveError('Não foi possível salvar o perfil. Verifique o console ou as permissões no banco de dados.');
         return;
+      }
+      if (form.role_type === 'MANAGER' && form.squad_id) {
+        await compensationProfileService.assignManagerToSquad(form.user_id, form.squad_id);
       }
       setShowForm(false);
       await load();
@@ -98,7 +114,7 @@ function OteProfilesSection() {
     } finally { setIsSaving(false); }
   };
 
-  const handleSaveEdit = async (id: string) => {
+  const handleSaveEdit = async (id: string, userId: string) => {
     if (!editing) return;
     setIsSaving(true);
     try {
@@ -108,6 +124,9 @@ function OteProfilesSection() {
         start_date: editing.start_date,
         end_date: editing.end_date || null,
       });
+      if (editing.role_type === 'MANAGER') {
+        await compensationProfileService.assignManagerToSquad(userId, editing.squad_id);
+      }
       setEditing(null);
       await load();
     } finally { setIsSaving(false); }

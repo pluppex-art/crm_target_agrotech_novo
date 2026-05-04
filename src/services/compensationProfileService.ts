@@ -147,6 +147,41 @@ export const compensationProfileService = {
     return true;
   },
 
+  async getSquads(): Promise<{ id: string; name: string; manager_id: string | null }[]> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return [];
+    const { data, error } = await supabase
+      .from('squads')
+      .select('id, name, manager_id')
+      .eq('active', true)
+      .order('name');
+    if (error) {
+      console.error('[compensationProfileService] Error fetching squads:', error);
+      return [];
+    }
+    return data || [];
+  },
+
+  async assignManagerToSquad(managerId: string, squadId: string | null): Promise<boolean> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return false;
+    // Remove este gestor de qualquer squad atual
+    await supabase
+      .from('squads')
+      .update({ manager_id: null, updated_at: new Date().toISOString() })
+      .eq('manager_id', managerId);
+    if (!squadId) return true;
+    const { error } = await supabase
+      .from('squads')
+      .update({ manager_id: managerId, updated_at: new Date().toISOString() })
+      .eq('id', squadId);
+    if (error) {
+      console.error('[compensationProfileService] Error assigning manager to squad:', error);
+      return false;
+    }
+    return true;
+  },
+
   /**
    * Ativa ou pausa (desativa) um perfil.
    */
