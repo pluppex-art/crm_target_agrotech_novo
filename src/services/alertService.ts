@@ -113,12 +113,18 @@ function isLeadInInactiveStage(lead: Lead): boolean {
 export function checkLeadInactivity(
   leads: Lead[],
   autoTransferHours: number = 48,
-  tasks: Task[] = []
+  tasks: Task[] = [],
+  enabledLevels?: string[]
 ): InactivityCheckResult {
   const autoTransferMs = autoTransferHours * 60 * 60 * 1000;
   const sentAlerts = getSentAlerts();
   const alerts: InactivityAlert[] = [];
   const toTransfer: Lead[] = [];
+
+  // Filter to only enabled levels; always include h48 (transfer alert)
+  const activeLevels = INACTIVITY_LEVELS.filter(
+    l => l.isTransfer || !enabledLevels || enabledLevels.includes(l.key)
+  );
 
   for (const lead of leads) {
     if (isLeadInInactiveStage(lead)) continue;
@@ -129,9 +135,9 @@ export function checkLeadInactivity(
     const elapsed = getMsWithoutContact(lead);
     const leadSent = sentAlerts[lead.id] || {};
 
-    // Find the highest threshold reached that hasn't been sent yet (includes h48)
-    for (let i = INACTIVITY_LEVELS.length - 1; i >= 0; i--) {
-      const level = INACTIVITY_LEVELS[i];
+    // Find the highest active threshold reached that hasn't been sent yet
+    for (let i = activeLevels.length - 1; i >= 0; i--) {
+      const level = activeLevels[i];
       if (elapsed >= level.ms && !leadSent[level.key]) {
         alerts.push({ lead, label: level.label, key: level.key, isTransfer: level.isTransfer });
         break;

@@ -28,7 +28,7 @@ export const usePipelineAlerts = (leads: Lead[], tasks: Task[] = []) => {
     if (myLeads.length === 0) return;
     if (!notificationPrefs.leadInactive) return;
 
-    const { alerts, toTransfer } = checkLeadInactivity(myLeads, autoTransferHours, tasks);
+    const { alerts, toTransfer } = checkLeadInactivity(myLeads, autoTransferHours, tasks, notificationPrefs.inactivityLevels);
 
     if (alerts.length > 0) {
       const userEmail = user?.email || '';

@@ -6,6 +6,7 @@ export interface NotificationPrefs {
   leadInactive: boolean;
   leadAssigned: boolean;
   stageChange: boolean;
+  inactivityLevels: string[];
 }
 
 const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
@@ -13,6 +14,7 @@ const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
   leadInactive: true,
   leadAssigned: true,
   stageChange: true,
+  inactivityLevels: ['h1', 'h6', 'h24', 'h48'],
 };
 
 interface SettingsState {
@@ -76,29 +78,21 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   },
 
   updateSetting: async (key, value) => {
-    try {
-      const { error } = await supabase
-        .from('crm_settings')
-        .upsert({ key, value, updated_at: new Date().toISOString() });
-      if (error) throw error;
+    const { error } = await supabase
+      .from('crm_settings')
+      .upsert({ key, value }, { onConflict: 'key' });
+    if (error) throw error;
 
-      if (key === 'lead_transfer_timeout_hours') {
-        set({ autoTransferHours: Number(value) });
-      }
-    } catch (error) {
-      console.error('Error updating setting:', error);
+    if (key === 'lead_transfer_timeout_hours') {
+      set({ autoTransferHours: Number(value) });
     }
   },
 
   updateNotificationPrefs: async (prefs) => {
-    try {
-      const { error } = await supabase
-        .from('crm_settings')
-        .upsert({ key: 'notification_preferences', value: prefs, updated_at: new Date().toISOString() });
-      if (error) throw error;
-      set({ notificationPrefs: prefs });
-    } catch (error) {
-      console.error('Error updating notification preferences:', error);
-    }
+    const { error } = await supabase
+      .from('crm_settings')
+      .upsert({ key: 'notification_preferences', value: prefs }, { onConflict: 'key' });
+    if (error) throw error;
+    set({ notificationPrefs: prefs });
   },
 }));
