@@ -32,7 +32,8 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
       const leads = await supabaseService.getLeads(pipelineId);
       set({ leads, isLoading: false });
     } catch (err) {
-      set({ error: 'Failed to fetch leads from Supabase', isLoading: false });
+      // Preserve existing leads on error — don't blank the board
+      set((state) => ({ isLoading: false, error: 'Failed to fetch leads', leads: state.leads }));
     }
   },
 

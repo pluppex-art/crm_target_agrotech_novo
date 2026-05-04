@@ -4,13 +4,13 @@ import { Lead, LeadStatus, LeadSubStatus } from '../types/leads';
 export const supabaseService = {
   async getLeads(pipelineId?: string): Promise<Lead[]> {
     const supabase = getSupabaseClient();
-    if (!supabase) return [];
+    if (!supabase) throw new Error('Supabase client not available');
 
     let query = supabase
       .from('leads')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(1000); // Prevent fetching massive amounts of data in one go
+      .limit(1000);
 
     if (pipelineId) {
       query = query.eq('pipeline_id', pipelineId);
@@ -20,7 +20,7 @@ export const supabaseService = {
 
     if (error) {
       console.error('Error fetching leads:', error);
-      return [];
+      throw error;
     }
 
     return data as Lead[];
