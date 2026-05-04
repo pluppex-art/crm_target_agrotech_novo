@@ -8,13 +8,14 @@ import { profileService, UserProfile } from '../../services/profileService';
 import { categoryService } from '../../services/categoryService';
 import { cn } from '../../lib/utils';
 
-type SettingsSection = 'partner' | 'fees' | 'ote' | 'commission';
+type SettingsSection = 'ote' | 'squads' | 'commission' | 'partner' | 'fees';
 
 export function SettingsTab() {
   const [section, setSection] = useState<SettingsSection>('ote');
 
   const sectionLabels: Record<SettingsSection, string> = {
     ote: 'Perfis OTE',
+    squads: 'Gestão de Squads',
     commission: 'Regras de Comissão',
     partner: 'Regras de Parceria',
     fees: 'Taxas e Deduções',
@@ -26,7 +27,7 @@ export function SettingsTab() {
         <Settings size={18} className="text-slate-400" />
         <span className="text-sm font-bold text-slate-600">Configurações Financeiras</span>
         <span className="text-slate-200">|</span>
-        {(['ote', 'commission', 'partner', 'fees'] as SettingsSection[]).map(s => (
+        {(['ote', 'squads', 'commission', 'partner', 'fees'] as SettingsSection[]).map(s => (
           <button key={s} onClick={() => setSection(s)}
             className={cn('px-3 py-1.5 rounded-lg text-xs font-bold transition-all',
               section === s ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'text-slate-500 hover:bg-slate-50')}>
@@ -36,6 +37,7 @@ export function SettingsTab() {
       </div>
 
       {section === 'ote' && <OteProfilesSection />}
+      {section === 'squads' && <SquadsSection />}
       {section === 'commission' && <CommissionRulesSection />}
       {section === 'partner' && <PartnerRulesSection />}
       {section === 'fees' && <FeeRulesSection />}
@@ -54,9 +56,11 @@ type EditingState = {
 };
 
 function OteProfilesSection() {
-  const [profiles, setProfiles] = useState<(UserCompensationProfile & { user_name?: string })[]>([]);
+  const [profiles, setProfiles] = useState<(UserCompensationProfile & { user_name?: string; squad_name?: string })[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
-  const [squads, setSquads] = useState<{ id: string; name: string; manager_id: string | null }[]>([]);
+  const [squads, setSquads] = useState<{
+    active: unknown; id: string; name: string; manager_id: string | null
+  }[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -177,7 +181,7 @@ function OteProfilesSection() {
               <select required value={form.user_id} onChange={e => setForm(p => ({ ...p, user_id: e.target.value }))}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500/20">
                 <option value="">Selecione...</option>
-                {users.map(u => <option key={u.id} value={u.id}>{u.name || u.email}</option>)}
+                {users.map(u => <option key={u.id} value={u.id}>{u.full_name || u.name || u.email}</option>)}
               </select>
             </div>
             <div className="space-y-1">
@@ -195,9 +199,9 @@ function OteProfilesSection() {
                 <select value={form.squad_id} onChange={e => setForm(p => ({ ...p, squad_id: e.target.value }))}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none">
                   <option value="">Selecione o squad...</option>
-                  {squads.length === 0
-                    ? <option disabled>Nenhum squad cadastrado no banco</option>
-                    : squads.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  {squads.filter(s => s.active).length === 0
+                    ? <option disabled>Nenhum squad ativo cadastrado</option>
+                    : squads.filter(s => s.active).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
             )}
@@ -271,8 +275,8 @@ function OteProfilesSection() {
                       ) : (
                         <span className={cn('inline-flex px-2.5 py-1 rounded-full text-xs font-bold',
                           p.role_type === 'CLOSER' ? 'bg-emerald-100 text-emerald-700' :
-                          p.role_type === 'MANAGER' ? 'bg-violet-100 text-violet-700' :
-                          'bg-blue-100 text-blue-700')}>
+                            p.role_type === 'MANAGER' ? 'bg-violet-100 text-violet-700' :
+                              'bg-blue-100 text-blue-700')}>
                           {p.role_type}
                         </span>
                       )}
@@ -284,12 +288,19 @@ function OteProfilesSection() {
                         <select value={editing.squad_id || ''} onChange={e => setEditing(ed => ed && ({ ...ed, squad_id: e.target.value || null }))}
                           className="px-2 py-1.5 bg-slate-50 border border-indigo-300 rounded-lg text-xs outline-none w-36">
                           <option value="">Sem squad</option>
-                          {squads.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                          {squads.filter(s => s.active).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                         </select>
+                      ) : p.squad_name ? (
+                        <span className="inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold shadow-sm"
+                          style={{ 
+                            backgroundColor: `${p.squad_color || '#f1f5f9'}20`, 
+                            color: p.squad_color || '#64748b',
+                            border: `1px solid ${p.squad_color || '#e2e8f0'}40`
+                          }}>
+                          {p.squad_name}
+                        </span>
                       ) : p.role_type === 'MANAGER' ? (
-                        managerSquad
-                          ? <span className="inline-flex px-2.5 py-1 bg-violet-50 text-violet-700 rounded-full text-xs font-bold">{managerSquad.name}</span>
-                          : <span className="text-xs text-rose-500 font-medium">Sem squad</span>
+                        <span className="text-xs text-rose-500 font-medium">Sem squad</span>
                       ) : (
                         <span className="text-xs text-slate-300">—</span>
                       )}
@@ -379,6 +390,308 @@ function OteProfilesSection() {
             </tbody>
           </table>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Seção: Gestão de Squads ──────────────────────────────────────────────────
+function SquadsSection() {
+  const [squads, setSquads] = useState<{ id: string; name: string; manager_id: string | null; active: boolean; color?: string; logo_url?: string }[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [newSquadName, setNewSquadName] = useState('');
+  const [newSquadColor, setNewSquadColor] = useState('#6366f1');
+  const [newSquadLogo, setNewSquadLogo] = useState('');
+  const [selectedSquadId, setSelectedSquadId] = useState<string | null>(null);
+  const [editingSquadId, setEditingSquadId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<{ name: string; color: string; logo_url: string }>({ name: '', color: '', logo_url: '' });
+  const [members, setMembers] = useState<{ user_id: string; user_name?: string }[]>([]);
+  const [isMembersLoading, setIsMembersLoading] = useState(false);
+
+  const load = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [s, u] = await Promise.all([
+        compensationProfileService.getSquads(),
+        profileService.getProfiles(),
+      ]);
+      setSquads(s);
+      setUsers(u);
+    } finally { setIsLoading(false); }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const loadMembers = async (squadId: string) => {
+    setIsMembersLoading(true);
+    try {
+      const m = await compensationProfileService.getSquadMembers(squadId);
+      setMembers(m);
+      setSelectedSquadId(squadId);
+    } finally { setIsMembersLoading(false); }
+  };
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSquadName.trim()) return;
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      const result = await compensationProfileService.createSquad(newSquadName, newSquadColor, newSquadLogo);
+      if (!result.success) {
+        setSaveError(result.error || 'Erro ao criar squad');
+        return;
+      }
+      setNewSquadName('');
+      setNewSquadColor('#6366f1');
+      setNewSquadLogo('');
+      setShowForm(false);
+      await load();
+    } catch (err: any) {
+      setSaveError(err?.message || 'Erro inesperado');
+    } finally { setIsSaving(false); }
+  };
+
+  const handleToggle = async (id: string, active: boolean) => {
+    await compensationProfileService.updateSquad(id, { active: !active });
+    await load();
+  };
+
+  const startEdit = (s: any) => {
+    setEditingSquadId(s.id);
+    setEditForm({ name: s.name, color: s.color || '#6366f1', logo_url: s.logo_url || '' });
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSquadId) return;
+    setIsSaving(true);
+    try {
+      await compensationProfileService.updateSquad(editingSquadId, editForm);
+      setEditingSquadId(null);
+      await load();
+    } finally { setIsSaving(false); }
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Excluir o squad "${name}"? Todos os membros serão desvinculados.`)) return;
+    await compensationProfileService.deleteSquad(id);
+    if (selectedSquadId === id) setSelectedSquadId(null);
+    await load();
+  };
+
+  const handleAddMember = async (userId: string) => {
+    if (!selectedSquadId) return;
+    await compensationProfileService.addMemberToSquad(selectedSquadId, userId);
+    await loadMembers(selectedSquadId);
+  };
+
+  const handleRemoveMember = async (userId: string) => {
+    if (!selectedSquadId) return;
+    await compensationProfileService.removeMemberFromSquad(selectedSquadId, userId);
+    await loadMembers(selectedSquadId);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <p className="text-sm text-slate-700 font-semibold">Estrutura de Squads</p>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Gerencie as equipes e seus membros. Usado para consolidação de metas de gestores.
+          </p>
+        </div>
+        <button onClick={() => setShowForm(v => !v)}
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700">
+          {showForm ? <X size={15} /> : <Plus size={15} />} {showForm ? 'Fechar' : 'Novo Squad'}
+        </button>
+      </div>
+
+      {saveError && (
+        <div className="flex items-start gap-3 p-4 bg-rose-50 border border-rose-200 rounded-xl">
+          <span className="text-rose-500 mt-0.5 shrink-0">⚠️</span>
+          <div>
+            <p className="text-sm font-bold text-rose-700">Erro ao processar</p>
+            <p className="text-xs text-rose-600 mt-0.5">{saveError}</p>
+          </div>
+        </div>
+      )}
+
+      {showForm && (
+        <form onSubmit={handleCreate} className="bg-white rounded-xl border border-indigo-200 p-5 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-500 uppercase">Nome do Squad</label>
+              <input required value={newSquadName} onChange={e => setNewSquadName(e.target.value)}
+                placeholder="Ex: Squad Comercial Norte"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500/20" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-500 uppercase">Cor do Squad</label>
+              <div className="flex items-center gap-2">
+                <input type="color" value={newSquadColor} onChange={e => setNewSquadColor(e.target.value)}
+                  className="w-10 h-9 p-0.5 bg-white border border-slate-200 rounded-lg cursor-pointer" />
+                <input type="text" value={newSquadColor} onChange={e => setNewSquadColor(e.target.value)}
+                  className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none" />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-500 uppercase">URL do Logo (Opcional)</label>
+              <input value={newSquadLogo} onChange={e => setNewSquadLogo(e.target.value)}
+                placeholder="https://..."
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500/20" />
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <button type="submit" disabled={isSaving}
+              className="flex items-center gap-2 px-6 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 shadow-md transition-all active:scale-95 disabled:opacity-50">
+              {isSaving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />} Criar Squad
+            </button>
+          </div>
+        </form>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Lista de Squads */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden h-fit">
+          <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
+            <h3 className="text-sm font-bold text-slate-700">Squads Cadastrados</h3>
+          </div>
+          {isLoading ? (
+            <div className="flex items-center justify-center h-40"><Loader2 className="w-7 h-7 text-indigo-500 animate-spin" /></div>
+          ) : squads.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-40 p-6 text-center">
+              <Users2 className="w-10 h-10 text-slate-200 mb-3" />
+              <p className="text-slate-500 text-sm">Nenhum squad encontrado.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {squads.map(s => {
+                const manager = users.find(u => u.id === s.manager_id);
+                const isSelected = selectedSquadId === s.id;
+                const isEditing = editingSquadId === s.id;
+
+                if (isEditing) {
+                  return (
+                    <form key={s.id} onSubmit={handleUpdate} className="p-4 bg-indigo-50/30 border-l-4 border-indigo-400 space-y-3">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="col-span-2">
+                          <input required value={editForm.name} onChange={e => setEditForm(v => ({ ...v, name: e.target.value }))}
+                            className="w-full px-2 py-1.5 text-sm border border-indigo-200 rounded-lg outline-none" placeholder="Nome" />
+                        </div>
+                        <div className="flex gap-2">
+                          <input type="color" value={editForm.color} onChange={e => setEditForm(v => ({ ...v, color: e.target.value }))}
+                            className="w-8 h-8 p-0.5 border border-indigo-200 rounded cursor-pointer" />
+                          <input value={editForm.color} onChange={e => setEditForm(v => ({ ...v, color: e.target.value }))}
+                            className="flex-1 px-2 py-1 text-xs border border-indigo-200 rounded outline-none" />
+                        </div>
+                        <input value={editForm.logo_url} onChange={e => setEditForm(v => ({ ...v, logo_url: e.target.value }))}
+                          className="px-2 py-1 text-xs border border-indigo-200 rounded outline-none" placeholder="URL Logo" />
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <button type="button" onClick={() => setEditingSquadId(null)} className="px-3 py-1 text-xs text-slate-500 font-bold">Cancelar</button>
+                        <button type="submit" className="px-3 py-1 bg-indigo-600 text-white text-xs font-bold rounded-lg flex items-center gap-1">
+                          <Save size={12} /> Salvar
+                        </button>
+                      </div>
+                    </form>
+                  );
+                }
+
+                return (
+                  <div key={s.id} onClick={() => loadMembers(s.id)}
+                    className={cn('p-4 flex items-center justify-between transition-all cursor-pointer hover:bg-slate-50',
+                      isSelected && 'bg-indigo-50/50 border-l-4 border-indigo-500')}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm border border-slate-100 overflow-hidden shrink-0"
+                        style={{ backgroundColor: `${s.color}15`, borderLeft: `4px solid ${s.color || '#cbd5e1'}` }}>
+                        {s.logo_url ? (
+                          <img src={s.logo_url} alt="logo" className="w-full h-full object-cover" />
+                        ) : (
+                          <Users2 className="w-5 h-5" style={{ color: s.color || '#64748b' }} />
+                        )}
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm font-bold text-slate-800">{s.name}</p>
+                        <p className="text-xs text-slate-500">
+                          Gestor: <span className={cn('font-medium', manager ? 'text-indigo-600' : 'text-rose-500')}>
+                            {manager ? (manager.full_name || manager.name || manager.email) : 'Não atribuído'}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                      <button onClick={() => startEdit(s)}
+                        className="p-1.5 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors">
+                        <Pencil size={16} />
+                      </button>
+                      <button onClick={() => handleToggle(s.id, s.active)}
+                        className={cn('p-1.5 rounded-lg transition-colors',
+                          s.active ? 'text-emerald-500 hover:bg-emerald-50' : 'text-slate-300 hover:bg-slate-100')}>
+                        {s.active ? <ToggleRight size={24} /> : <ToggleLeft size={24} />}
+                      </button>
+                      <button onClick={() => handleDelete(s.id, s.name)}
+                        className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors">
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Membros do Squad Selecionado */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden h-fit">
+          <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+            <h3 className="text-sm font-bold text-slate-700">Membros do Squad</h3>
+            {selectedSquadId && (
+              <select onChange={e => { if (e.target.value) handleAddMember(e.target.value); e.target.value = ''; }}
+                className="text-xs font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none">
+                <option value="">+ Adicionar Membro</option>
+                {users.filter(u => !members.some(m => m.user_id === u.id)).map(u => (
+                  <option key={u.id} value={u.id}>{u.full_name || u.name || u.email}</option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          {!selectedSquadId ? (
+            <div className="flex flex-col items-center justify-center h-60 p-6 text-center text-slate-400">
+              <Users2 className="w-12 h-12 mb-3 opacity-20" />
+              <p className="text-sm">Selecione um squad ao lado para gerenciar seus membros.</p>
+            </div>
+          ) : isMembersLoading ? (
+            <div className="flex items-center justify-center h-60"><Loader2 className="w-7 h-7 text-indigo-500 animate-spin" /></div>
+          ) : members.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-60 p-6 text-center text-slate-400">
+              <p className="text-sm">Nenhum membro neste squad.</p>
+              <p className="text-xs mt-1">Vendedores podem pertencer a apenas um squad.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100 max-h-[400px] overflow-y-auto">
+              {members.map(m => (
+                <div key={m.user_id} className="px-5 py-3 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500 uppercase">
+                      {m.user_name?.substring(0, 2)}
+                    </div>
+                    <span className="text-sm font-medium text-slate-700">{m.user_name}</span>
+                  </div>
+                  <button onClick={() => handleRemoveMember(m.user_id)}
+                    className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors">
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -867,28 +1180,28 @@ function CommissionRulesSection() {
                             {isEd ? <input type="number" step="0.01" value={editing.target_revenue}
                               onChange={e => setEditing(ed => ed && ({ ...ed, target_revenue: parseFloat(e.target.value) || 0 }))}
                               className="w-28 px-2 py-1.5 bg-slate-50 border border-indigo-300 rounded-lg text-xs outline-none text-right" />
-                            : fmt(r.target_revenue)}
+                              : fmt(r.target_revenue)}
                           </td>
                           {/* Fixo */}
                           <td className="px-4 py-3 text-right text-slate-600">
                             {isEd ? <input type="number" step="0.01" value={editing.fixed_amount}
                               onChange={e => setEditing(ed => ed && ({ ...ed, fixed_amount: parseFloat(e.target.value) || 0 }))}
                               className="w-28 px-2 py-1.5 bg-slate-50 border border-indigo-300 rounded-lg text-xs outline-none text-right" />
-                            : fmt(r.fixed_amount)}
+                              : fmt(r.fixed_amount)}
                           </td>
                           {/* Variável */}
                           <td className="px-4 py-3 text-right text-slate-600">
                             {isEd ? <input type="number" step="0.01" value={editing.variable_amount}
                               onChange={e => setEditing(ed => ed && ({ ...ed, variable_amount: parseFloat(e.target.value) || 0 }))}
                               className="w-28 px-2 py-1.5 bg-slate-50 border border-indigo-300 rounded-lg text-xs outline-none text-right" />
-                            : fmt(r.variable_amount)}
+                              : fmt(r.variable_amount)}
                           </td>
                           {/* Acelerador */}
                           <td className="px-4 py-3 text-right text-slate-600">
                             {isEd ? <input type="number" step="0.01" value={editing.accelerator_amount}
                               onChange={e => setEditing(ed => ed && ({ ...ed, accelerator_amount: parseFloat(e.target.value) || 0 }))}
                               className="w-28 px-2 py-1.5 bg-slate-50 border border-indigo-300 rounded-lg text-xs outline-none text-right" />
-                            : <span className="text-emerald-600 font-medium">{fmt(r.accelerator_amount)}</span>}
+                              : <span className="text-emerald-600 font-medium">{fmt(r.accelerator_amount)}</span>}
                           </td>
                           {/* OTE Total */}
                           <td className="px-4 py-3 text-right font-bold text-slate-800">

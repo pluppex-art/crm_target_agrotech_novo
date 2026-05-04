@@ -1,5 +1,6 @@
 import { getSupabaseClient } from '../lib/supabase';
 import { UserCompensationProfile, RoleType } from '../types/finance_v2';
+import { profileService } from './profileService';
 
 export const VALID_LEVELS = [
   'Aprendiz',
@@ -38,7 +39,7 @@ export const compensationProfileService = {
    * Inclui inativos para histórico.
    * Join com perfis feito manualmente em JS (FK aponta para auth.users, não perfis).
    */
-  async getAll(): Promise<(UserCompensationProfile & { user_name?: string })[]> {
+  async getAll(): Promise<(UserCompensationProfile & { user_name?: string; squad_name?: string })[]> {
     const supabase = getSupabaseClient();
     if (!supabase) return [];
 
@@ -55,27 +56,42 @@ export const compensationProfileService = {
     }
     if (!profiles || profiles.length === 0) return [];
 
-    // 2. Buscar nomes dos usuários na tabela perfis (IDs são os mesmos de auth.users)
     const userIds = [...new Set(profiles.map((p: any) => p.user_id))];
-    const { data: perfisData, error: perfisError } = await supabase
-      .from('perfis')
-      .select('*')
-      .in('id', userIds);
 
-    if (perfisError) {
-      console.warn('[compensationProfileService] Could not fetch user names:', perfisError);
-    }
+    // 2. Buscar nomes e squads em paralelo
+    // Usamos profileService.getProfiles() para garantir que pegamos todos os usuários corretamente
+    const [allProfiles, membersRes, squadsRes] = await Promise.all([
+      profileService.getProfiles(),
+      supabase.from('squad_members').select('user_id, squad_id, squads(name, color)').in('user_id', userIds).eq('active', true),
+      supabase.from('squads').select('id, name, manager_id, color').in('manager_id', userIds).eq('active', true)
+    ]);
 
     const perfisMap: Record<string, string> = {};
-    (perfisData || []).forEach((p: any) => {
-      // Tenta todos os campos de nome possíveis na tabela perfis
-      const name = p.full_name || p.name || p.nome || p.display_name || p.email || p.id?.substring(0, 8);
-      perfisMap[p.id] = name;
+    allProfiles.forEach((p: any) => {
+      perfisMap[p.id] = p.full_name || p.name || p.email || p.id.substring(0, 8);
     });
 
-    return (profiles as UserCompensationProfile[]).map(p => ({
+    const userSquadMap: Record<string, { name: string; color?: string }> = {};
+    
+    // Mapeia squads de membros (Closers/SDRs)
+    (membersRes.data || []).forEach((m: any) => {
+      if (m.squads?.name) {
+        userSquadMap[m.user_id] = { name: m.squads.name, color: m.squads.color };
+      }
+    });
+
+    // Mapeia squads de gestores
+    (squadsRes.data || []).forEach((s: any) => {
+      if (s.manager_id) {
+        userSquadMap[s.manager_id] = { name: s.name, color: s.color };
+      }
+    });
+
+    return (profiles as (UserCompensationProfile & { squad_color?: string })[]).map(p => ({
       ...p,
       user_name: perfisMap[p.user_id] || p.user_id.substring(0, 8),
+      squad_name: userSquadMap[p.user_id]?.name,
+      squad_color: userSquadMap[p.user_id]?.color
     }));
   },
 
@@ -147,19 +163,161 @@ export const compensationProfileService = {
     return true;
   },
 
-  async getSquads(): Promise<{ id: string; name: string; manager_id: string | null }[]> {
+  async getSquads(): Promise<{ id: string; name: string; manager_id: string | null; active: boolean; color?: string; logo_url?: string }[]> {
     const supabase = getSupabaseClient();
     if (!supabase) return [];
+    
+    // Tenta buscar com os novos campos
     const { data, error } = await supabase
       .from('squads')
-      .select('id, name, manager_id')
-      .eq('active', true)
+      .select('id, name, manager_id, active, color, logo_url')
+      .order('active', { ascending: false })
       .order('name');
+
     if (error) {
-      console.error('[compensationProfileService] Error fetching squads:', error);
-      return [];
+      // Se der erro de coluna inexistente, tenta buscar apenas o básico
+      console.warn('[compensationProfileService] Could not fetch extended squad fields, falling back to basic:', error.message);
+      const { data: basicData, error: basicError } = await supabase
+        .from('squads')
+        .select('id, name, manager_id, active')
+        .order('active', { ascending: false })
+        .order('name');
+      
+      if (basicError) {
+        console.error('[compensationProfileService] Error fetching squads:', basicError);
+        return [];
+      }
+      return basicData || [];
     }
     return data || [];
+  },
+
+  async createSquad(name: string, color?: string, logo_url?: string): Promise<{ success: boolean; error?: string }> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return { success: false, error: 'Supabase client not initialized' };
+    
+    // Captura o usuário logado para auditoria
+    const { data: { user } } = await supabase.auth.getUser();
+
+    const { error } = await supabase
+      .from('squads')
+      .insert([{ 
+        name, 
+        active: true,
+        color,
+        logo_url,
+        created_by: user?.id,
+        updated_by: user?.id
+      }]);
+      
+    if (error) {
+      console.error('[compensationProfileService] Error creating squad:', error);
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  },
+
+  async updateSquad(id: string, fields: { name?: string; active?: boolean; manager_id?: string | null; color?: string; logo_url?: string }): Promise<boolean> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return false;
+
+    const { data: { user } } = await supabase.auth.getUser();
+
+    const { error } = await supabase
+      .from('squads')
+      .update({ 
+        ...fields, 
+        updated_at: new Date().toISOString(),
+        updated_by: user?.id
+      })
+      .eq('id', id);
+    if (error) {
+      console.error('[compensationProfileService] Error updating squad:', error);
+      return false;
+    }
+    return true;
+  },
+
+  async deleteSquad(id: string): Promise<boolean> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return false;
+    // Delete members first to avoid FK issues if cascade is not set
+    await supabase.from('squad_members').delete().eq('squad_id', id);
+    const { error } = await supabase.from('squads').delete().eq('id', id);
+    if (error) {
+      console.error('[compensationProfileService] Error deleting squad:', error);
+      return false;
+    }
+    return true;
+  },
+
+  async getSquadMembers(squadId: string): Promise<{ user_id: string; user_name?: string }[]> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return [];
+    const { data: members, error } = await supabase
+      .from('squad_members')
+      .select('user_id')
+      .eq('squad_id', squadId)
+      .eq('active', true);
+    
+    if (error || !members) return [];
+
+    const userIds = members.map(m => m.user_id);
+    if (userIds.length === 0) return [];
+
+    const allProfiles = await profileService.getProfiles();
+
+    const perfisMap: Record<string, string> = {};
+    allProfiles.forEach((p: any) => {
+      perfisMap[p.id] = p.full_name || p.name || p.email || p.id.substring(0, 8);
+    });
+
+    return members.map(m => ({
+      user_id: m.user_id,
+      user_name: perfisMap[m.user_id] || m.user_id.substring(0, 8)
+    }));
+  },
+
+  async addMemberToSquad(squadId: string, userId: string): Promise<boolean> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return false;
+    
+    // First remove from any other squad to ensure unique membership (as per typical squad logic)
+    await supabase.from('squad_members').delete().eq('user_id', userId);
+
+    const { data: { user } } = await supabase.auth.getUser();
+
+    const { error } = await supabase
+      .from('squad_members')
+      .insert([{ 
+        squad_id: squadId, 
+        user_id: userId, 
+        active: true,
+        created_by: user?.id,
+        updated_by: user?.id
+      }]);
+    
+    if (error) {
+      console.error('[compensationProfileService] Error adding member to squad:', error);
+      return false;
+    }
+    return true;
+  },
+
+  async removeMemberFromSquad(squadId: string, userId: string): Promise<boolean> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return false;
+    const { error } = await supabase
+      .from('squad_members')
+      .delete()
+      .eq('squad_id', squadId)
+      .eq('user_id', userId);
+    
+    if (error) {
+      console.error('[compensationProfileService] Error removing member from squad:', error);
+      return false;
+    }
+    return true;
   },
 
   async assignManagerToSquad(managerId: string, squadId: string | null): Promise<boolean> {

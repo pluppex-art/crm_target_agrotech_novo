@@ -36,11 +36,7 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
   const enrollmentFee = product?.enrollment_fee ?? 0;
   const totalDisplayValue = getLeadEffectiveValue(lead) + enrollmentFee;
 
-  const { autoTransferHours, fetchSettings } = useSettingsStore();
-
-  React.useEffect(() => {
-    fetchSettings();
-  }, [fetchSettings]);
+  const { autoTransferHours } = useSettingsStore();
 
   const [now, setNow] = React.useState(() => Date.now());
   React.useEffect(() => {
@@ -91,17 +87,6 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
         isDanger ? "border-red-200 hover:border-red-300" : isWarning ? "border-amber-200 hover:border-amber-300" : "hover:border-emerald-200"
       )}
     >
-      {/* Inactivity badge (Countdown) */}
-      {!timerDisabled && (isWarning || isDanger) && (
-        <div className={cn(
-          "absolute top-2 right-2 flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full",
-          isDanger ? "bg-red-100 text-red-600" : "bg-amber-100 text-amber-600"
-        )}>
-          <Clock size={9} />
-          {remainingLabel}
-        </div>
-      )}
-
       {/* Card Header */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2.5">
@@ -161,20 +146,33 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
           <span className="text-sm font-bold text-slate-800">
             R$ {totalDisplayValue.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
           </span>
-          <button
-            onClick={(e) => { e.stopPropagation(); setSelectedLead(lead); }}
-            title="Checklist"
-            className={cn(
-              "flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all",
-              allRequiredCompleted
-                ? "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100"
-                : "bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100"
+          
+          <div className="flex items-center gap-2">
+            {/* Inactivity badge (Countdown) */}
+            {!timerDisabled && (isWarning || isDanger) && (
+              <div className={cn(
+                "flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full",
+                isDanger ? "bg-red-100 text-red-600" : "bg-amber-100 text-amber-600"
+              )}>
+                <Clock size={9} />
+                {remainingLabel}
+              </div>
             )}
-          >
-            <CheckSquare size={11} />
-            {requiredCompleted}/{requiredTotal}
-          </button>
 
+            <button
+              onClick={(e) => { e.stopPropagation(); setSelectedLead(lead); }}
+              title="Checklist"
+              className={cn(
+                "flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all",
+                allRequiredCompleted
+                  ? "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100"
+                  : "bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100"
+              )}
+            >
+              <CheckSquare size={11} />
+              {requiredCompleted}/{requiredTotal}
+            </button>
+          </div>
         </div>
       </div>
 

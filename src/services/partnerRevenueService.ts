@@ -31,8 +31,8 @@ export const partnerRevenueService = {
     const targetFeePercent = targetRule ? Number(targetRule.technology_fee_percent) / 100 : 0;
 
     const transactions = await transactionService.getAll({
-      startDate,
-      endDate,
+      paymentDateStart: startDate,
+      paymentDateEnd: endDate,
       type: 'INCOME',
       status: 'PAID'
     });

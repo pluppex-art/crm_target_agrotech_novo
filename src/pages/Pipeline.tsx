@@ -27,6 +27,7 @@ import { LeadCard } from '../components/pipeline/LeadCard';
 import { checklistService } from '../services/checklistService';
 import { financialCalculator } from '../services/financialCalculator';
 import { notifyStageChange } from '../services/leadNotificationService';
+import { useSettingsStore } from '@/store/useSettingsStore';
 
 
 
@@ -61,6 +62,7 @@ export const Pipeline: React.FC = () => {
   const { tasks, fetchTasks, subscribe: subscribeTasks } = useTaskStore();
   const authUser = useAuthStore(state => state.user);
   const { profiles, fetchProfiles } = useProfileStore();
+  const { fetchSettings, subscribe: subscribeSettings } = useSettingsStore();
   const permissions = usePermissions();
 
   const isComercial = useMemo(() => {
@@ -101,7 +103,7 @@ export const Pipeline: React.FC = () => {
   // Auto-minimize Perdido / Aquecimento / Desqualificado on pipeline load
   useEffect(() => {
     if (!currentPipeline?.stages) return;
-    const AUTO_MINIMIZE = ['perdido', 'aquecimento', 'desqualificado'];
+    const AUTO_MINIMIZE = ['perdido', 'aquecimento', 'desqualificado', 'conclu'];
     const toMinimize = currentPipeline.stages
       .filter(s => {
         const n = s.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -138,7 +140,8 @@ export const Pipeline: React.FC = () => {
     fetchProducts();
     fetchProfiles();
     fetchTasks();
-  }, [fetchPipelines, fetchTurmas, fetchProducts, fetchProfiles, fetchTasks]);
+    fetchSettings();
+  }, [fetchPipelines, fetchTurmas, fetchProducts, fetchProfiles, fetchTasks, fetchSettings]);
 
 
 
@@ -154,14 +157,16 @@ export const Pipeline: React.FC = () => {
     const unsubTurmas = subscribeTurmas();
     const unsubProducts = subscribeProducts();
     const unsubTasks = subscribeTasks();
+    const unsubSettings = subscribeSettings();
     return () => {
       unsubLeads();
       unsubPipelines();
       unsubTurmas();
       unsubProducts();
       unsubTasks();
+      unsubSettings();
     };
-  }, [subscribeToLeads, subscribePipelines, subscribeTurmas, subscribeProducts, subscribeTasks]);
+  }, [subscribeToLeads, subscribePipelines, subscribeTurmas, subscribeProducts, subscribeTasks, subscribeSettings]);
 
 
 
@@ -405,7 +410,7 @@ export const Pipeline: React.FC = () => {
           const targetStage = currentPipeline?.stages.find(s => s.id === lead.stage_id);
           const stageName = (targetStage?.name || '').toLowerCase();
           const isGanho = stageName.includes('ganho') || stageName.includes('fechado') || stageName.includes('aprovado');
-          
+
           if (isGanho) {
             const productObj = products.find(p => p.name === lead.product);
             const categoryName = (productObj?.category || '').toLowerCase();

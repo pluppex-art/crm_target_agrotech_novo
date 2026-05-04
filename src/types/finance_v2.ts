@@ -96,6 +96,10 @@ export interface UserCompensationProfile {
   end_date: string | null;
   created_at: string;
   updated_at: string;
+  // UI Fields (joined)
+  user_name?: string;
+  squad_name?: string;
+  squad_color?: string;
 }
 
 export interface FinanceKPIs {
@@ -129,6 +133,25 @@ export interface FinancialFeeRule {
   application_context: 'GROSS_REVENUE' | 'NET_REVENUE' | 'SPECIFIC_SALE' | 'CLASS' | 'PARTNER';
   valid_from: string;
   valid_until: string | null;
+  active: boolean;
+  created_at: string;
+}
+
+export interface Squad {
+  id: string;
+  name: string;
+  manager_id: string | null;
+  active: boolean;
+  color?: string;
+  logo_url?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface SquadMember {
+  id: string;
+  squad_id: string;
+  user_id: string;
   active: boolean;
   created_at: string;
 }
