@@ -182,13 +182,25 @@ function OteProfilesSection() {
             </div>
             <div className="space-y-1">
               <label className="text-xs font-bold text-slate-500 uppercase">Função no OTE</label>
-              <select value={form.role_type} onChange={e => setForm(p => ({ ...p, role_type: e.target.value as RoleType }))}
+              <select value={form.role_type} onChange={e => setForm(p => ({ ...p, role_type: e.target.value as RoleType, squad_id: '' }))}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none">
                 <option value="CLOSER">CLOSER (Vendedor)</option>
                 <option value="SDR">SDR</option>
                 <option value="MANAGER">MANAGER (Gestor)</option>
               </select>
             </div>
+            {form.role_type === 'MANAGER' && (
+              <div className="sm:col-span-2 space-y-1">
+                <label className="text-xs font-bold text-slate-500 uppercase">Squad Gerenciado</label>
+                <select value={form.squad_id} onChange={e => setForm(p => ({ ...p, squad_id: e.target.value }))}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none">
+                  <option value="">Selecione o squad...</option>
+                  {squads.length === 0
+                    ? <option disabled>Nenhum squad cadastrado no banco</option>
+                    : squads.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </div>
+            )}
             <div className="space-y-1">
               <label className="text-xs font-bold text-slate-500 uppercase">Nível</label>
               <select value={form.level} onChange={e => setForm(p => ({ ...p, level: e.target.value }))}
@@ -231,6 +243,7 @@ function OteProfilesSection() {
               <tr>
                 <th className="px-5 py-4">Colaborador</th>
                 <th className="px-5 py-4">Função</th>
+                <th className="px-5 py-4">Squad</th>
                 <th className="px-5 py-4">Nível</th>
                 <th className="px-5 py-4">Vigência</th>
                 <th className="px-5 py-4 text-center">Status</th>
@@ -240,6 +253,7 @@ function OteProfilesSection() {
             <tbody className="divide-y divide-slate-100">
               {profiles.map(p => {
                 const isEditing = editing?.id === p.id;
+                const managerSquad = squads.find(s => s.manager_id === p.user_id);
                 return (
                   <tr key={p.id} className={cn('transition-colors', !p.active ? 'bg-slate-50/60 opacity-60' : 'hover:bg-slate-50/40')}>
                     {/* Colaborador */}
@@ -248,7 +262,7 @@ function OteProfilesSection() {
                     {/* Função */}
                     <td className="px-5 py-3">
                       {isEditing ? (
-                        <select value={editing.role_type} onChange={e => setEditing(ed => ed && ({ ...ed, role_type: e.target.value as RoleType }))}
+                        <select value={editing.role_type} onChange={e => setEditing(ed => ed && ({ ...ed, role_type: e.target.value as RoleType, squad_id: null }))}
                           className="px-2 py-1.5 bg-slate-50 border border-indigo-300 rounded-lg text-xs outline-none w-36">
                           <option value="CLOSER">CLOSER</option>
                           <option value="SDR">SDR</option>
@@ -261,6 +275,23 @@ function OteProfilesSection() {
                           'bg-blue-100 text-blue-700')}>
                           {p.role_type}
                         </span>
+                      )}
+                    </td>
+
+                    {/* Squad */}
+                    <td className="px-5 py-3">
+                      {isEditing && editing.role_type === 'MANAGER' ? (
+                        <select value={editing.squad_id || ''} onChange={e => setEditing(ed => ed && ({ ...ed, squad_id: e.target.value || null }))}
+                          className="px-2 py-1.5 bg-slate-50 border border-indigo-300 rounded-lg text-xs outline-none w-36">
+                          <option value="">Sem squad</option>
+                          {squads.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                        </select>
+                      ) : p.role_type === 'MANAGER' ? (
+                        managerSquad
+                          ? <span className="inline-flex px-2.5 py-1 bg-violet-50 text-violet-700 rounded-full text-xs font-bold">{managerSquad.name}</span>
+                          : <span className="text-xs text-rose-500 font-medium">Sem squad</span>
+                      ) : (
+                        <span className="text-xs text-slate-300">—</span>
                       )}
                     </td>
 
@@ -310,7 +341,7 @@ function OteProfilesSection() {
                       <div className="flex items-center justify-center gap-1">
                         {isEditing ? (
                           <>
-                            <button onClick={() => handleSaveEdit(p.id)} disabled={isSaving} title="Confirmar edição"
+                            <button onClick={() => handleSaveEdit(p.id, p.user_id)} disabled={isSaving} title="Confirmar edição"
                               className="p-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors">
                               {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                             </button>
@@ -322,7 +353,7 @@ function OteProfilesSection() {
                         ) : (
                           <>
                             {/* Editar */}
-                            <button onClick={() => setEditing({ id: p.id, role_type: p.role_type, level: p.level!, start_date: p.start_date, end_date: p.end_date })}
+                            <button onClick={() => setEditing({ id: p.id, role_type: p.role_type, level: p.level!, start_date: p.start_date, end_date: p.end_date, squad_id: managerSquad?.id ?? null })}
                               title="Editar" className="p-1.5 rounded-lg text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
                               <Pencil size={15} />
                             </button>
