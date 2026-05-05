@@ -71,10 +71,10 @@ export function TurmasRightPanel({
           <h2 className="text-lg font-bold text-slate-800 leading-tight truncate">{liveSelectedTurma.name}</h2>
           <p className="text-xs text-slate-500 mt-0.5 truncate">{liveSelectedTurma.professor_name || 'Sem professor'}</p>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-[10px] sm:text-xs text-slate-500">
-            <span className="flex items-center gap-1"><Calendar size={11} className="text-emerald-500" />{liveSelectedTurma.date ? new Date(liveSelectedTurma.date + 'T00:00:00').toLocaleDateString('pt-BR') : '--'}</span>
+            <span className="flex items-center gap-1"><Calendar size={11} className="text-emerald-500" />{liveSelectedTurma.date ? new Date(liveSelectedTurma.date.replace(/-/g, '\/')).toLocaleDateString('pt-BR') : '--'}</span>
             <span className="flex items-center gap-1"><Clock size={11} className="text-emerald-500" />{liveSelectedTurma.time || '--:--'}</span>
-            <div className="hidden sm:flex items-center gap-1"><MapPin size={11} className="text-emerald-500" />{liveSelectedTurma.location || '--'}</div>
-            <span className="flex items-center gap-1"><Users size={11} className="text-emerald-500" />Meta: {liveSelectedTurma.meta ?? '--'} alunos</span>
+            <span className="flex items-center gap-1"><MapPin size={11} className="text-emerald-500" />{liveSelectedTurma.location || '--'}</span>
+            <span className="flex items-center gap-1"><Users size={11} className="text-emerald-500" />Meta: {liveSelectedTurma.meta || '--'} alunos</span>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">

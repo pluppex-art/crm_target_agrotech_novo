@@ -21,7 +21,7 @@ export const TaskReminderWatcher: React.FC = () => {
     const checkReminders = () => {
       const now = new Date();
       const currentMinutes = now.getHours() * 60 + now.getMinutes();
-      const todayStr = now.toISOString().split('T')[0];
+      const todayStr = now.toLocaleDateString('en-CA'); // en-CA format is YYYY-MM-DD local
 
       tasks.forEach(task => {
         // Only pending tasks for the current user

@@ -60,7 +60,9 @@ export function TurmaCard({ turma, isSelected, onSelect, onEdit, onDelete }: Tur
       <div className="space-y-1.5 text-xs text-slate-500">
         <div className="flex items-center gap-2">
           <Calendar size={12} className="text-emerald-500 shrink-0" />
-          {turma.date ? new Date(turma.date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' }) : 'Data não definida'}
+          {turma.date 
+            ? new Date(turma.date.replace(/-/g, '\/')).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) 
+            : 'Data não definida'}
           <Clock size={12} className="text-emerald-500 ml-1 shrink-0" />
           {turma.time || '--:--'}
         </div>

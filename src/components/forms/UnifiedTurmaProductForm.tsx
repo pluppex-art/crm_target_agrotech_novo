@@ -129,7 +129,7 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
       const isTurmaContext = (mode === 'turma' || mode === 'unified' || isTurmaCategory) && !isService;
 
       if (isTurmaContext && productId) {
-        const turmaPayload = {
+        const turmaPayload: any = {
           name: formData.name,
           product_id: productId,
           professor_name: formData.professor_name || null,
@@ -137,7 +137,7 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
           date: formData.date || null,
           time: formData.time || null,
           location: formData.location || null,
-          meta: studentGoal ?? undefined,
+          // meta: studentGoal ?? undefined, // Removed because it's not in the 'turmas' table
         };
 
         if (isTurmaEditing) {
@@ -151,8 +151,9 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
       }
 
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving:', error);
+      alert('Erro ao salvar: ' + (error.message || 'Verifique o console para mais detalhes.'));
     } finally {
       setLoading(false);
     }
