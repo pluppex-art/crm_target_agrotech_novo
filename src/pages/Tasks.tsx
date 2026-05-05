@@ -13,6 +13,7 @@ import { useProfileStore } from '../store/useProfileStore';
 import { useAuthStore } from '../store/useAuthStore';
 
 export function Tasks() {
+  const { hasPermission } = usePermissions();
   const { user } = useAuthStore();
   const { profiles } = useProfileStore();
   const { tasks, loading, fetchTasks, updateTaskStatus, deleteTask, subscribe } = useTaskStore();
@@ -23,9 +24,9 @@ export function Tasks() {
   const [statusFilter, setStatusFilter] = useState('all');
 
   const currentUserProfile = profiles.find(p => p.id === user?.id);
-  const isAdmin = usePermissions('admin.all') ||
-    currentUserProfile?.cargos?.name?.toLowerCase().includes('admin') ||
-    currentUserProfile?.cargos?.name?.toLowerCase().includes('coordenador');
+  const isAdmin = hasPermission('admin.all') || 
+                  currentUserProfile?.cargos?.name?.toLowerCase().includes('admin') ||
+                  currentUserProfile?.cargos?.name?.toLowerCase().includes('coordenador');
 
   useEffect(() => {
     fetchTasks();
