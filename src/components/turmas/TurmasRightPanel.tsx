@@ -215,7 +215,7 @@ export function TurmasRightPanel({
                       {isPago && <p className="text-[10px] text-emerald-500">Rec. R$ {att.valor_recebido!.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}</p>}
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      {att.lead_id && att.status !== 'confirmado' && (
+                      {att.lead_id && (
                         <button
                           onClick={() => handleCheckIn(att, liveSelectedTurma.id)}
                           className="flex items-center gap-1 px-2 py-1 text-[10px] font-bold bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors"
@@ -224,7 +224,7 @@ export function TurmasRightPanel({
                           <LogIn size={11} /> CheckIn
                         </button>
                       )}
-                      {att.lead_id && att.status !== 'cancelado' && (
+                      {att.lead_id && (
                         <button
                           onClick={() => handleNoShow(att, liveSelectedTurma.id)}
                           className="flex items-center gap-1 px-2 py-1 text-[10px] font-bold bg-red-50 border border-red-200 text-red-600 rounded-lg hover:bg-red-100 transition-colors"

@@ -160,7 +160,7 @@ function AttendeeCardUI({
 
       {(onCheckIn || onNoShow) && (
         <div className="flex items-center gap-1.5 pt-2 border-t border-slate-50" onClick={(e) => e.stopPropagation()}>
-          {onCheckIn && attendee.status !== 'confirmado' && (
+          {onCheckIn && (
             <button
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => { e.stopPropagation(); onCheckIn(); }}
@@ -169,7 +169,7 @@ function AttendeeCardUI({
               <LogIn size={11} /> CheckIn
             </button>
           )}
-          {onNoShow && attendee.status !== 'cancelado' && (
+          {onNoShow && (
             <button
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => { e.stopPropagation(); onNoShow(); }}

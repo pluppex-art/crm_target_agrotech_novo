@@ -252,6 +252,63 @@ export const turmaService = {
       console.error('Error updating turma:', error);
       return false;
     }
+
+    // Automation: When a class is completed, handle lead transitions
+    if (turmaData.status === 'concluida') {
+      try {
+        const { data: currentTurma } = await supabase
+          .from('turmas')
+          .select('date')
+          .eq('id', id)
+          .single();
+
+        if (currentTurma?.date) {
+          const now = new Date();
+          const turmaDate = new Date(currentTurma.date + 'T12:00:00');
+          
+          // Check if we are in the same month as the class
+          const isSameMonth = now.getMonth() === turmaDate.getMonth() && now.getFullYear() === turmaDate.getFullYear();
+
+          const { data: attendees } = await supabase
+            .from('turma_attendees')
+            .select('lead_id')
+            .eq('turma_id', id)
+            .not('lead_id', 'is', null);
+
+          if (attendees && attendees.length > 0) {
+            const leadIds = (attendees as any[]).map(a => a.lead_id).filter(Boolean);
+            
+            if (leadIds.length > 0) {
+              const updates: any = { substatus: 'Turma Concluída' }; // Use 'substatus' for DB
+              
+              // If it's NOT the same month, we move the stage
+              if (!isSameMonth) {
+                const { data: stage } = await supabase
+                  .from('pipeline_stages')
+                  .select('id')
+                  .eq('name', 'Turma Concluido')
+                  .limit(1)
+                  .maybeSingle();
+                
+                if (stage?.id) {
+                  updates.stage_id = stage.id;
+                }
+              }
+              
+              await supabase
+                .from('leads')
+                .update(updates)
+                .in('id', leadIds);
+              
+              console.log(`[turmaService] Automation run for ${leadIds.length} leads. isSameMonth: ${isSameMonth}`);
+            }
+          }
+        }
+      } catch (autoErr) {
+        console.error('Error in Turma Concluída automation:', autoErr);
+      }
+    }
+
     return true;
   },
 

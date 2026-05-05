@@ -140,6 +140,13 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
               <span className="font-medium">{lead.responsible}</span>
             </div>
           )}
+          {/* Turma Concluída Tag */}
+          {lead.subStatus === 'Turma Concluída' && (
+            <div className="mt-1.5 flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-lg w-fit border border-emerald-100 animate-in fade-in slide-in-from-top-1 duration-300">
+              <CheckSquare size={10} className="text-emerald-500" />
+              <span className="text-[10px] font-bold uppercase tracking-tight">Turma Concluída</span>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center justify-between pt-1.5">
