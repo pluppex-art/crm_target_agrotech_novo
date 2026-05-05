@@ -7,6 +7,7 @@ import {
 import { useTaskStore } from '../../store/useTaskStore';
 import { useActivityCategoryStore } from '../../store/useActivityCategoryStore';
 import { useProfileStore } from '../../store/useProfileStore';
+import { useAuthStore } from '../../store/useAuthStore';
 import { cn } from '../../lib/utils';
 import { Task } from '../../services/taskService';
 import { resetLeadAlerts } from '../../services/alertService';
@@ -49,6 +50,9 @@ export const NewActivityModal: React.FC<NewActivityModalProps> = ({
     responsible: '',
   });
 
+  const { user } = useAuthStore();
+  const currentUserProfile = profiles.find(p => p.id === user?.id);
+
   useEffect(() => {
     if (isOpen) {
       fetchCategories();
@@ -71,11 +75,11 @@ export const NewActivityModal: React.FC<NewActivityModalProps> = ({
           scheduled_time: '',
           priority: 'medium',
           category: '',
-          responsible: '',
+          responsible: currentUserProfile?.name || '',
         });
       }
     }
-  }, [isOpen, initialTask, fetchCategories, fetchProfiles]);
+  }, [isOpen, initialTask, fetchCategories, fetchProfiles, currentUserProfile?.name]);
 
   useEffect(() => {
     if (categories.length > 0 && !formData.category) {

@@ -45,11 +45,16 @@ export function PageFilters({
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center justify-between px-4 py-3 border-b border-gray-100 min-h-[3rem] hover:bg-gray-50 transition-colors rounded-t-2xl"
       >
-        <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 shrink-0">
-          <Filter size={16} className={activeFilterCount > 0 ? "text-emerald-600" : "text-gray-400"} />
+        <div className="flex items-center gap-3 text-sm font-bold text-gray-700 shrink-0">
+          <div className={cn(
+            "p-2 rounded-lg transition-all",
+            activeFilterCount > 0 ? "bg-emerald-100 text-emerald-600" : "bg-gray-100 text-gray-400"
+          )}>
+            <Filter size={18} />
+          </div>
           <span className="hidden sm:inline">Filtros</span>
           {activeFilterCount > 0 && (
-            <span className="flex items-center justify-center min-w-[20px] h-5 px-1 text-[10px] font-black bg-emerald-600 text-white rounded-full">
+            <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-black bg-emerald-600 text-white rounded-full shadow-sm">
               {activeFilterCount}
             </span>
           )}

@@ -59,7 +59,13 @@ export function TaskItem({ task, onToggleStatus, onDelete }: TaskItemProps) {
             {task.lead_name && (
               <span className="flex items-center gap-1 text-[10px] text-slate-400 font-bold">
                 <User className="w-3 h-3" />
-                {task.lead_name}
+                Lead: {task.lead_name}
+              </span>
+            )}
+            {task.responsible && (
+              <span className="flex items-center gap-1 text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-lg font-bold">
+                <User className="w-3 h-3" />
+                {task.responsible}
               </span>
             )}
             <span className={cn(

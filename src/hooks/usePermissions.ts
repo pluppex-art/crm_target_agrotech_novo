@@ -4,7 +4,7 @@ import { useCargoStore } from '../store/useCargoStore';
 import { useProfileStore } from '../store/useProfileStore';
 import { profileService } from '../services/profileService';
 
-export const usePermissions = () => {
+export const usePermissions = (p0?: string) => {
   const { user } = useAuthStore();
   // cargos is reactive — updates immediately when admin changes permissions
   const { cargos } = useCargoStore();
