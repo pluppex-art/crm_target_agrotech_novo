@@ -5,9 +5,10 @@ interface TaskItemProps {
   task: any;
   onToggleStatus: (id: string, status: string) => void;
   onDelete?: (id: string) => void;
+  onEdit?: (task: any) => void;
 }
 
-export function TaskItem({ task, onToggleStatus, onDelete }: TaskItemProps) {
+export function TaskItem({ task, onToggleStatus, onDelete, onEdit }: TaskItemProps) {
   const handleToggle = () => {
     const newStatus = task.status === 'pending' ? 'completed' : 'pending';
     onToggleStatus(task.id, newStatus);
@@ -88,9 +89,15 @@ export function TaskItem({ task, onToggleStatus, onDelete }: TaskItemProps) {
             <Trash2 className="w-4 h-4" />
           </button>
         )}
-        <button className="p-2 text-slate-300 hover:text-slate-600">
-          <Settings className="w-4 h-4" />
-        </button>
+        {onEdit && (
+          <button 
+            onClick={() => onEdit(task)}
+            className="p-2 text-slate-300 hover:text-emerald-600 transition-colors"
+            title="Editar Tarefa"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
+        )}
       </div>
     </div>
   );

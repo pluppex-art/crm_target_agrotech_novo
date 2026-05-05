@@ -19,6 +19,7 @@ export function Tasks() {
   const { profiles } = useProfileStore();
   const { tasks, loading, fetchTasks, updateTaskStatus, deleteTask, subscribe } = useTaskStore();
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<any>(null);
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -44,6 +45,16 @@ export function Tasks() {
   const handleToggleStatus = (taskId: string, currentStatus: string) => {
     const newStatus = currentStatus === 'pending' ? 'completed' : 'pending';
     updateTaskStatus(taskId, newStatus);
+  };
+
+  const handleEdit = (task: any) => {
+    setEditingTask(task);
+    setIsActivityModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsActivityModalOpen(false);
+    setEditingTask(null);
   };
 
   if (!hasPermission('tasks.view')) {
@@ -239,6 +250,7 @@ export function Tasks() {
                   task={task}
                   onToggleStatus={handleToggleStatus}
                   onDelete={hasPermission('tasks.delete') ? deleteTask : undefined}
+                  onEdit={hasPermission('tasks.edit') ? handleEdit : undefined}
                 />
               ))}
               {filteredTasks.length === 0 && (
@@ -255,7 +267,8 @@ export function Tasks() {
 
       <NewActivityModal
         isOpen={isActivityModalOpen}
-        onClose={() => setIsActivityModalOpen(false)}
+        onClose={handleCloseModal}
+        initialTask={editingTask}
         onCreated={() => fetchTasks()}
       />
     </div>
