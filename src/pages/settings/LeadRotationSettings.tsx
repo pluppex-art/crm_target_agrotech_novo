@@ -15,8 +15,10 @@ export function LeadRotationSettings() {
 
   const commercialProfiles = profiles.filter(p => {
     const isComercial = p.department?.toLowerCase() === 'comercial';
-    const isVendedor = p.cargos?.name?.toLowerCase().includes('vendedor') || p.cargos?.name?.toLowerCase().includes('consultor');
-    return isComercial || isVendedor;
+    const cargoLower = (p.cargos?.name || '').toLowerCase();
+    const isCloser = cargoLower.includes('closer');
+    const isVendedor = cargoLower.includes('vendedor') || cargoLower.includes('consultor');
+    return isComercial || isVendedor || isCloser;
   });
 
   const filteredProfiles = commercialProfiles.filter(p => 
@@ -60,7 +62,7 @@ export function LeadRotationSettings() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
             <input
               type="text"
-              placeholder="Pesquisar vendedor..."
+              placeholder="Pesquisar closer..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none"
@@ -130,7 +132,7 @@ export function LeadRotationSettings() {
           ) : (
             <div className="p-12 text-center text-slate-500">
               <RefreshCcw className="w-12 h-12 text-slate-200 mx-auto mb-3" />
-              <p>Nenhum vendedor encontrado.</p>
+              <p>Nenhum closer encontrado.</p>
             </div>
           )}
         </div>
@@ -143,7 +145,7 @@ export function LeadRotationSettings() {
         <div>
           <h4 className="font-bold text-blue-800 text-sm">Como funciona o rodízio?</h4>
           <p className="text-xs text-blue-600/80 leading-relaxed mt-1">
-            Novos leads vindos do formulário do site são distribuídos automaticamente entre os vendedores ativados nesta página, seguindo a ordem alfabética. Se um vendedor estiver "Bloqueado", ele será ignorado na distribuição.
+            Novos leads vindos do formulário do site são distribuídos automaticamente entre os closers ativados nesta página, seguindo a ordem alfabética. Se um closer estiver "Bloqueado", ele será ignorado na distribuição.
           </p>
         </div>
       </div>

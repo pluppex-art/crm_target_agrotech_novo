@@ -404,7 +404,7 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = ({
 
         {/* Responsible */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Responsável</label>
+          <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Closer Responsável</label>
           <div className="relative">
             <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <select

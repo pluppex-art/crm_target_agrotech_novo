@@ -7,6 +7,8 @@ import { turmaService } from '../services/turmaService';
 import { financialCalculator } from '../services/financialCalculator';
 import { notifyLeadAssignment } from '../services/leadNotificationService';
 import { useProfileStore } from '../store/useProfileStore';
+import { noteService } from '../services/noteService';
+import { useAuthStore } from '../store/useAuthStore';
 import type { Lead } from '../types/leads';
 import { getLeadEffectiveValue, parseBRNumber } from '@/lib/utils';
 
@@ -183,6 +185,18 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
       if (success) {
         if (responsibleChanged) {
           const { profiles } = useProfileStore.getState();
+          const { user } = useAuthStore.getState();
+          const currentUserProfile = profiles.find(p => p.id === user?.id);
+          const currentUserName = currentUserProfile?.name || user?.email || 'Sistema';
+
+          // 1. Criar Nota de Transferência
+          await noteService.createNote({
+            lead_id: lead.id,
+            content: `📢 Transferência: ${currentUserName} transferiu este lead para ${formData.responsible}`,
+            author_name: 'Sistema',
+          });
+
+          // 2. Notificar Novo Responsável
           notifyLeadAssignment(lead, formData.responsible, profiles);
         }
         const enrollmentFee = financialCalculator.getEnrollmentFee(formData.product, products);
