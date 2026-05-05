@@ -16,6 +16,7 @@ import { useProfileStore } from '../../store/useProfileStore';
 import { useCargoStore } from '../../store/useCargoStore';
 import { useCategoryStore } from '../../store/useCategoryStore';
 import { useNotificationStore } from '../../store/useNotificationStore';
+import { TaskReminderWatcher } from '../tasks/TaskReminderWatcher';
 
 export function Layout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
@@ -62,6 +63,7 @@ export function Layout() {
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50 overflow-hidden">
+      <TaskReminderWatcher />
       <aside className={cn(
         "w-16 transition-all duration-300 ease-out border-r border-slate-100/50 bg-white/90 backdrop-blur-md shadow-2xl z-40 flex-shrink-0 h-screen flex overflow-hidden",
         sidebarCollapsed ? "w-16" : "w-72"
