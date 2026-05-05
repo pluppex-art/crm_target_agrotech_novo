@@ -6,6 +6,8 @@ import { emailService } from '../services/emailService';
 import { emailTemplates } from '../services/emailTemplates';
 import { useProfileStore } from './useProfileStore';
 import { useTurmaStore } from './useTurmaStore';
+import { useAuthStore } from './useAuthStore';
+import { usePipelineStore } from './usePipelineStore';
 
 interface LeadStore {
   leads: Lead[];
@@ -84,11 +86,28 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
     }));
 
     try {
+      const stageName = usePipelineStore.getState().pipelines
+        .flatMap(p => p.stages)
+        .find(s => s.id === stageId)?.name || 'Etapa desconhecida';
+
       const success = await supabaseService.updateLeadStage(leadId, stageId);
       if (!success) {
         set({ leads: previousLeads, error: 'Failed to update lead stage' });
         return false;
       }
+
+      // Append to history for better analytics
+      const currentLead = previousLeads.find(l => l.id === leadId);
+      const newHistoryEntry = {
+        type: 'stage_change',
+        to_stage_id: stageId,
+        to_stage_name: stageName,
+        created_at: new Date().toISOString(),
+        user_name: useAuthStore.getState().user?.user_metadata?.name || 'Sistema'
+      };
+
+      const updatedHistory = [...(currentLead?.history || []), newHistoryEntry];
+      await supabaseService.updateLead(leadId, { history: updatedHistory } as any);
 
       // Automated Email: Enrollment Confirmation for "Ganho" stages
       const targetLead = previousLeads.find(l => l.id === leadId);

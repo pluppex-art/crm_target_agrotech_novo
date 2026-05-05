@@ -15,8 +15,6 @@ import { useLeadTurmas } from '../../hooks/useLeadTurmas';
 import { useLeadChecklist } from '../../hooks/useLeadChecklist';
 import { useProductStore } from '../../store/useProductStore';
 import { useProfileStore } from '../../store/useProfileStore';
-import { emailService } from '../../services/emailService';
-import { emailTemplates } from '../../services/emailTemplates';
 import { financialCalculator } from '../../services/financialCalculator';
 import type { Lead } from '../../types/leads';
 
@@ -38,6 +36,8 @@ import { useState, useMemo, useRef } from 'react';
 import { LeadDetailsModalProps, TabType } from './types';
 import { cn } from '@/lib/utils';
 import { getSupabaseClient } from '@/lib/supabase';
+import { emailService } from '../../services/emailService';
+import { emailTemplates } from '../../services/emailTemplates';
 import { uploadLeadFile, deleteLeadFile } from '../../services/leadFilesService';
 
 // Maps Tailwind bg-* classes to hex colors for inline styling

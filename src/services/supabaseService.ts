@@ -82,7 +82,7 @@ export const supabaseService = {
     if (!supabase) return null;
 
     // Strip computed join fields and map field names
-    const { stage, pipeline, history, subStatus, ...baseLead } = lead as any;
+    const { stage, pipeline, subStatus, ...baseLead } = lead as any;
     const dbLead = {
       ...baseLead,
       substatus: subStatus, // Map subStatus to substatus for database
@@ -111,7 +111,7 @@ export const supabaseService = {
     if (!supabase) return false;
 
     // Strip computed join fields and map field names
-    const { stage, pipeline, history, subStatus, ...baseLead } = lead as any;
+    const { stage, pipeline, subStatus, ...baseLead } = lead as any;
     const dbLead = {
       ...baseLead,
       substatus: subStatus, // Map subStatus to substatus for database

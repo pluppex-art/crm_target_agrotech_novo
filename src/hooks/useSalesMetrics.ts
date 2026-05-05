@@ -182,9 +182,22 @@ export function useSalesMetrics({
     
     const totalDays = closedLeadsFiltered.reduce((sum, l) => {
       const created = new Date(l.created_at).getTime();
-      const updated = new Date(l.updated_at || l.created_at).getTime();
-      let diffDays = Math.round((updated - created) / (1000 * 60 * 60 * 24));
-      return sum + (diffDays === 0 ? 1 : diffDays); // Minimum 1 day
+      
+      // Use history if available to find the exact moment it was won
+      let wonTime = 0;
+      if (l.history && Array.isArray(l.history)) {
+        const wonEntry = l.history.find((h: any) => {
+          const name = (h.stage_name || h.to_stage_name || '').toLowerCase();
+          return name.includes('ganho') || name.includes('fechado') || name.includes('aprovado');
+        });
+        if (wonEntry) wonTime = new Date(wonEntry.created_at).getTime();
+      }
+      
+      // Fallback to updated_at if history is missing or doesn't have won entry
+      if (!wonTime) wonTime = new Date(l.updated_at || l.created_at).getTime();
+      
+      let diffDays = Math.round((wonTime - created) / (1000 * 60 * 60 * 24));
+      return sum + (diffDays <= 0 ? 1 : diffDays); // Minimum 1 day
     }, 0);
     
     return Math.round(totalDays / closedLeadsFiltered.length);
@@ -199,13 +212,14 @@ export function useSalesMetrics({
     
     return filteredLeads.filter((l: any) => {
       // Must NOT be closed (Ganho)
-      const isClosed = l.status === 'closed' || stageNameToStatus(l.status) === 'closed' || 
-                       (l.stage_id && stageNameToStatus(stageMap.get(l.stage_id) || '') === 'closed');
+      const stageName = l.stage_id ? stageMap.get(l.stage_id) : (l.status || '');
+      const statusLower = (stageName || '').toLowerCase();
+      
+      const isClosed = statusLower.includes('ganho') || statusLower.includes('fechado') || statusLower.includes('aprovado') || stageNameToStatus(statusLower) === 'closed';
       if (isClosed) return false;
       
       // Must NOT be lost or disqualified
-      const stageName = l.stage_id ? stageMap.get(l.stage_id) : l.status;
-      if (stageName && (stageName.toLowerCase().includes('perdido') || stageName.toLowerCase().includes('desqualificado'))) return false;
+      if (statusLower.includes('perdido') || statusLower.includes('desqualificado')) return false;
       
       // Check for recent updates to the lead
       const lastUpdate = new Date(l.updated_at || l.created_at).getTime();
@@ -216,10 +230,10 @@ export function useSalesMetrics({
         if (t.lead_id !== l.id) return false;
         
         // If it has a pending task scheduled for the future, it's NEVER inactive
-        const isPendingFuture = t.status === 'pending' && t.due_date && new Date(t.due_date).getTime() >= now;
+        const isPendingFuture = t.status === 'pending' && t.due_date && new Date(t.due_date).getTime() >= (now - 1000 * 60 * 60); // buffer 1h
         if (isPendingFuture) return true;
         
-        // Otherwise, check if the task was created recently
+        // Otherwise, check if the task was updated recently
         const taskTime = new Date((t as any).updated_at || t.created_at).getTime();
         return (now - taskTime) <= TWO_DAYS_MS;
       });
