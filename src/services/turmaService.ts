@@ -234,14 +234,14 @@ export const turmaService = {
     const supabase = getSupabaseClient();
     if (!supabase) return false;
 
-    const sanitized = {
-      ...turmaData,
-      date: turmaData.date || null,
-      time: turmaData.time || null,
-      location: turmaData.location || null,
-      professor_name: turmaData.professor_name || null,
-      professor_email: turmaData.professor_email || null,
-    };
+    // Only sanitize and include fields that are actually present in the update
+    const sanitized: any = { ...turmaData };
+    
+    if ('date' in sanitized) sanitized.date = sanitized.date || null;
+    if ('time' in sanitized) sanitized.time = sanitized.time || null;
+    if ('location' in sanitized) sanitized.location = sanitized.location || null;
+    if ('professor_name' in sanitized) sanitized.professor_name = sanitized.professor_name || null;
+    if ('professor_email' in sanitized) sanitized.professor_email = sanitized.professor_email || null;
 
     const { error } = await supabase
       .from('turmas')

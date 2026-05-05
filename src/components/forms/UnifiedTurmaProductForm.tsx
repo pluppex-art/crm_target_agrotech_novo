@@ -59,21 +59,24 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
       // Find matching product data
       const matchingProduct = products.find(p => p.id === initialData.product_id || p.id === initialData.id || p.name === initialData.name);
 
-      // Find associated turma (either this is a turma, or it's a product that has a turma)
+      // Find associated turma
       const associatedTurma = turmas.find(t => t.id === initialData.id || t.product_id === matchingProduct?.id);
 
+      // Use data from the most specific source available
+      const source = associatedTurma || initialData;
+
       setFormData({
-        name: matchingProduct?.name || associatedTurma?.name || initialData.name || '',
+        name: matchingProduct?.name || source.name || '',
         price: matchingProduct ? matchingProduct.price.toString() : '',
         enrollment_fee: matchingProduct?.enrollment_fee != null ? matchingProduct.enrollment_fee.toString() : '',
-        student_goal: matchingProduct?.student_goal != null ? matchingProduct.student_goal.toString() : (associatedTurma?.meta != null ? associatedTurma.meta.toString() : ''),
+        student_goal: matchingProduct?.student_goal != null ? matchingProduct.student_goal.toString() : (source.meta != null ? source.meta.toString() : ''),
         description: matchingProduct ? matchingProduct.description || '' : '',
-        category: associatedTurma?.category || initialData.category || matchingProduct?.category || 'Cursos',
-        professor_name: associatedTurma?.professor_name ?? initialData.professor_name ?? '',
-        professor_email: associatedTurma?.professor_email ?? initialData.professor_email ?? '',
-        date: associatedTurma?.date ?? initialData.date ?? '',
-        time: associatedTurma?.time ?? initialData.time ?? '',
-        location: associatedTurma?.location ?? initialData.location ?? '',
+        category: source.category || matchingProduct?.category || 'Cursos',
+        professor_name: source.professor_name || '',
+        professor_email: source.professor_email || '',
+        date: source.date || '',
+        time: source.time || '',
+        location: source.location || '',
       });
     } else {
       setFormData(blankForm);
@@ -126,27 +129,22 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
       const isTurmaContext = (mode === 'turma' || mode === 'unified' || isTurmaCategory) && !isService;
 
       if (isTurmaContext && productId) {
+        const turmaPayload = {
+          name: formData.name,
+          product_id: productId,
+          professor_name: formData.professor_name || null,
+          professor_email: formData.professor_email || null,
+          date: formData.date || null,
+          time: formData.time || null,
+          location: formData.location || null,
+          meta: studentGoal ?? undefined,
+        };
+
         if (isTurmaEditing) {
-          await updateTurma(associatedTurma!.id, {
-            name: formData.name, // Sincroniza o nome da turma com o do produto
-            product_id: productId,
-            professor_name: formData.professor_name || null,
-            professor_email: formData.professor_email || null,
-            date: formData.date,
-            time: formData.time,
-            location: formData.location,
-            meta: studentGoal ?? undefined,
-          });
+          await updateTurma(associatedTurma!.id, turmaPayload);
         } else {
           await addTurma({
-            name: formData.name,
-            product_id: productId,
-            professor_name: formData.professor_name || null,
-            professor_email: formData.professor_email || null,
-            date: formData.date,
-            time: formData.time,
-            location: formData.location,
-            meta: studentGoal ?? undefined,
+            ...turmaPayload,
             status: 'agendada',
           });
         }
@@ -160,6 +158,30 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
     }
   };
 
+  const handleNameChange = (val: string) => {
+    const updates: any = { name: val };
+
+    // Auto-fill logic: try to extract location and date from name if they are empty
+    // Pattern: "Something, City - UF, DD/MM/YYYY"
+    const parts = val.split(',').map(p => p.trim());
+    
+    if (parts.length >= 2) {
+      // Check if second part looks like "City - UF"
+      if (!formData.location && parts[1].includes('-')) {
+        updates.location = parts[1];
+      }
+      
+      // Check if any part looks like a date DD/MM/YYYY
+      const datePart = parts.find(p => /^\d{2}\/\d{2}\/\d{4}$/.test(p));
+      if (datePart && !formData.date) {
+        const [d, m, y] = datePart.split('/');
+        updates.date = `${y}-${m}-${d}`; // Convert to YYYY-MM-DD for input
+      }
+    }
+
+    setFormData({ ...formData, ...updates });
+  };
+
   const field = (label: string, key: keyof typeof formData, opts?: {
     type?: string; placeholder?: string; icon?: React.ReactNode; required?: boolean;
   }) => (
@@ -170,7 +192,14 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
           type={opts?.type ?? 'text'}
           required={opts?.required}
           value={formData[key]}
-          onChange={(e) => setFormData({ ...formData, [key]: e.target.value })}
+          onChange={(e) => {
+            const val = e.target.value;
+            if (key === 'name') {
+              handleNameChange(val);
+            } else {
+              setFormData({ ...formData, [key]: val });
+            }
+          }}
           placeholder={opts?.placeholder}
           className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm"
         />
