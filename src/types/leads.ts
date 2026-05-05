@@ -3,6 +3,7 @@ export type LeadStatus = 'new' | 'qualified' | 'proposal' | 'closed';
 export type LeadSubStatus = string | null;
 
 export interface Lead {
+  origin: string;
   stars: number;
   id: string;
   name: string;
