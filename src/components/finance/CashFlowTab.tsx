@@ -17,9 +17,10 @@ function formatDate(iso: string) {
   });
 }
 
-// financial_transactions com lead embutido via join
+// financial_transactions com lead e turma embutidos via join
 type TxWithLead = FinancialTransaction & {
-  leads?: { id: string; name: string; value: number; valor_recebido: number; taxa_matricula_recebido?: number | null } | null;
+  leads?: { id: string; name: string; value: number; valor_recebido: number; taxa_matricula_recebido?: number | null; product: string | null } | null;
+  turmas?: { id: string; name: string; date: string; products: { id: string; name: string } | null } | null;
 };
 
 type GanhoLead = {
@@ -465,7 +466,13 @@ export function CashFlowTab({ startDate, endDate }: { startDate: string; endDate
 function StudentRow({ tx }: { tx: TxWithLead }) {
   const isPaid     = tx.status === 'PAID';
   const isOverdue  = tx.status === 'OVERDUE';
+  
+  // Use lead name from join if available, fallback to description string
   const leadName   = tx.leads?.name ?? tx.description.replace('Receita Automática - Lead: ', '');
+  
+  // Use product name from join or lead string
+  const productName = tx.turmas?.products?.name || tx.leads?.product || 'Produto não identificado';
+  
   const totalValue = tx.leads?.value ? Number(tx.leads.value) : Number(tx.amount);
   const paidValue  = tx.leads?.valor_recebido ? Number(tx.leads.valor_recebido) : (isPaid ? Number(tx.amount) : 0);
 
@@ -481,7 +488,12 @@ function StudentRow({ tx }: { tx: TxWithLead }) {
 
       {/* Nome e data */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-slate-800 truncate">{leadName}</p>
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-semibold text-slate-800 truncate">{leadName}</p>
+          <span className="text-[10px] font-bold text-slate-400 border border-slate-200 px-1.5 py-0.5 rounded-full uppercase tracking-tighter">
+            {productName}
+          </span>
+        </div>
         <p className="text-xs text-slate-400 mt-0.5">
           {isPaid
             ? `Recebido em ${tx.payment_date ? formatDate(tx.payment_date) : '—'}`
@@ -529,6 +541,11 @@ function TransactionRow({ transaction: t }: { transaction: TxWithLead }) {
     REFUND: 'Reembolso', MANUAL: 'Manual',
   };
 
+  // Dynamic description for Turma/Class transactions
+  const displayDescription = t.origin_type === 'CLASS' && t.turmas
+    ? `Turma: ${t.turmas.name} (${t.turmas.products?.name || 'Sem Produto'})`
+    : t.description;
+
   return (
     <div className="flex items-center gap-4 px-6 py-3 hover:bg-slate-50/50 transition-colors">
       <div className={cn(
@@ -545,7 +562,7 @@ function TransactionRow({ transaction: t }: { transaction: TxWithLead }) {
 
       <div className="flex-1 min-w-0">
         <p className={cn('text-sm font-medium truncate', isPaid ? 'text-slate-800' : 'text-slate-500')}>
-          {t.description}
+          {displayDescription}
         </p>
         <div className="flex items-center gap-1.5 mt-0.5">
           <span className={cn(

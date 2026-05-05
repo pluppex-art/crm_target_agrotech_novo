@@ -432,17 +432,22 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = ({
             <div className="relative">
               <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
               <select
-                value={formData.product}
+                value={formData.product || ''}
                 onChange={(e) => {
-                  const selected = products.find(p => p.name === e.target.value);
+                  const selectedName = e.target.value;
+                  const selectedProduct = products.find(p => p.name === selectedName);
                   updateFormField({
-                    product: e.target.value,
-                    value: selected ? selected.price.toString() : formData.value,
+                    product: selectedName,
+                    value: selectedProduct ? selectedProduct.price.toString() : formData.value,
                   });
                 }}
                 className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"
               >
                 <option value="">Selecione...</option>
+                {/* Garante que o produto atual do lead apareça mesmo se o nome mudou no banco */}
+                {formData.product && !products.find(p => p.name === formData.product) && (
+                  <option value={formData.product}>{formData.product} (Nome antigo)</option>
+                )}
                 {products.map(p => (
                   <option key={p.id} value={p.name}>{p.name}</option>
                 ))}

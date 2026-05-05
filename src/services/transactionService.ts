@@ -177,10 +177,14 @@ export const transactionService = {
     const supabase = getSupabaseClient();
     if (!supabase) return [];
 
-    const SELECT = '*, financial_categories(name), leads(id, name, value, valor_recebido, taxa_matricula_recebido)';
+    const SELECT = `
+      *,
+      financial_categories(name),
+      leads(id, name, value, valor_recebido, taxa_matricula_recebido, product),
+      turmas(id, name, date, products(id, name))
+    `;
 
     // Optimized: Only fetch PAID in the period, and limit PENDING/OVERDUE to a reasonable amount
-    // as fetching ALL historical pending transactions is a performance bottleneck.
     let paidQuery = supabase
       .from('financial_transactions')
       .select(SELECT)
@@ -194,7 +198,7 @@ export const transactionService = {
       .select(SELECT)
       .in('status', ['PENDING', 'OVERDUE'])
       .order('due_date', { ascending: true })
-      .limit(300); // Only show the next 300 pending items
+      .limit(300);
 
     const [paidResult, pendingResult] = await Promise.all([paidQuery, pendingQuery]);
 

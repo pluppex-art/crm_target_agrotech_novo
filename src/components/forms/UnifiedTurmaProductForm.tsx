@@ -63,7 +63,7 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
       const associatedTurma = turmas.find(t => t.id === initialData.id || t.product_id === matchingProduct?.id);
 
       setFormData({
-        name: associatedTurma?.name || initialData.name || matchingProduct?.name || '',
+        name: matchingProduct?.name || associatedTurma?.name || initialData.name || '',
         price: matchingProduct ? matchingProduct.price.toString() : '',
         enrollment_fee: matchingProduct?.enrollment_fee != null ? matchingProduct.enrollment_fee.toString() : '',
         student_goal: matchingProduct?.student_goal != null ? matchingProduct.student_goal.toString() : (associatedTurma?.meta != null ? associatedTurma.meta.toString() : ''),
@@ -128,7 +128,7 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
       if (isTurmaContext && productId) {
         if (isTurmaEditing) {
           await updateTurma(associatedTurma!.id, {
-            name: formData.name,
+            name: formData.name, // Sincroniza o nome da turma com o do produto
             product_id: productId,
             professor_name: formData.professor_name || null,
             professor_email: formData.professor_email || null,
