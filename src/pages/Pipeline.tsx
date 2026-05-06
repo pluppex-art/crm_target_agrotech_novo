@@ -58,7 +58,7 @@ export const Pipeline: React.FC = () => {
     subscribe: subscribePipelines,
   } = usePipelineStore();
 
-  const { addAttendee, fetchTurmas, subscribe: subscribeTurmas } = useTurmaStore();
+  const { turmas, addAttendee, fetchTurmas, subscribe: subscribeTurmas } = useTurmaStore();
   const { products, fetchProducts, subscribe: subscribeProducts } = useProductStore();
   const { tasks, fetchTasks, subscribe: subscribeTasks } = useTaskStore();
   const authUser = useAuthStore(state => state.user);
@@ -75,7 +75,30 @@ export const Pipeline: React.FC = () => {
     return myProfile.department?.toLowerCase() === 'comercial';
   }, [authUser?.id, profiles]);
 
-  const filters = usePipelineFilters(leads, authUser?.id, isComercial);
+  const today = new Date();
+
+  // Sempre começa com "Este Ano" (01/01 a 31/12)
+  const [startDate, setStartDate] = useState(() => {
+    const s = new Date(today.getFullYear(), 0, 1);
+    return s.toISOString().split('T')[0];
+  });
+
+  const [endDate, setEndDate] = useState(() => {
+    const e = new Date(today.getFullYear(), 11, 31);
+    return e.toISOString().split('T')[0];
+  });
+
+  const leadToTurmaDate = useMemo(() => {
+    const mapping: Record<string, string> = {};
+    turmas.forEach(t => {
+      t.attendees.forEach(a => {
+        if (a.lead_id) mapping[a.lead_id] = t.date;
+      });
+    });
+    return mapping;
+  }, [turmas]);
+
+  const filters = usePipelineFilters(leads, authUser?.id, isComercial, startDate, endDate, leadToTurmaDate);
 
   const [isNewLeadModalOpen, setIsNewLeadModalOpen] = useState(false);
   const [initialStageIdForNewLead, setInitialStageIdForNewLead] = useState<string | undefined>(undefined);
@@ -84,18 +107,6 @@ export const Pipeline: React.FC = () => {
   const userToggledRef = useRef<Set<string>>(new Set());
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const today = new Date();
-  
-  // Sempre começa com "Este Ano" (01/01 a 31/12)
-  const [startDate, setStartDate] = useState(() => {
-    const s = new Date(today.getFullYear(), 0, 1);
-    return s.toISOString().split('T')[0];
-  });
-  
-  const [endDate, setEndDate] = useState(() => {
-    const e = new Date(today.getFullYear(), 11, 31);
-    return e.toISOString().split('T')[0];
-  });
 
   const currentPipeline = pipelines.find(p => p.id === currentPipelineId);
 
@@ -162,9 +173,10 @@ export const Pipeline: React.FC = () => {
 
   useEffect(() => {
     if (currentPipelineId) {
-      fetchLeads(currentPipelineId, startDate, endDate);
+      // Fetch sem filtro de data no Supabase para permitir filtragem por Turma no frontend
+      fetchLeads(currentPipelineId);
     }
-  }, [currentPipelineId, fetchLeads, startDate, endDate]);
+  }, [currentPipelineId, fetchLeads]);
 
   useEffect(() => {
     const unsubLeads = subscribeToLeads();
@@ -315,19 +327,80 @@ export const Pipeline: React.FC = () => {
     );
   }, [filters.filteredLeads, ganhoStageIds]);
 
-  // Pago: valor efetivamente recebido (valor_recebido + taxa_matricula_recebido)
-  const caixaTotalValue = useMemo(() => {
-    return ganhoLeads.reduce((sum, lead) => {
-      return sum + financialCalculator.getPaidAmount(lead, products);
-    }, 0);
-  }, [ganhoLeads, products]);
+  const leadToTurma = useMemo(() => {
+    const mapping: Record<string, any> = {};
+    turmas.forEach(t => {
+      t.attendees.forEach(a => {
+        if (a.lead_id) mapping[a.lead_id] = { ...t, attendee: a };
+      });
+    });
+    return mapping;
+  }, [turmas]);
 
-  // Pendente: valor contratado total (valor + taxa) menos o que já foi pago
-  const competenciaTotalValue = useMemo(() => {
-    return ganhoLeads.reduce((sum, lead) => {
-      return sum + financialCalculator.getPendingAmount(lead, products);
-    }, 0);
-  }, [ganhoLeads, products]);
+  // Pago e Pendente Unificados (conforme solicitado)
+  const { caixaTotalValue, competenciaTotalValue } = useMemo(() => {
+    let pago = 0;
+    let pendente = 0;
+
+    const start = startDate ? new Date(startDate + "T00:00:00") : null;
+    const end = endDate ? new Date(endDate + "T23:59:59") : null;
+
+    leads.forEach((lead) => {
+      // 1. Determinar Data de Referência
+      const tInfo = leadToTurma[lead.id];
+      let leadDateStr = '';
+      
+      if (tInfo?.date) {
+        leadDateStr = tInfo.date;
+      } else {
+        const dateMatch = lead.product?.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+        if (dateMatch) {
+          let year = dateMatch[3];
+          if (year.length === 2) year = "20" + year;
+          leadDateStr = `${year}-${dateMatch[2].padStart(2, '0')}-${dateMatch[1].padStart(2, '0')}`;
+        }
+      }
+
+      if (!leadDateStr) return;
+
+      // 2. Filtrar por Período
+      const lDate = new Date(leadDateStr + "T12:00:00");
+      if (start && lDate < start) return;
+      if (end && lDate > end) return;
+
+      // 3. Calcular Valores
+      const stageLower = (lead.status || '').toLowerCase();
+      const isWon = 
+        (tInfo?.status === 'concluida') || 
+        (lead.subStatus === 'Turma Concluída') || 
+        stageLower.includes('ganho') || 
+        stageLower.includes('conclu');
+
+      const productObj = products.find(p => lead.product?.includes(p.name));
+      const fee = productObj?.enrollment_fee ?? 0;
+      
+      const totalValue = tInfo 
+        ? (tInfo.product_price || 0) + (tInfo.enrollment_fee || 0)
+        : getLeadEffectiveValue(lead) + fee;
+
+      const received = tInfo 
+        ? (tInfo.attendee.valor_recebido || 0)
+        : Math.max(Number(lead.valor_recebido) || 0, Number(lead.taxa_matricula_recebido) || 0);
+
+      if (isWon) {
+        pago += totalValue;
+      } else {
+        const isAdvanced = stageLower.includes('contrato') || stageLower.includes('aprovado');
+        if (isAdvanced) {
+          pago += received;
+          const remainder = totalValue - received;
+          if (remainder > 0) pendente += remainder;
+        }
+      }
+    });
+
+    return { caixaTotalValue: pago, competenciaTotalValue: pendente };
+  }, [turmas, leads, startDate, endDate, products, leadToTurma]);
 
 
 
@@ -341,7 +414,7 @@ export const Pipeline: React.FC = () => {
         pipelines={pipelines}
         onPipelineChange={(id) => {
           setCurrentPipeline(id);
-          fetchLeads(id, startDate, endDate);
+          fetchLeads(id);
         }}
         fetchLeads={fetchLeads}
         isLoading={isLoading}

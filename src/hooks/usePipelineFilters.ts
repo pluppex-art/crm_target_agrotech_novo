@@ -3,7 +3,14 @@ import type { Lead } from '../types/leads';
 import { useProfileStore } from '../store/useProfileStore';
 import { getSupabaseClient } from '../lib/supabase';
 
-export const usePipelineFilters = (leads: Lead[], authUserId?: string, isComercial?: boolean) => {
+export const usePipelineFilters = (
+  leads: Lead[], 
+  authUserId?: string, 
+  isComercial?: boolean,
+  startDate?: string,
+  endDate?: string,
+  leadToTurmaDate?: Record<string, string>
+) => {
   const { profiles, fetchProfiles } = useProfileStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedResponsible, setSelectedResponsible] = useState<string>('all');
@@ -130,6 +137,27 @@ export const usePipelineFilters = (leads: Lead[], authUserId?: string, isComerci
       selectedProductLower.includes(leadProductLower);
     
     const matchesStars = selectedStars.length === 0 || selectedStars.includes(lead.stars || 0);
+
+    // Filter by Date (Turma Date if available, otherwise Creation Date)
+    const start = startDate ? new Date(startDate + "T00:00:00") : null;
+    const end = endDate ? new Date(endDate + "T23:59:59") : null;
+    
+    let leadDateStr = lead.created_at;
+    if (leadToTurmaDate && leadToTurmaDate[lead.id]) {
+      leadDateStr = leadToTurmaDate[lead.id];
+    } else if (lead.product) {
+      // Tenta extrair data do campo produto (padrão: "Produto, Local, DD/MM/YYYY")
+      const dateMatch = lead.product.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+      if (dateMatch) {
+        leadDateStr = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`;
+      }
+    }
+
+    if (leadDateStr) {
+      const lDate = new Date(leadDateStr.split('T')[0] + "T12:00:00");
+      if (start && lDate < start) return false;
+      if (end && lDate > end) return false;
+    }
 
     const matchesSquad = selectedSquad === 'all' || (() => {
       const squadName = selectedSquad.toUpperCase(); // Ex: "TARGET" ou "PLUPPEX"

@@ -20,6 +20,8 @@ export interface SalesMetrics {
   totalGanhos: number;
   myGanhos: number;
   teamGanhos: number;
+  totalPago: number;
+  totalPendente: number;
   leadsCount: number;
   closedLeadsCount: number;
   conversionRate: number;
@@ -247,6 +249,46 @@ export function useSalesMetrics({
   const teamGanhos = 0; // Not used in this view but keeping for compatibility
 
   const occupancyData = getOccupancyData(turmas);
+  
+  const { totalPago, totalPendente } = useMemo(() => {
+    let pago = 0;
+    let pendente = 0;
+
+    const start = startDate ? new Date(startDate + "T00:00:00") : null;
+    const end = endDate ? new Date(endDate + "T23:59:59") : null;
+
+    turmas.forEach((t) => {
+      // 1. Date filter for Turmas: se não tem data, não entra no cálculo do período
+      if (!t.date) return;
+
+      const tDate = new Date(t.date + "T12:00:00");
+      if (start && tDate < start) return;
+      if (end && tDate > end) return;
+
+      const turmaTotalValue = (t.product_price || 0) + (t.enrollment_fee || 0);
+
+      t.attendees.forEach((a) => {
+        if (a.status === 'cancelado') return;
+        
+        const paid = a.valor_recebido || 0;
+        
+        // Pago: apenas se a turma estiver concluída
+        if (t.status === 'concluida') {
+          pago += paid;
+        }
+
+        // Pendente: apenas se a turma NÃO estiver concluída
+        if (t.status !== 'concluida') {
+          const remainder = turmaTotalValue - paid;
+          if (remainder > 0) {
+            pendente += remainder;
+          }
+        }
+      });
+    });
+
+    return { totalPago: pago, totalPendente: pendente };
+  }, [turmas, startDate, endDate]);
 
   // Seller ranking: uses pipeline closed lead counts for ranking, and combined lead + turret payments for received
   const salesByResponsible = useMemo(() => {
@@ -707,6 +749,8 @@ export function useSalesMetrics({
     allSellersRanking,
     otherSellersRanking,
     sellerSemaphoreData,
+    totalPago,
+    totalPendente,
     pipelineStages,
     funnelStagesWithRates,
     monthlySales,
