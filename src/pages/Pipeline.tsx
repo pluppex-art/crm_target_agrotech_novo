@@ -22,6 +22,7 @@ import { LeadDetailsModal } from '../components/leads/LeadDetailsModal';
 import { NewLeadModal } from '../components/leads/NewLeadModal';
 import { cn, getLeadEffectiveValue } from '../lib/utils';
 import { requestNotificationPermission } from '../services/alertService';
+import { PeriodFilterModal } from '../components/common/PeriodFilterModal';
 import { EnrollInTurmaModal } from '../components/pipeline/EnrollInTurmaModal';
 import { LeadCard } from '../components/pipeline/LeadCard';
 import { checklistService } from '../services/checklistService';
@@ -81,6 +82,20 @@ export const Pipeline: React.FC = () => {
   const [minimizedColumns, setMinimizedColumns] = useState<Set<string>>(new Set());
   // Track whether user manually toggled a column (don't auto-reset their choice)
   const userToggledRef = useRef<Set<string>>(new Set());
+
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const today = new Date();
+  
+  // Sempre começa com "Este Ano" (01/01 a 31/12)
+  const [startDate, setStartDate] = useState(() => {
+    const s = new Date(today.getFullYear(), 0, 1);
+    return s.toISOString().split('T')[0];
+  });
+  
+  const [endDate, setEndDate] = useState(() => {
+    const e = new Date(today.getFullYear(), 11, 31);
+    return e.toISOString().split('T')[0];
+  });
 
   const currentPipeline = pipelines.find(p => p.id === currentPipelineId);
 
@@ -147,9 +162,9 @@ export const Pipeline: React.FC = () => {
 
   useEffect(() => {
     if (currentPipelineId) {
-      fetchLeads(currentPipelineId);
+      fetchLeads(currentPipelineId, startDate, endDate);
     }
-  }, [currentPipelineId, fetchLeads]);
+  }, [currentPipelineId, fetchLeads, startDate, endDate]);
 
   useEffect(() => {
     const unsubLeads = subscribeToLeads();
@@ -326,7 +341,7 @@ export const Pipeline: React.FC = () => {
         pipelines={pipelines}
         onPipelineChange={(id) => {
           setCurrentPipeline(id);
-          fetchLeads(id);
+          fetchLeads(id, startDate, endDate);
         }}
         fetchLeads={fetchLeads}
         isLoading={isLoading}
@@ -335,6 +350,9 @@ export const Pipeline: React.FC = () => {
           setInitialStageIdForNewLead(undefined);
           setIsNewLeadModalOpen(true);
         }}
+        startDate={startDate}
+        endDate={endDate}
+        onFilterClick={() => setIsFilterOpen(true)}
       />
 
 
@@ -344,6 +362,7 @@ export const Pipeline: React.FC = () => {
         selectedProduct={filters.selectedProduct}
         selectedResponsible={filters.selectedResponsible}
         selectedStars={filters.selectedStars}
+        selectedSquad={filters.selectedSquad}
         responsibles={filters.responsibles}
         products={products}
         columns={COLUMNS}
@@ -352,6 +371,7 @@ export const Pipeline: React.FC = () => {
         onProductChange={filters.setSelectedProduct}
         onResponsibleChange={filters.setSelectedResponsible}
         onStarsChange={filters.setSelectedStars}
+        onSquadChange={filters.setSelectedSquad}
         clearAllFilters={filters.clearAllFilters}
         activeFilterCount={filters.activeFilterCount}
         isVendedor={isComercial}
@@ -434,6 +454,18 @@ export const Pipeline: React.FC = () => {
       )}
 
       <PipelineParticles showRocket={showRocket} />
+
+      <PeriodFilterModal
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        onApply={(s, e) => {
+          setStartDate(s);
+          setEndDate(e);
+          setIsFilterOpen(false);
+        }}
+        currentStartDate={startDate}
+        currentEndDate={endDate}
+      />
     </div>
   );
 };

@@ -9,6 +9,10 @@ import { useLeadStore } from '../../store/useLeadStore';
 import { useProductStore } from '../../store/useProductStore';
 import { useTaskStore } from '../../store/useTaskStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
+import { useProfileStore } from '../../store/useProfileStore';
+import { useSquadStore } from '../../store/useSquadStore';
+
+
 
 
 interface LeadCardProps {
@@ -24,6 +28,16 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
   const { updateLeadSubStatus, deleteLead, setSelectedLead } = useLeadStore();
   const { products } = useProductStore();
   const { tasks } = useTaskStore();
+  const { profiles } = useProfileStore();
+
+  const { getSquadInfoForUser } = useSquadStore();
+  const responsibleProfile = profiles.find(p => p.name === lead.responsible);
+  
+  const squadInfo = getSquadInfoForUser(responsibleProfile?.id || '', lead.responsible || '', profiles);
+
+
+
+
 
   // Has at least one task (pending or completed) - disables inactivity timer
   const hasTasks = tasks.some(t => t.lead_id === lead.id);
@@ -82,7 +96,7 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
     <div
       onDoubleClick={onDoubleClick}
       className={cn(
-        "bg-white p-3 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition-all group relative",
+        "bg-white p-4 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition-all group relative",
         isDragging ? "shadow-xl border-emerald-500 rotate-2" : "",
         isDanger ? "border-red-200 hover:border-red-300" : isWarning ? "border-amber-200 hover:border-amber-300" : "hover:border-emerald-200"
       )}
@@ -135,11 +149,17 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
             <span className="text-xs font-medium">{lead.product}</span>
           </div>
           {lead.responsible && (
-            <div className="flex items-center gap-1.5 pl-4 text-xs text-slate-400">
-              <div className="w-1.5 h-1.5 bg-slate-300 rounded-full" />
-              <span className="font-medium">{lead.responsible}</span>
+            <div className="flex items-center gap-2 pl-4">
+              <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                <div className="w-1.5 h-1.5 bg-slate-300 rounded-full" />
+                <span className="font-medium">{lead.responsible}</span>
+              </div>
+              {/* Squad Badge removed from here */}
+
+
             </div>
           )}
+
           {/* Turma Concluída Tag */}
           {lead.subStatus === 'Turma Concluída' && (
             <div className="mt-1.5 flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-lg w-fit border border-emerald-100 animate-in fade-in slide-in-from-top-1 duration-300">
@@ -206,14 +226,27 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
         </div>
       )}
 
-      {/* Data de criação */}
-      {lead.created_at && (
-        <div className="mt-2 pt-1.5 border-t border-slate-50 flex justify-end opacity-60">
-          <span className="text-[9px] text-slate-400 font-medium tracking-wide">
+      {/* Footer Info: Squad + Creation Date */}
+      <div className="mt-2 pt-1.5 border-t border-slate-50 flex items-center justify-between">
+        {squadInfo && (
+          <span 
+            className="text-[8px] font-black px-2 py-0.5 rounded-md tracking-tighter uppercase border"
+            style={{ 
+              backgroundColor: `${squadInfo.color}10`, // 10% opacity
+              color: squadInfo.color,
+              borderColor: `${squadInfo.color}30` // 30% opacity
+            }}
+          >
+            SQUAD {squadInfo.name}
+          </span>
+        )}
+        {lead.created_at && (
+          <span className="text-[9px] text-slate-400 font-medium tracking-wide opacity-60">
             Criado em {new Date(lead.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })} às {new Date(lead.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
           </span>
-        </div>
-      )}
+        )}
+      </div>
+
     </div>
   );
 }

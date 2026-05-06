@@ -5,6 +5,8 @@ import { useLeadStore } from '../../store/useLeadStore';
 import { useProductStore } from '../../store/useProductStore';
 import { useProfileStore } from '../../store/useProfileStore';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useSquadStore } from '../../store/useSquadStore';
+
 import { usePipelineStore } from '../../store/usePipelineStore';
 import { supabaseService } from '../../services/supabaseService';
 import { LeadStatus, LeadSubStatus } from '../../types/leads';
@@ -30,22 +32,19 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
   const { profiles, fetchProfiles } = useProfileStore();
   const { user } = useAuthStore();
   const { pipelines } = usePipelineStore();
+  const { getSquadInfoForUser } = useSquadStore();
+
 
   const currentPipelineStages = useMemo(() => {
     const pipeline = pipelines.find(p => p.id === pipelineId);
     return pipeline?.stages ?? [];
   }, [pipelines, pipelineId]);
 
-  // Usuários do departamento Comercial ativos
+  // Usuários ativos (todos os que podem receber leads)
   const vendedores = useMemo(() => {
-    const comercial = profiles.filter(p =>
-      p.department?.toLowerCase() === 'comercial' && (p.status === 'active' || !p.status)
-    );
-    // Fallback: all active profiles if no comercial members found
-    return comercial.length > 0
-      ? comercial
-      : profiles.filter(p => p.status === 'active' || !p.status);
+    return profiles.filter(p => p.status === 'active' || !p.status);
   }, [profiles]);
+
 
   const [loading, setLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ phone?: string; email?: string }>({});
@@ -200,6 +199,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
         motivo_perda: isPerdidoStage ? formData.motivo_perda : undefined,
         pipeline_id: pipelineId,
         stage_id: selectedStageId || undefined,
+        origin: 'manual',
       };
 
       const newLead = await addLead(newLeadData);
@@ -379,9 +379,11 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                     <option value="">Selecione o responsável</option>
                     {vendedores.map(p => (
                       <option key={`resp-${p.id}`} value={p.name}>
-                        {p.name}
+                        {p.name} [{getSquadInfoForUser(p.id, p.name, profiles).name}]
                       </option>
                     ))}
+
+
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
                 </div>

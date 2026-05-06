@@ -14,7 +14,7 @@ interface LeadStore {
   selectedLead: Lead | null;
   isLoading: boolean;
   error: string | null;
-  fetchLeads: (pipelineId?: string) => Promise<void>;
+  fetchLeads: (pipelineId?: string, startDate?: string, endDate?: string) => Promise<void>;
   setLeads: (leads: Lead[]) => void;
   setSelectedLead: (lead: Lead | null) => void;
   updateLeadStage: (leadId: string, stageId: string) => Promise<boolean>;
@@ -32,10 +32,10 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
   isLoading: false,
   error: null,
 
-  fetchLeads: async (pipelineId?: string) => {
+  fetchLeads: async (pipelineId?: string, startDate?: string, endDate?: string) => {
     set({ isLoading: true, error: null });
     try {
-      const leads = await supabaseService.getLeads(pipelineId);
+      const leads = await supabaseService.getLeads(pipelineId, startDate, endDate);
       set({ leads, isLoading: false });
     } catch (err) {
       // Preserve existing leads on error — don't blank the board

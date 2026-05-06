@@ -1,5 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { Phone, AlertCircle, Flame, Trash2, Loader2, Save, Percent, DollarSign, User, GraduationCap, ChevronDown, Eye, X as XIcon, ClipboardCheck, CheckSquare, QrCode, Upload, FileText } from 'lucide-react';
+import { Phone, AlertCircle, Flame, Trash2, Loader2, Save, Percent, DollarSign, User, GraduationCap, ChevronDown, Eye, X as XIcon, ClipboardCheck, CheckSquare, QrCode, Upload, FileText, Shield } from 'lucide-react';
+import { useProfileStore } from '../../../store/useProfileStore';
+import { useSquadStore } from '../../../store/useSquadStore';
+
+
 import { cn, parseBRNumber, formatCPFCNPJ } from '../../../lib/utils';
 import type { LeadInfoTabProps } from '../types';
 import { uploadLeadFile, deleteLeadFile } from '../../../services/leadFilesService';
@@ -27,9 +31,22 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = ({
   onPixComplete,
   onContractSign,
 }) => {
+  const { profiles } = useProfileStore();
+
   const handleStarClick = (stars: number) => {
     updateFormField({ stars });
   };
+
+  const { getSquadInfoForUser } = useSquadStore();
+  const responsibleProfile = profiles.find(p => p.name === formData.responsible);
+  
+  const squadInfo = getSquadInfoForUser(responsibleProfile?.id || '', formData.responsible || '', profiles);
+  const isPluppex = squadInfo.name === 'PLUPPEX';
+  const isTarget = squadInfo.name === 'TARGET';
+
+
+
+
 
   const [uploadingProof, setUploadingProof] = useState(false);
   const [uploadingContract, setUploadingContract] = useState(false);
@@ -109,7 +126,22 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = ({
                 <Phone size={13} />
               </a>
             )}
+            {squadInfo && (
+              <span 
+                className="text-[9px] font-black px-2 py-0.5 rounded-full border uppercase tracking-tighter"
+                style={{ 
+                  backgroundColor: `${squadInfo.color}10`,
+                  color: squadInfo.color,
+                  borderColor: `${squadInfo.color}30`
+                }}
+              >
+                SQUAD {squadInfo.name}
+              </span>
+            )}
+
+
           </div>
+
           <div className="flex items-center gap-0.5">
             {[1, 2, 3, 4, 5].map((i) => (
               <button
@@ -417,9 +449,19 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = ({
               {formData.responsible && !(responsibles ?? []).includes(formData.responsible) && (
                 <option value={formData.responsible}>{formData.responsible}</option>
               )}
-              {responsibles?.map(name => (
-                <option key={name} value={name}>{name}</option>
-              ))}
+              {responsibles?.map(name => {
+                const p = profiles.find(profile => profile.name === name);
+                const info = getSquadInfoForUser(p?.id || '', name, profiles);
+                return (
+                  <option key={name} value={name}>
+                    {name} [{info.name}]
+                  </option>
+                );
+              })}
+
+
+
+
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
           </div>

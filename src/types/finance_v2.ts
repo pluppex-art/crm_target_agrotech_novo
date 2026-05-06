@@ -13,6 +13,7 @@ export interface FinancialCategory {
 }
 
 export interface FinancialTransaction {
+  [x: string]: any;
   id: string;
   description: string;
   amount: number;
@@ -83,6 +84,9 @@ export interface CommissionResult {
   status: 'TO_PAY' | 'PAID' | 'CANCELLED';
   paid_at: string | null;
   created_at: string;
+  // UI joined fields
+  user_name?: string;
+  squad_name?: string;
 }
 
 // Fonte oficial do nível/função de cada usuário no OTE

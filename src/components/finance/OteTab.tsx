@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Users, AlertCircle, Loader2, RefreshCw, Play, CheckCircle2, Circle, XCircle, ChevronDown, ChevronUp, AlertTriangle, Sparkles } from 'lucide-react';
+import { Users, AlertCircle, Loader2, RefreshCw, Play, CheckCircle2, ChevronDown, ChevronUp, AlertTriangle, Sparkles } from 'lucide-react';
 import { oteService } from '../../services/oteService';
 import { CommissionResult, SemaphoreStatus } from '../../types/finance_v2';
 import { fmt, cn } from '../../lib/utils';
 
-export function OteTab({ periodMonth }: { periodMonth: string }) {
-  const [results, setResults] = useState<(CommissionResult & { user_name?: string })[]>([]);
+export function OteTab({ startDate, endDate }: { startDate: string; endDate: string }) {
+  const periodMonth = startDate.substring(0, 7) + '-01';
+  const [results, setResults] = useState<CommissionResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isRecalculating, setIsRecalculating] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
@@ -13,30 +14,41 @@ export function OteTab({ periodMonth }: { periodMonth: string }) {
   const [recalcWarnings, setRecalcWarnings] = useState<string[]>([]);
   const [initSummary, setInitSummary] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<'sellers' | 'managers'>('sellers');
+  const [selectedSquad, setSelectedSquad] = useState<string>('all');
+  const [squads, setSquads] = useState<{id: string, name: string}[]>([]);
 
-  const loadResults = useCallback(async () => {
+  const loadResults = useCallback(async (autoInit = false) => {
     setIsLoading(true);
     setError(null);
     try {
       const data = await oteService.getCommissionResults(periodMonth);
       setResults(data);
+      
+      // Extrai squads únicos para o filtro
+      const uniqueSquads = Array.from(new Set(data.map(r => r.squad_id).filter(Boolean))).map(id => ({
+        id: id!,
+        name: data.find(r => r.squad_id === id)?.squad_name || id!.substring(0, 8)
+      }));
+      setSquads(uniqueSquads);
+      
+      // AUTO-INIT: If no results found and we are not already initializing, start automatically
+      if (data.length === 0 && autoInit && !isInitializing) {
+        handleInitializePeriod(true);
+      }
     } catch (err) {
       setError('Erro ao carregar resultados de comissão.');
       console.error(err);
     } finally {
       setIsLoading(false);
     }
-  }, [periodMonth]);
+  }, [periodMonth, isInitializing]);
 
   useEffect(() => {
-    loadResults();
-  }, [loadResults]);
+    loadResults(true); // Pass true to enable auto-init on mount/period change
+  }, [periodMonth]); // Only re-run when period changes
 
-  const handleInitializePeriod = async () => {
-    if (!confirm(
-      `Isso vai calcular o OTE do período ${periodMonth.substring(0, 7)} para TODOS os colaboradores com perfil ativo.\n\n` +
-      `Transações históricas já existentes no banco serão consideradas.\n\nConfirmar?`
-    )) return;
+  const handleInitializePeriod = async (silent = false) => {
+    if (!silent && !confirm(`Deseja inicializar o cálculo de OTE para o período ${periodMonth.substring(0, 7)}?`)) return;
 
     setIsInitializing(true);
     setError(null);
@@ -46,8 +58,13 @@ export function OteTab({ periodMonth }: { periodMonth: string }) {
     try {
       const { calculated, warnings } = await oteService.calculatePeriodFromProfiles(periodMonth);
       setRecalcWarnings(warnings);
-      setInitSummary(`✅ ${calculated} colaborador(es) calculado(s) com sucesso para ${periodMonth.substring(0, 7)}.`);
-      await loadResults();
+      if (!silent) {
+        setInitSummary(`✅ Processamento concluído: ${calculated} perfis calculados com sucesso.`);
+      }
+      
+      // Reload results after init
+      const data = await oteService.getCommissionResults(periodMonth);
+      setResults(data);
     } catch (err) {
       setError('Erro ao inicializar período OTE.');
       console.error(err);
@@ -65,83 +82,70 @@ export function OteTab({ periodMonth }: { periodMonth: string }) {
     setInitSummary(null);
 
     try {
-      const existing = await oteService.getCommissionResults(periodMonth);
-
-      // Busca todos os níveis em paralelo
-      const withLevels = await Promise.all(
-        existing.map(async r => ({
-          r,
-          officialLevel: await oteService.getOfficialLevel(r.user_id, r.role_type),
-        }))
-      );
-
-      // Recalcula todos em paralelo
-      const warningArrays = await Promise.all(
-        withLevels.map(async ({ r, officialLevel }) => {
-          const w: string[] = [];
-          if (!officialLevel) {
-            w.push(
-              `Perfil OTE não configurado para o usuário ${r.user_id.substring(0, 8)}… (${r.role_type}). ` +
-              `Acesse Configurações > Perfis OTE e defina o nível antes de recalcular.`
-            );
-            return w;
-          }
-          if (r.role_type === 'CLOSER') {
-            const ok = await oteService.calculateAndUpsertSellerCommission(r.user_id, periodMonth, officialLevel);
-            if (!ok) w.push(`Regra CLOSER para nível "${officialLevel}" não encontrada em commission_rules. Verifique se existe uma regra ativa para este nível.`);
-          } else if (r.role_type === 'MANAGER' && r.squad_id) {
-            const ok = await oteService.calculateAndUpsertManagerCommission(r.user_id, r.squad_id, periodMonth, officialLevel);
-            if (!ok) w.push(`Regra MANAGER para nível "${officialLevel}" não encontrada em commission_rules. Verifique se existe uma regra ativa para este nível.`);
-          }
-          return w;
-        })
-      );
-
-      setRecalcWarnings(warningArrays.flat());
-      await loadResults();
+      // Força o recálculo total a partir dos perfis ativos
+      const { calculated, warnings } = await oteService.calculatePeriodFromProfiles(periodMonth);
+      setRecalcWarnings(warnings);
+      setInitSummary(`✅ Recálculo concluído: ${calculated} perfis atualizados.`);
+      
+      const data = await oteService.getCommissionResults(periodMonth);
+      setResults(data);
     } catch (err) {
-      setError('Erro ao recalcular OTE. Verifique as regras de comissão cadastradas.');
+      setError('Erro ao recalcular OTE. Verifique as regras de comissão.');
       console.error(err);
     } finally {
       setIsRecalculating(false);
     }
   };
 
-  const sellers = results.filter(r => r.role_type === 'CLOSER');
-  const managers = results.filter(r => r.role_type === 'MANAGER');
-  const displayData = activeView === 'sellers' ? sellers : managers;
+  const sellers = results.filter(r => r.role_type?.toUpperCase() === 'CLOSER');
+  const managers = results.filter(r => r.role_type?.toUpperCase() === 'MANAGER');
+  
+  const displayData = (activeView === 'sellers' ? sellers : managers).filter(r => {
+    if (selectedSquad === 'all') return true;
+    return r.squad_id === selectedSquad;
+  });
 
   return (
     <div className="space-y-6">
       {/* Controls */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <button
-          onClick={loadResults}
-          disabled={isLoading}
-          className="p-2 hover:bg-white border border-transparent hover:border-slate-200 rounded-lg transition-colors text-slate-500"
-          title="Atualizar"
-        >
-          <RefreshCw size={18} className={cn(isLoading && 'animate-spin')} />
-        </button>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-3">
           <button
-            onClick={handleInitializePeriod}
-            disabled={isInitializing || isRecalculating || isLoading}
-            title="Calcula OTE do zero para todos com perfil ativo, usando transações históricas"
-            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-sm disabled:opacity-60"
+            onClick={() => loadResults()}
+            disabled={isLoading}
+            className="p-2 hover:bg-white border border-transparent hover:border-slate-200 rounded-lg transition-colors text-slate-500"
+            title="Atualizar"
           >
-            {isInitializing ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-            Iniciar Período
+            <RefreshCw size={18} className={cn((isLoading || isInitializing) && 'animate-spin')} />
           </button>
+          
+          {(isInitializing || isLoading) && (
+            <div className="flex items-center gap-2 px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-widest animate-pulse">
+              <Sparkles size={12} /> Sincronizando Período Automático
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={handleRecalculate}
             disabled={isRecalculating || isInitializing || isLoading}
-            title="Recalcula registros OTE já existentes para o período"
             className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 transition-all shadow-sm disabled:opacity-60"
           >
             {isRecalculating ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
             Recalcular OTE
           </button>
+
+          <select
+            value={selectedSquad}
+            onChange={(e) => setSelectedSquad(e.target.value)}
+            className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 transition-all"
+          >
+            <option value="all">Todos os Squads</option>
+            {squads.map(s => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -159,7 +163,7 @@ export function OteTab({ periodMonth }: { periodMonth: string }) {
           <div className="flex items-center gap-2 mb-2">
             <AlertTriangle size={18} className="text-amber-600 shrink-0" />
             <span className="text-sm font-bold text-amber-800">
-              {recalcWarnings.length} usuário(s) não puderam ser recalculados:
+              {recalcWarnings.length} alerta(s) de configuração:
             </span>
           </div>
           {recalcWarnings.map((w, i) => (
@@ -170,50 +174,47 @@ export function OteTab({ periodMonth }: { periodMonth: string }) {
 
       {/* View Selector */}
       <div className="flex gap-3">
-        <ViewToggle label={`Vendedores (${sellers.length})`} active={activeView === 'sellers'} onClick={() => setActiveView('sellers')} />
-        <ViewToggle label={`Gestores (${managers.length})`} active={activeView === 'managers'} onClick={() => setActiveView('managers')} />
+        <ViewToggle label={`Vendedores / Closers (${sellers.length})`} active={activeView === 'sellers'} onClick={() => setActiveView('sellers')} />
+        <ViewToggle label={`Gestores / Gestoras (${managers.length})`} active={activeView === 'managers'} onClick={() => setActiveView('managers')} />
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        {isLoading ? (
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden min-h-[300px]">
+        {isLoading || isInitializing ? (
           <div className="flex flex-col items-center justify-center h-64">
             <Loader2 className="w-8 h-8 text-emerald-500 animate-spin mb-4" />
-            <p className="text-slate-500 text-sm">Carregando comissionamento...</p>
+            <p className="text-slate-500 text-sm font-bold animate-pulse uppercase tracking-widest text-[10px]">Calculando Comissões...</p>
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center h-64 p-6">
             <AlertCircle className="w-12 h-12 text-rose-400 mb-4" />
             <p className="text-rose-600 font-semibold text-center">{error}</p>
-            <button onClick={loadResults} className="mt-4 px-4 py-2 bg-rose-50 text-rose-600 rounded-lg text-sm font-bold hover:bg-rose-100">
+            <button onClick={() => loadResults()} className="mt-4 px-4 py-2 bg-rose-50 text-rose-600 rounded-lg text-sm font-bold hover:bg-rose-100">
               Tentar novamente
             </button>
           </div>
         ) : displayData.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 p-6">
             <Users className="w-16 h-16 text-slate-200 mb-4" />
-            <p className="text-slate-500 font-medium">Nenhum resultado de OTE para este período.</p>
-            <p className="text-slate-400 text-sm mt-1">
-              Use o botão "Recalcular OTE do Período" para processar as comissões.
-            </p>
+            <p className="text-slate-500 font-medium">Nenhum resultado encontrado.</p>
+            <p className="text-slate-400 text-xs mt-1">Verifique se os perfis OTE e regras de comissão estão configurados.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
-              <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-100">
+              <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-100 font-black tracking-widest">
                 <tr>
-                  <th className="px-5 py-4 font-bold tracking-wider">Vendedor / Gestor</th>
-                  <th className="px-5 py-4 font-bold tracking-wider">Nível</th>
-                  {activeView === 'managers' && <th className="px-5 py-4 font-bold tracking-wider">Squad</th>}
-                  <th className="px-5 py-4 font-bold tracking-wider text-right">Meta</th>
-                  <th className="px-5 py-4 font-bold tracking-wider text-right">Realizado</th>
-                  <th className="px-5 py-4 font-bold tracking-wider text-center">Atingimento</th>
-                  <th className="px-5 py-4 font-bold tracking-wider text-center">Semáforo</th>
-                  <th className="px-5 py-4 font-bold tracking-wider text-right">Fixo</th>
-                  <th className="px-5 py-4 font-bold tracking-wider text-right">Variável</th>
-                  <th className="px-5 py-4 font-bold tracking-wider text-right">Acelerador</th>
-                  <th className="px-5 py-4 font-bold tracking-wider text-right">Total OTE</th>
-                  <th className="px-5 py-4 font-bold tracking-wider text-center">Status</th>
+                  <th className="px-5 py-4">Colaborador / Gestor(a)</th>
+                  <th className="px-5 py-4">Nível</th>
+                  {activeView === 'managers' && <th className="px-5 py-4">Squad</th>}
+                  <th className="px-5 py-4 text-right">Meta</th>
+                  <th className="px-5 py-4 text-right">Realizado</th>
+                  <th className="px-5 py-4 text-center">Atingimento</th>
+                  <th className="px-5 py-4 text-center">Semáforo</th>
+                  <th className="px-5 py-4 text-right">Fixo</th>
+                  <th className="px-5 py-4 text-right">Variável</th>
+                  <th className="px-5 py-4 text-right">Acelerador</th>
+                  <th className="px-5 py-4 text-right">Total OTE</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -229,7 +230,7 @@ export function OteTab({ periodMonth }: { periodMonth: string }) {
   );
 }
 
-function OteRow({ result, showSquad }: { result: CommissionResult & { user_name?: string }; showSquad: boolean }) {
+function OteRow({ result, showSquad }: { result: CommissionResult; showSquad: boolean }) {
   const achPct = Number(result.achievement_percent) || 0;
   const hasLevel = !!result.level?.trim();
 
@@ -237,61 +238,58 @@ function OteRow({ result, showSquad }: { result: CommissionResult & { user_name?
     <tr className={cn('hover:bg-slate-50/80 transition-colors', !hasLevel && 'bg-amber-50/30')}>
       <td className="px-5 py-4">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center text-sm font-bold text-slate-600">
+          <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-500">
               {(result.user_name || result.user_id).substring(0, 2).toUpperCase()}
             </div>
             <div>
-              <p className="font-semibold text-slate-800 text-sm">{result.user_name || result.user_id.substring(0, 8) + '…'}</p>
-              <p className="text-xs text-slate-400">{result.role_type}</p>
+              <p className="font-bold text-slate-800 text-sm leading-tight">{result.user_name || result.user_id.substring(0, 8) + '…'}</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">{result.role_type}</p>
             </div>
         </div>
       </td>
       <td className="px-5 py-4">
         {hasLevel ? (
-          <span className="inline-flex px-2.5 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-bold">
+          <span className="inline-flex px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-black uppercase tracking-widest">
             {result.level}
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-bold">
-            <AlertTriangle size={11} /> Não definido
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 rounded text-[10px] font-black uppercase">
+            <AlertTriangle size={10} /> S/ Nível
           </span>
         )}
       </td>
       {showSquad && (
-        <td className="px-5 py-4 text-slate-600 text-sm">
-          {result.squad_id ? result.squad_id.substring(0, 8) + '…' : '—'}
+        <td className="px-5 py-4 text-slate-500 text-xs font-bold uppercase">
+          {result.squad_name || '—'}
         </td>
       )}
-      <td className="px-5 py-4 text-right font-medium text-slate-700">R$ {fmt(result.target_revenue)}</td>
-      <td className="px-5 py-4 text-right font-medium text-slate-700">R$ {fmt(result.realized_revenue)}</td>
+      <td className="px-5 py-4 text-right font-bold text-slate-600 text-xs">R$ {fmt(result.target_revenue)}</td>
+      <td className="px-5 py-4 text-right font-bold text-slate-800 text-xs">R$ {fmt(result.realized_revenue)}</td>
       <td className="px-5 py-4 text-center">
         <AchievementBadge pct={achPct} />
       </td>
       <td className="px-5 py-4 text-center">
         <SemaphoreIndicator status={result.semaphore_status} />
       </td>
-      <td className="px-5 py-4 text-right text-slate-700">R$ {fmt(result.fixed_amount)}</td>
-      <td className="px-5 py-4 text-right text-slate-700">R$ {fmt(result.variable_amount)}</td>
-      <td className="px-5 py-4 text-right text-slate-700">
+      <td className="px-5 py-4 text-right text-slate-500 text-xs">R$ {fmt(result.fixed_amount)}</td>
+      <td className="px-5 py-4 text-right text-slate-500 text-xs">R$ {fmt(result.variable_amount)}</td>
+      <td className="px-5 py-4 text-right text-slate-500 text-xs">
         {result.accelerator_amount > 0 ? (
-          <span className="text-emerald-600 font-bold">+ R$ {fmt(result.accelerator_amount)}</span>
+          <span className="text-emerald-600 font-black">+ R$ {fmt(result.accelerator_amount)}</span>
         ) : '—'}
       </td>
       <td className="px-5 py-4 text-right">
-        <span className="font-extrabold text-emerald-700 text-base">R$ {fmt(result.total_amount)}</span>
-      </td>
-      <td className="px-5 py-4 text-center">
-        <CommissionStatusBadge status={result.status} />
+        <span className="font-black text-emerald-600 text-sm tracking-tighter">R$ {fmt(result.total_amount)}</span>
       </td>
     </tr>
   );
 }
 
 function AchievementBadge({ pct }: { pct: number }) {
-  const color = pct >= 100 ? 'bg-emerald-100 text-emerald-700' : pct >= 70 ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700';
+  const color = pct >= 100 ? 'bg-emerald-50 text-emerald-600' : pct >= 70 ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600';
   return (
-    <span className={cn('inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold', color)}>
-      {pct >= 100 ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+    <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-black', color)}>
+      {pct >= 100 ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
       {pct.toFixed(1)}%
     </span>
   );
@@ -299,32 +297,16 @@ function AchievementBadge({ pct }: { pct: number }) {
 
 function SemaphoreIndicator({ status }: { status: SemaphoreStatus }) {
   const config = {
-    GREEN: { color: 'bg-emerald-500', label: 'No alvo' },
-    YELLOW: { color: 'bg-amber-400', label: 'Em risco' },
-    RED: { color: 'bg-rose-500', label: 'Crítico' },
+    GREEN: { color: 'bg-emerald-500', label: 'NO ALVO' },
+    YELLOW: { color: 'bg-amber-400', label: 'EM RISCO' },
+    RED: { color: 'bg-rose-500', label: 'CRÍTICO' },
   };
   const s = config[status];
   return (
-    <div className="flex items-center justify-center gap-2">
-      <div className={cn('w-3 h-3 rounded-full shadow-sm', s.color)} />
-      <span className="text-xs text-slate-500">{s.label}</span>
+    <div className="flex items-center justify-center gap-1.5">
+      <div className={cn('w-2 h-2 rounded-full', s.color)} />
+      <span className="text-[9px] font-black text-slate-400 tracking-tight">{s.label}</span>
     </div>
-  );
-}
-
-function CommissionStatusBadge({ status }: { status: string }) {
-  const config: Record<string, { label: string; cls: string; icon: any }> = {
-    TO_PAY: { label: 'A Pagar', cls: 'bg-amber-100 text-amber-700', icon: Circle },
-    PAID: { label: 'Paga', cls: 'bg-emerald-100 text-emerald-700', icon: CheckCircle2 },
-    CANCELLED: { label: 'Cancelada', cls: 'bg-slate-100 text-slate-500', icon: XCircle },
-  };
-  const s = config[status] || config['TO_PAY'];
-  const Icon = s.icon;
-  return (
-    <span className={cn('inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold', s.cls)}>
-      <Icon size={12} />
-      {s.label}
-    </span>
   );
 }
 
@@ -333,8 +315,8 @@ function ViewToggle({ label, active, onClick }: { label: string; active: boolean
     <button
       onClick={onClick}
       className={cn(
-        'px-5 py-2 rounded-xl text-sm font-bold border-2 transition-all',
-        active ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
+        'px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border-2 transition-all',
+        active ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-100 bg-white text-slate-400 hover:border-slate-200'
       )}
     >
       {label}

@@ -2,7 +2,7 @@ import { getSupabaseClient } from '../lib/supabase';
 import { Lead, LeadStatus, LeadSubStatus } from '../types/leads';
 
 export const supabaseService = {
-  async getLeads(pipelineId?: string): Promise<Lead[]> {
+  async getLeads(pipelineId?: string, startDate?: string, endDate?: string): Promise<Lead[]> {
     const supabase = getSupabaseClient();
     if (!supabase) throw new Error('Supabase client not available');
 
@@ -14,6 +14,14 @@ export const supabaseService = {
 
     if (pipelineId) {
       query = query.eq('pipeline_id', pipelineId);
+    }
+
+    if (startDate) {
+      query = query.gte('created_at', startDate);
+    }
+
+    if (endDate) {
+      query = query.lte('created_at', endDate + 'T23:59:59');
     }
 
     const { data, error } = await query;

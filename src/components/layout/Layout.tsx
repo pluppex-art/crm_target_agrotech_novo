@@ -16,7 +16,9 @@ import { useProfileStore } from '../../store/useProfileStore';
 import { useCargoStore } from '../../store/useCargoStore';
 import { useCategoryStore } from '../../store/useCategoryStore';
 import { useNotificationStore } from '../../store/useNotificationStore';
+import { useSquadStore } from '../../store/useSquadStore';
 import { TaskReminderWatcher } from '../tasks/TaskReminderWatcher';
+
 
 export function Layout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
@@ -41,6 +43,10 @@ export function Layout() {
     useProfileStore.getState().fetchProfiles();
     const unsubCategories = useCategoryStore.getState().subscribe();
     const unsubNotifications = useNotificationStore.getState().subscribe();
+    // Squads - Fetch once on mount
+    useSquadStore.getState().fetchSquads();
+
+
 
     // Initial fetch
     useNotificationStore.getState().fetchNotifications();

@@ -135,16 +135,11 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
     await form.toggleField(field, null);
   };
 
-  // Build vendedores list from Comercial department profiles
+  // Build vendedores list from all active profiles
   const vendedores = useMemo(() => {
     if (profiles.length === 0) fetchProfiles();
-    const comercial = profiles.filter(p =>
-      p.department?.toLowerCase() === 'comercial' && (p.status === 'active' || !p.status)
-    );
-    // Fallback: all active profiles if no comercial members found
-    const list = comercial.length > 0
-      ? comercial
-      : profiles.filter(p => p.status === 'active' || !p.status);
+    const list = profiles.filter(p => p.status === 'active' || !p.status);
+    
     // Always include the lead's current responsible even if not in list
     const names = list.map(p => p.name as string).filter(Boolean);
     if (lead?.responsible && !names.includes(lead.responsible)) {

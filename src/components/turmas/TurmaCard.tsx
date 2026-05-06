@@ -14,7 +14,8 @@ interface TurmaCardProps {
 }
 
 export function TurmaCard({ turma, isSelected, onSelect, onEdit, onDelete }: TurmaCardProps) {
-  const confirmados = (turma.attendees || []).filter(a => a.status === 'confirmado').length;
+  // Conta todos os alunos que não estão cancelados como "ocupando vaga"
+  const confirmados = (turma.attendees || []).filter(a => a.status !== 'cancelado').length;
   const st = TURMA_STATUS_LABELS[turma.status] || TURMA_STATUS_LABELS.agendada;
 
   return (

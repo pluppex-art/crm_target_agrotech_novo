@@ -11,8 +11,14 @@ export const dreService = {
     const categoryDreMap = new Map<string, string>();
     categories?.forEach(c => categoryDreMap.set(c.id, c.dre_group));
 
-    // Fetch PAID transactions in period
-    const transactions = await transactionService.getAll({ ...filters, status: 'PAID' });
+    // Fetch PAID transactions in period (using payment_date for cash basis DRE)
+    const transactions = await transactionService.getAll({ 
+      status: 'PAID',
+      paymentDateStart: filters.startDate,
+      paymentDateEnd: filters.endDate,
+      type: filters.type,
+      categoryId: filters.categoryId
+    });
 
     let receita_bruta = 0;
     let deducoes = 0;

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Loader2, DollarSign, Filter, Search, CheckCircle2, XCircle } from 'lucide-react';
+import { Loader2, DollarSign, Filter, Search, CheckCircle2, XCircle, Users } from 'lucide-react';
 import { transactionService } from '../../services/transactionService';
+import { useProfileStore } from '../../store/useProfileStore';
+
 import { FinancialTransaction } from '../../types/finance_v2';
 import { PageFilters } from '../ui/PageFilters';
 import { fmt, cn } from '../../lib/utils';
@@ -11,6 +13,14 @@ export function TransactionsTab({ startDate, endDate }: { startDate: string; end
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [selectedSquad, setSelectedSquad] = useState('all');
+
+  const { profiles, fetchProfiles } = useProfileStore();
+
+  useEffect(() => {
+    fetchProfiles();
+  }, [fetchProfiles]);
+
 
   const loadData = async () => {
     setIsLoading(true);
@@ -46,11 +56,18 @@ export function TransactionsTab({ startDate, endDate }: { startDate: string; end
   };
 
   const filtered = transactions.filter(t => {
+    if (selectedSquad !== 'all') {
+      const respName = (t as any).leads?.responsible || (t as any).responsible;
+      if (!respName) return false;
+      const profile = profiles.find(p => p.name === respName);
+      if (profile?.department?.toUpperCase() !== selectedSquad) return false;
+    }
     if (searchTerm.trim()) {
       return t.description.toLowerCase().includes(searchTerm.toLowerCase());
     }
     return true;
   });
+
 
   return (
     <div className="space-y-4">
@@ -86,9 +103,24 @@ export function TransactionsTab({ startDate, endDate }: { startDate: string; end
                 { value: 'PAID', label: 'Pago' },
                 { value: 'PENDING', label: 'Pendente' },
                 { value: 'CANCELLED', label: 'Cancelado' },
+                { value: 'OVERDUE', label: 'Atrasada' },
+              ],
+            },
+            {
+              id: 'squad',
+              type: 'select',
+              icon: Users,
+              placeholder: 'Todos Squads',
+              value: selectedSquad,
+              onChange: setSelectedSquad,
+              activeColorClass: 'bg-violet-50 text-violet-700 border-violet-100',
+              options: [
+                { value: 'TARGET', label: 'Squad TARGET' },
+                { value: 'PLUPPEX', label: 'Squad PLUPPEX' },
               ],
             },
           ]}
+
         />
       </div>
 

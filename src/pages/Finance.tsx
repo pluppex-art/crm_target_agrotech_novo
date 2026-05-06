@@ -1,5 +1,21 @@
-import { useState } from 'react';
-import { Plus, Download, ShieldAlert, LayoutDashboard, HandCoins, Tag, Users, Settings, Handshake, Wallet, CalendarRange } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { 
+  Plus, 
+  Download, 
+  ShieldAlert, 
+  LayoutDashboard, 
+  HandCoins, 
+  Tag, 
+  Users, 
+  Settings, 
+  Handshake, 
+  Wallet, 
+  CalendarRange,
+  ChevronLeft,
+  ChevronRight,
+  Check,
+  Calendar
+} from 'lucide-react';
 import { usePermissions } from '../hooks/usePermissions';
 import { NewTransactionModal } from '../components/finance/NewTransactionModal';
 import { DashboardTab } from '../components/finance/DashboardTab';
@@ -10,40 +26,98 @@ import { CategoriesTab } from '../components/finance/CategoriesTab';
 import { PartnerTab } from '../components/finance/PartnerTab';
 import { SettingsTab } from '../components/finance/SettingsTab';
 import { cn } from '../lib/utils';
+import { PeriodFilterModal } from '../components/common/PeriodFilterModal';
 
 type TabId = 'dashboard' | 'cashflow' | 'dre' | 'ote' | 'categories' | 'partner' | 'settings';
 
-const today = new Date();
-const defaultPeriod = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
-
-function getLastDay(firstDay: string): string {
-  const d = new Date(firstDay + 'T12:00:00');
-  return new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0];
-}
-
-function formatPeriodLabel(firstDay: string): string {
-  return new Date(firstDay + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-}
+// Helper functions for dates
+const getISODate = (date: Date) => date.toISOString().split('T')[0];
+const getStartOfMonth = (year: number, month: number) => getISODate(new Date(year, month, 1));
+const getEndOfMonth = (year: number, month: number) => getISODate(new Date(year, month + 1, 0));
 
 export function Finance() {
   const { hasPermission } = usePermissions();
   const [activeTab, setActiveTab] = useState<TabId>('dashboard');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [filterPeriod, setFilterPeriod] = useState(defaultPeriod);
+  
+  // Date States
+  const today = new Date();
+  const [startDate, setStartDate] = useState(getStartOfMonth(today.getFullYear(), today.getMonth()));
+  const [endDate, setEndDate] = useState(getEndOfMonth(today.getFullYear(), today.getMonth()));
+  
+  // Filter Modal States
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [tempPeriod, setTempPeriod] = useState(defaultPeriod);
+  const [tempStart, setTempStart] = useState(startDate);
+  const [tempEnd, setTempEnd] = useState(endDate);
 
-  const startDate = filterPeriod;
-  const endDate = getLastDay(filterPeriod);
-
-  const openFilter = () => {
-    setTempPeriod(filterPeriod);
-    setIsFilterOpen(true);
-  };
+  const filterLabel = useMemo(() => {
+    const s = new Date(startDate + 'T12:00:00');
+    const e = new Date(endDate + 'T12:00:00');
+    
+    // If it's a full month
+    if (s.getDate() === 1 && e.getDate() === new Date(s.getFullYear(), s.getMonth() + 1, 0).getDate() && s.getMonth() === e.getMonth()) {
+      return s.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    }
+    
+    return `${s.toLocaleDateString('pt-BR')} - ${e.toLocaleDateString('pt-BR')}`;
+  }, [startDate, endDate]);
 
   const applyFilter = () => {
-    setFilterPeriod(tempPeriod);
+    setStartDate(tempStart);
+    setEndDate(tempEnd);
     setIsFilterOpen(false);
+  };
+
+  const setShortcut = (type: string) => {
+    const now = new Date();
+    let s = new Date();
+    let e = new Date();
+
+    switch (type) {
+      case 'today':
+        break;
+      case 'yesterday':
+        s.setDate(s.getDate() - 1);
+        e.setDate(e.getDate() - 1);
+        break;
+      case '7days':
+        s.setDate(s.getDate() - 7);
+        break;
+      case '30days':
+        s.setDate(s.getDate() - 30);
+        break;
+      case 'thisMonth':
+        s = new Date(now.getFullYear(), now.getMonth(), 1);
+        e = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        break;
+      case 'lastMonth':
+        s = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        e = new Date(now.getFullYear(), now.getMonth(), 0);
+        break;
+      case 'thisYear':
+        s = new Date(now.getFullYear(), 0, 1);
+        e = new Date(now.getFullYear(), 11, 31);
+        break;
+    }
+
+    setTempStart(getISODate(s));
+    setTempEnd(getISODate(e));
+  };
+
+  const handleMonthChange = (month: number) => {
+    const current = new Date(tempStart + 'T12:00:00');
+    const s = new Date(current.getFullYear(), month, 1);
+    const e = new Date(current.getFullYear(), month + 1, 0);
+    setTempStart(getISODate(s));
+    setTempEnd(getISODate(e));
+  };
+
+  const handleYearChange = (year: number) => {
+    const current = new Date(tempStart + 'T12:00:00');
+    const s = new Date(year, current.getMonth(), 1);
+    const e = new Date(year, current.getMonth() + 1, 0);
+    setTempStart(getISODate(s));
+    setTempEnd(getISODate(e));
   };
 
   if (!hasPermission('finance.view')) {
@@ -66,64 +140,70 @@ export function Finance() {
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'cashflow', label: 'Fluxo de Caixa', icon: Wallet },
     { id: 'dre', label: 'DRE', icon: HandCoins },
-    { id: 'ote', label: 'OTE / Comissões', icon: Users },
+    { id: 'ote', label: 'OTE / Comissões', icon: Tag },
     { id: 'partner', label: 'Parceria', icon: Handshake },
-    { id: 'categories', label: 'Categorias', icon: Tag },
+    { id: 'categories', label: 'Categorias', icon: Users },
     { id: 'settings', label: 'Configurações', icon: Settings },
-  ];
+  ] as const;
 
   return (
-    <div className="flex h-full overflow-hidden">
-      {/* Sub-sidebar */}
-      <aside className="w-52 flex-shrink-0 bg-white border-r border-slate-100 overflow-y-auto flex flex-col">
-        <div className="px-4 py-4 border-b border-slate-100">
-          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Centro Financeiro</p>
+    <div className="flex h-full bg-slate-50/50">
+      {/* Sidebar - Redesigned to match the more premium feel */}
+      <div className="w-64 bg-white border-r border-slate-200 flex flex-col">
+        <div className="p-6">
+          <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Centro Financeiro</h2>
+          <nav className="space-y-1">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  "w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-bold transition-all",
+                  activeTab === tab.id
+                    ? "bg-emerald-50 text-emerald-700 shadow-sm shadow-emerald-100/50 border border-emerald-100"
+                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+                )}
+              >
+                <tab.icon className={cn("w-4 h-4", activeTab === tab.id ? "text-emerald-600" : "text-slate-400")} />
+                {tab.label}
+              </button>
+            ))}
+          </nav>
         </div>
-        <nav className="flex-1 px-2 py-2 space-y-0.5">
-          {tabs.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => setActiveTab(id as TabId)}
-              className={cn(
-                'w-full flex items-center gap-2.5 rounded-xl px-3 h-9 text-sm font-medium transition-all',
-                activeTab === id
-                  ? 'bg-emerald-50 text-emerald-700'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-              )}
-            >
-              <Icon className="w-4 h-4 flex-shrink-0" />
-              <span className="truncate">{label}</span>
-            </button>
-          ))}
-        </nav>
-      </aside>
+      </div>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden bg-[#f3f6f9]">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-6 py-5 bg-white border-b border-slate-100">
+      <div className="flex-1 flex flex-col min-w-0">
+        <div className="h-20 bg-white border-b border-slate-200 px-8 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-slate-800">Centro Financeiro</h1>
-            <p className="text-sm text-slate-500">Gestão de resultados e automação financeira do CRM.</p>
+            <h1 className="text-xl font-black text-slate-800 tracking-tight">Centro Financeiro</h1>
+            <p className="text-xs text-slate-400 font-medium">Gestão de resultados e automação financeira do CRM.</p>
           </div>
-          <div className="flex items-center gap-3 w-full sm:w-auto">
+
+          <div className="flex items-center gap-3">
             <button
-              onClick={openFilter}
-              className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg bg-white text-sm font-medium hover:bg-slate-50 transition-all"
+              onClick={() => {
+                setTempStart(startDate);
+                setTempEnd(endDate);
+                setIsFilterOpen(true);
+              }}
+              className="flex items-center gap-3 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-100 transition-all group"
             >
-              <CalendarRange className="w-4 h-4 text-slate-500" />
-              <span className="capitalize">{formatPeriodLabel(filterPeriod)}</span>
+              <CalendarRange className="w-4 h-4 text-slate-400 group-hover:text-emerald-600" />
+              <span className="capitalize">{filterLabel}</span>
             </button>
-            {hasPermission('finance.export') && (
-              <button className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-slate-200 rounded-lg bg-white text-sm font-medium hover:bg-slate-50 transition-all">
+
+            {activeTab !== 'categories' && activeTab !== 'settings' && (
+              <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all">
                 <Download className="w-4 h-4" />
                 <span className="hidden sm:inline">Exportar</span>
               </button>
             )}
+            
             {hasPermission('finance.create') && (
               <button
                 onClick={() => setIsModalOpen(true)}
-                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-all shadow-sm whitespace-nowrap"
+                className="flex items-center gap-2 px-6 py-2 bg-emerald-600 text-white rounded-xl text-sm font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100"
               >
                 <Plus className="w-4 h-4" />
                 Nova Transação
@@ -133,48 +213,29 @@ export function Finance() {
         </div>
 
         {/* Tab content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto">
           {activeTab === 'dashboard' && <DashboardTab startDate={startDate} endDate={endDate} />}
           {activeTab === 'cashflow' && <CashFlowTab startDate={startDate} endDate={endDate} />}
           {activeTab === 'dre' && <DreTab startDate={startDate} endDate={endDate} />}
-          {activeTab === 'ote' && <OteTab periodMonth={filterPeriod} />}
+          {activeTab === 'ote' && <OteTab startDate={startDate} endDate={endDate} />}
           {activeTab === 'partner' && <PartnerTab startDate={startDate} endDate={endDate} />}
           {activeTab === 'categories' && <CategoriesTab />}
           {activeTab === 'settings' && <SettingsTab />}
         </div>
       </div>
 
-      {/* Period filter modal */}
-      {isFilterOpen && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center" onClick={() => setIsFilterOpen(false)}>
-          <div className="bg-white rounded-2xl p-6 shadow-xl w-80" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-base font-bold text-slate-800 mb-4">Filtrar Período</h3>
-            <div className="mb-6">
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Mês de referência</label>
-              <input
-                type="month"
-                value={tempPeriod.substring(0, 7)}
-                onChange={(e) => setTempPeriod(`${e.target.value}-01`)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
-              />
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setIsFilterOpen(false)}
-                className="flex-1 px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={applyFilter}
-                className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-all"
-              >
-                Aplicar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* NEW PREMIUM PERIOD FILTER MODAL */}
+      <PeriodFilterModal
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        onApply={(s, e) => {
+          setStartDate(s);
+          setEndDate(e);
+          setIsFilterOpen(false);
+        }}
+        currentStartDate={startDate}
+        currentEndDate={endDate}
+      />
 
       {/* Modals */}
       <NewTransactionModal

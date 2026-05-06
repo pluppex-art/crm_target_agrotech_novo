@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
-import { Loader2, ShieldAlert, Users, Filter, Search, ChevronDown, ChevronUp, X, Calendar, GitBranch, Package, User, Clock, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Loader2, ShieldAlert, Users, Filter, Search, ChevronDown, ChevronUp, X, Calendar, GitBranch, Package, User, Clock, AlertCircle, CheckCircle2, DollarSign, TrendingUp } from 'lucide-react';
 import { usePermissions } from '../hooks/usePermissions';
 import { useLeadStore } from '../store/useLeadStore';
 import { useFinanceStore } from '../store/useFinanceStore';
@@ -10,7 +10,8 @@ import { usePipelineStore } from '../store/usePipelineStore';
 import { goalService } from '../services/goalService';
 import { isVendedor } from '../lib/utils';
 
-import { useSalesMetrics } from '../hooks/useSalesMetrics';
+import { useSalesMetrics, EXCLUDED_STAGES } from '../hooks/useSalesMetrics';
+import { stageNameToStatus } from '../lib/utils';
 import { useFinanceMetrics } from '../hooks/useFinanceMetrics';
 import { MetricCard } from '../components/dashboard/MetricCard';
 import { HorizontalBar } from '../components/dashboard/HorizontalBar';
@@ -44,7 +45,7 @@ function OccupancyCard({ occupancyData }: { occupancyData: OccupancyItem[] }) {
     if (activeCategory === null && categories.length > 0) {
       const best = categories.reduce((a, b) =>
         occupancyData.filter(d => d.category === b).length > occupancyData.filter(d => d.category === a).length ? b : a
-      , categories[0]);
+        , categories[0]);
       setActiveCategory(best);
     }
   }, [categories, activeCategory, occupancyData]);
@@ -67,9 +68,8 @@ function OccupancyCard({ occupancyData }: { occupancyData: OccupancyItem[] }) {
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
                   title={cat}
-                  className={`w-8 h-8 rounded-lg text-base flex items-center justify-center transition-all ${
-                    isActive ? 'bg-white shadow-sm' : 'opacity-50 hover:opacity-75'
-                  }`}
+                  className={`w-8 h-8 rounded-lg text-base flex items-center justify-center transition-all ${isActive ? 'bg-white shadow-sm' : 'opacity-50 hover:opacity-75'
+                    }`}
                 >
                   {icon}
                 </button>
@@ -239,8 +239,7 @@ export function Dashboard() {
         ].filter(Boolean).length;
 
         const selectCls = (active: boolean) =>
-          `w-full pr-8 py-2 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none cursor-pointer text-sm font-medium transition-all text-ellipsis whitespace-nowrap overflow-hidden ${
-            active ? 'bg-emerald-50/50 border-emerald-300 text-emerald-800' : 'border-gray-200 text-gray-700'
+          `w-full pr-8 py-2 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none cursor-pointer text-sm font-medium transition-all text-ellipsis whitespace-nowrap overflow-hidden ${active ? 'bg-emerald-50/50 border-emerald-300 text-emerald-800' : 'border-gray-200 text-gray-700'
           }`;
 
         return (
@@ -366,12 +365,13 @@ export function Dashboard() {
       })()}
 
       {/* KPI Metrics */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
         <MetricCard label="Total de Leads" value={String(salesMetrics.leadsCount)} icon={Users} color="bg-emerald-50 text-emerald-600" />
-        <MetricCard label="Ganhos" value={String(salesMetrics.closedLeadsCount)} icon={Users} color="bg-emerald-50 text-emerald-600" />
-        <MetricCard label="Conversão" value={`${salesMetrics.conversionRate.toFixed(1)}%`} icon={Users} color="bg-purple-50 text-purple-600" />
-        <MetricCard label="Ciclo Médio (Dias)" value={String(salesMetrics.averageSalesCycle)} icon={Clock} color="bg-rose-50 text-rose-600" />
-        <MetricCard label="Sem Atividade (>2 dias)" value={String(salesMetrics.inactiveLeadsCount)} icon={AlertCircle} color="bg-amber-50 text-amber-600" />
+        <MetricCard label="Vendas (Qtd)" value={String(salesMetrics.closedLeadsCount)} icon={Users} color="bg-blue-50 text-blue-600" />
+        <MetricCard label="Receita Realizada" value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(salesMetrics.totalGanhos)} icon={DollarSign} color="bg-emerald-50 text-emerald-600" />
+        <MetricCard label="Conversão" value={`${salesMetrics.conversionRate.toFixed(1)}%`} icon={TrendingUp} color="bg-purple-50 text-purple-600" />
+        <MetricCard label="Ciclo Médio" value={`${salesMetrics.averageSalesCycle} dias`} icon={Clock} color="bg-rose-50 text-rose-600" />
+        <MetricCard label="Sem Atividade" value={String(salesMetrics.inactiveLeadsCount)} icon={AlertCircle} color="bg-amber-50 text-amber-600" />
       </div>
 
       {/* ── Ranking + Semáforo + Taxa de Ocupação ── */}
@@ -482,7 +482,7 @@ export function Dashboard() {
       {/* Trends + Meta */}
       <TrendsSection
         sales={salesMetrics}
-        totalAchieved={salesMetrics.closedLeadsCount}
+        totalAchieved={salesMetrics.leadsCount}
         totalGoal={totalLeadsGoal}
       />
     </div>

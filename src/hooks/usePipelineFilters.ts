@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import type { Lead } from '../types/leads';
 import { useProfileStore } from '../store/useProfileStore';
+import { getSupabaseClient } from '../lib/supabase';
 
 export const usePipelineFilters = (leads: Lead[], authUserId?: string, isComercial?: boolean) => {
   const { profiles, fetchProfiles } = useProfileStore();
@@ -9,10 +10,46 @@ export const usePipelineFilters = (leads: Lead[], authUserId?: string, isComerci
   const [selectedStatus, setSelectedStatus] = useState<string | 'all'>('all');
   const [selectedProduct, setSelectedProduct] = useState<string>('all');
   const [selectedStars, setSelectedStars] = useState<number[]>([]);
+  const [selectedSquad, setSelectedSquad] = useState<string>('all');
+  const [squadMapping, setSquadMapping] = useState<Record<string, string[]>>({});
+
 
   useEffect(() => {
     fetchProfiles();
-  }, [fetchProfiles]);
+    
+    // Fetch squad members mapping
+    const fetchSquads = async () => {
+      const supabase = getSupabaseClient();
+      if (!supabase) return;
+
+      const [squadsRes, membersRes] = await Promise.all([
+        supabase.from('squads').select('id, name'),
+        supabase.from('squad_members').select('squad_id, user_id').eq('active', true)
+      ]);
+
+      if (squadsRes.data && membersRes.data) {
+        const mapping: Record<string, string[]> = {};
+        
+        membersRes.data.forEach(m => {
+          const squad = squadsRes.data.find(s => s.id === m.squad_id);
+          if (!squad) return;
+          
+          const squadKey = squad.name.toUpperCase();
+          if (!mapping[squadKey]) mapping[squadKey] = [];
+          
+          const profile = profiles.find(p => p.id === m.user_id);
+          if (profile?.name) {
+            mapping[squadKey].push(profile.name.toLowerCase());
+          }
+        });
+        setSquadMapping(mapping);
+      }
+    };
+
+    if (profiles.length > 0) {
+      fetchSquads();
+    }
+  }, [fetchProfiles, profiles]);
 
   // Nome do usuário atual no perfil
   const myProfileName = useMemo(() => {
@@ -20,7 +57,7 @@ export const usePipelineFilters = (leads: Lead[], authUserId?: string, isComerci
     return profiles.find((p: any) => p.id === authUserId)?.name ?? null;
   }, [authUserId, profiles]);
 
-  // Nomes base únicos de produto (parte antes da primeira vírgula, ex: "Drone, Palmas-TO, 01/05" → "Drone")
+  // Nomes base únicos de produto
   const productOptions = useMemo(() => {
     const seen = new Set<string>();
     return leads
@@ -38,7 +75,7 @@ export const usePipelineFilters = (leads: Lead[], authUserId?: string, isComerci
       });
   }, [leads]);
 
-  // Nomes de responsáveis: perfis do Comercial/Vendedor + nomes únicos que aparecem nos leads
+  // Nomes de responsáveis
   const responsibles = useMemo(() => {
     const fromProfiles = profiles
       .filter(p => {
@@ -75,29 +112,55 @@ export const usePipelineFilters = (leads: Lead[], authUserId?: string, isComerci
       lead.product.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (lead.phone && lead.phone.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (lead.responsible && lead.responsible.toLowerCase().includes(searchTerm.toLowerCase()));
+    
     const selectedResponsibleLower = selectedResponsible.trim().toLowerCase();
     const leadResponsibleLower = (lead.responsible ?? '').trim().toLowerCase();
+    
     const matchesResponsible = selectedResponsible === 'all' ||
       leadResponsibleLower === selectedResponsibleLower ||
       leadResponsibleLower.includes(selectedResponsibleLower) ||
       selectedResponsibleLower.includes(leadResponsibleLower);
+    
     const selectedProductLower = selectedProduct.trim().toLowerCase();
     const leadProductLower = (lead.product ?? '').trim().toLowerCase();
+    
     const matchesProduct = selectedProduct === 'all' ||
       leadProductLower === selectedProductLower ||
       leadProductLower.includes(selectedProductLower) ||
       selectedProductLower.includes(leadProductLower);
+    
     const matchesStars = selectedStars.length === 0 || selectedStars.includes(lead.stars || 0);
-    return matchesSearch && matchesResponsible && matchesProduct && matchesStars;
-  }), [leads, searchTerm, selectedResponsible, selectedProduct, selectedStars]);
+
+    const matchesSquad = selectedSquad === 'all' || (() => {
+      const squadName = selectedSquad.toUpperCase(); // Ex: "TARGET" ou "PLUPPEX"
+      const members = squadMapping[squadName] || [];
+      if (!leadResponsibleLower) return false;
+
+      // Smart match
+      return members.some(mName => {
+        if (mName === leadResponsibleLower) return true;
+        if (mName.includes(leadResponsibleLower) || leadResponsibleLower.includes(mName)) return true;
+        
+        const leadWords = leadResponsibleLower.split(/\s+/).filter(w => w.length > 2);
+        const memberWords = mName.split(/\s+/).filter(w => w.length > 2);
+        const common = leadWords.filter(lw => memberWords.some(mw => mw.includes(lw) || lw.includes(mw)));
+        return common.length >= 2;
+      });
+    })();
+
+    return matchesSearch && matchesResponsible && matchesProduct && matchesStars && matchesSquad;
+  }), [leads, searchTerm, selectedResponsible, selectedProduct, selectedStars, selectedSquad, profiles, squadMapping]);
+
 
   const activeFilterCount = useMemo(() => [
     selectedResponsible !== 'all',
     selectedProduct !== 'all',
     selectedStatus !== 'all',
     selectedStars.length > 0,
+    selectedSquad !== 'all',
     searchTerm !== '',
-  ].filter(Boolean).length, [selectedResponsible, selectedProduct, selectedStatus, selectedStars, searchTerm]);
+  ].filter(Boolean).length, [selectedResponsible, selectedProduct, selectedStatus, selectedStars, selectedSquad, searchTerm]);
+
 
   const clearAllFilters = () => {
     setSearchTerm('');
@@ -105,7 +168,9 @@ export const usePipelineFilters = (leads: Lead[], authUserId?: string, isComerci
     setSelectedProduct('all');
     setSelectedStatus('all');
     setSelectedStars([]);
+    setSelectedSquad('all');
   };
+
 
   return {
     searchTerm,
@@ -113,6 +178,7 @@ export const usePipelineFilters = (leads: Lead[], authUserId?: string, isComerci
     selectedProduct,
     selectedResponsible,
     selectedStars,
+    selectedSquad,
     responsibles,
     productOptions,
     filteredLeads,
@@ -123,5 +189,7 @@ export const usePipelineFilters = (leads: Lead[], authUserId?: string, isComerci
     setSelectedProduct,
     setSelectedResponsible,
     setSelectedStars,
+    setSelectedSquad,
   };
+
 };

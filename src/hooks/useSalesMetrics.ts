@@ -16,7 +16,7 @@ import {
   stageNameToStatus,
 } from '../lib/utils';
 
-const EXCLUDED_STAGES = new Set(['Perdido', 'Desqualificado']);
+export const EXCLUDED_STAGES = new Set(['Perdido', 'Desqualificado']);
 
 export interface SalesMetrics {
   totalGanhos: number;
@@ -167,7 +167,6 @@ export function useSalesMetrics({
 
   const closedLeadsGlobal = useMemo(() => {
     return summaryLeadsPool.filter((l: any) => {
-      // Basic check for won stage
       const stageName = l.stage_id ? stageMap.get(l.stage_id) : (l.status || '');
       const statusLower = (stageName || '').toLowerCase();
       
@@ -177,23 +176,8 @@ export function useSalesMetrics({
                     stageNameToStatus(statusLower) === 'closed';
 
       if (!isWon) return false;
-
-      // For Global/All-time summary, we only filter out if the month has passed relative to TODAY
-      const now = new Date();
-      const currentMonth = now.getMonth();
-      const currentYear = now.getFullYear();
-
-      const leadTurma = turmas.find(t => t.attendees?.some(a => a.lead_id === l.id));
-      if (leadTurma && leadTurma.date) {
-        const tDate = new Date(leadTurma.date);
-        if (tDate.getFullYear() < currentYear || (tDate.getFullYear() === currentYear && tDate.getMonth() < currentMonth)) {
-          return false;
-        }
-      }
-
-      return true;
     });
-  }, [summaryLeadsPool, stageMap, turmas]);
+  }, [summaryLeadsPool, stageMap]);
 
   // Total Leads in Pipeline (Active + Won) - Global/All-time
   const leadsInPipelineGlobal = useMemo(() => {
@@ -346,16 +330,40 @@ export function useSalesMetrics({
   }, [globalFilteredLeads, pipelines, tasks]);
 
 
+  const activeLeadsFiltered = useMemo(() => {
+    const start = startDate ? new Date(startDate + "T00:00:00") : null;
+    const end = endDate ? new Date(endDate + "T23:59:59") : null;
+
+    return (leads as any[]).filter((l: any) => {
+      // Basic check for active stage
+      const stageName = l.stage_id ? stageMap.get(l.stage_id) : (l.status || '');
+      const statusLower = (stageName || '').toLowerCase();
+      
+      const isExcluded = EXCLUDED_STAGES.has(stageName) || 
+                         statusLower.includes('perdido') || 
+                         statusLower.includes('desqualificado');
+
+      if (isExcluded) return false;
+
+      // ── Date Filtering (By Last Activity/Creation) ──────────────────────────
+      const leadDate = new Date(l.updated_at || l.created_at);
+      if (start && leadDate < start) return false;
+      if (end && leadDate > end) return false;
+
+      return true;
+    });
+  }, [leads, stageMap, startDate, endDate]);
+
   const totalSalesValue = closedLeadsFiltered.reduce(
     (s: number, l: any) => s + getLeadEffectiveValue(l),
     0
   );
 
   const totalGanhos = useMemo(() => {
-  return closedLeadsFiltered.reduce((sum, l) => {
-    return sum + financialCalculator.getPaidAmount(l, products);
-  }, 0);
-}, [closedLeadsFiltered, products]);
+    return activeLeadsFiltered.reduce((sum, l) => {
+      return sum + financialCalculator.getPaidAmount(l, products);
+    }, 0);
+  }, [activeLeadsFiltered, products]);
 
 const myGanhos = totalGanhos; // totalGanhos already considers currentSellerName/filterResponsible
 const teamGanhos = 0; // Not used in this view but keeping for compatibility
@@ -396,10 +404,11 @@ const salesByResponsible = useMemo(() => {
       if (!wonTime) wonTime = new Date(l.updated_at || l.created_at).getTime();
       
       const wonDate = new Date(wonTime);
-      const isClosed = stageNameToStatus(l.status) === 'closed' || 
-                      (l.stage_id && pipelines[0]?.stages.find(s => s.id === l.stage_id && stageNameToStatus(s.name) === 'closed'));
+      const createdDate = new Date(l.created_at);
+      const isExcluded = EXCLUDED_STAGES.has(l.status) || 
+                         (l.stage_id && pipelines[0]?.stages.find(s => s.id === l.stage_id && EXCLUDED_STAGES.has(s.name)));
 
-      if (isClosed && (!start || wonDate >= start) && (!end || wonDate <= end)) {
+      if (!isExcluded && (!start || createdDate >= start) && (!end || createdDate <= end)) {
         result[lowerKey].count += 1;
         result[lowerKey].value += getLeadEffectiveValue(l);
         result[lowerKey].received += financialCalculator.getPaidAmount(l, products);
@@ -693,8 +702,13 @@ const monthlySales = useMemo(() => {
     const p = pipelines[0];
     const stageMap = new Map(p?.stages?.map(s => [s.id, s.name.toLowerCase()]) || []);
     const stageName = l.stage_id ? stageMap.get(l.stage_id) : l.status?.toLowerCase();
-    if (!stageName) return false;
-    return stageName.includes('ganho') || stageName.includes('fechado') || stageName.includes('aprovado') || stageNameToStatus(stageName) === 'closed';
+    if (!stageName) return true;
+    
+    const isExcluded = EXCLUDED_STAGES.has(stageName) || 
+                       stageName.includes('perdido') || 
+                       stageName.includes('desqualificado');
+    
+    return !isExcluded;
   });
 
   const isDaily = dateIntervals.length > 0 && dateIntervals[0].type === 'day';

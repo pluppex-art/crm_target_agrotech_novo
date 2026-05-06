@@ -16,16 +16,16 @@ export function TrendsSection({ sales, totalAchieved, totalGoal }: TrendsSection
     totalPct >= 100
       ? { bar: '#10b981', badge: 'bg-emerald-100 text-emerald-700' }
       : totalPct >= 75
-      ? { bar: '#3b82f6', badge: 'bg-blue-100 text-blue-700' }
-      : totalPct >= 50
-      ? { bar: '#f59e0b', badge: 'bg-amber-100 text-amber-700' }
-      : { bar: '#ef4444', badge: 'bg-rose-100 text-rose-700' };
+        ? { bar: '#3b82f6', badge: 'bg-blue-100 text-blue-700' }
+        : totalPct >= 50
+          ? { bar: '#f59e0b', badge: 'bg-amber-100 text-amber-700' }
+          : { bar: '#ef4444', badge: 'bg-rose-100 text-rose-700' };
 
   const statusLabel =
     totalPct >= 100 ? '🏆 Meta Atingida!' :
-    totalPct >= 75  ? '🔥 Quase lá!' :
-    totalPct >= 50  ? '⚡ Em progresso' :
-    '🎯 No início';
+      totalPct >= 75 ? '🔥 Quase lá!' :
+        totalPct >= 50 ? '⚡ Em progresso' :
+          '🎯 No início';
 
   const chartData = sales.monthlySales.map(m => ({
     name: m.label,
@@ -98,37 +98,37 @@ export function TrendsSection({ sales, totalAchieved, totalGoal }: TrendsSection
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis 
-                  dataKey="name" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fontSize: 12, fill: '#94a3b8', fontWeight: 500 }} 
+                <XAxis
+                  dataKey="name"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 12, fill: '#94a3b8', fontWeight: 500 }}
                   dy={10}
                 />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fontSize: 12, fill: '#94a3b8', fontWeight: 500 }} 
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 12, fill: '#94a3b8', fontWeight: 500 }}
                 />
-                <Tooltip 
+                <Tooltip
                   contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)' }}
                   itemStyle={{ fontWeight: 700 }}
                   labelStyle={{ fontWeight: 600, color: '#64748b', marginBottom: '4px' }}
-                  formatter={(value: number, name: string) => [value, name === 'ganhos' ? 'Ganhos no Mês' : 'Meta Fixa']}
+                  formatter={(value: number, name: string) => [value, name === 'ganhos' ? 'Leads no Pipeline' : 'Meta Fixa']}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="meta" 
-                  stroke="#3b82f6" 
+                <Line
+                  type="monotone"
+                  dataKey="meta"
+                  stroke="#3b82f6"
                   strokeWidth={2}
                   dot={{ r: 4, strokeWidth: 2, fill: '#fff', stroke: '#3b82f6' }}
                   activeDot={false}
                   name="meta"
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="ganhos" 
-                  stroke="#f59e0b" 
+                <Line
+                  type="monotone"
+                  dataKey="ganhos"
+                  stroke="#f59e0b"
                   strokeWidth={3}
                   dot={{ r: 5, strokeWidth: 2, fill: '#fff', stroke: '#f59e0b' }}
                   activeDot={{ r: 7, fill: '#f59e0b', stroke: '#fff', strokeWidth: 2 }}
