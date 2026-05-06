@@ -87,6 +87,7 @@ export interface CommissionResult {
   // UI joined fields
   user_name?: string;
   squad_name?: string;
+  squad_color?: string;
 }
 
 // Fonte oficial do nível/função de cada usuário no OTE

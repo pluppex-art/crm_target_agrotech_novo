@@ -16,8 +16,6 @@ import {
   stageNameToStatus,
 } from '../lib/utils';
 
-export const EXCLUDED_STAGES = new Set(['Perdido', 'Desqualificado']);
-
 export interface SalesMetrics {
   totalGanhos: number;
   myGanhos: number;
@@ -108,9 +106,6 @@ export function useSalesMetrics({
   const { products } = useProductStore();
   const vendedorProfiles = useMemo(() => profiles.filter(isVendedor), [profiles]);
 
-  const pipeline = pipelines[0];
-  const stageMap = new Map(pipeline?.stages?.map(s => [s.id, s.name]) || []);
-
   const availableProducts = useMemo(() => {
     const seen = new Set<string>();
     leads.forEach((l: any) => { if (l.product) seen.add(l.product); });
@@ -123,9 +118,10 @@ export function useSalesMetrics({
     return Array.from(seen).sort().map(r => ({ value: r, label: r }));
   }, [leads]);
 
-  // 1. Global/Date Filtered Leads (For Summary Cards)
-  const globalFilteredLeads = useMemo(() => {
+  const filteredLeads = useMemo(() => {
     let result = leads as any[];
+
+    // Date filtering
     if (startDate) {
       const start = new Date(startDate);
       result = result.filter(l => new Date(l.created_at) >= start);
@@ -135,12 +131,6 @@ export function useSalesMetrics({
       end.setHours(23, 59, 59, 999);
       result = result.filter(l => new Date(l.created_at) <= end);
     }
-    return result;
-  }, [leads, startDate, endDate]);
-
-  // 2. Fully Filtered Leads (For Charts and Rankings)
-  const filteredLeads = useMemo(() => {
-    let result = globalFilteredLeads;
 
     if (searchTerm) {
       const q = searchTerm.toLowerCase();
@@ -160,132 +150,45 @@ export function useSalesMetrics({
     }
 
     return result;
-  }, [globalFilteredLeads, searchTerm, filterStage, filterProduct, filterResponsible, currentSellerName]);
+  }, [leads, searchTerm, filterStage, filterProduct, filterResponsible, startDate, endDate, currentSellerName]);
 
-  // 3. Summary Leads Pool (Always Global/All-Time for the top cards)
-  const summaryLeadsPool = leads as any[];
 
-  const closedLeadsGlobal = useMemo(() => {
-    return summaryLeadsPool.filter((l: any) => {
-      const stageName = l.stage_id ? stageMap.get(l.stage_id) : (l.status || '');
-      const statusLower = (stageName || '').toLowerCase();
-      
-      const isWon = statusLower.includes('ganho') || 
-                    statusLower.includes('fechado') || 
-                    statusLower.includes('aprovado') || 
-                    stageNameToStatus(statusLower) === 'closed';
-
-      if (!isWon) return false;
-    });
-  }, [summaryLeadsPool, stageMap]);
-
-  // Total Leads in Pipeline (Active + Won) - Global/All-time
-  const leadsInPipelineGlobal = useMemo(() => {
-    return summaryLeadsPool.filter((l: any) => {
-      const stageName = l.stage_id ? stageMap.get(l.stage_id) : (l.status || '');
-      const statusLower = (stageName || '').toLowerCase();
-      
-      const isExcluded = EXCLUDED_STAGES.has(stageName) || 
-                         statusLower.includes('perdido') || 
-                         statusLower.includes('desqualificado');
-      
-      return !isExcluded;
-    });
-  }, [summaryLeadsPool]);
-
-  const leadsCount = leadsInPipelineGlobal.length;
-  const closedLeadsCount = closedLeadsGlobal.length;
-
-  const conversionRate =
-    leadsCount > 0 ? (closedLeadsCount / leadsCount) * 100 : 0;
 
   const closedLeadsFiltered = useMemo(() => {
-    const start = startDate ? new Date(startDate + "T00:00:00") : null;
-    const end = endDate ? new Date(endDate + "T23:59:59") : null;
-    const referenceDate = endDate ? new Date(endDate) : new Date();
-    const refMonth = referenceDate.getMonth();
-    const refYear = referenceDate.getFullYear();
+    const pipeline = pipelines[0];
+    const stageMap = new Map(pipeline?.stages?.map(s => [s.id, s.name]) || []);
 
-    return (leads as any[]).filter((l: any) => {
-      // Basic check for won stage
-      const stageName = l.stage_id ? stageMap.get(l.stage_id) : (l.status || '');
-      const statusLower = (stageName || '').toLowerCase();
-      
-      const isWon = statusLower.includes('ganho') || 
-                    statusLower.includes('fechado') || 
-                    statusLower.includes('aprovado') || 
-                    stageNameToStatus(statusLower) === 'closed';
+    return filteredLeads.filter((l: any) => {
+      // Check status field directly (legacy/manual)
+      if (l.status === 'closed' || stageNameToStatus(l.status) === 'closed') return true;
 
-      if (!isWon) return false;
-
-      // ── Date Filtering (By Won Date) ───────────────────────────────────────
-      // If we have history, find the exact moment it was won. Otherwise use updated_at.
-      let wonTime = 0;
-      if (l.history && Array.isArray(l.history)) {
-        const wonEntry = l.history.find((h: any) => {
-          const name = (h.stage_name || h.to_stage_name || '').toLowerCase();
-          return name.includes('ganho') || name.includes('fechado') || name.includes('aprovado');
-        });
-        if (wonEntry) wonTime = new Date(wonEntry.created_at).getTime();
-      }
-      if (!wonTime) wonTime = new Date(l.updated_at || l.created_at).getTime();
-      
-      const wonDate = new Date(wonTime);
-      if (start && wonDate < start) return false;
-      if (end && wonDate > end) return false;
-
-      // ── Turma Month Logic ──────────────────────────────────────────────────
-      const leadTurma = turmas.find(t => t.attendees?.some(a => a.lead_id === l.id));
-      if (leadTurma && leadTurma.date) {
-        const tDate = new Date(leadTurma.date);
-        if (tDate.getFullYear() < refYear || (tDate.getFullYear() === refYear && tDate.getMonth() < refMonth)) {
-          return false;
-        }
+      // Check via stage_id and stage name
+      if (l.stage_id) {
+        const stageName = stageMap.get(l.stage_id);
+        if (stageName && stageNameToStatus(stageName) === 'closed') return true;
       }
 
-      return true;
+      return false;
     });
-  }, [leads, stageMap, turmas, startDate, endDate]);
+  }, [filteredLeads, pipelines]);
 
+  const closedLeadsCount = closedLeadsFiltered.length;
 
-  const leadsInPipeline = useMemo(() => {
-    return globalFilteredLeads.filter((l: any) => {
-      const stageName = l.stage_id ? stageMap.get(l.stage_id) : (l.status || '');
-      const statusLower = (stageName || '').toLowerCase();
-      
-      const isExcluded = EXCLUDED_STAGES.has(stageName) || 
-                         statusLower.includes('perdido') || 
-                         statusLower.includes('desqualificado');
-      
-      return !isExcluded;
-    });
-  }, [globalFilteredLeads, stageMap]);
+  const conversionRate =
+    filteredLeads.length > 0 ? (closedLeadsCount / filteredLeads.length) * 100 : 0;
 
   const averageSalesCycle = useMemo(() => {
-  if (closedLeadsFiltered.length === 0) return 0;
+    if (closedLeadsFiltered.length === 0) return 0;
 
-  const totalDays = closedLeadsFiltered.reduce((sum, l) => {
-    const created = new Date(l.created_at).getTime();
+    const totalDays = closedLeadsFiltered.reduce((sum, l) => {
+      const created = new Date(l.created_at).getTime();
+      const updated = new Date(l.updated_at || l.created_at).getTime();
+      let diffDays = Math.round((updated - created) / (1000 * 60 * 60 * 24));
+      return sum + (diffDays === 0 ? 1 : diffDays); // Minimum 1 day
+    }, 0);
 
-    // Use history if available to find the exact moment it was won
-    let wonTime = 0;
-    if (l.history && Array.isArray(l.history)) {
-      const wonEntry = l.history.find((h: any) => {
-        const name = (h.stage_name || h.to_stage_name || '').toLowerCase();
-        return name.includes('ganho') || name.includes('fechado') || name.includes('aprovado');
-      });
-      if (wonEntry) wonTime = new Date(wonEntry.created_at).getTime();
-    }
-
-    // Fallback to updated_at if history is missing or doesn't have won entry
-    if (!wonTime) wonTime = new Date(l.updated_at || l.created_at).getTime();
-
-    let diffDays = Math.round((wonTime - created) / (1000 * 60 * 60 * 24));
-    return sum + (diffDays <= 0 ? 1 : diffDays); // Minimum 1 day
-  }, 0);
-
-  return Math.round(totalDays / closedLeadsFiltered.length);
-}, [closedLeadsFiltered]);
+    return Math.round(totalDays / closedLeadsFiltered.length);
+  }, [closedLeadsFiltered]);
 
   const inactiveLeadsCount = useMemo(() => {
     const pipeline = pipelines[0];
@@ -294,16 +197,15 @@ export function useSalesMetrics({
     const now = new Date().getTime();
     const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
 
-    return globalFilteredLeads.filter((l: any) => {
+    return filteredLeads.filter((l: any) => {
       // Must NOT be closed (Ganho)
-      const stageName = l.stage_id ? stageMap.get(l.stage_id) : (l.status || '');
-      const statusLower = (stageName || '').toLowerCase();
-
-      const isClosed = statusLower.includes('ganho') || statusLower.includes('fechado') || statusLower.includes('aprovado') || stageNameToStatus(statusLower) === 'closed';
+      const isClosed = l.status === 'closed' || stageNameToStatus(l.status) === 'closed' ||
+        (l.stage_id && stageNameToStatus(stageMap.get(l.stage_id) || '') === 'closed');
       if (isClosed) return false;
 
       // Must NOT be lost or disqualified
-      if (statusLower.includes('perdido') || statusLower.includes('desqualificado')) return false;
+      const stageName = l.stage_id ? stageMap.get(l.stage_id) : l.status;
+      if (stageName && (stageName.toLowerCase().includes('perdido') || stageName.toLowerCase().includes('desqualificado'))) return false;
 
       // Check for recent updates to the lead
       const lastUpdate = new Date(l.updated_at || l.created_at).getTime();
@@ -314,10 +216,10 @@ export function useSalesMetrics({
         if (t.lead_id !== l.id) return false;
 
         // If it has a pending task scheduled for the future, it's NEVER inactive
-        const isPendingFuture = t.status === 'pending' && t.due_date && new Date(t.due_date).getTime() >= (now - 1000 * 60 * 60); // buffer 1h
+        const isPendingFuture = t.status === 'pending' && t.due_date && new Date(t.due_date).getTime() >= now;
         if (isPendingFuture) return true;
 
-        // Otherwise, check if the task was updated recently
+        // Otherwise, check if the task was created recently
         const taskTime = new Date((t as any).updated_at || t.created_at).getTime();
         return (now - taskTime) <= TWO_DAYS_MS;
       });
@@ -327,32 +229,8 @@ export function useSalesMetrics({
 
       return true;
     }).length;
-  }, [globalFilteredLeads, pipelines, tasks]);
+  }, [filteredLeads, pipelines, tasks]);
 
-
-  const activeLeadsFiltered = useMemo(() => {
-    const start = startDate ? new Date(startDate + "T00:00:00") : null;
-    const end = endDate ? new Date(endDate + "T23:59:59") : null;
-
-    return (leads as any[]).filter((l: any) => {
-      // Basic check for active stage
-      const stageName = l.stage_id ? stageMap.get(l.stage_id) : (l.status || '');
-      const statusLower = (stageName || '').toLowerCase();
-      
-      const isExcluded = EXCLUDED_STAGES.has(stageName) || 
-                         statusLower.includes('perdido') || 
-                         statusLower.includes('desqualificado');
-
-      if (isExcluded) return false;
-
-      // ── Date Filtering (By Last Activity/Creation) ──────────────────────────
-      const leadDate = new Date(l.updated_at || l.created_at);
-      if (start && leadDate < start) return false;
-      if (end && leadDate > end) return false;
-
-      return true;
-    });
-  }, [leads, stageMap, startDate, endDate]);
 
   const totalSalesValue = closedLeadsFiltered.reduce(
     (s: number, l: any) => s + getLeadEffectiveValue(l),
@@ -360,487 +238,484 @@ export function useSalesMetrics({
   );
 
   const totalGanhos = useMemo(() => {
-    return activeLeadsFiltered.reduce((sum, l) => {
+    return closedLeadsFiltered.reduce((sum, l) => {
       return sum + financialCalculator.getPaidAmount(l, products);
     }, 0);
-  }, [activeLeadsFiltered, products]);
+  }, [closedLeadsFiltered, products]);
 
-const myGanhos = totalGanhos; // totalGanhos already considers currentSellerName/filterResponsible
-const teamGanhos = 0; // Not used in this view but keeping for compatibility
+  const myGanhos = totalGanhos; // totalGanhos already considers currentSellerName/filterResponsible
+  const teamGanhos = 0; // Not used in this view but keeping for compatibility
 
-const occupancyData = getOccupancyData(turmas);
+  const occupancyData = getOccupancyData(turmas);
 
-// Seller ranking: uses pipeline closed lead counts for ranking, and combined lead + turret payments for received
-const salesByResponsible = useMemo(() => {
-  const result: Record<string, { label: string; value: number; received: number; count: number }> = {};
-  const start = startDate ? new Date(startDate) : null;
-  const end = endDate ? new Date(endDate) : null;
-  if (end) end.setHours(23, 59, 59, 999);
+  // Seller ranking: uses pipeline closed lead counts for ranking, and combined lead + turret payments for received
+  const salesByResponsible = useMemo(() => {
+    const result: Record<string, { label: string; value: number; received: number; count: number }> = {};
+    const start = startDate ? new Date(startDate) : null;
+    const end = endDate ? new Date(endDate) : null;
+    if (end) end.setHours(23, 59, 59, 999);
 
-  const globalTargetSeller = (currentSellerName || '').trim().toLowerCase();
+    const globalTargetSeller = (currentSellerName || '').trim().toLowerCase();
 
-  // 1. Process Leads
-  leads.forEach((l: any) => {
-    if (l.responsible) {
-      const rawKey = l.responsible.trim();
-      const lowerKey = rawKey.toLowerCase();
+    // 1. Process Leads
+    leads.forEach((l: any) => {
+      if (l.responsible) {
+        const rawKey = l.responsible.trim();
+        const lowerKey = rawKey.toLowerCase();
 
-      if (filterProduct !== 'all' && l.product !== filterProduct) return;
-      if (globalTargetSeller && lowerKey !== globalTargetSeller) return;
+        if (filterProduct !== 'all' && l.product !== filterProduct) return;
+        if (globalTargetSeller && lowerKey !== globalTargetSeller) return;
 
-      if (!result[lowerKey]) {
-        result[lowerKey] = { label: rawKey, value: 0, received: 0, count: 0 };
+        if (!result[lowerKey]) {
+          result[lowerKey] = { label: rawKey, value: 0, received: 0, count: 0 };
+        }
+
+        const cDate = new Date(l.created_at);
+        const uDate = l.updated_at ? new Date(l.updated_at) : cDate;
+
+        // Count Won Leads (by creation date) and accumulate their paid amount
+        if ((!start || cDate >= start) && (!end || cDate <= end)) {
+          const isClosed = stageNameToStatus(l.status) === 'closed' ||
+            (l.stage_id && pipelines[0]?.stages.find(s => s.id === l.stage_id && stageNameToStatus(s.name) === 'closed'));
+          if (isClosed) {
+            result[lowerKey].count += 1;
+            result[lowerKey].value += getLeadEffectiveValue(l);
+            result[lowerKey].received += financialCalculator.getPaidAmount(l, products);
+          }
+        }
       }
-
-      // ── Won Date Logic ─────────────────────────────────────────────────────
-      let wonTime = 0;
-      if (l.history && Array.isArray(l.history)) {
-        const wonEntry = l.history.find((h: any) => {
-          const name = (h.stage_name || h.to_stage_name || '').toLowerCase();
-          return name.includes('ganho') || name.includes('fechado') || name.includes('aprovado');
-        });
-        if (wonEntry) wonTime = new Date(wonEntry.created_at).getTime();
-      }
-      if (!wonTime) wonTime = new Date(l.updated_at || l.created_at).getTime();
-      
-      const wonDate = new Date(wonTime);
-      const createdDate = new Date(l.created_at);
-      const isExcluded = EXCLUDED_STAGES.has(l.status) || 
-                         (l.stage_id && pipelines[0]?.stages.find(s => s.id === l.stage_id && EXCLUDED_STAGES.has(s.name)));
-
-      if (!isExcluded && (!start || createdDate >= start) && (!end || createdDate <= end)) {
-        result[lowerKey].count += 1;
-        result[lowerKey].value += getLeadEffectiveValue(l);
-        result[lowerKey].received += financialCalculator.getPaidAmount(l, products);
-      }
-    }
-  });
+    });
 
     return Object.values(result).sort((a, b) => b.count - a.count);
   }, [leads, pipelines, startDate, endDate, filterProduct, filterResponsible, currentSellerName, products]);
 
   // Build seller goal map from goals (trim names to handle trailing spaces in DB)
   const sellerGoalMap = useMemo(() => {
-  return goals.reduce(
-    (acc: Record<string, { leads_goal: number; revenue_goal: number }>, g: any) => {
-      const goalData = {
-        leads_goal: g.leads_goal || 0,
-        revenue_goal: g.revenue_goal || 0
-      };
-      if (g.seller_name) {
-        acc[g.seller_name.trim()] = goalData;
+    return goals.reduce(
+      (acc: Record<string, { leads_goal: number; revenue_goal: number }>, g: any) => {
+        const goalData = {
+          leads_goal: g.leads_goal || 0,
+          revenue_goal: g.revenue_goal || 0
+        };
+        if (g.seller_name) {
+          acc[g.seller_name.trim()] = goalData;
+        }
+        if (g.seller_id) {
+          acc[g.seller_id.trim()] = goalData;
+        }
+        return acc;
+      },
+      {}
+    );
+  }, [goals]);
+
+  const allSellersRanking = useMemo(() => {
+    const byName: Record<
+      string,
+      { label: string; value: number; received: number; count: number; percentage: number; leads_goal: number; profileId?: string }
+    > = {};
+
+    // Get individual goal IDs (type 'seller')
+    const individualGoalIds = new Set(
+      goals.filter(g => g.type === 'seller').map(g => g.seller_id).filter(Boolean)
+    );
+    const individualGoalNames = new Set(
+      goals.filter(g => g.type === 'seller').map(g => g.seller_name?.trim()).filter(Boolean)
+    );
+
+    // 1. Add everyone who actually has sales
+    salesByResponsible.forEach((s) => {
+      const trimmedLabel = s.label.trim();
+      if (!trimmedLabel) return;
+
+      const profile = profiles.find(p => p.name?.trim() === trimmedLabel);
+
+      // Only include if:
+      // a) Is an official vendedor
+      // b) Has an individual goal set
+      const isOfficialVendedor = profile ? isVendedor(profile) : false;
+      const hasIndividualGoal = individualGoalNames.has(trimmedLabel) || (profile && individualGoalIds.has(profile.id));
+
+      if (isOfficialVendedor || hasIndividualGoal) {
+        byName[trimmedLabel] = {
+          ...s,
+          label: trimmedLabel,
+          percentage: 0,
+          leads_goal: 0,
+          profileId: profile?.id
+        };
       }
-      if (g.seller_id) {
-        acc[g.seller_id.trim()] = goalData;
+    });
+
+    // 2. Add all official vendedores (even if they have 0 sales)
+    vendedorProfiles.forEach((p: any) => {
+      const name = (p.name || '').trim();
+      if (name && !byName[name]) {
+        byName[name] = {
+          label: name,
+          value: 0,
+          received: 0,
+          count: 0,
+          percentage: 0,
+          leads_goal: 0,
+          profileId: p.id
+        };
       }
+    });
+
+    // 3. Calculate percentage and fetch goals
+    Object.values(byName).forEach((s: any) => {
+      const trimmedName = s.label.trim();
+      const goal = sellerGoalMap[trimmedName] || (s.profileId ? sellerGoalMap[s.profileId] : null);
+
+      s.leads_goal = goal?.leads_goal ?? 0;
+      s.percentage =
+        goal && goal.leads_goal > 0
+          ? Math.round((s.count / goal.leads_goal) * 100)
+          : 0;
+    });
+
+    // For any seller with 0% but positive count, show progress relative to top performer
+    const maxCount = Math.max(...Object.values(byName).map((s: any) => s.count), 1);
+    Object.values(byName).forEach((s: any) => {
+      if (s.percentage === 0 && s.count > 0) {
+        s.percentage = Math.round((s.count / maxCount) * 100);
+      }
+    });
+
+    // Sort by count (quantity of sales) descending — competition ranking
+    return Object.values(byName).sort(
+      (a: any, b: any) => b.count - a.count || b.percentage - a.percentage
+    ) as Array<{
+      label: string;
+      value: number;
+      received: number;
+      count: number;
+      percentage: number;
+      leads_goal: number;
+    }>;
+  }, [salesByResponsible, profiles, vendedorProfiles, goals, sellerGoalMap]);
+
+  const otherSellersRanking = useMemo(() => {
+    // Get individual goal IDs (type 'seller')
+    const individualGoalIds = new Set(
+      goals.filter(g => g.type === 'seller').map(g => g.seller_id).filter(Boolean)
+    );
+    const individualGoalNames = new Set(
+      goals.filter(g => g.type === 'seller').map(g => g.seller_name?.trim()).filter(Boolean)
+    );
+
+    const others: Array<{ label: string; value: number; received: number; count: number }> = [];
+
+    salesByResponsible.forEach((s) => {
+      const trimmedLabel = s.label.trim();
+      if (!trimmedLabel || s.count === 0) return;
+
+      const profile = profiles.find(p => p.name?.trim() === trimmedLabel);
+      const isOfficialVendedor = profile ? isVendedor(profile) : false;
+      const hasIndividualGoal = individualGoalNames.has(trimmedLabel) || (profile && individualGoalIds.has(profile.id));
+
+      if (!isOfficialVendedor && !hasIndividualGoal) {
+        others.push({
+          label: trimmedLabel,
+          value: s.value,
+          received: s.received,
+          count: s.count
+        });
+      }
+    });
+
+    return others.sort((a, b) => b.count - a.count);
+  }, [salesByResponsible, profiles, goals]);
+
+  // Seller Semaphore data: received vs goal with color coding (Monetary based)
+  const sellerSemaphoreData = useMemo(() => {
+    const combinedSellers = [...allSellersRanking, ...otherSellersRanking];
+
+    return combinedSellers.map((s: any) => {
+      const goal = sellerGoalMap[s.label.trim()];
+      const revGoal = goal?.revenue_goal ?? 0;
+
+      // Calculate pct based on actual money received vs revenue goal
+      let pct = 0;
+      if (revGoal > 0) {
+        pct = Math.round((s.received / revGoal) * 100);
+      } else if (s.count > 0 || s.received > 0) {
+        // If there's no goal but they made sales, show as 100% (Meta Atingida)
+        pct = 100;
+      }
+
+      let color: 'red' | 'yellow' | 'green' | 'gold';
+      let colorClass: string;
+      let barColor: string;
+
+      if (pct < 50) {
+        color = 'red';
+        colorClass = 'bg-red-50 text-red-700 border-red-200';
+        barColor = '#ef4444';
+      } else if (pct < 70) {
+        color = 'yellow';
+        colorClass = 'bg-amber-50 text-amber-700 border-amber-200';
+        barColor = '#f59e0b';
+      } else if (pct <= 100) {
+        color = 'green';
+        colorClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+        barColor = '#10b981';
+      } else {
+        color = 'gold';
+        colorClass = 'bg-yellow-50 text-yellow-700 border-yellow-200';
+        barColor = '#fbbf24';
+      }
+
+      return { ...s, pct, color, colorClass, barColor, revenue_goal: revGoal };
+    }).sort((a, b) => b.pct - a.pct);
+  }, [allSellersRanking, otherSellersRanking, sellerGoalMap]);
+
+  const EXCLUDED_STAGES = new Set(['Perdido', 'Desqualificado']);
+
+  // Pipeline stages — uses real pipeline stages from DB when available, falls back to status groups
+  const pipelineStages = useMemo(() => {
+    const pipeline = pipelines[0];
+    if (pipeline?.stages?.length) {
+      const stageCountMap: Record<string, number> = {};
+      const firstStageId = pipeline.stages[0]?.id;
+
+      filteredLeads.forEach((l: any) => {
+        const stageId = l.stage_id || firstStageId;
+        if (stageId) {
+          stageCountMap[stageId] = (stageCountMap[stageId] || 0) + 1;
+        }
+      });
+      return [...pipeline.stages]
+        .sort((a, b) => a.position - b.position)
+        .filter(stage => !EXCLUDED_STAGES.has(stage.name))
+        .map(stage => ({
+          id: stage.id,
+          label: stage.name,
+          value: stageCountMap[stage.id] || 0,
+          color: stage.color,
+        }));
+    }
+    // Fallback: group by status when no real pipeline data
+    return [
+      { id: 'new', label: 'Novo', value: filteredLeads.filter((l: any) => stageNameToStatus(l.status) === 'new').length, color: 'hsl(210, 80%, 55%)' },
+      { id: 'qualified', label: 'Qualificado', value: filteredLeads.filter((l: any) => stageNameToStatus(l.status) === 'qualified').length, color: 'hsl(142, 71%, 45%)' },
+      { id: 'proposal', label: 'Proposta', value: filteredLeads.filter((l: any) => stageNameToStatus(l.status) === 'proposal').length, color: 'hsl(262, 80%, 55%)' },
+      { id: 'closed', label: 'Fechado', value: closedLeadsCount, color: 'hsl(16, 85%, 55%)' },
+    ];
+  }, [pipelines, filteredLeads, closedLeadsCount]);
+
+  const funnelStagesWithRates = useMemo(
+    () => computeFunnelRates(pipelineStages),
+    [pipelineStages]
+  );
+
+  const dateIntervals = useMemo(() => {
+    if (!startDate && !endDate) {
+      return Array.from({ length: 6 }, (_, i) => {
+        const d = new Date();
+        d.setMonth(d.getMonth() - (5 - i));
+        return {
+          type: 'month',
+          month: d.getMonth(),
+          year: d.getFullYear(),
+          label: d.toLocaleString('pt-BR', { month: 'short' }).replace('.', ''),
+          key: `${d.getFullYear()}-${d.getMonth()}`
+        };
+      });
+    }
+
+    const start = startDate ? new Date(startDate + "T00:00:00") : new Date(new Date().setMonth(new Date().getMonth() - 6));
+    const end = endDate ? new Date(endDate + "T00:00:00") : new Date();
+
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays <= 60) {
+      const days = [];
+      for (let i = 0; i <= diffDays; i++) {
+        const d = new Date(start);
+        d.setDate(d.getDate() + i);
+        days.push({
+          type: 'day',
+          day: d.getDate(),
+          month: d.getMonth(),
+          year: d.getFullYear(),
+          label: `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`,
+          key: `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+        });
+      }
+      return days;
+    } else {
+      const months = [];
+      let d = new Date(start);
+      d.setDate(1);
+      const endMonth = new Date(end);
+      endMonth.setDate(1);
+
+      while (d <= endMonth) {
+        months.push({
+          type: 'month',
+          month: d.getMonth(),
+          year: d.getFullYear(),
+          label: d.toLocaleString('pt-BR', { month: 'short' }).replace('.', ''),
+          key: `${d.getFullYear()}-${d.getMonth()}`
+        });
+        d.setMonth(d.getMonth() + 1);
+      }
+      return months;
+    }
+  }, [startDate, endDate]);
+
+  const monthlySales = useMemo(() => {
+    const closedLeads = filteredLeads.filter((l: any) => {
+      const p = pipelines[0];
+      const stageMap = new Map(p?.stages?.map(s => [s.id, s.name.toLowerCase()]) || []);
+      const stageName = l.stage_id ? stageMap.get(l.stage_id) : l.status?.toLowerCase();
+      if (!stageName) return false;
+      return stageName.includes('ganho') || stageName.includes('fechado') || stageName.includes('aprovado') || stageNameToStatus(stageName) === 'closed';
+    });
+
+    const isDaily = dateIntervals.length > 0 && dateIntervals[0].type === 'day';
+
+    const grouped = closedLeads.reduce((acc: Record<string, number>, lead: any) => {
+      const dateStr = lead.last_contact_at || lead.created_at;
+      if (!dateStr) return acc;
+      const d = new Date(dateStr);
+      const keyMonth = `${d.getFullYear()}-${d.getMonth()}`;
+      const keyDay = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+
+      const key = isDaily ? keyDay : keyMonth;
+      acc[key] = (acc[key] || 0) + 1;
       return acc;
-    },
-    {}
-  );
-}, [goals]);
+    }, {});
 
-const allSellersRanking = useMemo(() => {
-  const byName: Record<
-    string,
-    { label: string; value: number; received: number; count: number; percentage: number; leads_goal: number; profileId?: string }
-  > = {};
+    let cumulative = 0;
 
-  // Get individual goal IDs (type 'seller')
-  const individualGoalIds = new Set(
-    goals.filter(g => g.type === 'seller').map(g => g.seller_id).filter(Boolean)
-  );
-  const individualGoalNames = new Set(
-    goals.filter(g => g.type === 'seller').map(g => g.seller_name?.trim()).filter(Boolean)
-  );
-
-  // 1. Add everyone who actually has sales
-  salesByResponsible.forEach((s) => {
-    const trimmedLabel = s.label.trim();
-    if (!trimmedLabel) return;
-
-    const profile = profiles.find(p => p.name?.trim() === trimmedLabel);
-
-    // Only include if:
-    // a) Is an official vendedor
-    // b) Has an individual goal set
-    const isOfficialVendedor = profile ? isVendedor(profile) : false;
-    const hasIndividualGoal = individualGoalNames.has(trimmedLabel) || (profile && individualGoalIds.has(profile.id));
-
-    if (isOfficialVendedor || hasIndividualGoal) {
-      byName[trimmedLabel] = {
-        ...s,
-        label: trimmedLabel,
-        percentage: 0,
-        leads_goal: 0,
-        profileId: profile?.id
-      };
-    }
-  });
-
-  // 2. Add all official vendedores (even if they have 0 sales)
-  vendedorProfiles.forEach((p: any) => {
-    const name = (p.name || '').trim();
-    if (name && !byName[name]) {
-      byName[name] = {
-        label: name,
-        value: 0,
-        received: 0,
-        count: 0,
-        percentage: 0,
-        leads_goal: 0,
-        profileId: p.id
-      };
-    }
-  });
-
-  // 3. Calculate percentage and fetch goals
-  Object.values(byName).forEach((s: any) => {
-    const trimmedName = s.label.trim();
-    const goal = sellerGoalMap[trimmedName] || (s.profileId ? sellerGoalMap[s.profileId] : null);
-
-    s.leads_goal = goal?.leads_goal ?? 0;
-    s.percentage =
-      goal && goal.leads_goal > 0
-        ? Math.round((s.count / goal.leads_goal) * 100)
-        : 0;
-  });
-
-  // For any seller with 0% but positive count, show progress relative to top performer
-  const maxCount = Math.max(...Object.values(byName).map((s: any) => s.count), 1);
-  Object.values(byName).forEach((s: any) => {
-    if (s.percentage === 0 && s.count > 0) {
-      s.percentage = Math.round((s.count / maxCount) * 100);
-    }
-  });
-
-  // Sort by count (quantity of sales) descending — competition ranking
-  return Object.values(byName).sort(
-    (a: any, b: any) => b.count - a.count || b.percentage - a.percentage
-  ) as Array<{
-    label: string;
-    value: number;
-    received: number;
-    count: number;
-    percentage: number;
-    leads_goal: number;
-  }>;
-}, [salesByResponsible, profiles, vendedorProfiles, goals, sellerGoalMap]);
-
-const otherSellersRanking = useMemo(() => {
-  // Get individual goal IDs (type 'seller')
-  const individualGoalIds = new Set(
-    goals.filter(g => g.type === 'seller').map(g => g.seller_id).filter(Boolean)
-  );
-  const individualGoalNames = new Set(
-    goals.filter(g => g.type === 'seller').map(g => g.seller_name?.trim()).filter(Boolean)
-  );
-
-  const others: Array<{ label: string; value: number; received: number; count: number }> = [];
-
-  salesByResponsible.forEach((s) => {
-    const trimmedLabel = s.label.trim();
-    if (!trimmedLabel || s.count === 0) return;
-
-    const profile = profiles.find(p => p.name?.trim() === trimmedLabel);
-    const isOfficialVendedor = profile ? isVendedor(profile) : false;
-    const hasIndividualGoal = individualGoalNames.has(trimmedLabel) || (profile && individualGoalIds.has(profile.id));
-
-    if (!isOfficialVendedor && !hasIndividualGoal) {
-      others.push({
-        label: trimmedLabel,
-        value: s.value,
-        received: s.received,
-        count: s.count
-      });
-    }
-  });
-
-  return others.sort((a, b) => b.count - a.count);
-}, [salesByResponsible, profiles, goals]);
-
-// Seller Semaphore data: received vs goal with color coding (Monetary based)
-const sellerSemaphoreData = useMemo(() => {
-  const combinedSellers = [...allSellersRanking, ...otherSellersRanking];
-
-  return combinedSellers.map((s: any) => {
-    const goal = sellerGoalMap[s.label.trim()];
-    const revGoal = goal?.revenue_goal ?? 0;
-
-    // Calculate pct based on actual money received vs revenue goal
-    let pct = 0;
-    if (revGoal > 0) {
-      pct = Math.round((s.received / revGoal) * 100);
-    } else if (s.count > 0 || s.received > 0) {
-      // If there's no goal but they made sales, show as 100% (Meta Atingida)
-      pct = 100;
-    }
-
-    let color: 'red' | 'yellow' | 'green' | 'gold';
-    let colorClass: string;
-    let barColor: string;
-
-    if (pct < 50) {
-      color = 'red';
-      colorClass = 'bg-red-50 text-red-700 border-red-200';
-      barColor = '#ef4444';
-    } else if (pct < 70) {
-      color = 'yellow';
-      colorClass = 'bg-amber-50 text-amber-700 border-amber-200';
-      barColor = '#f59e0b';
-    } else if (pct <= 100) {
-      color = 'green';
-      colorClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-      barColor = '#10b981';
-    } else {
-      color = 'gold';
-      colorClass = 'bg-yellow-50 text-yellow-700 border-yellow-200';
-      barColor = '#fbbf24';
-    }
-
-    return { ...s, pct, color, colorClass, barColor, revenue_goal: revGoal };
-  }).sort((a, b) => b.pct - a.pct);
-}, [allSellersRanking, otherSellersRanking, sellerGoalMap]);
-
-
-
-// Pipeline stages — uses real pipeline stages from DB when available, falls back to status groups
-const pipelineStages = useMemo(() => {
-  const pipeline = pipelines[0];
-  if (pipeline?.stages?.length) {
-    const stageCountMap: Record<string, number> = {};
-    const firstStageId = pipeline.stages[0]?.id;
-
-    filteredLeads.forEach((l: any) => {
-      const stageId = l.stage_id || firstStageId;
-      if (stageId) {
-        stageCountMap[stageId] = (stageCountMap[stageId] || 0) + 1;
+    return dateIntervals.map((d) => {
+      const val = grouped[d.key] || 0;
+      if (isDaily) {
+        cumulative += val;
+        return {
+          label: d.label,
+          value: cumulative,
+        };
+      } else {
+        return {
+          label: d.label,
+          value: val,
+        };
       }
     });
-    return [...pipeline.stages]
-      .sort((a, b) => a.position - b.position)
-      .filter(stage => !EXCLUDED_STAGES.has(stage.name))
-      .map(stage => ({
-        id: stage.id,
-        label: stage.name,
-        value: stageCountMap[stage.id] || 0,
-        color: stage.color,
-      }));
-  }
-  // Fallback: group by status when no real pipeline data
-  return [
-    { id: 'new', label: 'Novo', value: filteredLeads.filter((l: any) => stageNameToStatus(l.status) === 'new').length, color: 'hsl(210, 80%, 55%)' },
-    { id: 'qualified', label: 'Qualificado', value: filteredLeads.filter((l: any) => stageNameToStatus(l.status) === 'qualified').length, color: 'hsl(142, 71%, 45%)' },
-    { id: 'proposal', label: 'Proposta', value: filteredLeads.filter((l: any) => stageNameToStatus(l.status) === 'proposal').length, color: 'hsl(262, 80%, 55%)' },
-    { id: 'closed', label: 'Fechado', value: closedLeadsCount, color: 'hsl(16, 85%, 55%)' },
-  ];
-}, [pipelines, filteredLeads, closedLeadsCount]);
+  }, [filteredLeads, pipelines, dateIntervals]);
 
-const funnelStagesWithRates = useMemo(
-  () => computeFunnelRates(pipelineStages),
-  [pipelineStages]
-);
+  const avgMonthlyLeads =
+    monthlySales.reduce((sum, m) => sum + m.value, 0) / monthlySales.length ||
+    leads.length / 6;
+  const avgTicket = totalSalesValue / closedLeadsCount || 1000;
+  const avgFunnelRate = conversionRate;
 
-const dateIntervals = useMemo(() => {
-  if (!startDate && !endDate) {
-    return Array.from({ length: 6 }, (_, i) => {
-      const d = new Date();
-      d.setMonth(d.getMonth() - (5 - i));
-      return {
-        type: 'month',
-        month: d.getMonth(),
-        year: d.getFullYear(),
-        label: d.toLocaleString('pt-BR', { month: 'short' }).replace('.', ''),
-        key: `${d.getFullYear()}-${d.getMonth()}`
-      };
-    });
-  }
+  const predictiveData = useMemo(
+    () => projectedRevenue(avgFunnelRate, avgMonthlyLeads, avgTicket),
+    [avgFunnelRate, avgMonthlyLeads, avgTicket]
+  );
 
-  const start = startDate ? new Date(startDate + "T00:00:00") : new Date(new Date().setMonth(new Date().getMonth() - 6));
-  const end = endDate ? new Date(endDate + "T00:00:00") : new Date();
+  const trendData = useMemo(
+    () => [...monthlySales.slice(-3), ...predictiveData],
+    [monthlySales, predictiveData]
+  );
 
-  const diffTime = Math.abs(end.getTime() - start.getTime());
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-  if (diffDays <= 60) {
-    const days = [];
-    for (let i = 0; i <= diffDays; i++) {
-      const d = new Date(start);
-      d.setDate(d.getDate() + i);
-      days.push({
-        type: 'day',
-        day: d.getDate(),
-        month: d.getMonth(),
-        year: d.getFullYear(),
-        label: `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`,
-        key: `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
-      });
-    }
-    return days;
-  } else {
-    const months = [];
-    let d = new Date(start);
-    d.setDate(1);
-    const endMonth = new Date(end);
-    endMonth.setDate(1);
-
-    while (d <= endMonth) {
-      months.push({
-        type: 'month',
-        month: d.getMonth(),
-        year: d.getFullYear(),
-        label: d.toLocaleString('pt-BR', { month: 'short' }).replace('.', ''),
-        key: `${d.getFullYear()}-${d.getMonth()}`
-      });
-      d.setMonth(d.getMonth() + 1);
-    }
-    return months;
-  }
-}, [startDate, endDate]);
-
-const monthlySales = useMemo(() => {
-  const closedLeads = filteredLeads.filter((l: any) => {
-    const p = pipelines[0];
-    const stageMap = new Map(p?.stages?.map(s => [s.id, s.name.toLowerCase()]) || []);
-    const stageName = l.stage_id ? stageMap.get(l.stage_id) : l.status?.toLowerCase();
-    if (!stageName) return true;
-    
-    const isExcluded = EXCLUDED_STAGES.has(stageName) || 
-                       stageName.includes('perdido') || 
-                       stageName.includes('desqualificado');
-    
-    return !isExcluded;
-  });
-
-  const isDaily = dateIntervals.length > 0 && dateIntervals[0].type === 'day';
-
-  const grouped = closedLeads.reduce((acc: Record<string, number>, lead: any) => {
-    const dateStr = lead.last_contact_at || lead.created_at;
-    if (!dateStr) return acc;
-    const d = new Date(dateStr);
-    const keyMonth = `${d.getFullYear()}-${d.getMonth()}`;
-    const keyDay = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-
-    const key = isDaily ? keyDay : keyMonth;
-    acc[key] = (acc[key] || 0) + 1;
-    return acc;
-  }, {});
-
-  let cumulative = 0;
-
-  return dateIntervals.map((d) => {
-    const val = grouped[d.key] || 0;
-    if (isDaily) {
-      cumulative += val;
-      return {
-        label: d.label,
-        value: cumulative,
-      };
-    } else {
-      return {
-        label: d.label,
-        value: val,
-      };
-    }
-  });
-}, [filteredLeads, pipelines, dateIntervals]);
-
-const avgMonthlyLeads =
-  monthlySales.reduce((sum, m) => sum + m.value, 0) / monthlySales.length ||
-  leads.length / 6;
-const avgTicket = totalSalesValue / closedLeadsCount || 1000;
-const avgFunnelRate = conversionRate;
-
-const predictiveData = useMemo(
-  () => projectedRevenue(avgFunnelRate, avgMonthlyLeads, avgTicket),
-  [avgFunnelRate, avgMonthlyLeads, avgTicket]
-);
-
-const trendData = useMemo(
-  () => [...monthlySales.slice(-3), ...predictiveData],
-  [monthlySales, predictiveData]
-);
-
-const totalPaidAttendees = useMemo(
-  () =>
-    turmas.reduce(
-      (sum, t) =>
-        sum +
-        t.attendees.filter(
-          (a) => a.status !== 'cancelado' && a.valor_recebido != null
-        ).length,
-      0
-    ),
+  const totalPaidAttendees = useMemo(
+    () =>
+      turmas.reduce(
+        (sum, t) =>
+          sum +
+          t.attendees.filter(
+            (a) => a.status !== 'cancelado' && a.valor_recebido != null
+          ).length,
+        0
+      ),
     [turmas]
   );
 
-// totalConversionRate was moved below activeLeadsCount
+  // totalConversionRate was moved below activeLeadsCount
 
-const attendeeStages = useMemo(() => {
-  const statusCounts: Record<string, number> = {};
-  turmas.forEach((t) => {
-    t.attendees.forEach((a) => {
-      if (a.status !== 'cancelado') {
-        statusCounts[a.status] = (statusCounts[a.status] || 0) + 1;
-      }
+  const attendeeStages = useMemo(() => {
+    const statusCounts: Record<string, number> = {};
+    turmas.forEach((t) => {
+      t.attendees.forEach((a) => {
+        if (a.status !== 'cancelado') {
+          statusCounts[a.status] = (statusCounts[a.status] || 0) + 1;
+        }
+      });
     });
-  });
-  return Object.entries(statusCounts).map(([label, value], i) => ({
-    id: label,
-    label,
-    value,
-    color:
-      i === 0
-        ? 'hsl(210, 80%, 55%)'
-        : i === 1
-          ? 'hsl(142, 71%, 45%)'
-          : 'hsl(0, 84%, 60%)',
-  }));
-}, [turmas]);
+    return Object.entries(statusCounts).map(([label, value], i) => ({
+      id: label,
+      label,
+      value,
+      color:
+        i === 0
+          ? 'hsl(210, 80%, 55%)'
+          : i === 1
+            ? 'hsl(142, 71%, 45%)'
+            : 'hsl(0, 84%, 60%)',
+    }));
+  }, [turmas]);
 
-const activeLeadsCount = useMemo(() => {
-  const pipeline = pipelines[0];
-  const stageMap = new Map(pipeline?.stages?.map(s => [s.id, s.name]) || []);
+  const activeLeadsCount = useMemo(() => {
+    const pipeline = pipelines[0];
+    const stageMap = new Map(pipeline?.stages?.map(s => [s.id, s.name]) || []);
+    const EXCLUDED_STAGES = new Set(['Perdido', 'Desqualificado']);
 
-  return globalFilteredLeads.filter((l: any) => {
-    // Filter by Active Stages only
-    const stageName = l.stage_id ? stageMap.get(l.stage_id) : l.status;
-    if (!stageName) return true; // Include if no stage yet (new)
+    return leads.filter((l: any) => {
+      // 1. Basic Filters (Search, Product, Responsible)
+      if (searchTerm) {
+        const q = searchTerm.toLowerCase();
+        if (!l.name?.toLowerCase().includes(q) && !l.product?.toLowerCase().includes(q) && !l.responsible?.toLowerCase().includes(q)) return false;
+      }
+      if (filterProduct !== 'all' && l.product !== filterProduct) return false;
+      if (filterResponsible !== 'all' && l.responsible !== filterResponsible) return false;
+      if (currentSellerName && l.responsible !== currentSellerName) return false;
 
-    const isExcluded = EXCLUDED_STAGES.has(stageName) ||
-      stageName.toLowerCase().includes('perdido') ||
-      stageName.toLowerCase().includes('desqualificado');
+      // 2. Filter by Active Stages only
+      const stageName = l.stage_id ? stageMap.get(l.stage_id) : l.status;
+      if (!stageName) return true; // Include if no stage yet (new)
 
-    return !isExcluded;
-  }).length;
-}, [globalFilteredLeads, pipelines]);
+      const isExcluded = EXCLUDED_STAGES.has(stageName) ||
+        stageName.toLowerCase().includes('perdido') ||
+        stageName.toLowerCase().includes('desqualificado');
 
-const totalConversionRate =
-  activeLeadsCount > 0 ? (closedLeadsCount / activeLeadsCount) * 100 : 0;
+      return !isExcluded;
+    }).length;
+  }, [leads, searchTerm, filterProduct, filterResponsible, currentSellerName, pipelines]);
 
-return {
-  totalGanhos,
-  myGanhos,
-  teamGanhos,
-  leadsCount,
-  closedLeadsCount,
-  conversionRate,
-  averageSalesCycle,
-  inactiveLeadsCount,
-  totalSalesValue,
-  occupancyData,
-  vendedorProfiles,
-  allSellersRanking,
-  otherSellersRanking,
-  sellerSemaphoreData,
-  pipelineStages,
-  funnelStagesWithRates,
-  monthlySales,
-  trendData,
-  totalConversionRate,
-  attendeeStages,
-  availableProducts,
-  availableResponsibles,
-  activeLeadsCount,
-};
+  const totalConversionRate =
+    activeLeadsCount > 0 ? (closedLeadsCount / activeLeadsCount) * 100 : 0;
+
+  return {
+    totalGanhos,
+    myGanhos,
+    teamGanhos,
+    leadsCount: filteredLeads.length,
+    closedLeadsCount,
+    conversionRate,
+    averageSalesCycle,
+    inactiveLeadsCount,
+    totalSalesValue,
+    occupancyData,
+    vendedorProfiles,
+    allSellersRanking,
+    otherSellersRanking,
+    sellerSemaphoreData,
+    pipelineStages,
+    funnelStagesWithRates,
+    monthlySales,
+    trendData,
+    totalConversionRate,
+    attendeeStages,
+    availableProducts,
+    availableResponsibles,
+    activeLeadsCount,
+  };
 }
 

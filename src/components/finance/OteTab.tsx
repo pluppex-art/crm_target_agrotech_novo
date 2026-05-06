@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Users, AlertCircle, Loader2, RefreshCw, Play, CheckCircle2, ChevronDown, ChevronUp, AlertTriangle, Sparkles } from 'lucide-react';
 import { oteService } from '../../services/oteService';
+import { compensationProfileService } from '../../services/compensationProfileService';
 import { CommissionResult, SemaphoreStatus } from '../../types/finance_v2';
 import { fmt, cn } from '../../lib/utils';
 
@@ -21,15 +22,18 @@ export function OteTab({ startDate, endDate }: { startDate: string; endDate: str
     setIsLoading(true);
     setError(null);
     try {
-      const data = await oteService.getCommissionResults(periodMonth);
+      // Carrega squads e resultados em paralelo
+      const [data, allSquads] = await Promise.all([
+        oteService.getCommissionResults(periodMonth),
+        compensationProfileService.getSquads()
+      ]);
+      
       setResults(data);
       
-      // Extrai squads únicos para o filtro
-      const uniqueSquads = Array.from(new Set(data.map(r => r.squad_id).filter(Boolean))).map(id => ({
-        id: id!,
-        name: data.find(r => r.squad_id === id)?.squad_name || id!.substring(0, 8)
-      }));
-      setSquads(uniqueSquads);
+      // Filtra apenas squads ativos ou que tenham resultados no período
+      const resultsSquadIds = new Set(data.map(r => r.squad_id).filter(Boolean));
+      const filteredSquads = allSquads.filter(s => s.active || resultsSquadIds.has(s.id));
+      setSquads(filteredSquads.map(s => ({ id: s.id, name: s.name })));
       
       // AUTO-INIT: If no results found and we are not already initializing, start automatically
       if (data.length === 0 && autoInit && !isInitializing) {
@@ -97,7 +101,7 @@ export function OteTab({ startDate, endDate }: { startDate: string; endDate: str
     }
   };
 
-  const sellers = results.filter(r => r.role_type?.toUpperCase() === 'CLOSER');
+  const sellers = results.filter(r => ['CLOSER', 'SDR'].includes(r.role_type?.toUpperCase()));
   const managers = results.filter(r => r.role_type?.toUpperCase() === 'MANAGER');
   
   const displayData = (activeView === 'sellers' ? sellers : managers).filter(r => {
@@ -206,7 +210,7 @@ export function OteTab({ startDate, endDate }: { startDate: string; endDate: str
                 <tr>
                   <th className="px-5 py-4">Colaborador / Gestor(a)</th>
                   <th className="px-5 py-4">Nível</th>
-                  {activeView === 'managers' && <th className="px-5 py-4">Squad</th>}
+                  <th className="px-5 py-4">Squad</th>
                   <th className="px-5 py-4 text-right">Meta</th>
                   <th className="px-5 py-4 text-right">Realizado</th>
                   <th className="px-5 py-4 text-center">Atingimento</th>
@@ -219,7 +223,7 @@ export function OteTab({ startDate, endDate }: { startDate: string; endDate: str
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {displayData.map((r) => (
-                  <OteRow key={r.id} result={r} showSquad={activeView === 'managers'} />
+                  <OteRow key={r.id} result={r} showSquad={true} />
                 ))}
               </tbody>
             </table>
@@ -259,8 +263,18 @@ function OteRow({ result, showSquad }: { result: CommissionResult; showSquad: bo
         )}
       </td>
       {showSquad && (
-        <td className="px-5 py-4 text-slate-500 text-xs font-bold uppercase">
-          {result.squad_name || '—'}
+        <td className="px-5 py-4">
+          <div className="flex items-center gap-2">
+            {result.squad_color && (
+              <div 
+                className="w-2 h-2 rounded-full shrink-0" 
+                style={{ backgroundColor: result.squad_color }} 
+              />
+            )}
+            <span className="text-slate-600 text-xs font-bold uppercase truncate max-w-[120px]">
+              {result.squad_name || '—'}
+            </span>
+          </div>
         </td>
       )}
       <td className="px-5 py-4 text-right font-bold text-slate-600 text-xs">R$ {fmt(result.target_revenue)}</td>

@@ -183,14 +183,15 @@ export const oteService = {
     const supabase = getSupabaseClient();
     if (!supabase) return null;
 
-    // Busca o nome do usuário para fazer o match com o campo 'responsible' dos leads
+    // Busca o nome e o squad do usuário na tabela perfis
     const { data: userData } = await supabase
       .from('perfis')
-      .select('name')
+      .select('name, squad_id')
       .eq('id', userId)
       .single();
     
     const userName = (userData?.name || '').trim().toLowerCase();
+    let squadId = userData?.squad_id;
 
     const rule = await this.getCommissionRule('CLOSER', level);
     if (!rule) {
@@ -202,20 +203,22 @@ export const oteService = {
     const dateObj = new Date(periodMonthDate);
     const endDate = new Date(dateObj.getFullYear(), dateObj.getMonth() + 1, 0).toISOString().split('T')[0];
 
-    const leads = await transactionService.getGanhoLeads(startDate, endDate);
+    // Busca todas as transações de ENTRADA PAGAS no período
+    const txs = await transactionService.getAll({
+      paymentDateStart: startDate,
+      paymentDateEnd: endDate,
+      type: 'INCOME',
+      status: 'PAID'
+    });
     
-    // Filtra leads onde o usuário é o responsável (Fuzzy Match)
-    const sellerLeads = leads.filter((l: any) => {
-      const resp = (l.responsible || '').trim().toLowerCase();
+    // Filtra transações onde o lead associado é de responsabilidade do vendedor
+    const sellerTxs = txs.filter((t: any) => {
+      const resp = (t.leads?.responsible || '').trim().toLowerCase();
       if (!resp || !userName) return false;
 
-      // 1. Match Exato
       if (resp === userName) return true;
-
-      // 2. Match por inclusão
       if (userName.includes(resp) || resp.includes(userName)) return true;
 
-      // 3. Match por palavras (pelo menos 2 palavras significativas coincidindo)
       const respWords = resp.split(/\s+/).filter(w => w.length > 2);
       const userWords = userName.split(/\s+/).filter(w => w.length > 2);
       const commonWords = respWords.filter(rw => userWords.some(uw => uw.includes(rw) || rw.includes(uw)));
@@ -223,12 +226,7 @@ export const oteService = {
       return commonWords.length >= 2;
     });
 
-    const products = await productService.getProducts();
-    let realizedRevenue = 0;
-    sellerLeads.forEach(l => {
-      // Usa a MESMA lógica do Pipeline (Pago) através do financialCalculator
-      realizedRevenue += financialCalculator.getPaidAmount(l as any, products);
-    });
+    const realizedRevenue = sellerTxs.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
 
     // Busca a meta (target_revenue) na tabela 'goals' para o vendedor - busca a mais recente até o fim do período
     const { data: goalData } = await supabase
@@ -249,8 +247,23 @@ export const oteService = {
     const acceleratorAmount = this.calculateAccelerator(achievementPercent, Number(rule.accelerator_amount));
     const totalAmount = fixedAmount + variableAmount + acceleratorAmount;
 
+    // Se não encontrou squad no perfil, tenta na tabela squad_members (fallback)
+    if (!squadId) {
+      const { data: squadMemberData } = await supabase
+        .from('squad_members')
+        .select('squad_id')
+        .eq('user_id', userId)
+        .eq('active', true)
+        .maybeSingle();
+      
+      if (squadMemberData) {
+        squadId = squadMemberData.squad_id;
+      }
+    }
+
     const upsertData = {
       user_id: userId,
+      squad_id: squadId || null,
       role_type: 'CLOSER',
       level,                          // snapshot auditável do nível usado neste cálculo
       period_month: periodMonthDate,
@@ -272,7 +285,7 @@ export const oteService = {
       .eq('user_id', userId)
       .eq('period_month', periodMonthDate)
       .eq('role_type', 'CLOSER')
-      .is('squad_id', null)
+      .select()
       .maybeSingle();
 
     let result;
@@ -322,8 +335,13 @@ export const oteService = {
 
     const targetRevenue = companyGoalData ? Number(companyGoalData.revenue_goal) : 0;
     
-    const products = await productService.getProducts();
-    const allLeads = await transactionService.getGanhoLeads(startDate, endDate);
+    // Busca todas as transações de ENTRADA PAGAS no período
+    const txs = await transactionService.getAll({
+      paymentDateStart: startDate,
+      paymentDateEnd: endDate,
+      type: 'INCOME',
+      status: 'PAID'
+    });
 
     // Busca todos os membros do squad para filtrar as vendas
     const { data: squadMembers } = await supabase
@@ -333,11 +351,11 @@ export const oteService = {
     
     const memberNames = (squadMembers || []).map(m => m.name?.trim().toLowerCase()).filter(Boolean);
 
-    const realizedRevenue = allLeads.reduce((sum, l) => {
-      const resp = (l.responsible || '').trim().toLowerCase();
+    const realizedRevenue = txs.reduce((sum, t) => {
+      const resp = (t.leads?.responsible || '').trim().toLowerCase();
       // Só soma se o responsável pelo lead for um membro do squad do gestor
       if (memberNames.includes(resp)) {
-        return sum + financialCalculator.getPaidAmount(l as any, products);
+        return sum + (Number(t.amount) || 0);
       }
       return sum;
     }, 0);
@@ -419,33 +437,52 @@ export const oteService = {
     if (!data || data.length === 0) return [];
 
     // Busca nomes na tabela perfis (FK aponta para auth.users, não perfis — join manual)
+    const allProfiles = await profileService.getProfiles();
     const userIds = [...new Set(data.map((r: any) => r.user_id))];
-    const { data: perfisData } = await supabase
-      .from('perfis')
-      .select('id, name, email')
-      .in('id', userIds);
+    
+    // Busca squads em paralelo
+    const membersRes = await supabase.from('squad_members').select('user_id, squad_id').in('user_id', userIds).eq('active', true);
 
     const nameMap: Record<string, string> = {};
-    (perfisData || []).forEach((p: any) => {
-      nameMap[p.id] = p.name || p.email || p.id.substring(0, 8);
+    const userProfileSquadMap: Record<string, string> = {};
+    
+    allProfiles.forEach((p: any) => {
+      nameMap[p.id] = p.full_name || p.name || p.email || p.id.substring(0, 8);
+      if (p.squad_id) {
+        userProfileSquadMap[p.id] = p.squad_id;
+      }
     });
 
-    // Busca nomes de squads
-    const squadIds = [...new Set(data.map((r: any) => r.squad_id).filter(Boolean))];
+    // Fallback para squad_members
+    (membersRes.data || []).forEach((m: any) => {
+      if (!userProfileSquadMap[m.user_id]) {
+        userProfileSquadMap[m.user_id] = m.squad_id;
+      }
+    });
+
+    // Busca nomes de squads (combina IDs da tabela de resultados + IDs vindos dos perfis)
+    const resultSquadIds = data.map((r: any) => r.squad_id).filter(Boolean);
+    const profileSquadIds = Object.values(userProfileSquadMap);
+    const allSquadIds = [...new Set([...resultSquadIds, ...profileSquadIds])];
+
     const { data: squadsData } = await supabase
       .from('squads')
-      .select('id, name')
-      .in('id', squadIds);
+      .select('id, name, color')
+      .in('id', allSquadIds);
 
-    const squadMap: Record<string, string> = {};
+    const squadMap: Record<string, { name: string; color?: string }> = {};
     (squadsData || []).forEach((s: any) => {
-      squadMap[s.id] = s.name;
+      squadMap[s.id] = { name: s.name, color: s.color };
     });
 
-    return (data as CommissionResult[]).map(r => ({
-      ...r,
-      user_name: nameMap[r.user_id] || r.user_id.substring(0, 8),
-      squad_name: r.squad_id ? squadMap[r.squad_id] : undefined
-    }));
+    return (data as CommissionResult[]).map(r => {
+      const effectiveSquadId = r.squad_id || userProfileSquadMap[r.user_id];
+      return {
+        ...r,
+        user_name: nameMap[r.user_id] || r.user_id.substring(0, 8),
+        squad_name: effectiveSquadId ? squadMap[effectiveSquadId]?.name : undefined,
+        squad_color: effectiveSquadId ? squadMap[effectiveSquadId]?.color : undefined
+      };
+    });
   }
 };
