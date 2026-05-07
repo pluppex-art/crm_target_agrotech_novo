@@ -34,7 +34,7 @@ export function TrendsSection({ sales, totalAchieved, totalGoal }: TrendsSection
   }));
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8 flex flex-col gap-6 w-full">
+    <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8 flex flex-col gap-6 w-full min-w-0">
       <div className="flex items-center justify-between">
         <h3 className="font-bold text-xl text-slate-800">Progresso da Meta Geral</h3>
         <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${statusColor.badge}`}>

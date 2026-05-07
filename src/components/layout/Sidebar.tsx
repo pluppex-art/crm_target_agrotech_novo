@@ -13,7 +13,7 @@ import {
   Package,
   Megaphone,
   GraduationCap,
-  X,
+  X as XIcon,
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { cn } from '../../lib/utils';
@@ -75,7 +75,7 @@ export function Sidebar({ collapsed = false, onToggle, onClose, isOpen }: Sideba
           onClick={onClose}
           className="lg:hidden p-1.5 rounded-lg transition-colors hover:bg-slate-100 -ml-1 flex-shrink-0"
         >
-          <X className="w-5 h-5 text-slate-500" />
+          <XIcon className="w-5 h-5 text-slate-500" />
         </button>
 
         <div className={cn(
