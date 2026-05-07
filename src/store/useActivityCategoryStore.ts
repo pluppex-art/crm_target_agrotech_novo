@@ -28,8 +28,9 @@ export const useActivityCategoryStore = create<ActivityCategoryState>((set, get)
 
     set({ loading: true });
     const { data, error } = await supabase
-      .from('activity_categories')
+      .from('categories')
       .select('*')
+      .eq('type', 'activity')
       .order('name');
 
     if (error) {
@@ -45,8 +46,8 @@ export const useActivityCategoryStore = create<ActivityCategoryState>((set, get)
 
     set({ loading: true, error: null });
     const { error } = await supabase
-      .from('activity_categories')
-      .insert([{ name: name.trim() }]);
+      .from('categories')
+      .insert([{ name: name.trim(), type: 'activity' }]);
 
     if (error) {
       const message = error.code === '23505'
@@ -64,7 +65,7 @@ export const useActivityCategoryStore = create<ActivityCategoryState>((set, get)
     if (!supabase) return;
 
     const { error } = await supabase
-      .from('activity_categories')
+      .from('categories')
       .delete()
       .eq('id', id);
 
@@ -80,7 +81,7 @@ export const useActivityCategoryStore = create<ActivityCategoryState>((set, get)
     const channelId = `activity-categories-${Math.random().toString(36).substring(7)}`;
     const channel = supabase
       .channel(channelId)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'activity_categories' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'categories' }, () => {
         get().fetchCategories();
       })
       .subscribe();

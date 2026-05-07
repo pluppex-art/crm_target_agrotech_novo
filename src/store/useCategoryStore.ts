@@ -28,8 +28,9 @@ export const useCategoryStore = create<CategoryState>((set, get) => ({
 
     set({ loading: true });
     const { data, error } = await supabase
-      .from('turma_categories')
+      .from('categories')
       .select('*')
+      .eq('type', 'turma')
       .order('name');
 
     if (error) {
@@ -45,12 +46,12 @@ export const useCategoryStore = create<CategoryState>((set, get) => ({
 
     set({ loading: true, error: null });
     const { error } = await supabase
-      .from('turma_categories')
-      .insert([{ name: name.trim() }]);
+      .from('categories')
+      .insert([{ name: name.trim(), type: 'turma' }]);
 
     if (error) {
-      const message = error.code === '23505' 
-        ? 'Esta categoria já existe.' 
+      const message = error.code === '23505'
+        ? 'Esta categoria já existe.'
         : error.message;
       set({ error: message, loading: false });
       alert('Erro ao criar categoria: ' + message);
@@ -64,7 +65,7 @@ export const useCategoryStore = create<CategoryState>((set, get) => ({
     if (!supabase) return;
 
     const { error } = await supabase
-      .from('turma_categories')
+      .from('categories')
       .delete()
       .eq('id', id);
 
@@ -80,7 +81,7 @@ export const useCategoryStore = create<CategoryState>((set, get) => ({
     const channelId = `categories-${Math.random().toString(36).substring(7)}`;
     const channel = supabase
       .channel(channelId)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'turma_categories' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'categories' }, () => {
         get().fetchCategories();
       })
       .subscribe();
