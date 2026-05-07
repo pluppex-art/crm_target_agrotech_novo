@@ -377,13 +377,16 @@ export const Pipeline: React.FC = () => {
       const leadTotalValue = financialCalculator.getTotalContracted(mockLeadForFinance, products);
       const received = financialCalculator.getPaidAmount(mockLeadForFinance, products);
 
-      // Tudo o que já foi recebido vai para PAGO
-      pago += received;
-
-      // O que falta ser recebido do produto vai para PENDENTE
-      const remainder = leadTotalValue - received;
-      if (remainder > 0) {
-        pendente += remainder;
+      if (isTurmaConcluida) {
+        // Se for Turma Concluída (do mês atual), consideramos o valor total do contrato como PAGO.
+        pago += leadTotalValue;
+      } else {
+        // Se for apenas Ganho, contabiliza exatamente o que já foi recebido em PAGO e o resto em PENDENTE.
+        pago += received;
+        const remainder = leadTotalValue - received;
+        if (remainder > 0) {
+          pendente += remainder;
+        }
       }
     });
 
