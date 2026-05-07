@@ -13,12 +13,13 @@ interface ProductState {
   subscribe: () => () => void;
 }
 
-export const useProductStore = create<ProductState>((set) => ({
+export const useProductStore = create<ProductState>((set, get) => ({
   products: [],
   loading: false,
   error: null,
 
   fetchProducts: async () => {
+    if (get().loading) return;
     set({ loading: true, error: null });
     try {
       const products = await productService.getProducts();

@@ -27,6 +27,7 @@ import { EnrollInTurmaModal } from '../components/pipeline/EnrollInTurmaModal';
 import { LeadCard } from '../components/pipeline/LeadCard';
 import { checklistService } from '../services/checklistService';
 import { financialCalculator } from '../services/financialCalculator';
+import { calcPipelinePayments } from '../calculations/pipelineMetrics';
 import { notifyStageChange } from '../services/leadNotificationService';
 import { useSettingsStore } from '@/store/useSettingsStore';
 
@@ -326,53 +327,16 @@ export const Pipeline: React.FC = () => {
   }, [turmas]);
 
   // ─── PAGO e PENDENTE ─────────────────────────────────────────────────────────
-  // Regras:
-  //   1. Só conta leads no estágio "Ganho"
-  //   2. Se o lead está numa turma CONCLUÍDA, só conta se a turma for do MÊS ATUAL
-  //   3. PAGO  = valor realmente recebido (da turma se houver, ou taxa de matrícula do lead)
-  //   4. PENDENTE = valor total contratado − pago
-  const { caixaTotalValue, competenciaTotalValue } = useMemo(() => {
-    let pago = 0;
-    let pendente = 0;
-
-    const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentYear  = today.getFullYear();
-
-    filters.filteredLeads.forEach((lead) => {
-      // 1. Apenas leads em Ganho
-      if (!ganhoStageIds.has(lead.stage_id ?? '')) return;
-
-      const tInfo = leadToTurma[lead.id]; // turma vinculada ao lead, se existir
-
-      // 2. Se a turma do lead já foi concluída, só considera se for do mês atual
-      if (tInfo?.status === 'concluida') {
-        if (!tInfo.date) return;
-        const d = new Date(tInfo.date + 'T12:00:00');
-        if (d.getMonth() !== currentMonth || d.getFullYear() !== currentYear) return;
-      }
-
-      // 3. Valor total contratado (preço do produto − desconto + taxa de matrícula)
-      const totalContracted = financialCalculator.getTotalContracted(lead, products);
-
-      // 4. Valores efetivamente recebidos
-      //    • Se tem turma → usa o registro do attendee (fonte primária)
-      //    • Se não tem turma → só conta taxa_matricula_recebido (digitada no formulário)
-      const valorDaTurma   = tInfo ? Number(tInfo.attendee.valor_recebido ?? 0) : 0;
-      const taxaMatricula  = tInfo
-        ? Number(tInfo.attendee.taxa_matricula_recebido ?? 0)
-        : Number(lead.taxa_matricula_recebido ?? 0);
-
-      const totalRecebido  = valorDaTurma + taxaMatricula;
-
-      pago     += totalRecebido;
-      pendente += Math.max(0, totalContracted - totalRecebido);
-    });
-
-    return { caixaTotalValue: pago, competenciaTotalValue: pendente };
-  }, [turmas, products, leadToTurma, filters.filteredLeads, ganhoStageIds]);
-
-
+  // Lógica isolada em src/calculations/pipelineMetrics.ts para sincronizar com o Dashboard
+  const { pago: caixaTotalValue, pendente: competenciaTotalValue } = useMemo(
+    () => calcPipelinePayments(
+      filters.filteredLeads,
+      ganhoStageIds,
+      leadToTurma,
+      products,
+    ),
+    [filters.filteredLeads, ganhoStageIds, leadToTurma, products],
+  );
 
   // Filtra produtos para não mostrar os de Turmas já Concluídas no dropdown
   const activeProductsForFilter = useMemo(() => {

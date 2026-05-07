@@ -32,7 +32,7 @@ import {
   QrCode,
   FileText,
 } from 'lucide-react';
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { LeadDetailsModalProps, TabType } from './types';
 import { cn } from '@/lib/utils';
 import { getSupabaseClient } from '@/lib/supabase';
@@ -135,9 +135,15 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
     await form.toggleField(field, null);
   };
 
+  // Fetch profiles on mount if empty
+  useEffect(() => {
+    if (profiles.length === 0) {
+      fetchProfiles();
+    }
+  }, [profiles.length, fetchProfiles]);
+
   // Build vendedores list from all active profiles
   const vendedores = useMemo(() => {
-    if (profiles.length === 0) fetchProfiles();
     const list = profiles.filter(p => p.status === 'active' || !p.status);
     
     // Always include the lead's current responsible even if not in list

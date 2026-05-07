@@ -52,9 +52,9 @@ export const PipelineFilters: React.FC<PipelineFiltersProps> = ({
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">
       {/* Header — clicável para minimizar */}
-      <button
+      <div
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors rounded-t-2xl"
+        className="w-full flex items-center justify-between px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors rounded-t-2xl cursor-pointer"
       >
         <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
           <Filter size={16} className={activeFilterCount > 0 ? "text-emerald-600" : "text-gray-400"} />
@@ -70,31 +70,31 @@ export const PipelineFilters: React.FC<PipelineFiltersProps> = ({
           {searchTerm && (
             <span className="flex items-center gap-1 text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded-full">
               "{searchTerm}"
-              <span role="button" onClick={e => { e.stopPropagation(); onSearchChange(''); }}><X size={11} /></span>
+              <span role="button" onClick={e => { e.stopPropagation(); onSearchChange(''); }} className="cursor-pointer hover:opacity-70"><X size={11} /></span>
             </span>
           )}
           {selectedStatus !== 'all' && columns.find((c: any) => c.id === selectedStatus) && (
             <span className="flex items-center gap-1 text-xs font-medium bg-purple-50 text-purple-700 border border-purple-100 px-2 py-0.5 rounded-full">
               {columns.find((c: any) => c.id === selectedStatus)?.title}
-              <span role="button" onClick={e => { e.stopPropagation(); onStatusChange('all'); }}><X size={11} /></span>
+              <span role="button" onClick={e => { e.stopPropagation(); onStatusChange('all'); }} className="cursor-pointer hover:opacity-70"><X size={11} /></span>
             </span>
           )}
           {selectedProduct !== 'all' && (
             <span className="flex items-center gap-1 text-xs font-medium bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded-full">
               {selectedProduct}
-              <span role="button" onClick={e => { e.stopPropagation(); onProductChange('all'); }}><X size={11} /></span>
+              <span role="button" onClick={e => { e.stopPropagation(); onProductChange('all'); }} className="cursor-pointer hover:opacity-70"><X size={11} /></span>
             </span>
           )}
           {selectedResponsible !== 'all' && (
             <span className="flex items-center gap-1 text-xs font-medium bg-teal-50 text-teal-700 border border-teal-100 px-2 py-0.5 rounded-full">
               {selectedResponsible}
-              <span role="button" onClick={e => { e.stopPropagation(); onResponsibleChange('all'); }}><X size={11} /></span>
+              <span role="button" onClick={e => { e.stopPropagation(); onResponsibleChange('all'); }} className="cursor-pointer hover:opacity-70"><X size={11} /></span>
             </span>
           )}
           {selectedStars.length > 0 && (
             <span className="flex items-center gap-1 text-xs font-medium bg-orange-50 text-orange-700 border border-orange-100 px-2 py-0.5 rounded-full">
               {selectedStars.sort().join(', ')} 🔥
-              <span role="button" onClick={e => { e.stopPropagation(); onStarsChange([]); }}><X size={11} /></span>
+              <span role="button" onClick={e => { e.stopPropagation(); onStarsChange([]); }} className="cursor-pointer hover:opacity-70"><X size={11} /></span>
             </span>
           )}
           {selectedSquad !== 'all' && (
@@ -103,7 +103,7 @@ export const PipelineFilters: React.FC<PipelineFiltersProps> = ({
               selectedSquad.toLowerCase() === 'pluppex' ? "bg-violet-50 text-violet-700 border-violet-100" : "bg-blue-50 text-blue-700 border-blue-100"
             )}>
               Squad {selectedSquad}
-              <span role="button" onClick={e => { e.stopPropagation(); onSquadChange('all'); }}><X size={11} /></span>
+              <span role="button" onClick={e => { e.stopPropagation(); onSquadChange('all'); }} className="cursor-pointer hover:opacity-70"><X size={11} /></span>
             </span>
           )}
 
@@ -117,7 +117,7 @@ export const PipelineFilters: React.FC<PipelineFiltersProps> = ({
           )}
           {open ? <ChevronUp size={16} className="text-gray-400 shrink-0" /> : <ChevronDown size={16} className="text-gray-400 shrink-0" />}
         </div>
-      </button>
+      </div>
 
       {/* Filter inputs — colapsável */}
       {open && <div

@@ -15,12 +15,13 @@ interface TaskState {
   subscribe: () => () => void;
 }
 
-export const useTaskStore = create<TaskState>((set) => ({
+export const useTaskStore = create<TaskState>((set, get) => ({
   tasks: [],
   loading: false,
   error: null,
 
   fetchTasks: async () => {
+    if (get().loading) return;
     set({ loading: true, error: null });
     try {
       const tasks = await taskService.getAllTasks();

@@ -26,6 +26,7 @@ export const usePipelineStore = create<PipelineState>((set, get) => ({
   isLoading: false,
 
   fetchPipelines: async () => {
+    if (get().isLoading) return;
     set({ isLoading: true });
     try {
       const pipelines = await pipelineService.getPipelines();

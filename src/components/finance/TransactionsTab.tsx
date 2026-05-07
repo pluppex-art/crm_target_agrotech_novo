@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { Loader2, DollarSign, Filter, Search, CheckCircle2, XCircle, Users } from 'lucide-react';
 import { transactionService } from '../../services/transactionService';
 import { useProfileStore } from '../../store/useProfileStore';
-
 import { FinancialTransaction } from '../../types/finance_v2';
 import { PageFilters } from '../ui/PageFilters';
 import { fmt, cn } from '../../lib/utils';
+import { filterTransactions } from '../../calculations/transactionMetrics';
 
 export function TransactionsTab({ startDate, endDate }: { startDate: string; endDate: string }) {
   const [transactions, setTransactions] = useState<FinancialTransaction[]>([]);
@@ -55,17 +55,12 @@ export function TransactionsTab({ startDate, endDate }: { startDate: string; end
     }
   };
 
-  const filtered = transactions.filter(t => {
-    if (selectedSquad !== 'all') {
-      const respName = (t as any).leads?.responsible || (t as any).responsible;
-      if (!respName) return false;
-      const profile = profiles.find(p => p.name === respName);
-      if (profile?.department?.toUpperCase() !== selectedSquad) return false;
-    }
-    if (searchTerm.trim()) {
-      return t.description.toLowerCase().includes(searchTerm.toLowerCase());
-    }
-    return true;
+  const filtered = filterTransactions(transactions as any, profiles, {
+    selectedSquad,
+    filterType,
+    filterStatus,
+    searchTerm,
+    excludeCommissions: false, // TransactionsTab mostra tudo
   });
 
 

@@ -33,6 +33,7 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
   error: null,
 
   fetchLeads: async (pipelineId?: string, startDate?: string, endDate?: string) => {
+    if (get().isLoading) return;
     set({ isLoading: true, error: null });
     try {
       const leads = await supabaseService.getLeads(pipelineId, startDate, endDate);

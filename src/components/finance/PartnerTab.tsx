@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { partnerRevenueService, PartnerReport } from '../../services/partnerRevenueService';
 import { fmt, cn } from '../../lib/utils';
+import { safePartnerReport } from '../../calculations/partnerMetrics';
 import { 
   XAxis, 
   YAxis, 
@@ -78,18 +79,7 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
     );
   }
 
-  const safeReport = report || {
-    total_revenue: 0,
-    target_sales: 0,
-    pluppex_sales: 0,
-    target_net_result: 0,
-    net_margin: 0,
-    pluppex_technology_fee: 0,
-    target_fee: 0,
-    pluppex_fee: 0,
-    chartData: [],
-    _debug: { txCount: 0, leadCount: 0 }
-  };
+  const safeR = safePartnerReport(report);
 
   return (
     <div className="space-y-6 w-full pb-12 animate-in fade-in duration-500 px-4">
@@ -114,7 +104,7 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
             <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 rounded-lg shadow-sm border border-slate-800">
               <BarChart3 size={12} className="text-indigo-400" />
               <span className="text-[10px] font-black text-white uppercase tracking-wider">
-                {safeReport._debug?.txCount || 0} <span className="text-slate-400 ml-0.5">Transações</span>
+                {safeR._debug?.txCount || 0} <span className="text-slate-400 ml-0.5">Transações</span>
               </span>
             </div>
             
@@ -122,7 +112,7 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
             <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-600 rounded-lg shadow-sm border border-emerald-500">
               <CheckCircle2 size={12} className="text-emerald-100" />
               <span className="text-[10px] font-black text-white uppercase tracking-wider">
-                {safeReport._debug?.leadCount || 0} <span className="text-emerald-100/60 ml-0.5">Ganhos</span>
+                {safeR._debug?.leadCount || 0} <span className="text-emerald-100/60 ml-0.5">Ganhos</span>
               </span>
             </div>
           </div>
@@ -138,9 +128,9 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
 
       {/* Grid de Métricas - Compact */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <MetricItem title="Faturamento Bruto" value={safeReport.total_revenue} color="green" icon={TrendingUp} sub="Volume Consolidado" />
-        <MetricItem title="Performance Target" value={safeReport.target_sales} color="green" icon={Target} sub="Target Squad Sales" />
-        <MetricItem title="Performance Pluppex" value={safeReport.pluppex_sales} color="violet" icon={Rocket} sub="Pluppex Squad Sales" />
+        <MetricItem title="Faturamento Bruto" value={safeR.total_revenue} color="green" icon={TrendingUp} sub="Volume Consolidado" />
+        <MetricItem title="Performance Target" value={safeR.target_sales} color="green" icon={Target} sub="Target Squad Sales" />
+        <MetricItem title="Performance Pluppex" value={safeR.pluppex_sales} color="violet" icon={Rocket} sub="Pluppex Squad Sales" />
       </div>
 
       {/* Resultados e Margem - Compact */}
@@ -157,7 +147,7 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
             <Zap size={16} className="text-white opacity-40" />
           </div>
           <div className="relative">
-            <p className="text-4xl font-black tracking-tighter leading-none mb-3">R$ {fmt(safeReport.target_net_result || 0)}</p>
+            <p className="text-4xl font-black tracking-tighter leading-none mb-3">R$ {fmt(safeR.target_net_result || 0)}</p>
             <div className="flex items-center gap-2">
               <div className="px-1.5 py-0.5 bg-white/20 rounded text-white text-[7px] font-black tracking-widest uppercase">Target Revenue</div>
               <span className="text-[9px] text-white/40 font-bold italic">Líquido após taxas tech</span>
@@ -171,11 +161,11 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
             <ShieldCheck size={14} className="text-emerald-500/30" />
           </div>
           <div className="my-4">
-            <p className="text-4xl font-black text-slate-800 tracking-tighter">{safeReport.net_margin?.toFixed(1) || '0.0'}%</p>
+            <p className="text-4xl font-black text-slate-800 tracking-tighter">{safeR.net_margin?.toFixed(1) || '0.0'}%</p>
             <div className="mt-3 h-1 w-full bg-slate-50 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-emerald-500 transition-all duration-1000" 
-                style={{ width: `${Math.min(safeReport.net_margin || 0, 100)}%` }} 
+                style={{ width: `${Math.min(safeR.net_margin || 0, 100)}%` }} 
               />
             </div>
           </div>
@@ -202,7 +192,7 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
           
           <div className="h-[220px] w-full bg-white/50 rounded-2xl p-4 border border-slate-50">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={safeReport.chartData} margin={{ top: 0, right: 0, left: -25, bottom: 0 }}>
+              <AreaChart data={safeR.chartData} margin={{ top: 0, right: 0, left: -25, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorTarget" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#10b981" stopOpacity={0.05} />
@@ -239,14 +229,14 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
               <CreditCard size={14} className="text-white/60" />
               <p className="text-[8px] font-black text-white/50 uppercase tracking-widest">Tecnologia Total</p>
             </div>
-            <p className="text-xl font-black tracking-tighter relative">R$ {fmt(safeReport.pluppex_technology_fee || 0)}</p>
+            <p className="text-xl font-black tracking-tighter relative">R$ {fmt(safeR.pluppex_technology_fee || 0)}</p>
           </div>
 
           <div className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm space-y-3">
             <div>
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Target Fee</span>
-                <span className="text-xs font-black text-emerald-500 tracking-tighter">R$ {fmt(safeReport.target_fee || 0)}</span>
+                <span className="text-xs font-black text-emerald-500 tracking-tighter">R$ {fmt(safeR.target_fee || 0)}</span>
               </div>
               <div className="h-0.5 w-full bg-slate-50 rounded-full">
                 <div className="h-full bg-emerald-500 w-1/3 rounded-full opacity-30" />
@@ -256,7 +246,7 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
             <div>
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Pluppex Fee</span>
-                <span className="text-xs font-black text-violet-500 tracking-tighter">R$ {fmt(safeReport.pluppex_fee || 0)}</span>
+                <span className="text-xs font-black text-violet-500 tracking-tighter">R$ {fmt(safeR.pluppex_fee || 0)}</span>
               </div>
               <div className="h-0.5 w-full bg-slate-50 rounded-full">
                 <div className="h-full bg-violet-500 w-1/2 rounded-full opacity-30" />

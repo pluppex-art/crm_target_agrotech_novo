@@ -4,6 +4,7 @@ import { oteService } from '../../services/oteService';
 import { compensationProfileService } from '../../services/compensationProfileService';
 import { CommissionResult, SemaphoreStatus } from '../../types/finance_v2';
 import { fmt, cn } from '../../lib/utils';
+import { filterOteBySquad, groupOteByRole } from '../../calculations/oteMetrics';
 
 export function OteTab({ startDate, endDate }: { startDate: string; endDate: string }) {
   const periodMonth = startDate.substring(0, 7) + '-01';
@@ -101,13 +102,9 @@ export function OteTab({ startDate, endDate }: { startDate: string; endDate: str
     }
   };
 
-  const sellers = results.filter(r => ['CLOSER', 'SDR'].includes(r.role_type?.toUpperCase()));
-  const managers = results.filter(r => r.role_type?.toUpperCase() === 'MANAGER');
-  
-  const displayData = (activeView === 'sellers' ? sellers : managers).filter(r => {
-    if (selectedSquad === 'all') return true;
-    return r.squad_id === selectedSquad;
-  });
+  const { sellers, managers } = groupOteByRole(results);
+  const displayPool = activeView === 'sellers' ? sellers : managers;
+  const displayData = filterOteBySquad(displayPool as any, selectedSquad);
 
   return (
     <div className="space-y-6">

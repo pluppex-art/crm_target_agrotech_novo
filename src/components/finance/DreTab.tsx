@@ -3,6 +3,7 @@ import { TrendingUp, TrendingDown, Minus, AlertCircle, Loader2, BarChart3, Refre
 import { dreService } from '../../services/dreService';
 import { DreReport } from '../../types/finance_v2';
 import { cn, fmt } from '../../lib/utils';
+import { buildDreSummary } from '../../calculations/dreMetrics';
 
 export function DreTab({ startDate, endDate }: { startDate: string; endDate: string }) {
   const [report, setReport] = useState<DreReport | null>(null);
@@ -28,8 +29,8 @@ export function DreTab({ startDate, endDate }: { startDate: string; endDate: str
   }, [loadReport]);
 
   const hasData = report && report.lines.some(l => l.value !== 0);
-  const revenueLine = report?.lines.find(l => l.id === '1');
-  const netProfitLine = report?.lines.find(l => l.id === '9');
+  const summary = buildDreSummary(report);
+  const { receita_bruta, resultado_liquido } = summary;
 
   return (
     <div className="space-y-6">
@@ -44,7 +45,7 @@ export function DreTab({ startDate, endDate }: { startDate: string; endDate: str
             <div>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Receita Bruta Total</p>
               <p className="text-2xl font-black text-slate-800 tracking-tighter">
-                R$ {revenueLine ? fmt(revenueLine.value) : '0,00'}
+                R$ {fmt(receita_bruta)}
               </p>
             </div>
           </div>
@@ -60,9 +61,9 @@ export function DreTab({ startDate, endDate }: { startDate: string; endDate: str
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Resultado Líquido</p>
               <p className={cn(
                 "text-2xl font-black tracking-tighter",
-                netProfitLine && netProfitLine.value >= 0 ? "text-emerald-600" : "text-rose-600"
+                resultado_liquido >= 0 ? "text-emerald-600" : "text-rose-600"
               )}>
-                R$ {netProfitLine ? fmt(netProfitLine.value) : '0,00'}
+                R$ {fmt(resultado_liquido)}
               </p>
             </div>
           </div>
@@ -77,7 +78,7 @@ export function DreTab({ startDate, endDate }: { startDate: string; endDate: str
             <div>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Eficiência Líquida</p>
               <p className="text-2xl font-black text-slate-800 tracking-tighter">
-                {report ? report.margins.liquida.toFixed(1) : '0.0'}%
+                {summary.margem_liquida.toFixed(1)}%
               </p>
             </div>
           </div>

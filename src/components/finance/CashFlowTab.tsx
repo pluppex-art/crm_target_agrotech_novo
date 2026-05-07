@@ -8,9 +8,9 @@ import { transactionService } from '../../services/transactionService';
 import { FinancialTransaction } from '../../types/finance_v2';
 import { PageFilters } from '../ui/PageFilters';
 import { fmt, cn } from '../../lib/utils';
-import { financialCalculator } from '../../services/financialCalculator';
 import { useProfileStore } from '../../store/useProfileStore';
 import { useProductStore } from '@/store/useProductStore';
+import { calcCashFlowKPIs } from '../../calculations/cashFlowMetrics';
 
 
 function formatDate(iso: string) {
@@ -97,25 +97,8 @@ export function CashFlowTab({ startDate, endDate }: { startDate: string; endDate
       return getSquadForName(respName) === selectedSquad;
     });
 
-    const receita_total = filteredGanhoLeads.reduce((s, l) => s + financialCalculator.getPaidAmount(l as any, products), 0);
-    const contas_receber = filteredGanhoLeads.reduce((s, l) => s + financialCalculator.getPendingAmount(l as any, products), 0);
-
-    let despesa_total = 0, contas_pagar = 0;
-    for (const t of filteredTransactions) {
-      const amt = Number(t.amount) || 0;
-      if (t.type === 'EXPENSE') {
-        if (t.status === 'PAID') despesa_total += amt;
-        else if (t.status === 'PENDING' || t.status === 'OVERDUE') contas_pagar += amt;
-      }
-    }
-
-    const lucro_liquido = receita_total - despesa_total;
-    return {
-      receita_total, despesa_total, lucro_liquido,
-      margem_liquida: receita_total > 0 ? (lucro_liquido / receita_total) * 100 : 0,
-      contas_receber, contas_pagar,
-      alunos_ganhos: filteredGanhoLeads.length,
-    };
+    const result = calcCashFlowKPIs(filteredGanhoLeads as any, filteredTransactions, products);
+    return result;
   }, [transactions, ganhoLeads, products, isLoading, selectedSquad, getSquadForName]);
 
 

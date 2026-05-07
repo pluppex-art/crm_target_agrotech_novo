@@ -17,9 +17,15 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
   loading: false,
 
   fetchProfiles: async () => {
+    if (get().loading) return;
     set({ loading: true });
-    const profiles = await profileService.getProfiles();
-    set({ profiles, loading: false });
+    try {
+      const profiles = await profileService.getProfiles();
+      set({ profiles, loading: false });
+    } catch (error) {
+      console.error('Store: Error fetching profiles:', error);
+      set({ loading: false });
+    }
   },
 
   addProfile: async (profile: CreateProfilePayload) => {
