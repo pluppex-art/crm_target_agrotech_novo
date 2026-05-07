@@ -112,7 +112,7 @@ function AttendeeCardUI({
             {attendee.responsible || 'Sem responsável'}
           </p>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
-            {attendee.vendas > 0 && (
+            {attendee.vendas > 0 && !isPago && (
               <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full">
                 R$ {attendee.vendas.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
               </span>
@@ -158,7 +158,7 @@ function AttendeeCardUI({
         )}
       </div>
 
-      {(onCheckIn || onNoShow) && (
+      {(onCheckIn || onNoShow) && !isPago && (
         <div className="flex items-center gap-1.5 pt-2 border-t border-slate-50" onClick={(e) => e.stopPropagation()}>
           {onCheckIn && (
             <button
