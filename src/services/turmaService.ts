@@ -55,7 +55,7 @@ export const turmaService = {
 
     const { data, error } = await supabase
       .from('turmas')
-      .select('*, lead_class_enrollments(*)')
+      .select('*, lead_class_enrollments!class_id(*)')
       .order('created_at', { ascending: false })
       .limit(100);
 
@@ -92,7 +92,7 @@ export const turmaService = {
 
     const { data, error } = await supabase
       .from('lead_class_enrollments')
-      .select('*, turmas(*)')
+      .select('*, turmas!class_id(*)')
       .eq('lead_id', leadId)
       .neq('status', 'CANCELLED');
 
