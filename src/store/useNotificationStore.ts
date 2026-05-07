@@ -52,8 +52,9 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
 
+      const channelId = `notifications-${user.id}-${Math.random().toString(36).substring(7)}`;
       const channel = supabase
-        .channel(`notifications-${user.id}`)
+        .channel(channelId)
         .on(
           'postgres_changes',
           {
