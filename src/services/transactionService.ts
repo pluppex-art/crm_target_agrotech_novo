@@ -276,23 +276,16 @@ export const transactionService = {
 
     const leadIds = allLeads.map(l => l.id);
 
-    // 3. Fetch financial data from lead_class_enrollments (source of truth after migration 005)
-    const [enrollmentsData, attendeeData] = await Promise.all([
-      supabase
-        .from('lead_class_enrollments')
-        .select('lead_id, valor_recebido, taxa_matricula_recebido, pix_completed, professor_proof_url, discount, discount_type, discount_applied')
-        .in('lead_id', leadIds)
-        .neq('status', 'CANCELLED'),
-      // turma_attendees.valor_recebido is a legacy field — used as fallback only
-      supabase
-        .from('turma_attendees')
-        .select('lead_id, valor_recebido')
-        .in('lead_id', leadIds),
-    ]);
+    // 3. Fetch financial data from lead_class_enrollments (sole source of truth after migration 009)
+    const { data: enrollmentsData } = await supabase
+      .from('lead_class_enrollments')
+      .select('lead_id, valor_recebido, taxa_matricula_recebido, pix_completed, professor_proof_url, discount, discount_type, discount_applied')
+      .in('lead_id', leadIds)
+      .neq('status', 'CANCELLED');
 
     // Build per-lead financial map (sum all non-cancelled enrollments)
     const enrollMap: Record<string, any> = {};
-    for (const e of (enrollmentsData.data || [])) {
+    for (const e of (enrollmentsData || [])) {
       if (!enrollMap[e.lead_id]) {
         enrollMap[e.lead_id] = { valor_recebido: 0, taxa_matricula_recebido: 0, pix_completed: false, professor_proof_url: null, discount: null, discount_type: null, discount_applied: false };
       }
@@ -305,18 +298,12 @@ export const transactionService = {
       if (e.discount_applied) enrollMap[e.lead_id].discount_applied = e.discount_applied;
     }
 
-    // Fallback: turma_attendees valor for leads with no enrollment record
-    const attendeeMap: Record<string, number> = {};
-    for (const a of (attendeeData.data || [])) {
-      attendeeMap[a.lead_id] = (attendeeMap[a.lead_id] || 0) + Number(a.valor_recebido || 0);
-    }
-
     return allLeads.map(l => {
       const { pipeline_stages: _ps, ...rest } = l;
       const fin = enrollMap[l.id];
       return {
         ...rest,
-        valor_recebido: fin ? fin.valor_recebido : (attendeeMap[l.id] || 0),
+        valor_recebido: fin?.valor_recebido ?? 0,
         taxa_matricula_recebido: fin?.taxa_matricula_recebido ?? 0,
         pix_completed: fin?.pix_completed ?? false,
         professor_proof_url: fin?.professor_proof_url ?? null,

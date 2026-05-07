@@ -123,18 +123,38 @@ export const useTurmaStore = create<TurmaState>((set, get) => ({
           return { turmas: updated };
         });
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'turma_attendees' }, (payload) => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'lead_class_enrollments' }, (payload) => {
         const { eventType, new: newRecord, old: oldRecord } = payload;
         set((state) => ({
           turmas: state.turmas.map((t) => {
             if (eventType === 'INSERT') {
-              const attendee = newRecord as TurmaAttendee & { turma_id: string };
-              if (t.id !== attendee.turma_id) return t;
-              if (t.attendees.some(a => a.id === attendee.id)) return t;
+              const e = newRecord as any;
+              if (t.id !== e.class_id) return t;
+              if (t.attendees.some(a => a.id === e.id)) return t;
+              if (e.status === 'CANCELLED') return t;
+              const attendee: TurmaAttendee = {
+                id: e.id, lead_id: e.lead_id ?? undefined,
+                name: e.name ?? '', photo: e.photo ?? `https://i.pravatar.cc/150?u=${e.id}`,
+                responsible: e.responsible ?? '', status: e.board_status ?? 'matriculado',
+                vendas: Number(e.vendas) || 0, valor_recebido: e.valor_recebido ?? null,
+                forma_pagamento: e.forma_pagamento ?? null,
+              };
               return { ...t, attendees: [...t.attendees, attendee] };
             } else if (eventType === 'UPDATE') {
-              const attendee = newRecord as TurmaAttendee & { turma_id: string };
-              return { ...t, attendees: t.attendees.map(a => a.id === attendee.id ? { ...a, ...attendee } : a) };
+              const e = newRecord as any;
+              if (e.status === 'CANCELLED') {
+                return { ...t, attendees: t.attendees.filter(a => a.id !== e.id) };
+              }
+              return {
+                ...t,
+                attendees: t.attendees.map(a => a.id === e.id ? {
+                  ...a,
+                  status: e.board_status ?? a.status,
+                  vendas: Number(e.vendas) || a.vendas,
+                  valor_recebido: e.valor_recebido ?? a.valor_recebido,
+                  forma_pagamento: e.forma_pagamento ?? a.forma_pagamento,
+                } : a),
+              };
             } else if (eventType === 'DELETE') {
               return { ...t, attendees: t.attendees.filter(a => a.id !== (oldRecord as any).id) };
             }

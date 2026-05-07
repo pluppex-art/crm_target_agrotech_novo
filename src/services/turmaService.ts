@@ -34,6 +34,20 @@ export interface Turma {
   capacity?: number;
 }
 
+function mapEnrollmentToAttendee(e: any): TurmaAttendee {
+  return {
+    id: e.id,
+    lead_id: e.lead_id ?? undefined,
+    name: e.name ?? '',
+    photo: e.photo ?? `https://i.pravatar.cc/150?u=${e.id}`,
+    responsible: e.responsible ?? '',
+    status: (e.board_status ?? 'matriculado') as AttendanceStatus,
+    vendas: Number(e.vendas) || 0,
+    valor_recebido: e.valor_recebido ?? null,
+    forma_pagamento: e.forma_pagamento ?? null,
+  };
+}
+
 export const turmaService = {
   async getAll(): Promise<Turma[]> {
     const supabase = getSupabaseClient();
@@ -41,7 +55,7 @@ export const turmaService = {
 
     const { data, error } = await supabase
       .from('turmas')
-      .select('*, turma_attendees(*)')
+      .select('*, lead_class_enrollments(*)')
       .order('created_at', { ascending: false })
       .limit(100);
 
@@ -66,17 +80,9 @@ export const turmaService = {
       location: t.location,
       meta: t.meta ?? t.student_goal ?? undefined,
       status: t.status,
-      attendees: (t.turma_attendees || []).map((a: any) => ({
-        id: a.id,
-        lead_id: a.lead_id ?? undefined,
-        name: a.name ?? '',
-        photo: a.photo ?? `https://i.pravatar.cc/150?u=${a.id}`,
-        responsible: a.responsible ?? '',
-        status: a.status as AttendanceStatus,
-        vendas: Number(a.vendas) || 0,
-        valor_recebido: a.valor_recebido ?? null,
-        forma_pagamento: a.forma_pagamento ?? null,
-      })),
+      attendees: (t.lead_class_enrollments || [])
+        .filter((e: any) => e.status !== 'CANCELLED')
+        .map(mapEnrollmentToAttendee),
     }));
   },
 
@@ -85,9 +91,10 @@ export const turmaService = {
     if (!supabase) return [];
 
     const { data, error } = await supabase
-      .from('turma_attendees')
+      .from('lead_class_enrollments')
       .select('*, turmas(*)')
-      .eq('lead_id', leadId);
+      .eq('lead_id', leadId)
+      .neq('status', 'CANCELLED');
 
     if (error) {
       console.error('Error fetching attendee history:', error);
@@ -111,17 +118,7 @@ export const turmaService = {
           status: t.status,
           attendees: [],
         },
-        attendee: {
-          id: item.id,
-          lead_id: item.lead_id,
-          name: item.name,
-          photo: item.photo ?? `https://i.pravatar.cc/150?u=${item.id}`,
-          responsible: item.responsible,
-          status: item.status as AttendanceStatus,
-          vendas: Number(item.vendas) || 0,
-          valor_recebido: item.valor_recebido ?? null,
-          forma_pagamento: item.forma_pagamento ?? null,
-        }
+        attendee: mapEnrollmentToAttendee(item),
       };
     });
   },
@@ -132,10 +129,11 @@ export const turmaService = {
 
     if (attendee.lead_id) {
       const { data: existing } = await supabase
-        .from('turma_attendees')
+        .from('lead_class_enrollments')
         .select('id')
-        .eq('turma_id', turmaId)
-        .eq('lead_id', attendee.lead_id);
+        .eq('class_id', turmaId)
+        .eq('lead_id', attendee.lead_id)
+        .neq('status', 'CANCELLED');
 
       if (existing && existing.length > 0) {
         throw new Error('ALREADY_ENROLLED');
@@ -143,14 +141,15 @@ export const turmaService = {
     }
 
     const { data, error } = await supabase
-      .from('turma_attendees')
+      .from('lead_class_enrollments')
       .insert([{
-        turma_id: turmaId,
+        class_id: turmaId,
         lead_id: attendee.lead_id ?? null,
+        status: 'ENROLLED',
+        board_status: attendee.status || 'matriculado',
         name: attendee.name || '',
         photo: attendee.photo || '',
         responsible: attendee.responsible || '',
-        status: attendee.status || 'indeciso',
         vendas: Number(attendee.vendas) || 0,
       }])
       .select()
@@ -161,15 +160,7 @@ export const turmaService = {
       return null;
     }
 
-    return {
-      id: data.id,
-      lead_id: data.lead_id,
-      name: data.name,
-      photo: data.photo,
-      responsible: data.responsible,
-      status: data.status as AttendanceStatus,
-      vendas: data.vendas,
-    };
+    return mapEnrollmentToAttendee(data);
   },
 
   async updateAttendeeStatus(attendeeId: string, status: AttendanceStatus): Promise<boolean> {
@@ -177,12 +168,12 @@ export const turmaService = {
     if (!supabase) return false;
 
     const { error } = await supabase
-      .from('turma_attendees')
-      .update({ status })
+      .from('lead_class_enrollments')
+      .update({ board_status: status })
       .eq('id', attendeeId);
 
     if (error) {
-      console.error('Error updating attendee:', error);
+      console.error('Error updating attendee status:', error);
       return false;
     }
     return true;
@@ -209,7 +200,7 @@ export const turmaService = {
         location: turmaData.location || null,
         status: turmaData.status,
       }])
-      .select('*, turma_attendees(*)')
+      .select()
       .single();
 
     if (error) {
@@ -268,14 +259,15 @@ export const turmaService = {
           const turmaDate = new Date(currentTurma.date + 'T12:00:00');
           const isSameMonth = now.getMonth() === turmaDate.getMonth() && now.getFullYear() === turmaDate.getFullYear();
 
-          const { data: attendees } = await supabase
-            .from('turma_attendees')
+          const { data: enrollments } = await supabase
+            .from('lead_class_enrollments')
             .select('lead_id')
-            .eq('turma_id', id)
+            .eq('class_id', id)
+            .neq('status', 'CANCELLED')
             .not('lead_id', 'is', null);
 
-          if (attendees && attendees.length > 0) {
-            const leadIds = (attendees as any[]).map(a => a.lead_id).filter(Boolean);
+          if (enrollments && enrollments.length > 0) {
+            const leadIds = (enrollments as any[]).map(e => e.lead_id).filter(Boolean);
 
             if (leadIds.length > 0) {
               const updates: any = { substatus: 'Turma Concluída' };
@@ -335,7 +327,7 @@ export const turmaService = {
     if (!supabase) return false;
 
     const { error } = await supabase
-      .from('turma_attendees')
+      .from('lead_class_enrollments')
       .update({ valor_recebido: valor_recebido ?? null, forma_pagamento: forma_pagamento || null })
       .eq('id', attendeeId);
 
@@ -351,8 +343,8 @@ export const turmaService = {
     if (!supabase) return false;
 
     const { error } = await supabase
-      .from('turma_attendees')
-      .delete()
+      .from('lead_class_enrollments')
+      .update({ status: 'CANCELLED', removed_at: new Date().toISOString() })
       .eq('id', attendeeId);
 
     if (error) {
@@ -367,9 +359,10 @@ export const turmaService = {
     if (!supabase) return false;
 
     const { error } = await supabase
-      .from('turma_attendees')
+      .from('lead_class_enrollments')
       .update({ vendas })
-      .eq('lead_id', leadId);
+      .eq('lead_id', leadId)
+      .neq('status', 'CANCELLED');
 
     if (error) {
       console.error('Error updating attendee vendas:', error);

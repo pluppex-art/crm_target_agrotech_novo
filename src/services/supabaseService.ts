@@ -190,10 +190,10 @@ export const supabaseService = {
     const supabase = getSupabaseClient();
     if (!supabase) return false;
 
-    // Delete associated turma attendees first
+    // Cancel all class enrollments for this lead
     await supabase
-      .from('turma_attendees')
-      .delete()
+      .from('lead_class_enrollments')
+      .update({ status: 'CANCELLED', removed_at: new Date().toISOString() })
       .eq('lead_id', leadId);
 
     // Delete associated tasks
