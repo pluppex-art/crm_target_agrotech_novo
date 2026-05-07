@@ -223,7 +223,7 @@ export function Dashboard() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-6 bg-[#f3f6f9] min-h-full">
+    <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-[#f3f6f9] min-h-full">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>

@@ -272,7 +272,7 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 30, stiffness: 280 }}
-        className="bg-white shadow-2xl w-full max-w-[680px] h-full flex flex-col overflow-hidden border-l border-slate-200 relative"
+        className="bg-white shadow-2xl w-full sm:max-w-[680px] h-full flex flex-col overflow-hidden border-l border-slate-200 relative"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

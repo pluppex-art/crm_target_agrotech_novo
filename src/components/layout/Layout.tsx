@@ -70,9 +70,12 @@ export function Layout() {
   return (
     <div className="flex h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50 overflow-hidden">
       <TaskReminderWatcher />
+      {/* Sidebar - Hidden on mobile/tablet, shown as overlay, always visible on desktop (lg) */}
       <aside className={cn(
-        "w-16 transition-all duration-300 ease-out border-r border-slate-100/50 bg-white/90 backdrop-blur-md shadow-2xl z-40 flex-shrink-0 h-screen flex overflow-hidden",
-        sidebarCollapsed ? "w-16" : "w-72"
+        "fixed inset-y-0 left-0 z-50 lg:relative lg:flex h-screen flex-shrink-0 transition-all duration-300 ease-out bg-white/90 backdrop-blur-md border-r border-slate-100/50 shadow-2xl overflow-hidden",
+        isMobileSidebarOpen ? "translate-x-0 w-72" : "-translate-x-full lg:translate-x-0",
+        !isMobileSidebarOpen && "lg:w-16",
+        !sidebarCollapsed && "lg:w-72"
       )}>
         <Sidebar 
           collapsed={sidebarCollapsed} 

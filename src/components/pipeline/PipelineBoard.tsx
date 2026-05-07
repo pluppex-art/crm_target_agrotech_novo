@@ -172,7 +172,7 @@ export const PipelineBoard: React.FC<PipelineBoardProps> = ({
                   'flex flex-col bg-gray-50/50 rounded-2xl p-4 border border-gray-200/60 h-full max-h-full transition-all duration-300',
                   isMinimized
                     ? 'min-w-[56px] w-[56px] p-2 items-center'
-                    : 'min-w-[320px] w-[320px]'
+                    : 'min-w-[280px] sm:min-w-[320px] w-[280px] sm:w-[320px]'
                 )}
               >
                 {!isMinimized ? (

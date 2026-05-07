@@ -14,7 +14,8 @@ import {
   GraduationCap,
   X,
   Loader2,
-  ChevronDown
+  ChevronDown,
+  Menu
 } from 'lucide-react';
 import { useLeadStore } from '../../store/useLeadStore';
 import { useTaskStore } from '../../store/useTaskStore';
@@ -149,7 +150,7 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
           onClick={onMenuClick}
           className="lg:hidden p-2 text-slate-500 hover:bg-slate-50 rounded-lg transition-colors"
         >
-          <ChevronDown className="w-5 h-5 -rotate-90" />
+          <Menu className="w-5 h-5" />
         </button>
         <div className="relative w-full max-w-[150px] sm:max-w-96" ref={dropdownRef}>
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />

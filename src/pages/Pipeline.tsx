@@ -351,7 +351,7 @@ export const Pipeline: React.FC = () => {
   }, [products, turmas]);
 
   return (
-    <div className="p-6 space-y-4 bg-gray-50 flex-1 min-h-0 w-full flex flex-col overflow-hidden min-w-0 max-w-full">
+    <div className="p-4 sm:p-6 space-y-4 bg-gray-50 flex-1 min-h-0 w-full flex flex-col overflow-hidden min-w-0 max-w-full">
       <PipelineHeader
         caixaTotalValue={caixaTotalValue}
         competenciaTotalValue={competenciaTotalValue}
