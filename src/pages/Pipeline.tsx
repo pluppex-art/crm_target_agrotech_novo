@@ -325,73 +325,54 @@ export const Pipeline: React.FC = () => {
     return mapping;
   }, [turmas]);
 
-  // Pago e Pendente Unificados (conforme solicitado)
+  // ─── PAGO e PENDENTE ─────────────────────────────────────────────────────────
+  // Regras:
+  //   1. Só conta leads no estágio "Ganho"
+  //   2. Se o lead está numa turma CONCLUÍDA, só conta se a turma for do MÊS ATUAL
+  //   3. PAGO  = valor realmente recebido (da turma se houver, ou taxa de matrícula do lead)
+  //   4. PENDENTE = valor total contratado − pago
   const { caixaTotalValue, competenciaTotalValue } = useMemo(() => {
     let pago = 0;
     let pendente = 0;
 
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear  = today.getFullYear();
 
-
-    // USAR filteredLeads para que os cards no topo batam com o que está no quadro
     filters.filteredLeads.forEach((lead) => {
-      // 1. Determinar Data de Referência
-      const tInfo = leadToTurma[lead.id];
-      let leadDateStr = '';
-      
-      if (tInfo?.date) {
-        leadDateStr = tInfo.date;
-      } else {
-        const dateMatch = lead.product?.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
-        if (dateMatch) {
-          let year = dateMatch[3];
-          if (year.length === 2) year = "20" + year;
-          leadDateStr = `${year}-${dateMatch[2].padStart(2, '0')}-${dateMatch[1].padStart(2, '0')}`;
-        }
+      // 1. Apenas leads em Ganho
+      if (!ganhoStageIds.has(lead.stage_id ?? '')) return;
+
+      const tInfo = leadToTurma[lead.id]; // turma vinculada ao lead, se existir
+
+      // 2. Se a turma do lead já foi concluída, só considera se for do mês atual
+      if (tInfo?.status === 'concluida') {
+        if (!tInfo.date) return;
+        const d = new Date(tInfo.date + 'T12:00:00');
+        if (d.getMonth() !== currentMonth || d.getFullYear() !== currentYear) return;
       }
 
-      const stageLower = (lead.status || '').toLowerCase();
-      const isGanhoStage = lead.stage_id ? ganhoStageIds.has(lead.stage_id) : false;
-      const isTurmaConcluida = tInfo?.status === 'concluida' || stageLower.includes('conclu');
+      // 3. Valor total contratado (preço do produto − desconto + taxa de matrícula)
+      const totalContracted = financialCalculator.getTotalContracted(lead, products);
 
-      // Se não for Ganho nem Turma Concluída, ignora.
-      if (!isGanhoStage && !isTurmaConcluida) return;
+      // 4. Valores efetivamente recebidos
+      //    • Se tem turma → usa o registro do attendee (fonte primária)
+      //    • Se não tem turma → só conta taxa_matricula_recebido (digitada no formulário)
+      const valorDaTurma   = tInfo ? Number(tInfo.attendee.valor_recebido ?? 0) : 0;
+      const taxaMatricula  = tInfo
+        ? Number(tInfo.attendee.taxa_matricula_recebido ?? 0)
+        : Number(lead.taxa_matricula_recebido ?? 0);
 
-      // REGRA: Se for Turma Concluída (seja pela etapa ou pela turma em si), SÓ contabiliza se for do MÊS ATUAL.
-      if (isTurmaConcluida) {
-        if (!leadDateStr) return; // Sem data, não tem como validar
-        const lDate = new Date(leadDateStr + "T12:00:00");
-        const today = new Date();
-        if (lDate.getMonth() !== today.getMonth() || lDate.getFullYear() !== today.getFullYear()) {
-          return; // Não é do mês atual, desconsidera
-        }
-      }
+      const totalRecebido  = valorDaTurma + taxaMatricula;
 
-      // Usa a calculadora financeira oficial do sistema para obter valores precisos (considerando descontos, taxas, etc.)
-      const mockLeadForFinance = {
-        ...lead,
-        // Se a pessoa já está na turma, o valor recebido que vale é o do attendee da turma,
-        // que depois a calculadora financeira vai somar com a taxa de matrícula.
-        valor_recebido: tInfo ? (tInfo.attendee.valor_recebido || 0) : lead.valor_recebido,
-      };
-
-      const leadTotalValue = financialCalculator.getTotalContracted(mockLeadForFinance, products);
-      const received = financialCalculator.getPaidAmount(mockLeadForFinance, products);
-
-      if (isTurmaConcluida) {
-        // Se for Turma Concluída (do mês atual), consideramos o valor total do contrato como PAGO.
-        pago += leadTotalValue;
-      } else {
-        // Se for apenas Ganho, contabiliza exatamente o que já foi recebido em PAGO e o resto em PENDENTE.
-        pago += received;
-        const remainder = leadTotalValue - received;
-        if (remainder > 0) {
-          pendente += remainder;
-        }
-      }
+      pago     += totalRecebido;
+      pendente += Math.max(0, totalContracted - totalRecebido);
     });
 
     return { caixaTotalValue: pago, competenciaTotalValue: pendente };
-  }, [turmas, leads, products, leadToTurma, filters.filteredLeads, ganhoStageIds]);
+  }, [turmas, products, leadToTurma, filters.filteredLeads, ganhoStageIds]);
+
+
 
   // Filtra produtos para não mostrar os de Turmas já Concluídas no dropdown
   const activeProductsForFilter = useMemo(() => {

@@ -2,6 +2,7 @@ import React from 'react';
 import { Loader2, Download, Plus, Trophy, UserCheck, CalendarRange } from 'lucide-react';
 
 import { PipelineSelect } from './PipelineSelect';
+import { PipelineMetricCards } from './PipelineMetricCards';
 import { cn } from '../../lib/utils';
 import { financialCalculator } from '../../services/financialCalculator';
 
@@ -53,29 +54,7 @@ export const PipelineHeader: React.FC<PipelineHeaderProps> = ({
       </div>
 
       <div className="flex flex-wrap items-center gap-2 shrink-0">
-        {/* Valores */}
-        <div className="flex items-center gap-2">
-          {/* Caixa */}
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-100 rounded-xl shadow-sm">
-            <Trophy size={16} className="text-emerald-600" />
-            <div className="flex flex-col">
-              <p className="text-[9px] font-black text-emerald-500 uppercase tracking-wider leading-none">Pago</p>
-              <p className="text-sm font-black text-emerald-700 leading-none mt-0.5">
-                {financialCalculator.formatCurrency(caixaTotalValue)}
-              </p>
-            </div>
-          </div>
-          {/* Competências */}
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-100 rounded-xl shadow-sm">
-            <UserCheck size={16} className="text-blue-600" />
-            <div className="flex flex-col">
-              <p className="text-[9px] font-black text-blue-500 uppercase tracking-wider leading-none">Pendente</p>
-              <p className="text-sm font-black text-blue-700 leading-none mt-0.5">
-                {financialCalculator.formatCurrency(competenciaTotalValue)}
-              </p>
-            </div>
-          </div>
-        </div>
+        <PipelineMetricCards pago={caixaTotalValue} pendente={competenciaTotalValue} />
 
 
 

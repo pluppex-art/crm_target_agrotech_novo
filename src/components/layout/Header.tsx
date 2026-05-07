@@ -18,9 +18,7 @@ import {
 } from 'lucide-react';
 import { useLeadStore } from '../../store/useLeadStore';
 import { useTaskStore } from '../../store/useTaskStore';
-import { useContractStore } from '../../store/useContractStore';
 import { useProductStore } from '../../store/useProductStore';
-import { useMarketingStore } from '../../store/useMarketingStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useProfileStore } from '../../store/useProfileStore';
 import { useNotificationStore } from '../../store/useNotificationStore';
@@ -56,9 +54,7 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
 
   const { leads, fetchLeads } = useLeadStore();
   const { tasks, fetchTasks } = useTaskStore();
-  const { contracts, fetchContracts } = useContractStore();
   const { products, fetchProducts } = useProductStore();
-  const { campaigns, fetchCampaigns } = useMarketingStore();
   const { profiles } = useProfileStore();
   const profile = profiles.find(p => p.id === user?.id);
 
@@ -66,10 +62,8 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
   useEffect(() => {
     fetchLeads();
     fetchTasks();
-    fetchContracts();
     fetchProducts();
-    fetchCampaigns();
-  }, [fetchLeads, fetchTasks, fetchContracts, fetchProducts, fetchCampaigns]);
+  }, [fetchLeads, fetchTasks, fetchProducts]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -119,17 +113,7 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
       icon: CheckSquare
     }));
 
-    // Contracts
-    contracts.filter(c => 
-      c.title.toLowerCase().includes(q)
-    ).slice(0, 5).forEach(c => results.push({
-      id: c.id,
-      type: 'Contrato',
-      title: c.title,
-      subtitle: `R$ ${c.value.toLocaleString('pt-BR')}`,
-      link: '/contracts',
-      icon: FileText
-    }));
+
 
     // Products
     products.filter(p => 
@@ -144,18 +128,7 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
       icon: Package
     }));
 
-    // Campaigns
-    campaigns.filter(c => 
-      c.name.toLowerCase().includes(q) || 
-      c.platform.toLowerCase().includes(q)
-    ).slice(0, 5).forEach(c => results.push({
-      id: c.id,
-      type: 'Campanha',
-      title: c.name,
-      subtitle: c.platform,
-      link: '/marketing',
-      icon: Megaphone
-    }));
+
   }
 
   const handleSelect = (link: string) => {

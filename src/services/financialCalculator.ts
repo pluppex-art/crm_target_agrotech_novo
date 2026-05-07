@@ -117,11 +117,12 @@ export const financialCalculator = {
 
     const productObj = financialCalculator.findProduct(lead.product, products);
     if (!financialCalculator.isServiceProduct(productObj)) {
-      if (lead.taxa_matricula_recebido != null) {
+      // Soma a taxa de matrícula apenas se o valor foi REALMENTE registrado
+      if (lead.taxa_matricula_recebido != null && lead.taxa_matricula_recebido > 0) {
         paid += lead.taxa_matricula_recebido;
-      } else if (lead.pix_completed) {
-        paid += financialCalculator.getEnrollmentFee(lead.product, products);
       }
+      // NOTA: pix_completed = true sem taxa_matricula_recebido preenchido NÃO soma nada.
+      // O valor real precisa ser digitado no campo "Valor R$" ao lado do checkbox.
     }
 
     return Math.round(paid * 100) / 100;

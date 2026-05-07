@@ -221,9 +221,16 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
         </div>
       ) : leadTurmas.length > 0 ? (
         leadTurmas.map(({ turma, attendee }: any) => {
+          // Usar dados do attendee como fonte de verdade para os cálculos financeiros
           const payment = getPayment(attendee.id);
-          const valorAReceber = financialCalculator.getPendingAmount(formData, products);
-          const hasSavedPayment = attendee.valor_recebido && attendee.valor_recebido > 0;
+          const leadForCalc = {
+            ...formData,
+            valor_recebido: attendee.valor_recebido ?? 0,
+            taxa_matricula_recebido: attendee.taxa_matricula_recebido ?? formData?.taxa_matricula_recebido ?? null,
+          };
+          const valorPago = financialCalculator.getPaidAmount(leadForCalc, products);
+          const valorAReceber = financialCalculator.getPendingAmount(leadForCalc, products);
+          const hasSavedPayment = (attendee.valor_recebido ?? 0) > 0 || (attendee.taxa_matricula_recebido ?? 0) > 0;
 
           return (
             <div key={turma.id} className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-3">
@@ -253,29 +260,55 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
               </div>
 
               <div className="pt-3 border-t border-slate-100 space-y-2">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pagamentos Confirmados</p>
-                {hasSavedPayment ? (
-                  <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-3 flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-bold text-emerald-700">R$ {Number(attendee.valor_recebido).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                      <p className="text-[10px] text-emerald-600 opacity-80">{attendee.forma_pagamento || 'Diversas formas'}</p>
-                    </div>
-                    <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-white px-2 py-1 rounded-full border border-emerald-100">
-                      <CheckSquare size={10} />
-                      REGISTRADO
-                    </div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Resumo Financeiro</p>
+
+                {/* Pagamento da Turma */}
+                {(attendee.valor_recebido ?? 0) > 0 && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-500 flex items-center gap-1">
+                      <CheckSquare size={10} className="text-emerald-500" />
+                      Pago na turma
+                    </span>
+                    <span className="font-bold text-emerald-600">
+                      R$ {Number(attendee.valor_recebido).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </span>
                   </div>
-                ) : (
-                  <p className="text-[10px] text-slate-400 italic">Nenhum pagamento registrado nesta turma.</p>
                 )}
 
-                <div className="flex items-center justify-between text-xs pt-1">
-                  <span className="font-bold text-slate-500">Saldo Pendente (Total)</span>
-                  <span className={cn('font-bold', (valorAReceber ?? 0) <= 0 ? 'text-emerald-600' : 'text-orange-600')}>
-                    R$ {(valorAReceber ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                {/* Taxa de Matrícula */}
+                {(attendee.taxa_matricula_recebido ?? 0) > 0 && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-500 flex items-center gap-1">
+                      <CheckSquare size={10} className="text-emerald-500" />
+                      Taxa de matrícula
+                    </span>
+                    <span className="font-bold text-emerald-600">
+                      R$ {Number(attendee.taxa_matricula_recebido).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                )}
+
+                {/* Total Pago */}
+                <div className="flex items-center justify-between text-xs border-t border-slate-100 pt-1">
+                  <span className="font-bold text-slate-600">Total Pago</span>
+                  <span className="font-bold text-emerald-700">
+                    R$ {valorPago.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
+
+                {/* A Receber */}
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-slate-500">A Receber</span>
+                  <span className={cn('font-bold', valorAReceber <= 0 ? 'text-emerald-600' : 'text-orange-600')}>
+                    R$ {valorAReceber.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+
+                {!hasSavedPayment && (
+                  <p className="text-[10px] text-slate-400 italic">Nenhum pagamento registrado nesta turma.</p>
+                )}
               </div>
+
 
               {(valorAReceber ?? 0) > 0 && (
                 <div className="pt-3 border-t border-slate-100 space-y-3">
