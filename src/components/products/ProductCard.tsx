@@ -77,7 +77,7 @@ export function ProductCard({ product, onEdit, turmaStatus }: ProductCardProps) 
             </span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-slate-400 font-bold uppercase">Estoque: {product.stock || 0}</span>
+            <span className="text-[10px] text-slate-400 font-bold uppercase">Meta: {product.student_goal ?? '—'} alunos</span>
             <div className="flex items-center gap-2">
               {hasPermission('products.edit') && (
                 <button 

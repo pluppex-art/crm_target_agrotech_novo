@@ -431,7 +431,7 @@ function StudentRow({ tx }: { tx: TxWithLead }) {
   const leadName = tx.leads?.name ?? tx.description.replace('Receita Automática - Lead: ', '');
   const productName = tx.turmas?.name || tx.leads?.product || 'Produto não identificado';
   const totalValue = tx.leads?.value ? Number(tx.leads.value) : Number(tx.amount);
-  const paidValue = tx.leads?.valor_recebido ? Number(tx.leads.valor_recebido) : (isPaid ? Number(tx.amount) : 0);
+  const paidValue = isPaid ? Number(tx.amount) : 0;
 
   return (
     <div className="flex items-center gap-4 px-6 py-3.5 hover:bg-slate-50/50 transition-colors">

@@ -35,6 +35,5 @@ export interface Lead {
   forma_pagamento?: string | null;
   motivo_perda?: string | null;
   cnpj?: string | null;
-  history?: any[];
 }
 

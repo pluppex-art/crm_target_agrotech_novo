@@ -96,19 +96,6 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
         return false;
       }
 
-      // Append to history for better analytics
-      const currentLead = previousLeads.find(l => l.id === leadId);
-      const newHistoryEntry = {
-        type: 'stage_change',
-        to_stage_id: stageId,
-        to_stage_name: stageName,
-        created_at: new Date().toISOString(),
-        user_name: useAuthStore.getState().user?.user_metadata?.name || 'Sistema'
-      };
-
-      const updatedHistory = [...(currentLead?.history || []), newHistoryEntry];
-      await supabaseService.updateLead(leadId, { history: updatedHistory } as any);
-
       // Automated Email: Enrollment Confirmation for "Ganho" stages
       const targetLead = previousLeads.find(l => l.id === leadId);
       if (targetLead && targetLead.email) {
