@@ -59,60 +59,187 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 // ── Permission PT-BR labels ───────────────────────────────────────────────────
+// ── Permission PT-BR labels ───────────────────────────────────────────────────
 const PERMISSION_LABELS: Record<string, { title: string; description: string }> = {
-  'dashboard.view':      { title: 'Visualizar Dashboard',        description: 'Acesso à tela de métricas e gráficos.' },
+  'dashboard.view':      { 
+    title: 'Visualizar Dashboard e BI',        
+    description: 'Acesso completo ao painel de indicadores, métricas de conversão, gráficos de tendência e Business Intelligence (BI).' 
+  },
 
-  'leads.view':          { title: 'Visualizar Leads',            description: 'Ver a lista de leads e seus detalhes.' },
-  'leads.create':        { title: 'Criar Leads',                 description: 'Adicionar novos leads ao sistema.' },
-  'leads.edit':          { title: 'Editar Leads',                description: 'Alterar informações de leads existentes.' },
-  'leads.delete':        { title: 'Excluir Leads',               description: 'Remover leads permanentemente.' },
-  'leads.export':        { title: 'Exportar Leads',              description: 'Baixar dados de leads em planilha.' },
+  'leads.view':          { 
+    title: 'Visualizar Base de Leads',            
+    description: 'Permite visualizar a listagem completa de leads, histórico de interações, detalhes de contato e informações básicas.' 
+  },
+  'leads.create':        { 
+    title: 'Capturar e Criar Leads',                 
+    description: 'Capacidade de inserir novos leads manualmente no CRM e gerenciar a entrada de novos contatos.' 
+  },
+  'leads.edit':          { 
+    title: 'Editar Dados de Leads',                
+    description: 'Permite alterar campos cadastrais, atualizar status, trocar responsáveis e modificar informações de perfil.' 
+  },
+  'leads.delete':        { 
+    title: 'Arquivar/Excluir Leads',               
+    description: 'Permissão crítica para remover leads permanentemente ou enviar para a lixeira do sistema.' 
+  },
+  'leads.export':        { 
+    title: 'Exportação de Dados (CSV/XLS)',              
+    description: 'Capacidade de extrair dados da base de leads para planilhas externas (Excel/Google Sheets).' 
+  },
 
-  'pipeline.view':       { title: 'Visualizar Pipeline',         description: 'Acessar o quadro de pipeline de vendas.' },
-  'pipeline.edit':       { title: 'Mover no Pipeline',           description: 'Mover leads entre etapas do pipeline.' },
-  'pipeline.delete':     { title: 'Excluir do Pipeline',         description: 'Remover leads diretamente do pipeline.' },
+  'pipeline.view':       { 
+    title: 'Visualizar Funil de Vendas',         
+    description: 'Acesso ao quadro Kanban do Pipeline, permitindo acompanhar o fluxo de negociações em tempo real.' 
+  },
+  'pipeline.edit':       { 
+    title: 'Gestão de Oportunidades',           
+    description: 'Permite movimentar leads entre etapas, atualizar valores de negociação e definir motivos de perda/ganho.' 
+  },
+  'pipeline.delete':     { 
+    title: 'Remover do Fluxo Ativo',         
+    description: 'Capacidade de retirar uma negociação do pipeline sem necessariamente excluir o lead da base.' 
+  },
 
-  'finance.view':        { title: 'Visualizar Financeiro',       description: 'Ver transações, receitas e despesas.' },
-  'finance.create':      { title: 'Criar Transações',            description: 'Registrar novas entradas ou saídas.' },
-  'finance.edit':        { title: 'Editar Transações',           description: 'Alterar transações já registradas.' },
-  'finance.delete':      { title: 'Excluir Transações',          description: 'Remover transações do histórico.' },
-  'finance.export':      { title: 'Exportar Relatório',          description: 'Baixar relatórios financeiros.' },
+  'finance.view':        { 
+    title: 'Gestão Financeira e Fluxo',       
+    description: 'Visualização completa de entradas, saídas, conciliação bancária, DRE e status de pagamentos.' 
+  },
+  'finance.create':      { 
+    title: 'Lançar Transações',            
+    description: 'Permite registrar novas receitas, despesas manuais e programar pagamentos futuros no sistema.' 
+  },
+  'finance.edit':        { 
+    title: 'Modificar Lançamentos',           
+    description: 'Capacidade de alterar valores, datas de vencimento, categorias e anexos de transações financeiras.' 
+  },
+  'finance.delete':      { 
+    title: 'Estornar/Remover Lançamentos',          
+    description: 'Permissão para excluir registros financeiros do histórico. Requer cautela por afetar o saldo consolidado.' 
+  },
+  'finance.export':      { 
+    title: 'Extrair Relatórios Financeiros',          
+    description: 'Geração de relatórios detalhados em PDF ou Excel para auditoria e contabilidade.' 
+  },
 
-  'contracts.view':      { title: 'Visualizar Contratos',        description: 'Ver a lista de contratos e seus detalhes.' },
-  'contracts.create':    { title: 'Criar Contratos',             description: 'Gerar novos contratos comerciais.' },
-  'contracts.edit':      { title: 'Editar Contratos',            description: 'Alterar contratos existentes.' },
-  'contracts.delete':    { title: 'Excluir Contratos',           description: 'Remover contratos do sistema.' },
+  'contracts.view':      { 
+    title: 'Visualizar Repositório de Contratos',        
+    description: 'Acesso à lista de documentos contratuais, termos de aceite e histórico de assinaturas.' 
+  },
+  'contracts.create':    { 
+    title: 'Gerar Novos Documentos',             
+    description: 'Permite utilizar templates para gerar novos contratos, aditivos e termos personalizados.' 
+  },
+  'contracts.edit':      { 
+    title: 'Revisar Clausulados',            
+    description: 'Capacidade de editar o conteúdo de minutas contratuais e ajustar termos específicos antes do envio.' 
+  },
+  'contracts.delete':    { 
+    title: 'Excluir Documentos Selados',           
+    description: 'Remoção de registros de contratos do sistema (pode afetar o histórico jurídico do cliente).' 
+  },
 
-  'products.view':       { title: 'Visualizar Produtos',         description: 'Ver catálogo de produtos e serviços.' },
-  'products.create':     { title: 'Criar Produtos',              description: 'Adicionar novos produtos ou serviços.' },
-  'products.edit':       { title: 'Editar Produtos',             description: 'Alterar produtos existentes.' },
-  'products.delete':     { title: 'Excluir Produtos',            description: 'Remover produtos do catálogo.' },
+  'products.view':       { 
+    title: 'Consultar Catálogo',         
+    description: 'Visualização de produtos, serviços, tabelas de preços, estoque e especificações técnicas.' 
+  },
+  'products.create':     { 
+    title: 'Cadastrar Novos Itens',              
+    description: 'Permite adicionar novos produtos ou pacotes de serviços ao catálogo comercial.' 
+  },
+  'products.edit':       { 
+    title: 'Gerenciar Preços e Estoque',             
+    description: 'Capacidade de atualizar valores de venda, custos, níveis de estoque e descrições técnicas.' 
+  },
+  'products.delete':     { 
+    title: 'Remover Itens do Portfólio',            
+    description: 'Permite desativar ou excluir permanentemente produtos que não serão mais comercializados.' 
+  },
 
-  'turmas.view':         { title: 'Visualizar Turmas',           description: 'Ver as turmas cadastradas e seus participantes.' },
-  'turmas.create':       { title: 'Criar Turmas',                description: 'Cadastrar novas turmas.' },
-  'turmas.edit':         { title: 'Editar Turmas',               description: 'Alterar dados e status de turmas.' },
-  'turmas.delete':       { title: 'Excluir Turmas',              description: 'Remover turmas do sistema.' },
+  'turmas.view':         { 
+    title: 'Visualizar Quadro Acadêmico',           
+    description: 'Acesso à agenda de turmas, lista de alunos matriculados, presença e status de execução.' 
+  },
+  'turmas.create':       { 
+    title: 'Abertura de Novas Turmas',                
+    description: 'Permite planejar e abrir novos calendários de treinamento, definindo metas e instrutores.' 
+  },
+  'turmas.edit':         { 
+    title: 'Gestão de Alocação e Status',               
+    description: 'Capacidade de matricular alunos, realizar check-in, alterar datas e atualizar status de conclusão.' 
+  },
+  'turmas.delete':       { 
+    title: 'Cancelar/Remover Turmas',              
+    description: 'Permissão para cancelar turmas abertas ou remover registros do histórico acadêmico.' 
+  },
 
-  'tasks.view':          { title: 'Visualizar Tarefas',          description: 'Ver tarefas e atividades pendentes.' },
-  'tasks.create':        { title: 'Criar Tarefas',               description: 'Adicionar novas tarefas.' },
-  'tasks.edit':          { title: 'Editar Tarefas',              description: 'Alterar tarefas existentes.' },
-  'tasks.delete':        { title: 'Excluir Tarefas',             description: 'Remover tarefas do sistema.' },
+  'tasks.view':          { 
+    title: 'Monitorar Atividades e CRM',          
+    description: 'Visualização de agendas, compromissos, lembretes de acompanhamento e tarefas pendentes.' 
+  },
+  'tasks.create':        { 
+    title: 'Delegar e Criar Tarefas',               
+    description: 'Permite criar novas tarefas para si ou delegar atividades para outros membros da equipe.' 
+  },
+  'tasks.edit':          { 
+    title: 'Gerenciar Prazos e Execução',              
+    description: 'Capacidade de alterar datas de entrega, responsáveis, prioridades e descrições de tarefas.' 
+  },
+  'tasks.delete':        { 
+    title: 'Limpar Histórico de Atividades',             
+    description: 'Permissão para remover tarefas e registros de atividades do log do sistema.' 
+  },
 
-  'notes.view':          { title: 'Visualizar Anotações',        description: 'Ver anotações vinculadas a leads.' },
-  'notes.create':        { title: 'Criar Anotações',             description: 'Adicionar novas anotações.' },
-  'notes.edit':          { title: 'Editar Anotações',            description: 'Alterar anotações existentes.' },
-  'notes.delete':        { title: 'Excluir Anotações',           description: 'Remover anotações do sistema.' },
+  'notes.view':          { 
+    title: 'Consultar Notas de CRM',        
+    description: 'Leitura de anotações internas, observações de vendas e feedbacks registrados nos perfis.' 
+  },
+  'notes.create':        { 
+    title: 'Registrar Novas Notas',             
+    description: 'Capacidade de adicionar observações e registros importantes sobre leads e negociações.' 
+  },
+  'notes.edit':          { 
+    title: 'Editar Histórico Interno',            
+    description: 'Permite retificar ou complementar informações registradas em anotações anteriores.' 
+  },
+  'notes.delete':        { 
+    title: 'Apagar Registros de Nota',           
+    description: 'Remoção permanente de anotações internas (afeta a rastreabilidade do histórico de vendas).' 
+  },
 
-  'marketing.view':      { title: 'Visualizar Marketing',        description: 'Ver campanhas e métricas de marketing.' },
-  'marketing.create':    { title: 'Criar Campanhas',             description: 'Criar novas campanhas de marketing.' },
-  'marketing.manage':    { title: 'Gerenciar Marketing',         description: 'Editar e excluir campanhas existentes.' },
+  'marketing.view':      { 
+    title: 'Análise de Campanhas',        
+    description: 'Visualização de métricas de marketing, fontes de leads e desempenho de campanhas ativas.' 
+  },
+  'marketing.create':    { 
+    title: 'Lançar Iniciativas',             
+    description: 'Permite configurar novas fontes de leads, URLs parametrizadas e automações de entrada.' 
+  },
+  'marketing.manage':    { 
+    title: 'Gestão de Growth',         
+    description: 'Capacidade total para gerenciar orçamentos de campanhas, canais de aquisição e ferramentas de marketing.' 
+  },
 
-  'users.view':          { title: 'Visualizar Usuários',         description: 'Ver lista de usuários cadastrados.' },
-  'users.manage':        { title: 'Gerenciar Usuários',          description: 'Criar, editar e remover usuários.' },
-  'settings.view':       { title: 'Visualizar Configurações',    description: 'Acessar o painel de configurações.' },
-  'settings.manage':     { title: 'Gerenciar Configurações',     description: 'Alterar configurações do sistema.' },
+  'users.view':          { 
+    title: 'Consultar Diretório de Equipe',         
+    description: 'Visualização da lista de colaboradores, cargos, squads e informações de contato interno.' 
+  },
+  'users.manage':        { 
+    title: 'Administração de Usuários',          
+    description: 'Gestão completa: criar novos acessos, redefinir senhas, desativar contas e gerenciar cargos.' 
+  },
+  'settings.view':       { 
+    title: 'Acessar Painel de Controle',    
+    description: 'Permite visualizar as configurações globais do sistema, integrações e parâmetros operacionais.' 
+  },
+  'settings.manage':     { 
+    title: 'Configuração Estrutural',     
+    description: 'Permissão avançada para alterar regras de negócio, integrações de API e preferências globais.' 
+  },
 
-  'admin.all':           { title: 'Acesso Total (Admin)',        description: 'Permissão irrestrita a todas as funcionalidades.' },
+  'admin.all':           { 
+    title: 'Controle Total do Ecossistema',        
+    description: 'Acesso irrestrito e absoluto. Permite ignorar qualquer trava de segurança e gerenciar todas as permissões.' 
+  },
 };
 
 function getLabel(permission: string) {
@@ -127,6 +254,7 @@ export function Permissions() {
   const navigate = useNavigate();
   const { cargos, fetchCargos, subscribe, updateCargo } = useCargoStore();
   const [selectedCargoId, setSelectedCargoId] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchCargos();
@@ -166,149 +294,195 @@ export function Permissions() {
   });
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-[1400px] mx-auto animate-in fade-in duration-500">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
-        <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex items-center gap-4">
           <button
             onClick={() => navigate('/settings')}
-            className="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-500 shrink-0"
+            className="p-2.5 hover:bg-white border border-transparent hover:border-slate-200 rounded-xl transition-all text-slate-500 shadow-sm hover:shadow-md"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-800 flex items-center gap-2 truncate">
-              <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600 shrink-0" />
-              Permissões
+          <div>
+            <h1 className="text-2xl font-black text-slate-800 flex items-center gap-2">
+              <Shield className="w-7 h-7 text-emerald-600" />
+              Central de Acessos
             </h1>
-            <p className="text-xs sm:text-sm text-slate-500 truncate">Gerencie o acesso de cada perfil.</p>
+            <p className="text-sm text-slate-500 font-medium">Controle de privilégios por cargo e função</p>
           </div>
+        </div>
+
+        {/* Search */}
+        <div className="relative w-full sm:w-72 group">
+          <Settings className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+          <input
+            type="text"
+            placeholder="Buscar permissão..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all placeholder:text-slate-400"
+          />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Sidebar — Roles */}
-        <div className="lg:col-span-4 space-y-2">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider px-2 mb-4">Perfis de Usuário</h3>
-          {cargos.map((cargo) => {
-            const isAdmin = cargo.permissions?.includes('admin.all');
-            return (
-              <button
-                key={cargo.id}
-                onClick={() => setSelectedCargoId(cargo.id)}
-                className={cn(
-                  'w-full flex items-center justify-between p-4 rounded-2xl border transition-all text-left group',
-                  selectedCargoId === cargo.id
-                    ? 'bg-emerald-50 border-emerald-200 shadow-sm'
-                    : 'bg-white border-slate-200 hover:border-emerald-200 hover:bg-slate-50'
-                )}
-              >
-                <div className="flex items-center gap-3">
+        <div className="lg:col-span-3 space-y-4">
+          <div className="flex items-center justify-between px-2">
+            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Cargos Definidos</h3>
+            <span className="text-[10px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">{cargos.length}</span>
+          </div>
+          
+          <div className="space-y-2 max-h-[calc(100vh-250px)] overflow-y-auto pr-2 custom-scrollbar">
+            {cargos.map((cargo) => {
+              const isAdmin = cargo.permissions?.includes('admin.all');
+              const isSelected = selectedCargoId === cargo.id;
+              return (
+                <button
+                  key={cargo.id}
+                  onClick={() => setSelectedCargoId(cargo.id)}
+                  className={cn(
+                    'w-full flex items-center gap-3 p-4 rounded-2xl border transition-all text-left relative overflow-hidden group',
+                    isSelected
+                      ? 'bg-white border-emerald-500 shadow-lg shadow-emerald-500/5'
+                      : 'bg-white/50 border-slate-200 hover:border-emerald-200 hover:bg-white'
+                  )}
+                >
+                  {isSelected && (
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500" />
+                  )}
+                  
                   <div className={cn(
-                    'w-10 h-10 rounded-xl flex items-center justify-center transition-colors bg-gradient-to-br',
-                    selectedCargoId === cargo.id
-                      ? 'from-emerald-500 to-emerald-600 text-white'
-                      : 'from-slate-100 to-slate-200 text-slate-600 group-hover:from-emerald-100 group-hover:to-emerald-200'
+                    'w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-300',
+                    isSelected
+                      ? 'bg-emerald-500 text-white shadow-inner'
+                      : 'bg-slate-100 text-slate-500 group-hover:bg-emerald-50 group-hover:text-emerald-600'
                   )}>
-                    <Users className="w-5 h-5" />
+                    <UserCog className="w-5 h-5" />
                   </div>
-                  <div>
+
+                  <div className="min-w-0 flex-1">
                     <h4 className={cn(
-                      'font-bold text-sm transition-colors',
-                      selectedCargoId === cargo.id ? 'text-emerald-900' : 'text-slate-700'
+                      'font-bold text-sm truncate',
+                      isSelected ? 'text-slate-900' : 'text-slate-600'
                     )}>
                       {cargo.name}
                     </h4>
-                    <p className="text-[10px] text-slate-400">
-                      {isAdmin ? 'Acesso total' : `${cargo.permissions?.length ?? 0} permissões`}
-                    </p>
-                    {isAdmin && (
-                      <span className="text-[10px] font-bold text-emerald-600 uppercase bg-emerald-100 px-1.5 py-0.5 rounded">Admin</span>
-                    )}
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      {isAdmin ? (
+                        <span className="text-[9px] font-black text-emerald-600 uppercase tracking-wider">Super Admin</span>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                            {cargo.permissions?.length ?? 0} Acessos
+                          </span>
+                          <span className="text-[9px] font-black text-emerald-500 bg-emerald-50 px-1 rounded">
+                            {Math.round(((cargo.permissions?.length ?? 0) / PERMISSIONS.length) * 100)}%
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <ChevronRight className={cn(
-                  'w-4 h-4 transition-all',
-                  selectedCargoId === cargo.id ? 'text-emerald-600 translate-x-1' : 'text-slate-300'
-                )} />
-              </button>
-            );
-          })}
+                  
+                  <ChevronRight className={cn(
+                    'w-4 h-4 transition-transform duration-300',
+                    isSelected ? 'text-emerald-500 translate-x-1' : 'text-slate-300 opacity-0 group-hover:opacity-100'
+                  )} />
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Content — Permissions */}
-        <div className="lg:col-span-8">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-            {/* Role banner */}
+        <div className="lg:col-span-9">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-xl shadow-slate-200/50 overflow-hidden">
+            {/* Active Cargo Info */}
             <div className={cn(
-              'p-4 sm:p-6 border-b flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4',
-              isAdminCargo ? 'bg-emerald-50/50 border-emerald-100' : 'bg-slate-50/50 border-slate-100'
+              'p-6 sm:p-8 border-b flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 relative',
+              isAdminCargo ? 'bg-gradient-to-r from-emerald-600 to-emerald-700' : 'bg-gradient-to-r from-slate-800 to-slate-900'
             )}>
-              <div className="flex items-center gap-4">
-                <div className={cn(
-                  'w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-sm shrink-0',
-                  isAdminCargo ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-white'
-                )}>
-                  <Lock className="w-5 h-5 sm:w-6 sm:h-6" />
+              <div className="absolute top-0 right-0 p-8 opacity-10">
+                <Shield size={120} className="text-white" />
+              </div>
+              
+              <div className="flex items-center gap-5 relative z-10">
+                <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center shadow-2xl border border-white/20">
+                  <Lock className="w-8 h-8 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-base sm:text-lg font-bold text-slate-800">
-                    {currentCargo?.name ?? 'Selecione um perfil'}
+                  <h2 className="text-xl sm:text-2xl font-black text-white">
+                    {currentCargo?.name ?? 'Configurando Perfil'}
                   </h2>
-                  <p className="text-[10px] sm:text-sm text-slate-500">
-                    {isAdminCargo ? 'Acesso total ao sistema.' : 'Personalize as permissões abaixo.'}
+                  <p className="text-sm text-white/70 font-medium mt-1">
+                    {isAdminCargo ? 'Este perfil detém controle absoluto sobre o ecossistema.' : 'Ajuste os níveis de acesso granulares abaixo.'}
                   </p>
                 </div>
               </div>
+
               {isAdminCargo && (
-                <div className="flex items-center gap-2 px-3 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-[10px] font-bold">
-                  <Check className="w-3.5 h-3.5" />
-                  ACESSO TOTAL
+                <div className="relative z-10 flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md text-white rounded-xl text-xs font-black uppercase tracking-widest border border-white/20">
+                  <Check className="w-4 h-4" />
+                  Blindagem Ativa
                 </div>
               )}
             </div>
 
-            {/* Permissions grid */}
-            <div className="p-6 space-y-8">
+            {/* Permissions List */}
+            <div className="p-8 space-y-10">
               {sortedCategories.map((category) => {
-                const perms = groupedPermissions[category];
+                const rawPerms = groupedPermissions[category];
+                // Filter by search
+                const perms = rawPerms.filter(p => {
+                  const label = getLabel(p);
+                  return label.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         label.description.toLowerCase().includes(searchTerm.toLowerCase());
+                });
+
+                if (perms.length === 0) return null;
+
                 const Icon = CATEGORY_ICONS[category] ?? Settings;
                 const label = CATEGORY_LABELS[category] ?? category;
-                const allEnabled = perms.every(p => currentRolePermissions.includes(p));
+                const allEnabled = rawPerms.every(p => currentRolePermissions.includes(p));
 
                 return (
-                  <div key={category} className="space-y-4">
-                    <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                      <div className="flex items-center gap-2">
-                        <Icon className="w-4 h-4 text-slate-400" />
-                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">{label}</h3>
+                  <div key={category} className="space-y-6">
+                    <div className="flex items-center justify-between group">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-slate-50 rounded-lg group-hover:bg-emerald-50 transition-colors">
+                          <Icon className="w-5 h-5 text-slate-400 group-hover:text-emerald-600 transition-colors" />
+                        </div>
+                        <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">{label}</h3>
+                        <span className="w-1.5 h-1.5 rounded-full bg-slate-200" />
+                        <span className="text-xs font-bold text-slate-400">{perms.length} opções</span>
                       </div>
-                      {/* Toggle all in category */}
+                      
                       {!isAdminCargo && category !== 'admin' && (
                         <button
                           onClick={async () => {
                             const toEnable = !allEnabled;
                             let updated = [...currentRolePermissions];
                             if (toEnable) {
-                              perms.forEach(p => { if (!updated.includes(p)) updated.push(p); });
+                              rawPerms.forEach(p => { if (!updated.includes(p)) updated.push(p); });
                             } else {
-                              updated = updated.filter(p => !perms.includes(p));
+                              updated = updated.filter(p => !rawPerms.includes(p));
                             }
                             await updateCargo(selectedCargoId, { permissions: updated });
                           }}
                           className={cn(
-                            'text-[10px] font-bold px-2 py-0.5 rounded-full transition-all',
+                            'text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all border shadow-sm active:scale-95',
                             allEnabled
-                              ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                              : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100'
+                              : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
                           )}
                         >
-                          {allEnabled ? 'Desmarcar todos' : 'Marcar todos'}
+                          {allEnabled ? 'Revogar Categoria' : 'Liberar Tudo'}
                         </button>
                       )}
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {perms.map((permission) => {
                         const isEnabled = currentRolePermissions.includes(permission);
                         const { title, description } = getLabel(permission);
@@ -316,25 +490,32 @@ export function Permissions() {
                           <div
                             key={permission}
                             className={cn(
-                              'p-4 rounded-2xl border transition-all flex items-start gap-4',
-                              isEnabled ? 'bg-white border-emerald-100 shadow-sm' : 'bg-slate-50/50 border-slate-100 opacity-60'
+                              'p-5 rounded-3xl border transition-all flex items-start gap-4 group/item',
+                              isEnabled 
+                                ? 'bg-white border-emerald-200 shadow-lg shadow-emerald-500/5 ring-1 ring-emerald-50' 
+                                : 'bg-slate-50/50 border-slate-100 opacity-60 grayscale hover:grayscale-0 hover:opacity-100'
                             )}
                           >
                             <div className="flex-1 min-w-0">
-                              <h4 className="text-sm font-bold text-slate-800 mb-0.5 truncate">{title}</h4>
-                              <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">{description}</p>
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className="text-sm font-black text-slate-800">{title}</h4>
+                                {permission.includes('delete') && (
+                                  <span className="text-[8px] font-black bg-rose-100 text-rose-600 px-1.5 py-0.5 rounded uppercase tracking-wider">Crítico</span>
+                                )}
+                              </div>
+                              <p className="text-xs text-slate-500 font-medium leading-relaxed">{description}</p>
                             </div>
                             <button
                               disabled={isAdminCargo}
                               onClick={() => handleTogglePermission(permission, !isEnabled)}
                               className={cn(
-                                'w-10 h-6 rounded-full relative transition-all flex items-center shrink-0',
-                                isEnabled ? 'bg-emerald-600' : 'bg-slate-300',
-                                isAdminCargo ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:opacity-90'
+                                'w-12 h-7 rounded-full relative transition-all flex items-center shrink-0 shadow-inner',
+                                isEnabled ? 'bg-emerald-500' : 'bg-slate-300',
+                                isAdminCargo ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:scale-105 active:scale-95'
                               )}
                             >
                               <div className={cn(
-                                'w-4 h-4 bg-white rounded-full absolute transition-all shadow-sm',
+                                'w-5 h-5 bg-white rounded-full absolute transition-all duration-300 shadow-md',
                                 isEnabled ? 'right-1' : 'left-1'
                               )} />
                             </button>
@@ -345,16 +526,36 @@ export function Permissions() {
                   </div>
                 );
               })}
+              
+              {/* Empty state for search */}
+              {searchTerm && sortedCategories.every(cat => 
+                !groupedPermissions[cat].some(p => {
+                  const l = getLabel(p);
+                  return l.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         l.description.toLowerCase().includes(searchTerm.toLowerCase());
+                })
+              ) && (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                    <Search className="w-8 h-8 text-slate-300" />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-800">Nenhuma permissão encontrada</h3>
+                  <p className="text-sm text-slate-500 mt-1">Tente buscar por termos diferentes ou navegue pelas categorias.</p>
+                </div>
+              )}
             </div>
 
-            {/* Admin warning */}
+            {/* Admin safety lock */}
             {isAdminCargo && (
-              <div className="m-6 p-4 bg-amber-50 border border-amber-100 rounded-2xl flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="text-sm font-bold text-amber-900">Perfil Administrativo</h4>
-                  <p className="text-xs text-amber-700 leading-relaxed">
-                    Este perfil possui acesso total ao sistema. As permissões individuais não podem ser alteradas para garantir a integridade do sistema.
+              <div className="m-8 p-6 bg-amber-50/50 border border-amber-200 rounded-3xl flex items-start gap-4">
+                <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/20 shrink-0">
+                  <Lock className="w-5 h-5 text-white" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-sm font-black text-amber-900 uppercase tracking-widest">Proteção de Sistema Ativada</h4>
+                  <p className="text-xs text-amber-800/70 font-medium leading-relaxed">
+                    Este perfil possui o privilégio <code className="bg-amber-100 px-1.5 py-0.5 rounded font-bold">admin.all</code>. 
+                    Por segurança, permissões individuais de administradores não podem ser alteradas para evitar que você perca o acesso ao próprio sistema.
                   </p>
                 </div>
               </div>
