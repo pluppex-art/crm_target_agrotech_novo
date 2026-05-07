@@ -27,6 +27,16 @@ async function insertNotificationForUser(
     link?: string;
   }
 ): Promise<void> {
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { data: existing } = await supabase
+    .from('notifications')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('title', notification.title)
+    .gte('created_at', since)
+    .limit(1);
+  if (existing && existing.length > 0) return;
+
   const { error } = await supabase.from('notifications').insert([{
     user_id: userId,
     read: false,
