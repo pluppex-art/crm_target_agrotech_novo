@@ -265,7 +265,7 @@ export function useSalesMetrics({
       if (start && tDate < start) return;
       if (end && tDate > end) return;
 
-      const turmaTotalValue = (t.product_price || 0) + (t.enrollment_fee || 0);
+      const turmaTotalValue = (t.price || 0) + (t.enrollment_fee || 0);
 
       t.attendees.forEach((a) => {
         if (a.status === 'cancelado') return;

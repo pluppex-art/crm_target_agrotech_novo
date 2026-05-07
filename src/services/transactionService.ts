@@ -188,8 +188,8 @@ export const transactionService = {
     const SELECT = `
       *,
       financial_categories(name),
-      leads(id, name, value, valor_recebido, taxa_matricula_recebido, product, responsible),
-      turmas(id, name, date, products(id, name))
+      leads(id, name, value, product, responsible),
+      turmas(id, name, date)
     `;
 
 
@@ -220,8 +220,7 @@ export const transactionService = {
   },
 
   // Returns ALL "Ganho" leads in period (for counting + KPI + taxa display).
-  // Includes financial fields needed by financialCalculator to match the pipeline totals exactly.
-  // Covers both leads with status='Ganho' and those moved to the Ganho stage via stage_id.
+  // Financial data now comes from lead_class_enrollments (migrated from leads in migration 005).
   async getGanhoLeads(startDate: string, endDate: string): Promise<{
     updated_at: string;
     id: string; name: string; created_at: string;
@@ -235,78 +234,97 @@ export const transactionService = {
     const supabase = getSupabaseClient();
     if (!supabase) return [];
 
-    const SELECT = 'id, name, status, created_at, updated_at, value, product, discount, discount_type, discount_applied, valor_recebido, taxa_matricula_recebido, pix_completed, professor_proof_url, responsible';
+    const LEAD_SELECT = 'id, name, status, created_at, updated_at, value, product, responsible';
 
-
-    // 1. Busca leads por pagamento, status ou por terem pagamentos em turmas
-    const { data: attendeesWithMoney } = await supabase
-      .from('turma_attendees')
-      .select('lead_id')
-      .or(`valor_recebido.gt.0,taxa_matricula_recebido.gt.0`);
-
-    const extraLeadIds = (attendeesWithMoney || []).map(a => a.lead_id).filter(Boolean);
-
-    const [byPayment, byStatus, byAttendee] = await Promise.all([
+    // 1. Leads by "Ganho/Fechado/Aprovado" stage in period
+    const [byStatus, enrollmentsInPeriod] = await Promise.all([
       supabase
         .from('leads')
-        .select(SELECT)
+        .select(LEAD_SELECT + ', pipeline_stages!inner(name)')
+        .or('pipeline_stages.name.ilike.%Ganho%,pipeline_stages.name.ilike.%Fechado%,pipeline_stages.name.ilike.%Aprovado%')
+        .or(`updated_at.gte.${startDate},created_at.gte.${startDate}`)
+        .lte('updated_at', endDate + 'T23:59:59'),
+      // 2. Leads with financial activity in lead_class_enrollments in period
+      supabase
+        .from('lead_class_enrollments')
+        .select('lead_id')
+        .neq('status', 'CANCELLED')
         .or(`valor_recebido.gt.0,taxa_matricula_recebido.gt.0,pix_completed.eq.true`)
-        .or(`updated_at.gte.${startDate},created_at.gte.${startDate}`)
+        .or(`enrolled_at.gte.${startDate + 'T00:00:00'},updated_at.gte.${startDate + 'T00:00:00'}`)
         .lte('updated_at', endDate + 'T23:59:59'),
-      supabase
-        .from('leads')
-        .select(SELECT + ', pipeline_stages!inner(name)')
-        .or(`pipeline_stages.name.ilike.%Ganho%,pipeline_stages.name.ilike.%Fechado%,pipeline_stages.name.ilike.%Aprovado%`)
-        .or(`updated_at.gte.${startDate},created_at.gte.${startDate}`)
-        .lte('updated_at', endDate + 'T23:59:59'),
-      extraLeadIds.length > 0 
-        ? supabase.from('leads').select(SELECT).in('id', extraLeadIds)
-        : Promise.resolve({ data: [] })
     ]);
 
-    if (byStatus.error || byPayment.error || (byAttendee as any).error) {
-      console.error('transactionService.getGanhoLeads:', byStatus.error || byPayment.error || (byAttendee as any).error);
-      return [];
+    const enrollLeadIds = [...new Set((enrollmentsInPeriod.data || []).map((e: any) => e.lead_id).filter(Boolean))];
+
+    let byEnrollmentLeads: any[] = [];
+    if (enrollLeadIds.length > 0) {
+      const { data } = await supabase.from('leads').select(LEAD_SELECT).in('id', enrollLeadIds);
+      byEnrollmentLeads = data || [];
     }
 
+    // Deduplicate leads
     const seen = new Set<string>();
-    const merged: (any)[] = [];
-    
-    // 1. Coleta os IDs dos leads encontrados
-    const allFetched = [
-      ...((byPayment.data as any[]) ?? []),
-      ...((byStatus.data as any[]) ?? []),
-      ...((byAttendee.data as any[]) ?? [])
-    ];
-    const leadIds = allFetched.map(l => l.id);
-
-    // 2. Busca pagamentos registrados na tabela turma_attendees para esses leads
-    const { data: attendeePayments } = await supabase
-      .from('turma_attendees')
-      .select('lead_id, valor_recebido, taxa_matricula_recebido')
-      .in('lead_id', leadIds);
-
-    const attendeePaymentMap = (attendeePayments || []).reduce((acc: any, curr: any) => {
-      if (!acc[curr.lead_id]) acc[curr.lead_id] = { valor: 0, taxa: 0 };
-      acc[curr.lead_id].valor += Number(curr.valor_recebido || 0);
-      acc[curr.lead_id].taxa += Number(curr.taxa_matricula_recebido || 0);
-      return acc;
-    }, {});
-
-    for (const row of allFetched) {
-      if (!seen.has(row.id)) {
-        seen.add(row.id);
-        const { pipeline_stages: _ps, ...rest } = row;
-        
-        // Unifica os pagamentos: Lead + Turma
-        const turretPayment = attendeePaymentMap[row.id] || { valor: 0, taxa: 0 };
-        rest.valor_recebido = Number(rest.valor_recebido || 0) + turretPayment.valor;
-        rest.taxa_matricula_recebido = Number(rest.taxa_matricula_recebido || 0) + turretPayment.taxa;
-
-        merged.push(rest);
+    const allLeads: any[] = [];
+    for (const l of [...(byStatus.data || []), ...byEnrollmentLeads]) {
+      if (!seen.has(l.id)) {
+        seen.add(l.id);
+        allLeads.push(l);
       }
     }
-    return merged.sort((a, b) => b.created_at.localeCompare(a.created_at));
+
+    if (allLeads.length === 0) return [];
+
+    const leadIds = allLeads.map(l => l.id);
+
+    // 3. Fetch financial data from lead_class_enrollments (source of truth after migration 005)
+    const [enrollmentsData, attendeeData] = await Promise.all([
+      supabase
+        .from('lead_class_enrollments')
+        .select('lead_id, valor_recebido, taxa_matricula_recebido, pix_completed, professor_proof_url, discount, discount_type, discount_applied')
+        .in('lead_id', leadIds)
+        .neq('status', 'CANCELLED'),
+      // turma_attendees.valor_recebido is a legacy field — used as fallback only
+      supabase
+        .from('turma_attendees')
+        .select('lead_id, valor_recebido')
+        .in('lead_id', leadIds),
+    ]);
+
+    // Build per-lead financial map (sum all non-cancelled enrollments)
+    const enrollMap: Record<string, any> = {};
+    for (const e of (enrollmentsData.data || [])) {
+      if (!enrollMap[e.lead_id]) {
+        enrollMap[e.lead_id] = { valor_recebido: 0, taxa_matricula_recebido: 0, pix_completed: false, professor_proof_url: null, discount: null, discount_type: null, discount_applied: false };
+      }
+      enrollMap[e.lead_id].valor_recebido += Number(e.valor_recebido || 0);
+      enrollMap[e.lead_id].taxa_matricula_recebido += Number(e.taxa_matricula_recebido || 0);
+      if (e.pix_completed) enrollMap[e.lead_id].pix_completed = true;
+      if (e.professor_proof_url) enrollMap[e.lead_id].professor_proof_url = e.professor_proof_url;
+      if (e.discount) enrollMap[e.lead_id].discount = e.discount;
+      if (e.discount_type) enrollMap[e.lead_id].discount_type = e.discount_type;
+      if (e.discount_applied) enrollMap[e.lead_id].discount_applied = e.discount_applied;
+    }
+
+    // Fallback: turma_attendees valor for leads with no enrollment record
+    const attendeeMap: Record<string, number> = {};
+    for (const a of (attendeeData.data || [])) {
+      attendeeMap[a.lead_id] = (attendeeMap[a.lead_id] || 0) + Number(a.valor_recebido || 0);
+    }
+
+    return allLeads.map(l => {
+      const { pipeline_stages: _ps, ...rest } = l;
+      const fin = enrollMap[l.id];
+      return {
+        ...rest,
+        valor_recebido: fin ? fin.valor_recebido : (attendeeMap[l.id] || 0),
+        taxa_matricula_recebido: fin?.taxa_matricula_recebido ?? 0,
+        pix_completed: fin?.pix_completed ?? false,
+        professor_proof_url: fin?.professor_proof_url ?? null,
+        discount: fin?.discount ?? null,
+        discount_type: fin?.discount_type ?? null,
+        discount_applied: fin?.discount_applied ?? false,
+      };
+    }).sort((a, b) => b.created_at.localeCompare(a.created_at));
   },
 
   // Keep alias for backwards compat (used nowhere else, but safe)

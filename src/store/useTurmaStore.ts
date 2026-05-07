@@ -9,8 +9,8 @@ interface TurmaState {
   isLoading: boolean;
   setupRequired: boolean;
   fetchTurmas: () => Promise<void>;
-  addTurma: (turma: Omit<Turma, 'id' | 'attendees' | 'product_name' | 'category'>) => Promise<void>;
-  updateTurma: (turmaId: string, turma: Partial<Omit<Turma, 'id' | 'attendees' | 'product_name' | 'category'>>) => Promise<void>;
+  addTurma: (turma: Omit<Turma, 'id' | 'attendees'>) => Promise<void>;
+  updateTurma: (turmaId: string, turma: Partial<Omit<Turma, 'id' | 'attendees'>>) => Promise<void>;
   removeTurma: (turmaId: string) => Promise<void>;
   updateAttendeeStatus: (turmaId: string, attendeeId: string, status: AttendanceStatus) => Promise<void>;
   addAttendee: (turmaId: string, attendee: Omit<TurmaAttendee, 'id'>) => Promise<TurmaAttendee | null>;

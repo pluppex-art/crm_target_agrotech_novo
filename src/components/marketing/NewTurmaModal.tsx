@@ -1,8 +1,6 @@
 import React, { useEffect, useState, useTransition } from 'react';
-// import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@radix-ui/react-dialog'; // Not used in project
-import { X, Calendar, Clock, MapPin, Package, User, DollarSign, Save, Loader2 } from 'lucide-react';
+import { X, Calendar, Clock, MapPin, User, DollarSign, Save, Loader2 } from 'lucide-react';
 import { useTurmaStore } from '../../store/useTurmaStore';
-import { useProductStore } from '../../store/useProductStore';
 import { Turma } from '../../services/turmaService';
 import { cn } from '../../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,7 +13,6 @@ interface NewTurmaModalProps {
 
 export function NewTurmaModal({ isOpen, onClose, turma }: NewTurmaModalProps) {
   const [isPending, startTransition] = useTransition();
-  const { products, fetchProducts } = useProductStore();
   const { addTurma, updateTurma, fetchTurmas } = useTurmaStore();
 
   const [formData, setFormData] = useState({
@@ -25,7 +22,8 @@ export function NewTurmaModal({ isOpen, onClose, turma }: NewTurmaModalProps) {
     date: '',
     time: '',
     location: '',
-    product_id: '',
+    price: '',
+    enrollment_fee: '',
     capacity: 20,
   });
 
@@ -38,26 +36,34 @@ export function NewTurmaModal({ isOpen, onClose, turma }: NewTurmaModalProps) {
         date: turma.date,
         time: turma.time || '',
         location: turma.location,
-        product_id: turma.product_id,
+        price: turma.price != null ? String(turma.price) : '',
+        enrollment_fee: turma.enrollment_fee != null ? String(turma.enrollment_fee) : '',
         capacity: turma.capacity || 20,
       });
     } else {
-      setFormData({ name: '', professor_name: '', professor_email: '', date: '', time: '', location: '', product_id: '', capacity: 20 });
+      setFormData({ name: '', professor_name: '', professor_email: '', date: '', time: '', location: '', price: '', enrollment_fee: '', capacity: 20 });
     }
   }, [turma]);
-
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     startTransition(async () => {
       try {
+        const payload: any = {
+          name: formData.name,
+          professor_name: formData.professor_name || null,
+          professor_email: formData.professor_email || null,
+          date: formData.date || null,
+          time: formData.time || null,
+          location: formData.location || null,
+          price: formData.price ? parseFloat(formData.price) : null,
+          enrollment_fee: formData.enrollment_fee ? parseFloat(formData.enrollment_fee) : null,
+          capacity: formData.capacity,
+        };
         if (turma) {
-          await updateTurma(turma.id, formData as any);
+          await updateTurma(turma.id, payload);
         } else {
-          await addTurma({ ...formData, status: 'agendada' as const });
+          await addTurma({ ...payload, status: 'agendada' as const, attendees: [] });
         }
         fetchTurmas();
         onClose();
@@ -89,10 +95,7 @@ export function NewTurmaModal({ isOpen, onClose, turma }: NewTurmaModalProps) {
                 <h2 className="text-2xl font-black text-slate-800">
                   {turma ? 'Editar Turma' : 'Nova Turma'}
                 </h2>
-                <button
-                  onClick={onClose}
-                  className="p-2 hover:bg-slate-100 rounded-2xl text-slate-400 hover:text-slate-600 transition-all"
-                >
+                <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-2xl text-slate-400 hover:text-slate-600 transition-all">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -108,14 +111,13 @@ export function NewTurmaModal({ isOpen, onClose, turma }: NewTurmaModalProps) {
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       className="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm"
-                      placeholder="Ex: Turma Iniciante - Agosto 2024"
+                      placeholder="Ex: 🚁 Drone, Cuiabá-MT, 15/08/2026"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">Professor *</label>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Professor</label>
                     <input
-                      required
                       value={formData.professor_name}
                       onChange={(e) => setFormData({ ...formData, professor_name: e.target.value })}
                       className="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm"
@@ -138,11 +140,9 @@ export function NewTurmaModal({ isOpen, onClose, turma }: NewTurmaModalProps) {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      Data *
+                      <Calendar className="w-4 h-4" /> Data
                     </label>
                     <input
-                      required
                       type="date"
                       value={formData.date}
                       onChange={(e) => setFormData({ ...formData, date: e.target.value })}
@@ -152,8 +152,7 @@ export function NewTurmaModal({ isOpen, onClose, turma }: NewTurmaModalProps) {
 
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
-                      <Clock className="w-4 h-4" />
-                      Horário
+                      <Clock className="w-4 h-4" /> Horário
                     </label>
                     <input
                       type="time"
@@ -165,43 +164,50 @@ export function NewTurmaModal({ isOpen, onClose, turma }: NewTurmaModalProps) {
 
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
-                      <MapPin className="w-4 h-4" />
-                      Localização
+                      <MapPin className="w-4 h-4" /> Localização
                     </label>
                     <input
                       value={formData.location}
                       onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                       className="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm"
-                      placeholder="Sala 101 ou Online (Zoom)"
+                      placeholder="Sala 101 ou Online"
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 pt-6 border-t border-slate-100">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6 pt-6 border-t border-slate-100">
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
-                    <Package className="w-4 h-4" />
-                    Produto
+                    <DollarSign className="w-4 h-4" /> Preço (R$)
                   </label>
-                  <select
-                    value={formData.product_id}
-                    onChange={(e) => setFormData({ ...formData, product_id: e.target.value })}
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.price}
+                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                     className="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm"
-                  >
-                    <option value="">Selecione um produto</option>
-                    {products.map((product) => (
-                      <option key={product.id} value={product.id}>
-                        {product.name} - R$ {product.price?.toLocaleString('pt-BR')}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="0.00"
+                  />
                 </div>
 
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
-                    <User className="w-4 h-4" />
-                    Capacidade
+                    <DollarSign className="w-4 h-4" /> Taxa de Matrícula
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.enrollment_fee}
+                    onChange={(e) => setFormData({ ...formData, enrollment_fee: e.target.value })}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm"
+                    placeholder="0.00"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
+                    <User className="w-4 h-4" /> Capacidade
                   </label>
                   <input
                     type="number"
@@ -215,11 +221,7 @@ export function NewTurmaModal({ isOpen, onClose, turma }: NewTurmaModalProps) {
               </div>
 
               <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-6 py-3 text-sm font-bold text-slate-500 hover:text-slate-700 transition-colors"
-                >
+                <button type="button" onClick={onClose} className="px-6 py-3 text-sm font-bold text-slate-500 hover:text-slate-700 transition-colors">
                   Cancelar
                 </button>
                 <button
@@ -239,4 +241,3 @@ export function NewTurmaModal({ isOpen, onClose, turma }: NewTurmaModalProps) {
     </AnimatePresence>
   );
 }
-

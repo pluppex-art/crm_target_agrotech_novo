@@ -16,9 +16,6 @@ interface PipelineHeaderProps {
   isLoading: boolean;
   hasPermissionCreate: boolean;
   onNewLeadClick: () => void;
-  startDate: string;
-  endDate: string;
-  onFilterClick: () => void;
 }
 
 
@@ -33,21 +30,7 @@ export const PipelineHeader: React.FC<PipelineHeaderProps> = ({
   isLoading,
   hasPermissionCreate,
   onNewLeadClick,
-  startDate,
-  endDate,
-  onFilterClick,
 }) => {
-
-  const filterLabel = React.useMemo(() => {
-    const s = new Date(startDate + 'T12:00:00');
-    const e = new Date(endDate + 'T12:00:00');
-    
-    if (s.getDate() === 1 && e.getDate() === new Date(s.getFullYear(), s.getMonth() + 1, 0).getDate() && s.getMonth() === e.getMonth()) {
-      return s.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-    }
-    
-    return `${s.toLocaleDateString('pt-BR')} - ${e.toLocaleDateString('pt-BR')}`;
-  }, [startDate, endDate]);
 
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -70,15 +53,6 @@ export const PipelineHeader: React.FC<PipelineHeaderProps> = ({
       </div>
 
       <div className="flex flex-wrap items-center gap-2 shrink-0">
-        {/* Date Filter Button */}
-        <button
-          onClick={onFilterClick}
-          className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-50 transition-all group shadow-sm"
-        >
-          <CalendarRange className="w-4 h-4 text-gray-400 group-hover:text-emerald-600" />
-          <span className="capitalize text-xs">{filterLabel}</span>
-        </button>
-
         {/* Valores */}
         <div className="flex items-center gap-2">
           {/* Caixa */}

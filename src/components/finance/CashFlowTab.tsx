@@ -21,9 +21,9 @@ function formatDate(iso: string) {
 
 type TxWithLead = FinancialTransaction & {
   leads?: {
-    responsible: any; id: string; name: string; value: number; valor_recebido: number; taxa_matricula_recebido?: number | null; product: string | null
+    responsible: any; id: string; name: string; value: number; product: string | null
   } | null;
-  turmas?: { id: string; name: string; date: string; products: { id: string; name: string } | null } | null;
+  turmas?: { id: string; name: string; date: string } | null;
 };
 
 type GanhoLead = {
@@ -152,7 +152,7 @@ export function CashFlowTab({ startDate, endDate }: { startDate: string; endDate
   const studentsByProduct = useMemo(() => {
     const groups: Record<string, { product: string; total: number; count: number; items: TxWithLead[] }> = {};
     pipelineTxs.forEach(t => {
-      const productName = t.turmas?.products?.name || t.leads?.product || 'Outros / Diversos';
+      const productName = t.turmas?.name || t.leads?.product || 'Outros / Diversos';
       if (!groups[productName]) {
         groups[productName] = { product: productName, total: 0, count: 0, items: [] };
       }
@@ -429,7 +429,7 @@ function StudentRow({ tx }: { tx: TxWithLead }) {
   const isPaid = tx.status === 'PAID';
   const isOverdue = tx.status === 'OVERDUE';
   const leadName = tx.leads?.name ?? tx.description.replace('Receita Automática - Lead: ', '');
-  const productName = tx.turmas?.products?.name || tx.leads?.product || 'Produto não identificado';
+  const productName = tx.turmas?.name || tx.leads?.product || 'Produto não identificado';
   const totalValue = tx.leads?.value ? Number(tx.leads.value) : Number(tx.amount);
   const paidValue = tx.leads?.valor_recebido ? Number(tx.leads.valor_recebido) : (isPaid ? Number(tx.amount) : 0);
 
@@ -496,7 +496,7 @@ function TransactionRow({ transaction: t }: { transaction: TxWithLead }) {
   };
 
   const displayDescription = t.origin_type === 'CLASS' && t.turmas
-    ? `Turma: ${t.turmas.name} (${t.turmas.products?.name || 'Sem Produto'})`
+    ? `Turma: ${t.turmas.name}`
     : t.description;
 
   return (

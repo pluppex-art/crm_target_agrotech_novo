@@ -28,7 +28,7 @@ export const useCategoryStore = create<CategoryState>((set, get) => ({
 
     set({ loading: true });
     const { data, error } = await supabase
-      .from('product_categories')
+      .from('turma_categories')
       .select('*')
       .order('name');
 
@@ -45,7 +45,7 @@ export const useCategoryStore = create<CategoryState>((set, get) => ({
 
     set({ loading: true, error: null });
     const { error } = await supabase
-      .from('product_categories')
+      .from('turma_categories')
       .insert([{ name: name.trim() }]);
 
     if (error) {
@@ -64,7 +64,7 @@ export const useCategoryStore = create<CategoryState>((set, get) => ({
     if (!supabase) return;
 
     const { error } = await supabase
-      .from('product_categories')
+      .from('turma_categories')
       .delete()
       .eq('id', id);
 
@@ -80,7 +80,7 @@ export const useCategoryStore = create<CategoryState>((set, get) => ({
     const channelId = `categories-${Math.random().toString(36).substring(7)}`;
     const channel = supabase
       .channel(channelId)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'product_categories' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'turma_categories' }, () => {
         get().fetchCategories();
       })
       .subscribe();

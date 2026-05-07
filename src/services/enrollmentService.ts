@@ -353,12 +353,8 @@ export const enrollmentService = {
           name,
           date,
           status,
-          products (
-            id,
-            name,
-            price,
-            category
-          )
+          price,
+          category
         )
       `)
       .eq('lead_id', leadId)

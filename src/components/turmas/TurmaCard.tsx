@@ -36,7 +36,7 @@ export function TurmaCard({ turma, isSelected, onSelect, onEdit, onDelete }: Tur
             {st.label}
           </span>
           <h3 className="font-bold text-slate-800 mt-2 leading-tight">
-            {turma.product_name || turma.name}
+            {turma.name}
           </h3>
           <p className="text-xs text-slate-500 mt-0.5">{turma.professor_name || 'Sem professor'}</p>
         </div>
@@ -73,7 +73,7 @@ export function TurmaCard({ turma, isSelected, onSelect, onEdit, onDelete }: Tur
         </div>
         <div className="flex items-center gap-2">
           <Package size={12} className="text-emerald-500 shrink-0" />
-          {turma.product_name}
+          {turma.category || 'Geral'}
         </div>
       </div>
 

@@ -22,7 +22,7 @@ export function EnrollInTurmaModal({ lead, onConfirm, onSkip }: EnrollModalProps
 
   const selectedTurma = useMemo(() => {
     return turmas.find(
-      (t) => (t.product_name || '').toLowerCase() === (lead.product || '').toLowerCase() && t.status !== 'concluida' && t.status !== 'cancelada'
+      (t) => t.name.toLowerCase() === (lead.product || '').toLowerCase() && t.status !== 'concluida' && t.status !== 'cancelada'
     );
   }, [turmas, lead.product]);
 
@@ -53,7 +53,7 @@ export function EnrollInTurmaModal({ lead, onConfirm, onSkip }: EnrollModalProps
             <div className="space-y-6">
                 <div className="space-y-1">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Produto / Curso</label>
-                    <p className="text-lg font-bold text-slate-800 leading-tight">{selectedTurma.product_name}</p>
+                    <p className="text-lg font-bold text-slate-800 leading-tight">{selectedTurma.name}</p>
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 bg-slate-50 p-5 rounded-2xl border border-slate-100">

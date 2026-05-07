@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   X, Save, Loader2, GraduationCap, DollarSign, Calendar, Clock, MapPin, User, Package, Tag, Users,
 } from 'lucide-react';
 import { useTurmaStore } from '../../store/useTurmaStore';
-import { useProductStore } from '../../store/useProductStore';
 import { useCategoryStore } from '../../store/useCategoryStore';
 import { Turma } from '../../services/turmaService';
 
@@ -35,125 +34,64 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
   initialData,
   mode,
 }) => {
-  const { addTurma, updateTurma, turmas, fetchTurmas } = useTurmaStore();
-  const { addProduct, updateProduct, products, fetchProducts } = useProductStore();
+  const { addTurma, updateTurma } = useTurmaStore();
   const { categories, fetchCategories } = useCategoryStore();
   const [loading, setLoading] = useState(false);
-
   const [formData, setFormData] = useState(blankForm);
 
-  // Initial fetch when opening
   useEffect(() => {
-    if (isOpen) {
-      fetchProducts();
-      fetchTurmas();
-      fetchCategories();
-    }
+    if (isOpen) fetchCategories();
   }, [isOpen]);
 
-  // Data mapping with stable dependencies to prevent infinite loops
   useEffect(() => {
     if (!isOpen) return;
-
     if (initialData) {
-      // Find matching product data
-      const matchingProduct = products.find(p => p.id === initialData.product_id || p.id === initialData.id || p.name === initialData.name);
-
-      // Find associated turma
-      const associatedTurma = turmas.find(t => t.id === initialData.id || t.product_id === matchingProduct?.id);
-
-      // Use data from the most specific source available
-      const source = associatedTurma || initialData;
-
       setFormData({
-        name: matchingProduct?.name || source.name || '',
-        price: matchingProduct ? matchingProduct.price.toString() : '',
-        enrollment_fee: matchingProduct?.enrollment_fee != null ? matchingProduct.enrollment_fee.toString() : '',
-        student_goal: matchingProduct?.student_goal != null ? matchingProduct.student_goal.toString() : (source.meta != null ? source.meta.toString() : ''),
-        description: matchingProduct ? matchingProduct.description || '' : '',
-        category: source.category || matchingProduct?.category || 'Cursos',
-        professor_name: source.professor_name || '',
-        professor_email: source.professor_email || '',
-        date: source.date || '',
-        time: source.time || '',
-        location: source.location || '',
+        name: initialData.name || '',
+        price: initialData.price != null ? String(initialData.price) : '',
+        enrollment_fee: initialData.enrollment_fee != null ? String(initialData.enrollment_fee) : '',
+        student_goal: initialData.student_goal != null ? String(initialData.student_goal) : (initialData.meta != null ? String(initialData.meta) : ''),
+        description: initialData.description || '',
+        category: initialData.category || 'Cursos',
+        professor_name: initialData.professor_name || '',
+        professor_email: initialData.professor_email || '',
+        date: initialData.date || '',
+        time: initialData.time || '',
+        location: initialData.location || '',
       });
     } else {
       setFormData(blankForm);
     }
-  }, [isOpen, initialData?.id, initialData?.name, products.length, turmas.length]);
+  }, [isOpen, initialData?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      // Identify if we are editing an existing product or turma
-      const matchingProduct = products.find(p => p.id === initialData?.product_id || p.id === initialData?.id || p.name === initialData?.name);
-      const associatedTurma = turmas.find(t => t.id === initialData?.id || t.product_id === matchingProduct?.id);
+      const payload: any = {
+        name: formData.name,
+        price: parseFloat(formData.price) || 0,
+        enrollment_fee: formData.enrollment_fee ? parseFloat(formData.enrollment_fee) : null,
+        student_goal: formData.student_goal ? parseInt(formData.student_goal) : null,
+        description: formData.description || null,
+        category: formData.category || null,
+        professor_name: formData.professor_name || null,
+        professor_email: formData.professor_email || null,
+        date: formData.date || null,
+        time: formData.time || null,
+        location: formData.location || null,
+      };
 
-      const isProductEditing = !!matchingProduct;
-      const isTurmaEditing = !!associatedTurma;
-
-      let productId = matchingProduct?.id;
-
-      const enrollmentFee = formData.enrollment_fee ? parseFloat(formData.enrollment_fee) : null;
-      const studentGoal = formData.student_goal ? parseInt(formData.student_goal) : null;
-
-      if (isProductEditing) {
-        await updateProduct(matchingProduct!.id, {
-          name: formData.name,
-          price: parseFloat(formData.price) || 0,
-          enrollment_fee: enrollmentFee ?? undefined,
-          student_goal: studentGoal ?? undefined,
-          description: formData.description,
-          category: formData.category,
-        });
+      if (initialData?.id) {
+        await updateTurma(initialData.id, payload);
       } else {
-        const productData = {
-          name: formData.name,
-          price: parseFloat(formData.price) || 0,
-          enrollment_fee: enrollmentFee ?? undefined,
-          student_goal: studentGoal ?? undefined,
-          description: formData.description,
-          category: formData.category,
-          image_url: `https://picsum.photos/seed/${encodeURIComponent(formData.name)}/400/300`,
-          stock: 999,
-        };
-        const newProduct = await addProduct(productData);
-        if (newProduct) productId = newProduct.id;
-      }
-
-      // 2. Handle Turma Update/Creation
-      const isTurmaCategory = formData.category === 'Cursos' || formData.category.toLowerCase().includes('turma');
-      const isService = formData.category.toLowerCase().includes('serviço') || formData.category === 'Serviços';
-      const isTurmaContext = (mode === 'turma' || mode === 'unified' || isTurmaCategory) && !isService;
-
-      if (isTurmaContext && productId) {
-        const turmaPayload: any = {
-          name: formData.name,
-          product_id: productId,
-          professor_name: formData.professor_name || null,
-          professor_email: formData.professor_email || null,
-          date: formData.date || null,
-          time: formData.time || null,
-          location: formData.location || null,
-          // meta: studentGoal ?? undefined, // Removed because it's not in the 'turmas' table
-        };
-
-        if (isTurmaEditing) {
-          await updateTurma(associatedTurma!.id, turmaPayload);
-        } else {
-          await addTurma({
-            ...turmaPayload,
-            status: 'agendada',
-          });
-        }
+        await addTurma({ ...payload, status: 'agendada', attendees: [] });
       }
 
       onClose();
     } catch (error: any) {
       console.error('Error saving:', error);
-      alert('Erro ao salvar: ' + (error.message || 'Verifique o console para mais detalhes.'));
+      alert('Erro ao salvar: ' + (error.message || 'Verifique o console.'));
     } finally {
       setLoading(false);
     }
@@ -161,25 +99,15 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
 
   const handleNameChange = (val: string) => {
     const updates: any = { name: val };
-
-    // Auto-fill logic: try to extract location and date from name if they are empty
-    // Pattern: "Something, City - UF, DD/MM/YYYY"
     const parts = val.split(',').map(p => p.trim());
-    
     if (parts.length >= 2) {
-      // Check if second part looks like "City - UF"
-      if (!formData.location && parts[1].includes('-')) {
-        updates.location = parts[1];
-      }
-      
-      // Check if any part looks like a date DD/MM/YYYY
+      if (!formData.location && parts[1].includes('-')) updates.location = parts[1];
       const datePart = parts.find(p => /^\d{2}\/\d{2}\/\d{4}$/.test(p));
       if (datePart && !formData.date) {
         const [d, m, y] = datePart.split('/');
-        updates.date = `${y}-${m}-${d}`; // Convert to YYYY-MM-DD for input
+        updates.date = `${y}-${m}-${d}`;
       }
     }
-
     setFormData({ ...formData, ...updates });
   };
 
@@ -195,11 +123,8 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
           value={formData[key]}
           onChange={(e) => {
             const val = e.target.value;
-            if (key === 'name') {
-              handleNameChange(val);
-            } else {
-              setFormData({ ...formData, [key]: val });
-            }
+            if (key === 'name') handleNameChange(val);
+            else setFormData({ ...formData, [key]: val });
           }}
           placeholder={opts?.placeholder}
           className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm"
@@ -224,15 +149,13 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh] overflow-hidden"
         >
-          {/* Header */}
           <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
               <div className="p-2 bg-emerald-100 rounded-lg text-emerald-600">
                 <GraduationCap size={20} />
               </div>
               <h2 className="text-xl font-bold text-gray-800">
-                {initialData?.id ? 'Editar' : 'Novo'}{' '}
-                {mode === 'unified' || formData.category === 'Cursos' ? 'Produto & Turma' : 'Produto/Serviço'}
+                {initialData?.id ? 'Editar' : 'Nova'} Turma / Produto
               </h2>
             </div>
             <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 transition-colors">
@@ -240,40 +163,20 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
             </button>
           </div>
 
-          {/* Scrollable form */}
           <form id="unified-form" onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-6">
-            {/* ── Informações do Produto ──────────────────────────── */}
             <div className="space-y-4">
               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2 flex items-center gap-2">
                 <Package size={14} />
-                Dados do Produto
+                Dados Gerais
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {field('Nome do Produto/Serviço', 'name', {
-                  required: true,
-                  placeholder: 'Ex: Workshop de Drones',
-                  icon: <Package size={16} />,
-                })}
-                {field('Preço (R$)', 'price', {
-                  type: 'number',
-                  required: true,
-                  placeholder: '0.00',
-                  icon: <DollarSign size={16} />,
-                })}
+                {field('Nome', 'name', { required: true, placeholder: 'Ex: 🚁 Drone, Cuiabá-MT, 15/08/2026', icon: <Package size={16} /> })}
+                {field('Preço (R$)', 'price', { type: 'number', required: true, placeholder: '0.00', icon: <DollarSign size={16} /> })}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {field('Taxa de Matrícula (R$)', 'enrollment_fee', {
-                  type: 'number',
-                  placeholder: '0.00',
-                  icon: <DollarSign size={16} />,
-                })}
-                {field('Meta de Alunos', 'student_goal', {
-                  type: 'number',
-                  placeholder: 'Ex: 20',
-                  icon: <Users size={16} />,
-                })}
+                {field('Taxa de Matrícula (R$)', 'enrollment_fee', { type: 'number', placeholder: '0.00', icon: <DollarSign size={16} /> })}
+                {field('Meta de Alunos', 'student_goal', { type: 'number', placeholder: 'Ex: 20', icon: <Users size={16} /> })}
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Categoria</label>
@@ -291,7 +194,6 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
                   </div>
                 </div>
               </div>
-
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Descrição</label>
                 <textarea
@@ -303,39 +205,21 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
               </div>
             </div>
 
-            {/* ── Detalhes da Turma (Condicional) ────────────────── */}
-            {((mode === 'unified' || mode === 'turma' || formData.category === 'Cursos') && !formData.category.toLowerCase().includes('serviço')) && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                className="space-y-4 pt-2"
-              >
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2 flex items-center gap-2">
-                  <GraduationCap size={14} />
-                  Informações da Turma
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {field('Instrutor/Professor', 'professor_name', {
-                    placeholder: 'Nome do responsável',
-                    icon: <User size={16} />,
-                  })}
-                  {field('Local/Link', 'location', {
-                    placeholder: 'Ex: Sala 01 ou Google Meet',
-                    icon: <MapPin size={16} />,
-                  })}
-                  {field('Data de Início', 'date', { type: 'date', icon: <Calendar size={16} /> })}
-                  {field('Horário', 'time', { type: 'time', icon: <Clock size={16} /> })}
-                </div>
-              </motion.div>
-            )}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4 pt-2">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2 flex items-center gap-2">
+                <GraduationCap size={14} />
+                Informações da Turma
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {field('Instrutor/Professor', 'professor_name', { placeholder: 'Nome do responsável', icon: <User size={16} /> })}
+                {field('Local/Link', 'location', { placeholder: 'Ex: Sala 01 ou Google Meet', icon: <MapPin size={16} /> })}
+                {field('Data de Início', 'date', { type: 'date', icon: <Calendar size={16} /> })}
+                {field('Horário', 'time', { type: 'time', icon: <Clock size={16} /> })}
+              </div>
+            </motion.div>
 
-            {/* Footer buttons */}
             <div className="flex justify-end gap-3 pt-6 border-t border-gray-50 shrink-0">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-6 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
-              >
+              <button type="button" onClick={onClose} className="px-6 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">
                 Cancelar
               </button>
               <button
@@ -344,7 +228,7 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
                 className="px-8 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-lg shadow-emerald-200 transition-all flex items-center gap-2 disabled:opacity-50"
               >
                 {loading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-                {initialData?.id ? 'Salvar Alterações' : 'Criar Produto & Turma'}
+                {initialData?.id ? 'Salvar Alterações' : 'Criar'}
               </button>
             </div>
           </form>

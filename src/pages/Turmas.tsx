@@ -236,7 +236,7 @@ export function Turmas() {
                 value: filterProduct,
                 onChange: setFilterProduct,
                 activeColorClass: 'bg-amber-50 text-amber-700 border-amber-100',
-                options: Array.from(new Set(turmas.map(t => t.product_name).filter((p): p is string => !!p))).map(p => ({ value: p, label: p }))
+                options: Array.from(new Set(turmas.map(t => t.name).filter((p): p is string => !!p))).map(p => ({ value: p, label: p }))
               },
               {
                 id: 'professor',
@@ -293,20 +293,24 @@ export function Turmas() {
             </div>
           ) : (
             turmas.filter(t => {
+              // Exclude "Serviços" — services are not turmas
+              const cat = (t.category || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+              if (cat === 'servicos' || cat === 'servico') return false;
+
               // 1. Search global (name, professor, product)
               if (searchTerm.trim()) {
                 const q = searchTerm.toLowerCase();
                 const matchesSearch = (
                   t.name.toLowerCase().includes(q) ||
                   (t.professor_name || '').toLowerCase().includes(q) ||
-                  t.product_name.toLowerCase().includes(q)
+                  (t.category || '').toLowerCase().includes(q)
                 );
                 if (!matchesSearch) return false;
               }
               // 2. Status
               if (filterStatus !== 'all' && t.status !== filterStatus) return false;
               // 3. Product
-              if (filterProduct !== 'all' && t.product_name !== filterProduct) return false;
+              if (filterProduct !== 'all' && t.name !== filterProduct) return false;
               // 4. Professor
               if (filterProfessor !== 'all' && t.professor_name !== filterProfessor) return false;
               return true;

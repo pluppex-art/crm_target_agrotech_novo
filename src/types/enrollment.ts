@@ -29,19 +29,15 @@ export interface LeadClassEnrollment {
   updated_at: string;
 }
 
-// Enrollment com dados da turma e do lead incluídos (via join)
+// Enrollment com dados da turma incluídos (via join)
 export interface EnrollmentWithDetails extends LeadClassEnrollment {
   turmas: {
     id: string;
     name: string;
     date: string | null;
     status: string;
-    products: {
-      id: string;
-      name: string;
-      price: number;
-      category: string;
-    } | null;
+    price: number | null;
+    category: string | null;
   } | null;
 }
 

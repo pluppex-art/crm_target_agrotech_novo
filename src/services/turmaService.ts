@@ -21,11 +21,12 @@ export interface Turma {
   professor_email: string | null;
   date: string;
   time: string;
-  product_id: string;
-  product_name: string;   // From join
-  product_price?: number; // From join
-  enrollment_fee?: number; // From join
-  category: string;       // From join
+  price?: number;
+  enrollment_fee?: number;
+  category: string;
+  description?: string;
+  image_url?: string;
+  student_goal?: number;
   location: string;
   meta?: number;
   status: 'agendada' | 'em_andamento' | 'concluida' | 'cancelada';
@@ -40,13 +41,13 @@ export const turmaService = {
 
     const { data, error } = await supabase
       .from('turmas')
-      .select('*, products(*), turma_attendees(*)')
+      .select('*, turma_attendees(*)')
       .order('created_at', { ascending: false })
-      .limit(100); // Prevent loading hundreds of classes at once
+      .limit(100);
 
-    if (error) { 
-        console.error('Error fetching turmas:', error.message); 
-        return []; 
+    if (error) {
+      console.error('Error fetching turmas:', error.message);
+      return [];
     }
 
     return (data || []).map((t: any) => ({
@@ -56,13 +57,14 @@ export const turmaService = {
       professor_email: t.professor_email,
       date: t.date,
       time: t.time,
-      product_id: t.product_id,
-      product_name: t.products?.name ?? 'Produto não encontrado',
-      product_price: t.products?.price ?? 0,
-      enrollment_fee: t.products?.enrollment_fee ?? 0,
-      category: t.products?.category ?? 'Geral',
+      price: t.price ?? 0,
+      enrollment_fee: t.enrollment_fee ?? 0,
+      category: t.category ?? 'Geral',
+      description: t.description ?? '',
+      image_url: t.image_url ?? '',
+      student_goal: t.student_goal ?? undefined,
       location: t.location,
-      meta: t.meta ?? t.products?.student_goal ?? undefined,
+      meta: t.meta ?? t.student_goal ?? undefined,
       status: t.status,
       attendees: (t.turma_attendees || []).map((a: any) => ({
         id: a.id,
@@ -84,7 +86,7 @@ export const turmaService = {
 
     const { data, error } = await supabase
       .from('turma_attendees')
-      .select('*, turmas(*, products(*))')
+      .select('*, turmas(*)')
       .eq('lead_id', leadId);
 
     if (error) {
@@ -102,11 +104,9 @@ export const turmaService = {
           professor_email: t.professor_email,
           date: t.date,
           time: t.time,
-          product_id: t.product_id,
-          product_name: t.products?.name ?? 'Produto não encontrado',
-          product_price: t.products?.price ?? 0,
-          enrollment_fee: t.products?.enrollment_fee ?? 0,
-          category: t.products?.category ?? 'Geral',
+          price: t.price ?? 0,
+          enrollment_fee: t.enrollment_fee ?? 0,
+          category: t.category ?? 'Geral',
           location: t.location,
           status: t.status,
           attendees: [],
@@ -130,14 +130,13 @@ export const turmaService = {
     const supabase = getSupabaseClient();
     if (!supabase) return null;
 
-    // Block duplicate enrollment
     if (attendee.lead_id) {
       const { data: existing } = await supabase
         .from('turma_attendees')
         .select('id')
         .eq('turma_id', turmaId)
         .eq('lead_id', attendee.lead_id);
-      
+
       if (existing && existing.length > 0) {
         throw new Error('ALREADY_ENROLLED');
       }
@@ -189,7 +188,7 @@ export const turmaService = {
     return true;
   },
 
-  async create(turmaData: Omit<Turma, 'id' | 'attendees' | 'product_name' | 'category'>): Promise<Turma | null> {
+  async create(turmaData: Omit<Turma, 'id' | 'attendees'>): Promise<Turma | null> {
     const supabase = getSupabaseClient();
     if (!supabase) return null;
 
@@ -197,16 +196,20 @@ export const turmaService = {
       .from('turmas')
       .insert([{
         name: turmaData.name,
-        product_id: turmaData.product_id,
+        price: turmaData.price ?? null,
+        enrollment_fee: turmaData.enrollment_fee ?? null,
+        category: turmaData.category ?? null,
+        description: turmaData.description ?? null,
+        image_url: turmaData.image_url ?? null,
+        student_goal: turmaData.student_goal ?? null,
         professor_name: turmaData.professor_name || null,
         professor_email: turmaData.professor_email || null,
         date: turmaData.date || null,
         time: turmaData.time || null,
         location: turmaData.location || null,
-        meta: turmaData.meta ?? null,
         status: turmaData.status,
       }])
-      .select('*, products(*), turma_attendees(*)')
+      .select('*, turma_attendees(*)')
       .single();
 
     if (error) {
@@ -221,22 +224,21 @@ export const turmaService = {
       professor_email: data.professor_email,
       date: data.date,
       time: data.time,
-      product_id: data.product_id,
-      product_name: data.products?.name ?? 'Produto não encontrado',
-      category: data.products?.category ?? 'Geral',
+      price: data.price ?? 0,
+      enrollment_fee: data.enrollment_fee ?? 0,
+      category: data.category ?? 'Geral',
       location: data.location,
       status: data.status,
       attendees: [],
     };
   },
 
-  async update(id: string, turmaData: Partial<Omit<Turma, 'id' | 'attendees' | 'product_name' | 'category'>>): Promise<boolean> {
+  async update(id: string, turmaData: Partial<Omit<Turma, 'id' | 'attendees'>>): Promise<boolean> {
     const supabase = getSupabaseClient();
     if (!supabase) return false;
 
-    // Only sanitize and include fields that are actually present in the update
     const sanitized: any = { ...turmaData };
-    
+
     if ('date' in sanitized) sanitized.date = sanitized.date || null;
     if ('time' in sanitized) sanitized.time = sanitized.time || null;
     if ('location' in sanitized) sanitized.location = sanitized.location || null;
@@ -253,7 +255,6 @@ export const turmaService = {
       return false;
     }
 
-    // Automation: When a class is completed, handle lead transitions
     if (turmaData.status === 'concluida') {
       try {
         const { data: currentTurma } = await supabase
@@ -265,8 +266,6 @@ export const turmaService = {
         if (currentTurma?.date) {
           const now = new Date();
           const turmaDate = new Date(currentTurma.date + 'T12:00:00');
-          
-          // Check if we are in the same month as the class
           const isSameMonth = now.getMonth() === turmaDate.getMonth() && now.getFullYear() === turmaDate.getFullYear();
 
           const { data: attendees } = await supabase
@@ -277,11 +276,10 @@ export const turmaService = {
 
           if (attendees && attendees.length > 0) {
             const leadIds = (attendees as any[]).map(a => a.lead_id).filter(Boolean);
-            
+
             if (leadIds.length > 0) {
-              const updates: any = { substatus: 'Turma Concluída' }; // Use 'substatus' for DB
-              
-              // If it's NOT the same month, we move the stage
+              const updates: any = { substatus: 'Turma Concluída' };
+
               if (!isSameMonth) {
                 const { data: stage } = await supabase
                   .from('pipeline_stages')
@@ -289,17 +287,17 @@ export const turmaService = {
                   .eq('name', 'Turma Concluido')
                   .limit(1)
                   .maybeSingle();
-                
+
                 if (stage?.id) {
                   updates.stage_id = stage.id;
                 }
               }
-              
+
               await supabase
                 .from('leads')
                 .update(updates)
                 .in('id', leadIds);
-              
+
               console.log(`[turmaService] Automation run for ${leadIds.length} leads. isSameMonth: ${isSameMonth}`);
             }
           }

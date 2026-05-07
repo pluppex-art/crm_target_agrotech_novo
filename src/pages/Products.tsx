@@ -48,9 +48,7 @@ export function Products() {
   }, [editingProduct]);
 
   const getProductTurmaStatus = (product: Product) => {
-    const productTurmas = turmas.filter(t =>
-      t.product_id === product.id || t.product_name === product.name
-    );
+    const productTurmas = turmas.filter(t => t.id === product.id);
     if (productTurmas.length === 0) return null;
     const hasActive = productTurmas.some(t => t.status === 'agendada' || t.status === 'em_andamento');
     if (hasActive) return 'ativo';

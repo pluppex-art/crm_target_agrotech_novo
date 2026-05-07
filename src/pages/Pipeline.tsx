@@ -75,18 +75,6 @@ export const Pipeline: React.FC = () => {
     return myProfile.department?.toLowerCase() === 'comercial';
   }, [authUser?.id, profiles]);
 
-  const today = new Date();
-
-  // Sempre começa com "Este Ano" (01/01 a 31/12)
-  const [startDate, setStartDate] = useState(() => {
-    const s = new Date(today.getFullYear(), 0, 1);
-    return s.toISOString().split('T')[0];
-  });
-
-  const [endDate, setEndDate] = useState(() => {
-    const e = new Date(today.getFullYear(), 11, 31);
-    return e.toISOString().split('T')[0];
-  });
 
   const leadToTurmaDate = useMemo(() => {
     const mapping: Record<string, string> = {};
@@ -98,7 +86,7 @@ export const Pipeline: React.FC = () => {
     return mapping;
   }, [turmas]);
 
-  const filters = usePipelineFilters(leads, authUser?.id, isComercial, startDate, endDate, leadToTurmaDate);
+  const filters = usePipelineFilters(leads, authUser?.id, isComercial, leadToTurmaDate);
 
   const [isNewLeadModalOpen, setIsNewLeadModalOpen] = useState(false);
   const [initialStageIdForNewLead, setInitialStageIdForNewLead] = useState<string | undefined>(undefined);
@@ -342,10 +330,10 @@ export const Pipeline: React.FC = () => {
     let pago = 0;
     let pendente = 0;
 
-    const start = startDate ? new Date(startDate + "T00:00:00") : null;
-    const end = endDate ? new Date(endDate + "T23:59:59") : null;
 
-    leads.forEach((lead) => {
+
+    // USAR filteredLeads para que os cards no topo batam com o que está no quadro
+    filters.filteredLeads.forEach((lead) => {
       // 1. Determinar Data de Referência
       const tInfo = leadToTurma[lead.id];
       let leadDateStr = '';
@@ -361,48 +349,65 @@ export const Pipeline: React.FC = () => {
         }
       }
 
-      if (!leadDateStr) return;
-
-      // 2. Filtrar por Período
-      const lDate = new Date(leadDateStr + "T12:00:00");
-      if (start && lDate < start) return;
-      if (end && lDate > end) return;
-
-      // 3. Calcular Valores
       const stageLower = (lead.status || '').toLowerCase();
-      const isWon = 
-        (tInfo?.status === 'concluida') || 
-        (lead.subStatus === 'Turma Concluída') || 
-        stageLower.includes('ganho') || 
-        stageLower.includes('conclu');
+      const isGanhoStage = lead.stage_id ? ganhoStageIds.has(lead.stage_id) : false;
+      const isTurmaConcluida = tInfo?.status === 'concluida' || stageLower.includes('conclu');
+
+      // Se não for Ganho nem Turma Concluída, ignora.
+      if (!isGanhoStage && !isTurmaConcluida) return;
+
+      // REGRA: Se for Turma Concluída (seja pela etapa ou pela turma em si), SÓ contabiliza se for do MÊS ATUAL.
+      if (isTurmaConcluida) {
+        if (!leadDateStr) return; // Sem data, não tem como validar
+        const lDate = new Date(leadDateStr + "T12:00:00");
+        const today = new Date();
+        if (lDate.getMonth() !== today.getMonth() || lDate.getFullYear() !== today.getFullYear()) {
+          return; // Não é do mês atual, desconsidera
+        }
+      }
 
       const productObj = products.find(p => lead.product?.includes(p.name));
-      const fee = productObj?.enrollment_fee ?? 0;
+      const fee = productObj?.enrollment_fee ?? 197; 
       
-      const totalValue = tInfo 
-        ? (tInfo.product_price || 0) + (tInfo.enrollment_fee || 0)
-        : getLeadEffectiveValue(lead) + fee;
+      const leadTotalValue = tInfo 
+        ? (tInfo.price || 0) + (tInfo.enrollment_fee || 0)
+        : ((lead.value && Number(lead.value) > 0) 
+          ? Number(lead.value) 
+          : (productObj?.price || 4497)) + fee;
 
-      const received = tInfo 
+      let received = tInfo 
         ? (tInfo.attendee.valor_recebido || 0)
-        : Math.max(Number(lead.valor_recebido) || 0, Number(lead.taxa_matricula_recebido) || 0);
+        : (Number(lead.valor_recebido) || 0) + (Number(lead.taxa_matricula_recebido) || 0);
 
-      if (isWon) {
-        pago += totalValue;
-      } else {
-        const isAdvanced = stageLower.includes('contrato') || stageLower.includes('aprovado');
-        if (isAdvanced) {
-          pago += received;
-          const remainder = totalValue - received;
-          if (remainder > 0) pendente += remainder;
-        }
+      // Se marcou o Pix e tem comprovante, garante que a taxa está no valor recebido
+      if (lead.pix_completed && lead.payment_proof_url) {
+        if (received < fee) received = fee;
+      }
+
+      // Tudo o que já foi recebido (taxa ou valor integral) vai para PAGO
+      pago += received;
+
+      // O que falta ser recebido do produto vai para PENDENTE
+      const remainder = leadTotalValue - received;
+      if (remainder > 0) {
+        pendente += remainder;
       }
     });
 
     return { caixaTotalValue: pago, competenciaTotalValue: pendente };
-  }, [turmas, leads, startDate, endDate, products, leadToTurma]);
+  }, [turmas, leads, products, leadToTurma, filters.filteredLeads, ganhoStageIds]);
 
+  // Filtra produtos para não mostrar os de Turmas já Concluídas no dropdown
+  const activeProductsForFilter = useMemo(() => {
+    const concludedProductNames = new Set<string>();
+    turmas.forEach(t => {
+      if (t.status === 'concluida') {
+        concludedProductNames.add(t.name);
+      }
+    });
 
+    return products.filter(p => !concludedProductNames.has(p.name));
+  }, [products, turmas]);
 
   return (
     <div className="p-6 space-y-4 bg-gray-50 flex-1 min-h-0 w-full flex flex-col overflow-hidden min-w-0 max-w-full">
@@ -423,9 +428,6 @@ export const Pipeline: React.FC = () => {
           setInitialStageIdForNewLead(undefined);
           setIsNewLeadModalOpen(true);
         }}
-        startDate={startDate}
-        endDate={endDate}
-        onFilterClick={() => setIsFilterOpen(true)}
       />
 
 
@@ -437,7 +439,7 @@ export const Pipeline: React.FC = () => {
         selectedStars={filters.selectedStars}
         selectedSquad={filters.selectedSquad}
         responsibles={filters.responsibles}
-        products={products}
+        products={activeProductsForFilter}
         columns={COLUMNS}
         onSearchChange={filters.setSearchTerm}
         onStatusChange={filters.setSelectedStatus}
@@ -528,17 +530,6 @@ export const Pipeline: React.FC = () => {
 
       <PipelineParticles showRocket={showRocket} />
 
-      <PeriodFilterModal
-        isOpen={isFilterOpen}
-        onClose={() => setIsFilterOpen(false)}
-        onApply={(s, e) => {
-          setStartDate(s);
-          setEndDate(e);
-          setIsFilterOpen(false);
-        }}
-        currentStartDate={startDate}
-        currentEndDate={endDate}
-      />
     </div>
   );
 };
