@@ -5,6 +5,7 @@ import { useLeadStore } from '../../store/useLeadStore';
 import { useProductStore } from '../../store/useProductStore';
 import { useProfileStore } from '../../store/useProfileStore';
 import { useAuthStore } from '../../store/useAuthStore';
+import { turmaService } from '../../services/turmaService';
 import { useSquadStore } from '../../store/useSquadStore';
 
 import { usePipelineStore } from '../../store/usePipelineStore';
@@ -187,7 +188,6 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
         subStatus: initialStatus === 'qualified' ? formData.subStatus : null,
         stars: 0,
         photo: `https://tfwclxxcgnmndcnbklkx.supabase.co/storage/v1/object/public/icones/5.png`,
-        history: [],
         discount_applied: formData.discount_applied,
         discount: formData.discount || '',
         discount_type: formData.discount_type || 'percent',
@@ -226,34 +226,36 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
 
         // Auto-enroll in turma after successful ganho lead
         if (isGanhoStage) {
-          const turmaService = (window as any).turmaService || { enrollLeadInTurma: async () => { } };
           await turmaService.enrollLeadInTurma({ ...newLeadData, ...updates, id: newLead.id });
         }
 
         onLeadCreated?.({ ...newLead, ...updates });
-      }
 
-      onClose();
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        product: '',
-        value: '',
-        city: '',
-        cnpj: '',
-        responsible: '',
-        subStatus: 'qualified',
-        discount_applied: false,
-        discount: '',
-        discount_type: 'percent',
-        pix_completed: false,
-        contract_signed: false,
-        taxa_matricula_recebido: undefined,
-        motivo_perda: '',
-      });
-      setProofFile(null);
-      setContractFile(null);
+        // Apenas fecha e reseta se foi sucesso
+        onClose();
+        setFormData({
+          name: '',
+          email: '',
+          phone: '',
+          product: '',
+          value: '',
+          city: '',
+          cnpj: '',
+          responsible: '',
+          subStatus: 'qualified',
+          discount_applied: false,
+          discount: '',
+          discount_type: 'percent',
+          pix_completed: false,
+          contract_signed: false,
+          taxa_matricula_recebido: undefined,
+          motivo_perda: '',
+        });
+        setProofFile(null);
+        setContractFile(null);
+      } else {
+        alert('Erro ao salvar lead no banco de dados. Verifique a conexão e as colunas do banco.');
+      }
     } catch (error) {
       console.error('Error adding lead:', error);
     } finally {

@@ -120,12 +120,12 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
     const state = getPayment(attendeeId);
     const entry = state.entries[0];
     const val = parseFloat(entry.valor);
-    
+
     if (isNaN(val) || val <= 0) {
       alert('Por favor, insira um valor válido maior que zero.');
       return;
     }
-    
+
     if (!entry.forma) {
       alert('Por favor, selecione a forma de pagamento.');
       return;
@@ -147,20 +147,13 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
     <div className="space-y-4">
       <div className="flex items-center justify-between py-2">
         <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Turmas vinculadas</h3>
-        <button
-          onClick={() => setIsActivityModalOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-all shadow-sm"
-        >
-          <Plus size={14} />
-          Nova Atividade
-        </button>
       </div>
 
       <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
           <FileText size={12} /> Documentação do Professor
         </p>
-        
+
         <div className="flex items-center gap-3">
           <div className="flex-1 min-w-0">
             <p className="text-[11px] font-bold text-slate-600 flex items-center gap-1.5">
@@ -191,7 +184,7 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
               </div>
             )}
           </div>
-          
+
           <div className="shrink-0">
             <input
               ref={fileInputRef}
@@ -275,7 +268,7 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
                 ) : (
                   <p className="text-[10px] text-slate-400 italic">Nenhum pagamento registrado nesta turma.</p>
                 )}
-                
+
                 <div className="flex items-center justify-between text-xs pt-1">
                   <span className="font-bold text-slate-500">Saldo Pendente (Total)</span>
                   <span className={cn('font-bold', (valorAReceber ?? 0) <= 0 ? 'text-emerald-600' : 'text-orange-600')}>

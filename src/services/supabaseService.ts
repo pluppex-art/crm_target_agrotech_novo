@@ -8,7 +8,7 @@ export const supabaseService = {
 
     let query = supabase
       .from('leads')
-      .select('*')
+      .select('*, lead_class_enrollments(*)')
       .order('created_at', { ascending: false })
       .limit(1000);
 
@@ -31,7 +31,26 @@ export const supabaseService = {
       throw error;
     }
 
-    return data as Lead[];
+    return data.map((lead: any) => {
+      const enrollments = lead.lead_class_enrollments || [];
+      // Pegar o enrollment mais recente ou ativo
+      const activeEnrollment = enrollments.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+      
+      return {
+        ...lead,
+        discount: activeEnrollment?.discount || '',
+        discount_applied: activeEnrollment?.discount_applied || false,
+        discount_type: activeEnrollment?.discount_type || 'percent',
+        pix_completed: activeEnrollment?.pix_completed || false,
+        contract_signed: activeEnrollment?.contract_signed || false,
+        valor_recebido: activeEnrollment?.valor_recebido || null,
+        taxa_matricula_recebido: activeEnrollment?.taxa_matricula_recebido || null,
+        forma_pagamento: activeEnrollment?.forma_pagamento || null,
+        payment_proof_url: activeEnrollment?.payment_proof_url || null,
+        contract_url: activeEnrollment?.contract_url || null,
+        professor_proof_url: activeEnrollment?.professor_proof_url || null,
+      } as Lead;
+    });
   },
 
   async updateLeadStatus(leadId: string, status: LeadStatus): Promise<boolean> {
@@ -89,8 +108,16 @@ export const supabaseService = {
     const supabase = getSupabaseClient();
     if (!supabase) return null;
 
-    // Strip computed join fields and map field names
-    const { stage, pipeline, subStatus, ...baseLead } = lead as any;
+    // Strip extra fields that belong to lead_class_enrollments, not leads
+    const { 
+      stage, pipeline, subStatus, history,
+      discount, discount_applied, discount_type,
+      pix_completed, contract_signed,
+      valor_recebido, taxa_matricula_recebido, forma_pagamento,
+      payment_proof_url, contract_url, professor_proof_url,
+      ...baseLead 
+    } = lead as any;
+    
     const dbLead = {
       ...baseLead,
       substatus: subStatus, // Map subStatus to substatus for database
@@ -118,8 +145,16 @@ export const supabaseService = {
     const supabase = getSupabaseClient();
     if (!supabase) return false;
 
-    // Strip computed join fields and map field names
-    const { stage, pipeline, subStatus, ...baseLead } = lead as any;
+    // Strip extra fields that belong to lead_class_enrollments, not leads
+    const { 
+      stage, pipeline, subStatus, history,
+      discount, discount_applied, discount_type,
+      pix_completed, contract_signed,
+      valor_recebido, taxa_matricula_recebido, forma_pagamento,
+      payment_proof_url, contract_url, professor_proof_url,
+      ...baseLead 
+    } = lead as any;
+    
     const dbLead = {
       ...baseLead,
       substatus: subStatus, // Map subStatus to substatus for database
@@ -133,6 +168,38 @@ export const supabaseService = {
     if (error) {
       console.error('Error updating lead:', error);
       return false;
+    }
+
+    // Se houver campos financeiros, atualiza a matrícula (lead_class_enrollments) mais recente
+    const financialUpdates: any = {};
+    if (discount !== undefined) financialUpdates.discount = discount;
+    if (discount_applied !== undefined) financialUpdates.discount_applied = discount_applied;
+    if (discount_type !== undefined) financialUpdates.discount_type = discount_type;
+    if (pix_completed !== undefined) financialUpdates.pix_completed = pix_completed;
+    if (contract_signed !== undefined) financialUpdates.contract_signed = contract_signed;
+    if (valor_recebido !== undefined) financialUpdates.valor_recebido = valor_recebido;
+    if (taxa_matricula_recebido !== undefined) financialUpdates.taxa_matricula_recebido = taxa_matricula_recebido;
+    if (forma_pagamento !== undefined) financialUpdates.forma_pagamento = forma_pagamento;
+    if (payment_proof_url !== undefined) financialUpdates.payment_proof_url = payment_proof_url;
+    if (contract_url !== undefined) financialUpdates.contract_url = contract_url;
+    if (professor_proof_url !== undefined) financialUpdates.professor_proof_url = professor_proof_url;
+
+    if (Object.keys(financialUpdates).length > 0) {
+      // 1. Achar a matrícula mais recente
+      const { data: enrollments } = await supabase
+        .from('lead_class_enrollments')
+        .select('id')
+        .eq('lead_id', leadId)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (enrollments && enrollments.length > 0) {
+        // 2. Atualizar
+        await supabase
+          .from('lead_class_enrollments')
+          .update(financialUpdates)
+          .eq('id', enrollments[0].id);
+      }
     }
 
     return true;

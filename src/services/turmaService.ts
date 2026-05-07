@@ -370,4 +370,56 @@ export const turmaService = {
     }
     return true;
   },
+
+  async enrollLeadInTurma(leadData: any): Promise<boolean> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return false;
+
+    // 1. Tentar achar uma turma ativa
+    const { data: turmas, error: fetchError } = await supabase
+      .from('turmas')
+      .select('id')
+      .neq('status', 'concluida')
+      .neq('status', 'cancelada')
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (fetchError || !turmas || turmas.length === 0) {
+      console.warn('Nenhuma turma ativa encontrada para auto-matrícula do lead Ganho.');
+      return false;
+    }
+
+    const classId = turmas[0].id;
+
+    // 2. Inserir a matrícula com os dados financeiros
+    const { error: insertError } = await supabase
+      .from('lead_class_enrollments')
+      .insert([{
+        class_id: classId,
+        lead_id: leadData.id,
+        status: 'ENROLLED',
+        discount: leadData.discount || null,
+        discount_applied: leadData.discount_applied || false,
+        discount_type: leadData.discount_type || 'percent',
+        pix_completed: leadData.pix_completed || false,
+        contract_signed: leadData.contract_signed || false,
+        taxa_matricula_recebido: leadData.taxa_matricula_recebido || null,
+        valor_recebido: leadData.valor_recebido || null,
+        forma_pagamento: leadData.forma_pagamento || null,
+        payment_proof_url: leadData.payment_proof_url || null,
+        contract_url: leadData.contract_url || null,
+        professor_proof_url: leadData.professor_proof_url || null,
+        name: leadData.name || '',
+        photo: leadData.photo || '',
+        responsible: leadData.responsible || '',
+        vendas: Number(leadData.vendas) || 0,
+      }]);
+
+    if (insertError) {
+      console.error('Erro na auto-matrícula do lead Ganho:', insertError);
+      return false;
+    }
+
+    return true;
+  },
 };
