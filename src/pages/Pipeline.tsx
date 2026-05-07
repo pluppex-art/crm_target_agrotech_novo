@@ -366,25 +366,18 @@ export const Pipeline: React.FC = () => {
         }
       }
 
-      const productObj = products.find(p => lead.product?.includes(p.name));
-      const fee = productObj?.enrollment_fee ?? 197; 
-      
-      const leadTotalValue = tInfo 
-        ? (tInfo.price || 0) + (tInfo.enrollment_fee || 0)
-        : ((lead.value && Number(lead.value) > 0) 
-          ? Number(lead.value) 
-          : (productObj?.price || 4497)) + fee;
+      // Usa a calculadora financeira oficial do sistema para obter valores precisos (considerando descontos, taxas, etc.)
+      const mockLeadForFinance = {
+        ...lead,
+        // Se a pessoa já está na turma, o valor recebido que vale é o do attendee da turma,
+        // que depois a calculadora financeira vai somar com a taxa de matrícula.
+        valor_recebido: tInfo ? (tInfo.attendee.valor_recebido || 0) : lead.valor_recebido,
+      };
 
-      let received = tInfo 
-        ? (tInfo.attendee.valor_recebido || 0)
-        : (Number(lead.valor_recebido) || 0) + (Number(lead.taxa_matricula_recebido) || 0);
+      const leadTotalValue = financialCalculator.getTotalContracted(mockLeadForFinance, products);
+      const received = financialCalculator.getPaidAmount(mockLeadForFinance, products);
 
-      // Se marcou o Pix e tem comprovante, garante que a taxa está no valor recebido
-      if (lead.pix_completed && lead.payment_proof_url) {
-        if (received < fee) received = fee;
-      }
-
-      // Tudo o que já foi recebido (taxa ou valor integral) vai para PAGO
+      // Tudo o que já foi recebido vai para PAGO
       pago += received;
 
       // O que falta ser recebido do produto vai para PENDENTE
