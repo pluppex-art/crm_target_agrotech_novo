@@ -378,13 +378,13 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-5 px-5 border-b border-slate-200">
+        <div className="flex items-center gap-5 px-5 border-b border-slate-200 overflow-x-auto whitespace-nowrap scrollbar-thin" style={{ scrollbarWidth: 'thin' }}>
           {(['info', 'notes', 'history', 'tasks', 'turma', 'checklist'] as TabType[]).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={cn(
-                'relative pb-3 pt-2 font-bold text-xs transition-colors border-b-[2px] uppercase tracking-wider',
+                'relative pb-3 pt-2 font-bold text-xs transition-colors border-b-[2px] uppercase tracking-wider shrink-0',
                 activeTab === tab
                   ? 'border-emerald-500 text-emerald-600'
                   : 'border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-200'
