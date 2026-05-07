@@ -54,7 +54,7 @@ export function Sidebar({ collapsed = false, onToggle, onClose, isOpen }: Sideba
   }, [fetchProfiles, profiles.length]);
 
   const currentProfile = profiles.find(p => p.id === user?.id);
-  const userPermissions = currentProfile?.permissions || [];
+  const userPermissions = currentProfile?.cargos?.permissions || [];
   const isAdmin = userPermissions.includes('admin.all');
 
   const handleNavClick = () => {
