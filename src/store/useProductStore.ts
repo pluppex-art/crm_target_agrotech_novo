@@ -74,10 +74,10 @@ export const useProductStore = create<ProductState>((set) => ({
   subscribe: () => {
     const supabase = getSupabaseClient();
 
-    const channelId = `realtime:products-${Math.random().toString(36).substring(7)}`;
+    const channelId = `realtime:turmas-products-${Math.random().toString(36).substring(7)}`;
     const channel = supabase
       .channel(channelId)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, (payload) => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'turmas' }, (payload) => {
         const { eventType, new: newRecord, old: oldRecord } = payload;
         set((state) => {
           let updated = [...state.products];

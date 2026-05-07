@@ -22,7 +22,6 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
     category: '',
     enrollment_fee: '',
     image_url: '',
-    stock: '0',
   });
 
 
@@ -41,7 +40,6 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
         category: product.category || '',
         enrollment_fee: product.enrollment_fee?.toString() || '',
         image_url: product.image_url || '',
-        stock: (product.stock || 0).toString(),
       });
     } else {
       setFormData({
@@ -51,7 +49,6 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
         category: '',
         enrollment_fee: '',
         image_url: '',
-        stock: '0',
       });
     }
   }, [product, isOpen]);
@@ -62,10 +59,11 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
     setLoading(true);
     try {
       const data = {
-        ...formData,
+        name: formData.name,
+        description: formData.description || undefined,
         price: parseFloat(formData.price) || 0,
         enrollment_fee: formData.enrollment_fee ? parseFloat(formData.enrollment_fee) : undefined,
-        stock: parseInt(formData.stock) || 0,
+        category: formData.category || undefined,
         image_url: formData.image_url || `https://picsum.photos/seed/${formData.name}/400/300`,
       };
 

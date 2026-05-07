@@ -11,7 +11,6 @@ export interface Product {
   category?: string;
   image_url?: string;
   student_goal?: number;
-  stock?: number;
 }
 
 export const productService = {
@@ -46,9 +45,10 @@ export const productService = {
     const supabase = getSupabaseClient();
     if (!supabase) return null;
 
+    const { name, description, price, enrollment_fee, category, image_url, student_goal } = product;
     const { data, error } = await supabase
       .from('turmas')
-      .insert([{ ...product, status: 'agendada' }])
+      .insert([{ name, description, price, enrollment_fee, category, image_url, student_goal, status: 'agendada' }])
       .select('id, created_at, name, description, price, enrollment_fee, category, image_url, student_goal')
       .single();
 
@@ -64,9 +64,19 @@ export const productService = {
     const supabase = getSupabaseClient();
     if (!supabase) return false;
 
+    const { name, description, price, enrollment_fee, category, image_url, student_goal } = product;
+    const payload: any = {};
+    if (name !== undefined) payload.name = name;
+    if (description !== undefined) payload.description = description;
+    if (price !== undefined) payload.price = price;
+    if (enrollment_fee !== undefined) payload.enrollment_fee = enrollment_fee;
+    if (category !== undefined) payload.category = category;
+    if (image_url !== undefined) payload.image_url = image_url;
+    if (student_goal !== undefined) payload.student_goal = student_goal;
+
     const { error } = await supabase
       .from('turmas')
-      .update(product)
+      .update(payload)
       .eq('id', productId);
 
     if (error) {

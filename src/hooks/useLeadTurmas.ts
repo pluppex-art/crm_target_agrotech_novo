@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
 import { turmaService, Turma, TurmaAttendee } from '../services/turmaService';
-import { useLeadStore } from '../store/useLeadStore';
-import { useProductStore } from '../store/useProductStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { noteService } from '../services/noteService';
 import { financialCalculator } from '../services/financialCalculator';
@@ -54,19 +52,12 @@ export const useLeadTurmas = ({ leadId }: UseLeadTurmasProps) => {
       .join(', ');
 
     await turmaService.updateAttendeePayment(attendeeId, newTotal, combinedFormas);
-    
+
     // 4. Reload local state
     const refreshed = await turmaService.getAttendeeHistory(leadId);
     setLeadTurmas(refreshed);
 
-    // 5. Sync with the main Lead record
-    const { updateLead } = useLeadStore.getState();
-    await updateLead(leadId, { 
-      valor_recebido: newTotal,
-      forma_pagamento: combinedFormas
-    });
-
-    // 6. Log to History (Notes)
+    // 5. Log to History (Notes)
     if (valor_novo > 0) {
       const authorName = user?.user_metadata?.full_name || user?.email || 'Professor';
       await noteService.createNote({
