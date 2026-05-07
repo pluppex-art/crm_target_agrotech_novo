@@ -156,7 +156,7 @@ export function TransactionsTab({ startDate, endDate }: { startDate: string; end
                     </td>
                     <td className="px-6 py-4 text-right whitespace-nowrap">
                       <span className={cn('font-bold', t.type === 'INCOME' ? 'text-emerald-600' : 'text-rose-600')}>
-                        {t.type === 'INCOME' ? '+' : '-'} R$ {fmt(t.amount)}
+                        {t.type === 'INCOME' ? '+' : '-'} R$ {fmt(Number(t.amount))}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">

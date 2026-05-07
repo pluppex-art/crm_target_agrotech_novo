@@ -104,7 +104,7 @@ export function OteTab({ startDate, endDate }: { startDate: string; endDate: str
 
   const { sellers, managers } = groupOteByRole(results);
   const displayPool = activeView === 'sellers' ? sellers : managers;
-  const displayData = filterOteBySquad(displayPool as any, selectedSquad);
+  const displayData = filterOteBySquad(displayPool, selectedSquad);
 
   return (
     <div className="space-y-6">
