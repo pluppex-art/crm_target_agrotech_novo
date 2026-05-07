@@ -58,6 +58,9 @@ export const PERMISSIONS = [
   'marketing.create',
   'marketing.manage',
 
+  // AI Chat
+  'ai-chat.view',
+
   // Usuários & Configurações
   'users.view',
   'users.manage',

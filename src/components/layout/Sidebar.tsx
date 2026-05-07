@@ -15,22 +15,25 @@ import {
   GraduationCap,
   X as XIcon,
 } from 'lucide-react';
+import { useAuthStore } from '../../store/useAuthStore';
+import { useProfileStore } from '../../store/useProfileStore';
+import { useEffect } from 'react';
+import { cn } from '@/lib/utils';
 import { NavLink } from 'react-router-dom';
-import { cn } from '../../lib/utils';
 
 const menuItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
-  { icon: Kanban, label: 'Pipeline', path: '/pipeline' },
-  { icon: Users, label: 'Clientes', path: '/leads' },
-  { icon: DollarSign, label: 'Financeiro', path: '/finance' },
-  { icon: MessageSquare, label: 'AI Sales Chat', path: '/ai-chat' },
-  { icon: FileText, label: 'Contratos', path: '/contracts' },
-  { icon: Package, label: 'Produtos', path: '/products' },
-  { icon: Megaphone, label: 'Marketing', path: '/marketing' },
-  { icon: Calendar, label: 'Tarefas', path: '/tasks' },
-  { icon: GraduationCap, label: 'Turmas', path: '/turmas' },
-  { icon: Bell, label: 'Notificações', path: '/notifications' },
-  { icon: Settings, label: 'Configurações', path: '/settings' },
+  { icon: LayoutDashboard, label: 'Dashboard', path: '/', permission: 'dashboard.view' },
+  { icon: Kanban, label: 'Pipeline', path: '/pipeline', permission: 'pipeline.view' },
+  { icon: Users, label: 'Clientes', path: '/leads', permission: 'leads.view' },
+  { icon: DollarSign, label: 'Financeiro', path: '/finance', permission: 'finance.view' },
+  { icon: MessageSquare, label: 'AI Sales Chat', path: '/ai-chat', permission: 'ai-chat.view' },
+  { icon: FileText, label: 'Contratos', path: '/contracts', permission: 'contracts.view' },
+  { icon: Package, label: 'Produtos', path: '/products', permission: 'products.view' },
+  { icon: Megaphone, label: 'Marketing', path: '/marketing', permission: 'marketing.view' },
+  { icon: Calendar, label: 'Tarefas', path: '/tasks', permission: 'tasks.view' },
+  { icon: GraduationCap, label: 'Turmas', path: '/turmas', permission: 'turmas.view' },
+  { icon: Bell, label: 'Notificações', path: '/notifications' }, // Sem permissão específica
+  { icon: Settings, label: 'Configurações', path: '/settings', permission: 'settings.view' },
 ];
 
 interface SidebarProps {
@@ -41,9 +44,28 @@ interface SidebarProps {
 }
 
 export function Sidebar({ collapsed = false, onToggle, onClose, isOpen }: SidebarProps) {
+  const { user, signOut } = useAuthStore();
+  const { profiles, fetchProfiles } = useProfileStore();
+
+  useEffect(() => {
+    if (profiles.length === 0) {
+      fetchProfiles();
+    }
+  }, [fetchProfiles, profiles.length]);
+
+  const currentProfile = profiles.find(p => p.id === user?.id);
+  const userPermissions = currentProfile?.permissions || [];
+  const isAdmin = userPermissions.includes('admin.all');
+
   const handleNavClick = () => {
     if (window.innerWidth < 1024 && onClose) onClose();
   };
+
+  const filteredMenuItems = menuItems.filter(item => {
+    if (isAdmin) return true;
+    if (!item.permission) return true;
+    return userPermissions.includes(item.permission);
+  });
 
   return (
     <div className="flex flex-col h-full w-full bg-white">
@@ -103,7 +125,7 @@ export function Sidebar({ collapsed = false, onToggle, onClose, isOpen }: Sideba
 
       {/* ── Navigation ─────────────────────────────────────── */}
       <nav aria-label="Menu principal" className="flex-1 overflow-y-auto px-2 py-4 space-y-1">
-        {menuItems.map(({ icon: Icon, label, path }) => (
+        {filteredMenuItems.map(({ icon: Icon, label, path }) => (
           <NavLink
             key={path}
             to={path}
@@ -128,6 +150,7 @@ export function Sidebar({ collapsed = false, onToggle, onClose, isOpen }: Sideba
       <footer className="p-3 border-t border-slate-100 flex-shrink-0">
         <button
           type="button"
+          onClick={signOut}
           title={(collapsed && !isOpen) ? "Sair" : undefined}
           className={cn(
             "flex items-center w-full rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
