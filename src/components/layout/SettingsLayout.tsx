@@ -3,7 +3,10 @@ import {
   User, Bell, Lock, Globe, Shield, UserPlus, Tag, Activity,
   Target, ClipboardList, Settings as SettingsIcon, RefreshCcw
 } from 'lucide-react';
-import { cn } from '../../lib/utils';
+import { cn, isVendedor } from '../../lib/utils';
+import { useAuthStore } from '../../store/useAuthStore';
+import { useProfileStore } from '../../store/useProfileStore';
+import { useEffect } from 'react';
 
 const settingsNav = [
   { icon: User,           label: 'Perfil',               path: '/settings/profile' },
@@ -22,6 +25,23 @@ const settingsNav = [
 ];
 
 export function SettingsLayout() {
+  const { user } = useAuthStore();
+  const { profiles, fetchProfiles } = useProfileStore();
+
+  useEffect(() => {
+    if (profiles.length === 0) {
+      fetchProfiles();
+    }
+  }, [fetchProfiles, profiles.length]);
+
+  const currentProfile = profiles.find(p => p.id === user?.id);
+  const isSeller = currentProfile ? isVendedor(currentProfile) : false;
+
+  // Se for vendedor, mostra apenas Perfil e Usuários (conforme solicitado)
+  const filteredNav = isSeller 
+    ? settingsNav.filter(item => item.label === 'Perfil' || item.label === 'Usuários')
+    : settingsNav;
+
   return (
     <div className="flex h-full overflow-hidden">
       {/* Sub-sidebar */}
@@ -30,7 +50,7 @@ export function SettingsLayout() {
           <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Configurações</p>
         </div>
         <nav className="flex-1 px-2 py-2 space-y-0.5">
-          {settingsNav.map(({ icon: Icon, label, path }) => (
+          {filteredNav.map(({ icon: Icon, label, path }) => (
             <NavLink
               key={path}
               to={path}

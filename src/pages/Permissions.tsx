@@ -18,6 +18,7 @@ import {
   CheckSquare,
   StickyNote,
   UserCog,
+  Search,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useCargoStore } from '../store/useCargoStore';
@@ -27,218 +28,218 @@ import { cn } from '../lib/utils';
 // ── Category icons ────────────────────────────────────────────────────────────
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
   dashboard: LayoutDashboard,
-  leads:     Users,
-  pipeline:  GitPullRequest,
-  finance:   DollarSign,
+  leads: Users,
+  pipeline: GitPullRequest,
+  finance: DollarSign,
   contracts: FileText,
-  products:  Package,
-  turmas:    GraduationCap,
-  tasks:     CheckSquare,
-  notes:     StickyNote,
+  products: Package,
+  turmas: GraduationCap,
+  tasks: CheckSquare,
+  notes: StickyNote,
   marketing: Megaphone,
-  users:     UserCog,
-  settings:  Settings,
-  admin:     Shield,
+  users: UserCog,
+  settings: Settings,
+  admin: Shield,
 };
 
 // ── Category PT-BR labels ─────────────────────────────────────────────────────
 const CATEGORY_LABELS: Record<string, string> = {
   dashboard: 'Dashboard',
-  leads:     'Gestão de Leads',
-  pipeline:  'Pipeline de Vendas',
-  finance:   'Financeiro',
+  leads: 'Gestão de Leads',
+  pipeline: 'Pipeline de Vendas',
+  finance: 'Financeiro',
   contracts: 'Contratos',
-  products:  'Produtos',
-  turmas:    'Turmas',
-  tasks:     'Tarefas',
-  notes:     'Anotações',
+  products: 'Produtos',
+  turmas: 'Turmas',
+  tasks: 'Tarefas',
+  notes: 'Anotações',
   marketing: 'Marketing',
-  users:     'Usuários',
-  settings:  'Configurações',
-  admin:     'Administrador',
+  users: 'Usuários',
+  settings: 'Configurações',
+  admin: 'Administrador',
 };
 
 // ── Permission PT-BR labels ───────────────────────────────────────────────────
 // ── Permission PT-BR labels ───────────────────────────────────────────────────
 const PERMISSION_LABELS: Record<string, { title: string; description: string }> = {
-  'dashboard.view':      { 
-    title: 'Visualizar Dashboard e BI',        
-    description: 'Acesso completo ao painel de indicadores, métricas de conversão, gráficos de tendência e Business Intelligence (BI).' 
+  'dashboard.view': {
+    title: 'Visualizar Dashboard e BI',
+    description: 'Acesso completo ao painel de indicadores, métricas de conversão, gráficos de tendência e Business Intelligence (BI).'
   },
 
-  'leads.view':          { 
-    title: 'Visualizar Base de Leads',            
-    description: 'Permite visualizar a listagem completa de leads, histórico de interações, detalhes de contato e informações básicas.' 
+  'leads.view': {
+    title: 'Visualizar Base de Leads',
+    description: 'Permite visualizar a listagem completa de leads, histórico de interações, detalhes de contato e informações básicas.'
   },
-  'leads.create':        { 
-    title: 'Capturar e Criar Leads',                 
-    description: 'Capacidade de inserir novos leads manualmente no CRM e gerenciar a entrada de novos contatos.' 
+  'leads.create': {
+    title: 'Capturar e Criar Leads',
+    description: 'Capacidade de inserir novos leads manualmente no CRM e gerenciar a entrada de novos contatos.'
   },
-  'leads.edit':          { 
-    title: 'Editar Dados de Leads',                
-    description: 'Permite alterar campos cadastrais, atualizar status, trocar responsáveis e modificar informações de perfil.' 
+  'leads.edit': {
+    title: 'Editar Dados de Leads',
+    description: 'Permite alterar campos cadastrais, atualizar status, trocar responsáveis e modificar informações de perfil.'
   },
-  'leads.delete':        { 
-    title: 'Arquivar/Excluir Leads',               
-    description: 'Permissão crítica para remover leads permanentemente ou enviar para a lixeira do sistema.' 
+  'leads.delete': {
+    title: 'Arquivar/Excluir Leads',
+    description: 'Permissão crítica para remover leads permanentemente ou enviar para a lixeira do sistema.'
   },
-  'leads.export':        { 
-    title: 'Exportação de Dados (CSV/XLS)',              
-    description: 'Capacidade de extrair dados da base de leads para planilhas externas (Excel/Google Sheets).' 
-  },
-
-  'pipeline.view':       { 
-    title: 'Visualizar Funil de Vendas',         
-    description: 'Acesso ao quadro Kanban do Pipeline, permitindo acompanhar o fluxo de negociações em tempo real.' 
-  },
-  'pipeline.edit':       { 
-    title: 'Gestão de Oportunidades',           
-    description: 'Permite movimentar leads entre etapas, atualizar valores de negociação e definir motivos de perda/ganho.' 
-  },
-  'pipeline.delete':     { 
-    title: 'Remover do Fluxo Ativo',         
-    description: 'Capacidade de retirar uma negociação do pipeline sem necessariamente excluir o lead da base.' 
+  'leads.export': {
+    title: 'Exportação de Dados (CSV/XLS)',
+    description: 'Capacidade de extrair dados da base de leads para planilhas externas (Excel/Google Sheets).'
   },
 
-  'finance.view':        { 
-    title: 'Gestão Financeira e Fluxo',       
-    description: 'Visualização completa de entradas, saídas, conciliação bancária, DRE e status de pagamentos.' 
+  'pipeline.view': {
+    title: 'Visualizar Funil de Vendas',
+    description: 'Acesso ao quadro Kanban do Pipeline, permitindo acompanhar o fluxo de negociações em tempo real.'
   },
-  'finance.create':      { 
-    title: 'Lançar Transações',            
-    description: 'Permite registrar novas receitas, despesas manuais e programar pagamentos futuros no sistema.' 
+  'pipeline.edit': {
+    title: 'Gestão de Oportunidades',
+    description: 'Permite movimentar leads entre etapas, atualizar valores de negociação e definir motivos de perda/ganho.'
   },
-  'finance.edit':        { 
-    title: 'Modificar Lançamentos',           
-    description: 'Capacidade de alterar valores, datas de vencimento, categorias e anexos de transações financeiras.' 
-  },
-  'finance.delete':      { 
-    title: 'Estornar/Remover Lançamentos',          
-    description: 'Permissão para excluir registros financeiros do histórico. Requer cautela por afetar o saldo consolidado.' 
-  },
-  'finance.export':      { 
-    title: 'Extrair Relatórios Financeiros',          
-    description: 'Geração de relatórios detalhados em PDF ou Excel para auditoria e contabilidade.' 
+  'pipeline.delete': {
+    title: 'Remover do Fluxo Ativo',
+    description: 'Capacidade de retirar uma negociação do pipeline sem necessariamente excluir o lead da base.'
   },
 
-  'contracts.view':      { 
-    title: 'Visualizar Repositório de Contratos',        
-    description: 'Acesso à lista de documentos contratuais, termos de aceite e histórico de assinaturas.' 
+  'finance.view': {
+    title: 'Gestão Financeira e Fluxo',
+    description: 'Visualização completa de entradas, saídas, conciliação bancária, DRE e status de pagamentos.'
   },
-  'contracts.create':    { 
-    title: 'Gerar Novos Documentos',             
-    description: 'Permite utilizar templates para gerar novos contratos, aditivos e termos personalizados.' 
+  'finance.create': {
+    title: 'Lançar Transações',
+    description: 'Permite registrar novas receitas, despesas manuais e programar pagamentos futuros no sistema.'
   },
-  'contracts.edit':      { 
-    title: 'Revisar Clausulados',            
-    description: 'Capacidade de editar o conteúdo de minutas contratuais e ajustar termos específicos antes do envio.' 
+  'finance.edit': {
+    title: 'Modificar Lançamentos',
+    description: 'Capacidade de alterar valores, datas de vencimento, categorias e anexos de transações financeiras.'
   },
-  'contracts.delete':    { 
-    title: 'Excluir Documentos Selados',           
-    description: 'Remoção de registros de contratos do sistema (pode afetar o histórico jurídico do cliente).' 
+  'finance.delete': {
+    title: 'Estornar/Remover Lançamentos',
+    description: 'Permissão para excluir registros financeiros do histórico. Requer cautela por afetar o saldo consolidado.'
   },
-
-  'products.view':       { 
-    title: 'Consultar Catálogo',         
-    description: 'Visualização de produtos, serviços, tabelas de preços, estoque e especificações técnicas.' 
-  },
-  'products.create':     { 
-    title: 'Cadastrar Novos Itens',              
-    description: 'Permite adicionar novos produtos ou pacotes de serviços ao catálogo comercial.' 
-  },
-  'products.edit':       { 
-    title: 'Gerenciar Preços e Estoque',             
-    description: 'Capacidade de atualizar valores de venda, custos, níveis de estoque e descrições técnicas.' 
-  },
-  'products.delete':     { 
-    title: 'Remover Itens do Portfólio',            
-    description: 'Permite desativar ou excluir permanentemente produtos que não serão mais comercializados.' 
+  'finance.export': {
+    title: 'Extrair Relatórios Financeiros',
+    description: 'Geração de relatórios detalhados em PDF ou Excel para auditoria e contabilidade.'
   },
 
-  'turmas.view':         { 
-    title: 'Visualizar Quadro Acadêmico',           
-    description: 'Acesso à agenda de turmas, lista de alunos matriculados, presença e status de execução.' 
+  'contracts.view': {
+    title: 'Visualizar Repositório de Contratos',
+    description: 'Acesso à lista de documentos contratuais, termos de aceite e histórico de assinaturas.'
   },
-  'turmas.create':       { 
-    title: 'Abertura de Novas Turmas',                
-    description: 'Permite planejar e abrir novos calendários de treinamento, definindo metas e instrutores.' 
+  'contracts.create': {
+    title: 'Gerar Novos Documentos',
+    description: 'Permite utilizar templates para gerar novos contratos, aditivos e termos personalizados.'
   },
-  'turmas.edit':         { 
-    title: 'Gestão de Alocação e Status',               
-    description: 'Capacidade de matricular alunos, realizar check-in, alterar datas e atualizar status de conclusão.' 
+  'contracts.edit': {
+    title: 'Revisar Clausulados',
+    description: 'Capacidade de editar o conteúdo de minutas contratuais e ajustar termos específicos antes do envio.'
   },
-  'turmas.delete':       { 
-    title: 'Cancelar/Remover Turmas',              
-    description: 'Permissão para cancelar turmas abertas ou remover registros do histórico acadêmico.' 
-  },
-
-  'tasks.view':          { 
-    title: 'Monitorar Atividades e CRM',          
-    description: 'Visualização de agendas, compromissos, lembretes de acompanhamento e tarefas pendentes.' 
-  },
-  'tasks.create':        { 
-    title: 'Delegar e Criar Tarefas',               
-    description: 'Permite criar novas tarefas para si ou delegar atividades para outros membros da equipe.' 
-  },
-  'tasks.edit':          { 
-    title: 'Gerenciar Prazos e Execução',              
-    description: 'Capacidade de alterar datas de entrega, responsáveis, prioridades e descrições de tarefas.' 
-  },
-  'tasks.delete':        { 
-    title: 'Limpar Histórico de Atividades',             
-    description: 'Permissão para remover tarefas e registros de atividades do log do sistema.' 
+  'contracts.delete': {
+    title: 'Excluir Documentos Selados',
+    description: 'Remoção de registros de contratos do sistema (pode afetar o histórico jurídico do cliente).'
   },
 
-  'notes.view':          { 
-    title: 'Consultar Notas de CRM',        
-    description: 'Leitura de anotações internas, observações de vendas e feedbacks registrados nos perfis.' 
+  'products.view': {
+    title: 'Consultar Catálogo',
+    description: 'Visualização de produtos, serviços, tabelas de preços, estoque e especificações técnicas.'
   },
-  'notes.create':        { 
-    title: 'Registrar Novas Notas',             
-    description: 'Capacidade de adicionar observações e registros importantes sobre leads e negociações.' 
+  'products.create': {
+    title: 'Cadastrar Novos Itens',
+    description: 'Permite adicionar novos produtos ou pacotes de serviços ao catálogo comercial.'
   },
-  'notes.edit':          { 
-    title: 'Editar Histórico Interno',            
-    description: 'Permite retificar ou complementar informações registradas em anotações anteriores.' 
+  'products.edit': {
+    title: 'Gerenciar Preços e Estoque',
+    description: 'Capacidade de atualizar valores de venda, custos, níveis de estoque e descrições técnicas.'
   },
-  'notes.delete':        { 
-    title: 'Apagar Registros de Nota',           
-    description: 'Remoção permanente de anotações internas (afeta a rastreabilidade do histórico de vendas).' 
-  },
-
-  'marketing.view':      { 
-    title: 'Análise de Campanhas',        
-    description: 'Visualização de métricas de marketing, fontes de leads e desempenho de campanhas ativas.' 
-  },
-  'marketing.create':    { 
-    title: 'Lançar Iniciativas',             
-    description: 'Permite configurar novas fontes de leads, URLs parametrizadas e automações de entrada.' 
-  },
-  'marketing.manage':    { 
-    title: 'Gestão de Growth',         
-    description: 'Capacidade total para gerenciar orçamentos de campanhas, canais de aquisição e ferramentas de marketing.' 
+  'products.delete': {
+    title: 'Remover Itens do Portfólio',
+    description: 'Permite desativar ou excluir permanentemente produtos que não serão mais comercializados.'
   },
 
-  'users.view':          { 
-    title: 'Consultar Diretório de Equipe',         
-    description: 'Visualização da lista de colaboradores, cargos, squads e informações de contato interno.' 
+  'turmas.view': {
+    title: 'Visualizar Quadro Acadêmico',
+    description: 'Acesso à agenda de turmas, lista de alunos matriculados, presença e status de execução.'
   },
-  'users.manage':        { 
-    title: 'Administração de Usuários',          
-    description: 'Gestão completa: criar novos acessos, redefinir senhas, desativar contas e gerenciar cargos.' 
+  'turmas.create': {
+    title: 'Abertura de Novas Turmas',
+    description: 'Permite planejar e abrir novos calendários de treinamento, definindo metas e instrutores.'
   },
-  'settings.view':       { 
-    title: 'Acessar Painel de Controle',    
-    description: 'Permite visualizar as configurações globais do sistema, integrações e parâmetros operacionais.' 
+  'turmas.edit': {
+    title: 'Gestão de Alocação e Status',
+    description: 'Capacidade de matricular alunos, realizar check-in, alterar datas e atualizar status de conclusão.'
   },
-  'settings.manage':     { 
-    title: 'Configuração Estrutural',     
-    description: 'Permissão avançada para alterar regras de negócio, integrações de API e preferências globais.' 
+  'turmas.delete': {
+    title: 'Cancelar/Remover Turmas',
+    description: 'Permissão para cancelar turmas abertas ou remover registros do histórico acadêmico.'
   },
 
-  'admin.all':           { 
-    title: 'Controle Total do Ecossistema',        
-    description: 'Acesso irrestrito e absoluto. Permite ignorar qualquer trava de segurança e gerenciar todas as permissões.' 
+  'tasks.view': {
+    title: 'Monitorar Atividades e CRM',
+    description: 'Visualização de agendas, compromissos, lembretes de acompanhamento e tarefas pendentes.'
+  },
+  'tasks.create': {
+    title: 'Delegar e Criar Tarefas',
+    description: 'Permite criar novas tarefas para si ou delegar atividades para outros membros da equipe.'
+  },
+  'tasks.edit': {
+    title: 'Gerenciar Prazos e Execução',
+    description: 'Capacidade de alterar datas de entrega, responsáveis, prioridades e descrições de tarefas.'
+  },
+  'tasks.delete': {
+    title: 'Limpar Histórico de Atividades',
+    description: 'Permissão para remover tarefas e registros de atividades do log do sistema.'
+  },
+
+  'notes.view': {
+    title: 'Consultar Notas de CRM',
+    description: 'Leitura de anotações internas, observações de vendas e feedbacks registrados nos perfis.'
+  },
+  'notes.create': {
+    title: 'Registrar Novas Notas',
+    description: 'Capacidade de adicionar observações e registros importantes sobre leads e negociações.'
+  },
+  'notes.edit': {
+    title: 'Editar Histórico Interno',
+    description: 'Permite retificar ou complementar informações registradas em anotações anteriores.'
+  },
+  'notes.delete': {
+    title: 'Apagar Registros de Nota',
+    description: 'Remoção permanente de anotações internas (afeta a rastreabilidade do histórico de vendas).'
+  },
+
+  'marketing.view': {
+    title: 'Análise de Campanhas',
+    description: 'Visualização de métricas de marketing, fontes de leads e desempenho de campanhas ativas.'
+  },
+  'marketing.create': {
+    title: 'Lançar Iniciativas',
+    description: 'Permite configurar novas fontes de leads, URLs parametrizadas e automações de entrada.'
+  },
+  'marketing.manage': {
+    title: 'Gestão de Growth',
+    description: 'Capacidade total para gerenciar orçamentos de campanhas, canais de aquisição e ferramentas de marketing.'
+  },
+
+  'users.view': {
+    title: 'Consultar Diretório de Equipe',
+    description: 'Visualização da lista de colaboradores, cargos, squads e informações de contato interno.'
+  },
+  'users.manage': {
+    title: 'Administração de Usuários',
+    description: 'Gestão completa: criar novos acessos, redefinir senhas, desativar contas e gerenciar cargos.'
+  },
+  'settings.view': {
+    title: 'Acessar Painel de Controle',
+    description: 'Permite visualizar as configurações globais do sistema, integrações e parâmetros operacionais.'
+  },
+  'settings.manage': {
+    title: 'Configuração Estrutural',
+    description: 'Permissão avançada para alterar regras de negócio, integrações de API e preferências globais.'
+  },
+
+  'admin.all': {
+    title: 'Controle Total do Ecossistema',
+    description: 'Acesso irrestrito e absoluto. Permite ignorar qualquer trava de segurança e gerenciar todas as permissões.'
   },
 };
 
@@ -333,7 +334,7 @@ export function Permissions() {
             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Cargos Definidos</h3>
             <span className="text-[10px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">{cargos.length}</span>
           </div>
-          
+
           <div className="space-y-2 max-h-[calc(100vh-250px)] overflow-y-auto pr-2 custom-scrollbar">
             {cargos.map((cargo) => {
               const isAdmin = cargo.permissions?.includes('admin.all');
@@ -352,7 +353,7 @@ export function Permissions() {
                   {isSelected && (
                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500" />
                   )}
-                  
+
                   <div className={cn(
                     'w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-300',
                     isSelected
@@ -384,7 +385,7 @@ export function Permissions() {
                       )}
                     </div>
                   </div>
-                  
+
                   <ChevronRight className={cn(
                     'w-4 h-4 transition-transform duration-300',
                     isSelected ? 'text-emerald-500 translate-x-1' : 'text-slate-300 opacity-0 group-hover:opacity-100'
@@ -406,7 +407,7 @@ export function Permissions() {
               <div className="absolute top-0 right-0 p-8 opacity-10">
                 <Shield size={120} className="text-white" />
               </div>
-              
+
               <div className="flex items-center gap-5 relative z-10">
                 <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center shadow-2xl border border-white/20">
                   <Lock className="w-8 h-8 text-white" />
@@ -436,8 +437,8 @@ export function Permissions() {
                 // Filter by search
                 const perms = rawPerms.filter(p => {
                   const label = getLabel(p);
-                  return label.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         label.description.toLowerCase().includes(searchTerm.toLowerCase());
+                  return label.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    label.description.toLowerCase().includes(searchTerm.toLowerCase());
                 });
 
                 if (perms.length === 0) return null;
@@ -457,7 +458,7 @@ export function Permissions() {
                         <span className="w-1.5 h-1.5 rounded-full bg-slate-200" />
                         <span className="text-xs font-bold text-slate-400">{perms.length} opções</span>
                       </div>
-                      
+
                       {!isAdminCargo && category !== 'admin' && (
                         <button
                           onClick={async () => {
@@ -491,8 +492,8 @@ export function Permissions() {
                             key={permission}
                             className={cn(
                               'p-5 rounded-3xl border transition-all flex items-start gap-4 group/item',
-                              isEnabled 
-                                ? 'bg-white border-emerald-200 shadow-lg shadow-emerald-500/5 ring-1 ring-emerald-50' 
+                              isEnabled
+                                ? 'bg-white border-emerald-200 shadow-lg shadow-emerald-500/5 ring-1 ring-emerald-50'
                                 : 'bg-slate-50/50 border-slate-100 opacity-60 grayscale hover:grayscale-0 hover:opacity-100'
                             )}
                           >
@@ -526,23 +527,23 @@ export function Permissions() {
                   </div>
                 );
               })}
-              
+
               {/* Empty state for search */}
-              {searchTerm && sortedCategories.every(cat => 
+              {searchTerm && sortedCategories.every(cat =>
                 !groupedPermissions[cat].some(p => {
                   const l = getLabel(p);
-                  return l.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         l.description.toLowerCase().includes(searchTerm.toLowerCase());
+                  return l.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    l.description.toLowerCase().includes(searchTerm.toLowerCase());
                 })
               ) && (
-                <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4">
-                    <Search className="w-8 h-8 text-slate-300" />
+                  <div className="flex flex-col items-center justify-center py-20 text-center">
+                    <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                      <Search className="w-8 h-8 text-slate-300" />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-800">Nenhuma permissão encontrada</h3>
+                    <p className="text-sm text-slate-500 mt-1">Tente buscar por termos diferentes ou navegue pelas categorias.</p>
                   </div>
-                  <h3 className="text-lg font-bold text-slate-800">Nenhuma permissão encontrada</h3>
-                  <p className="text-sm text-slate-500 mt-1">Tente buscar por termos diferentes ou navegue pelas categorias.</p>
-                </div>
-              )}
+                )}
             </div>
 
             {/* Admin safety lock */}
@@ -554,7 +555,7 @@ export function Permissions() {
                 <div className="space-y-1">
                   <h4 className="text-sm font-black text-amber-900 uppercase tracking-widest">Proteção de Sistema Ativada</h4>
                   <p className="text-xs text-amber-800/70 font-medium leading-relaxed">
-                    Este perfil possui o privilégio <code className="bg-amber-100 px-1.5 py-0.5 rounded font-bold">admin.all</code>. 
+                    Este perfil possui o privilégio <code className="bg-amber-100 px-1.5 py-0.5 rounded font-bold">admin.all</code>.
                     Por segurança, permissões individuais de administradores não podem ser alteradas para evitar que você perca o acesso ao próprio sistema.
                   </p>
                 </div>
