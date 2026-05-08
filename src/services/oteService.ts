@@ -61,6 +61,27 @@ export const oteService = {
   },
 
   /**
+   * Verifica se um usuário possui vendas/matrículas registradas.
+   * Usado para impedir exclusão de perfis com histórico.
+   */
+  async hasUserSales(userId: string): Promise<boolean> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return false;
+
+    const { count, error } = await supabase
+      .from('lead_class_enrollments')
+      .select('*', { count: 'exact', head: true })
+      .eq('responsible', userId);
+
+    if (error) {
+      console.error('[oteService] Error checking user sales:', error);
+      return false;
+    }
+
+    return (count || 0) > 0;
+  },
+
+  /**
    * CÁLCULO INICIAL DO PERÍODO:
    * Varre todos os user_compensation_profiles ativos e cria/atualiza
    * commission_results para cada um, usando as transações históricas.
@@ -332,7 +353,7 @@ export const oteService = {
     }).filter(Boolean) as string[];
 
     // Include manager's own name in the revenue attribution (manager can also sell)
-    const allNames = [...new Set([...memberNames, ...(managerName ? [managerName] : [])])];
+    const allNames = Array.from(new Set([...memberNames, ...(managerName ? [managerName] : [])]));
 
     const matchesName = (name: string) => {
       if (!name || !allNames.length) return false;
@@ -430,7 +451,7 @@ export const oteService = {
 
     // Busca nomes na tabela perfis (FK aponta para auth.users, não perfis — join manual)
     const allProfiles = await profileService.getProfiles();
-    const userIds = [...new Set(data.map((r: any) => r.user_id))];
+    const userIds = Array.from(new Set(data.map((r: any) => r.user_id)));
     
     // Busca squads em paralelo
     const membersRes = await supabase.from('squad_members').select('user_id, squad_id').in('user_id', userIds).eq('active', true);
@@ -455,7 +476,7 @@ export const oteService = {
     // Busca nomes de squads (combina IDs da tabela de resultados + IDs vindos dos perfis)
     const resultSquadIds = data.map((r: any) => r.squad_id).filter(Boolean);
     const profileSquadIds = Object.values(userProfileSquadMap);
-    const allSquadIds = [...new Set([...resultSquadIds, ...profileSquadIds])];
+    const allSquadIds = Array.from(new Set([...resultSquadIds, ...profileSquadIds]));
 
     const { data: squadsData } = await supabase
       .from('squads')

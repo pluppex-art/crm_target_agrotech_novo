@@ -300,13 +300,13 @@ export const transactionService = {
       return (updated >= startDate || created >= startDate) && (updated <= endDate + 'T23:59:59');
     });
 
-    const enrollLeadIds = [...new Set((enrollmentsInPeriod.data || [])
+    const enrollLeadIds = Array.from(new Set((enrollmentsInPeriod.data || [])
       .filter((e: any) => {
         const isFin = Number(e.valor_recebido) > 0 || Number(e.taxa_matricula_recebido) > 0 || e.pix_completed === true;
         const inPeriod = (e.enrolled_at >= startDate + 'T00:00:00' || e.updated_at >= startDate + 'T00:00:00') && e.updated_at <= endDate + 'T23:59:59';
         return isFin && inPeriod;
       })
-      .map((e: any) => e.lead_id).filter(Boolean))];
+      .map((e: any) => e.lead_id).filter(Boolean)));
 
     let byEnrollmentLeads: any[] = [];
     if (enrollLeadIds.length > 0) {

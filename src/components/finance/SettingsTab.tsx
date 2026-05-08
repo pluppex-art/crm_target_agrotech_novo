@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Settings, Loader2, ToggleLeft, ToggleRight, Plus, X, Save, Percent, DollarSign, Users2, Pencil, Pause, Play, Trash2 } from 'lucide-react';
+import { Settings, Loader2, ToggleLeft, ToggleRight, Plus, X, Save, Percent, DollarSign, Users2, Pencil, Pause, Play, Trash2, Upload, Image as ImageIcon, FileText } from 'lucide-react';
+import { getSupabaseClient } from '../../lib/supabase';
 import { financialRulesService } from '../../services/financialRulesService';
 import { commissionRulesService } from '../../services/commissionRulesService';
 import { PartnerRule, FinancialFeeRule, FinancialCategory, UserCompensationProfile, RoleType, CommissionRule } from '../../types/finance_v2';
@@ -437,6 +438,34 @@ function SquadsSection() {
 
   useEffect(() => { load(); }, [load]);
 
+  const handleFileUpload = async (file: File, isEdit = false) => {
+    const supabase = getSupabaseClient();
+    if (!supabase) return;
+    
+    setIsSaving(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `squads/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('lead-files')
+        .upload(path, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from('lead-files').getPublicUrl(path);
+      if (isEdit) {
+        setEditForm(v => ({ ...v, logo_url: data.publicUrl }));
+      } else {
+        setNewSquadLogo(data.publicUrl);
+      }
+    } catch (err: any) {
+      alert('Erro ao fazer upload: ' + err.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const loadMembers = async (squadId: string) => {
     setIsMembersLoading(true);
     try {
@@ -551,10 +580,32 @@ function SquadsSection() {
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase">URL do Logo (Opcional)</label>
-              <input value={newSquadLogo} onChange={e => setNewSquadLogo(e.target.value)}
-                placeholder="https://..."
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500/20" />
+              <label className="text-[10px] font-bold text-slate-500 uppercase">Logo do Squad</label>
+              <div className="flex items-center gap-3">
+                {newSquadLogo ? (
+                  <div className="relative w-10 h-10 rounded-lg border border-slate-200 overflow-hidden bg-slate-50 group">
+                    <img src={newSquadLogo} alt="Preview" className="w-full h-full object-cover" />
+                    <button type="button" onClick={() => setNewSquadLogo('')}
+                      className="absolute inset-0 bg-rose-500/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="w-10 h-10 rounded-lg border-2 border-dashed border-slate-200 flex items-center justify-center text-slate-400 hover:border-indigo-400 hover:text-indigo-500 cursor-pointer transition-colors">
+                    <Upload size={16} />
+                    <input type="file" accept="image/*" className="hidden" 
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (file) handleFileUpload(file, false);
+                      }} />
+                  </label>
+                )}
+                <div className="flex-1">
+                  <p className="text-[10px] text-slate-400 leading-tight">
+                    {newSquadLogo ? 'Clique no "X" para remover' : 'Selecione um arquivo de imagem para o logo.'}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
           <div className="flex justify-end">
@@ -600,8 +651,27 @@ function SquadsSection() {
                           <input value={editForm.color} onChange={e => setEditForm(v => ({ ...v, color: e.target.value }))}
                             className="flex-1 px-2 py-1 text-xs border border-indigo-200 rounded outline-none" />
                         </div>
-                        <input value={editForm.logo_url} onChange={e => setEditForm(v => ({ ...v, logo_url: e.target.value }))}
-                          className="px-2 py-1 text-xs border border-indigo-200 rounded outline-none" placeholder="URL Logo" />
+                        <div className="col-span-2 flex items-center gap-2 mt-1">
+                          {editForm.logo_url ? (
+                            <div className="relative w-8 h-8 rounded border border-indigo-200 overflow-hidden group">
+                              <img src={editForm.logo_url} alt="logo" className="w-full h-full object-cover" />
+                              <button type="button" onClick={() => setEditForm(v => ({ ...v, logo_url: '' }))}
+                                className="absolute inset-0 bg-rose-500/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                <X size={10} />
+                              </button>
+                            </div>
+                          ) : (
+                            <label className="w-8 h-8 rounded border-2 border-dashed border-indigo-200 flex items-center justify-center text-indigo-400 hover:bg-indigo-50 cursor-pointer transition-colors">
+                              <Upload size={12} />
+                              <input type="file" accept="image/*" className="hidden" 
+                                onChange={e => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handleFileUpload(file, true);
+                                }} />
+                            </label>
+                          )}
+                          <span className="text-[10px] text-slate-400 italic">Logo do Squad</span>
+                        </div>
                       </div>
                       <div className="flex justify-end gap-2">
                         <button type="button" onClick={() => setEditingSquadId(null)} className="px-3 py-1 text-xs text-slate-500 font-bold">Cancelar</button>

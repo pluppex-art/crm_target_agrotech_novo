@@ -56,9 +56,6 @@ export type RoleType = 'CLOSER' | 'SDR' | 'MANAGER';
 export type SemaphoreStatus = 'RED' | 'YELLOW' | 'GREEN';
 
 export interface CommissionRule {
-  every(arg0: (r: any) => boolean): unknown;
-  map: any;
-  length: number;
   id: string;
   role_type: RoleType;
   level: string;

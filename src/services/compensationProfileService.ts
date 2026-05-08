@@ -56,7 +56,7 @@ export const compensationProfileService = {
     }
     if (!profiles || profiles.length === 0) return [];
 
-    const userIds = [...new Set(profiles.map((p: any) => p.user_id))];
+    const userIds = Array.from(new Set(profiles.map((p: any) => p.user_id)));
 
     // 2. Buscar nomes e squads em paralelo
     // Usamos profileService.getProfiles() para garantir que pegamos todos os usuários corretamente
