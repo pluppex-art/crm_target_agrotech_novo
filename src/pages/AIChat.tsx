@@ -14,7 +14,7 @@ interface Message {
 
 export function AIChat() {
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'model', content: 'Olá! Sou o assistente de IA da Target Agrotech. Como posso ajudar o time de vendas hoje? Posso criar e-mails, mensagens de WhatsApp ou scripts de vendas personalizados.' }
+    { role: 'model', content: 'Olá! Sou o Assistente de IA de Vendas da Target Agrotech. Como posso ajudar você a vender mais hoje? Posso criar e-mails de prospecção, scripts de fechamento ou mensagens de WhatsApp personalizadas.' }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -46,7 +46,7 @@ export function AIChat() {
           parts: [{ text: m.content }]
         })),
         config: {
-          systemInstruction: "Você é um assistente especializado em vendas para a Target Agrotech, uma empresa de tecnologia agrícola. Ajude o time de vendas a criar mensagens persuasivas, e-mails de prospecção e scripts de fechamento. Seja profissional, prestativo e focado em resultados no agronegócio.",
+          systemInstruction: "Você é o Assistente de IA de Vendas da Target Agrotech. Sua especialidade é criar textos persuasivos para o time comercial: e-mails de prospecção, scripts de vendas para cursos agrícolas, quebra de objeções e mensagens de WhatsApp. Seu tom deve ser entusiasmado, profissional e focado em converter leads em alunos.",
         }
       });
 
@@ -64,12 +64,12 @@ export function AIChat() {
     <div className="flex flex-col h-[calc(100vh-64px)] bg-[#f3f6f9]">
       <div className="p-4 sm:p-6 border-b border-slate-200 bg-white">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-600 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0">
-            <Bot className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-indigo-600 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0">
+            <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </div>
           <div className="min-w-0">
-            <h1 className="text-lg sm:text-xl font-bold text-slate-800 truncate">IA Sales Assistant</h1>
-            <p className="text-[10px] sm:text-xs text-slate-500 truncate">Mensagens e e-mails de alta conversão.</p>
+            <h1 className="text-lg sm:text-xl font-bold text-slate-800 truncate">Assistente de IA de Vendas</h1>
+            <p className="text-[10px] sm:text-xs text-slate-500 truncate">Sua ferramenta para criar abordagens comerciais de alta performance.</p>
           </div>
         </div>
       </div>

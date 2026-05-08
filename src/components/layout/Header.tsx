@@ -25,6 +25,7 @@ import { useProfileStore } from '../../store/useProfileStore';
 import { useNotificationStore } from '../../store/useNotificationStore';
 import { cn, formatRelativeTime } from '../../lib/utils';
 import { LogOut } from 'lucide-react';
+import { AIAgentHeader } from './AIAgentHeader';
 
 type SearchResult = {
   id: string;
@@ -214,6 +215,8 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
       </div>
       
       <div className="flex items-center gap-4">
+        <AIAgentHeader />
+
         <div className="relative" ref={notificationsRef}>
           <button 
             onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
