@@ -33,25 +33,26 @@ export const useLeadTurmas = ({ leadId }: UseLeadTurmasProps) => {
   };
 
   const updateAttendeePayment = async (
-    attendeeId: string, 
-    valor_novo: number, 
+    attendeeId: string,
+    valor_novo: number,
     forma_pagamento: string,
+    paid_at?: string | null,
     isLogOnly: boolean = false
   ) => {
     // 1. Get current data for sum
     const result = await turmaService.getAttendeeHistory(leadId);
     const existingPaid = result.reduce((sum, item) => sum + (Number(item.attendee.valor_recebido) || 0), 0);
-    
+
     // 2. New Total
     const newTotal = existingPaid + valor_novo;
 
-    // 3. Update the specific attendee record (we concatenate payment methods for display)
+    // 3. Update the specific attendee record
     const currentAttendee = result.find(r => r.attendee.id === attendeeId)?.attendee;
     const combinedFormas = [currentAttendee?.forma_pagamento, forma_pagamento]
       .filter(f => f && f.trim() !== '')
       .join(', ');
 
-    await turmaService.updateAttendeePayment(attendeeId, newTotal, combinedFormas);
+    await turmaService.updateAttendeePayment(attendeeId, newTotal, combinedFormas, paid_at);
 
     // 4. Reload local state
     const refreshed = await turmaService.getAttendeeHistory(leadId);
@@ -68,11 +69,21 @@ export const useLeadTurmas = ({ leadId }: UseLeadTurmasProps) => {
     }
   };
 
+  const updateEnrollmentDates = async (
+    enrollmentId: string,
+    dates: { taxa_matricula_paid_at?: string | null; valor_recebido_paid_at?: string | null }
+  ) => {
+    await turmaService.updateEnrollmentDates(enrollmentId, dates);
+    const refreshed = await turmaService.getAttendeeHistory(leadId);
+    setLeadTurmas(refreshed);
+  };
+
   return {
     leadTurmas,
     loadingTurmas,
     loadTurmas,
     updateAttendeePayment,
+    updateEnrollmentDates,
   };
 };
 

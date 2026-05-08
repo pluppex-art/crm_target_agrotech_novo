@@ -56,12 +56,18 @@ export type RoleType = 'CLOSER' | 'SDR' | 'MANAGER';
 export type SemaphoreStatus = 'RED' | 'YELLOW' | 'GREEN';
 
 export interface CommissionRule {
+  every(arg0: (r: any) => boolean): unknown;
+  map: any;
+  length: number;
   id: string;
   role_type: RoleType;
   level: string;
   fixed_amount: number;
   variable_amount: number;
   target_revenue: number;
+  target_quantity?: number;
+  target_sql?: number;
+  bonus_per_enrollment?: number;
   accelerator_amount: number;
   active: boolean;
 }
@@ -71,7 +77,7 @@ export interface CommissionResult {
   user_id: string;
   squad_id: string | null;
   role_type: RoleType;
-  level: string | null;          // snapshot do nível usado no cálculo — fonte: user_compensation_profiles
+  level: string | null;
   period_month: string;
   target_revenue: number;
   realized_revenue: number;
@@ -79,6 +85,10 @@ export interface CommissionResult {
   fixed_amount: number;
   variable_amount: number;
   accelerator_amount: number;
+  bonus_amount?: number;         // SDR Enrollment Bonus
+  special_bonus_amount?: number; // Manager Special Bonuses
+  realized_sql?: number;         // SDR SQLs
+  realized_enrollments?: number; // SDR Enrollments
   total_amount: number;
   semaphore_status: SemaphoreStatus;
   status: 'TO_PAY' | 'PAID' | 'CANCELLED';

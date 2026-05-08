@@ -11,6 +11,8 @@
  */
 
 export interface PartnerReport {
+  period_start: string;
+  period_end: string;
   total_revenue: number;
   target_sales: number;
   pluppex_sales: number;
@@ -19,6 +21,18 @@ export interface PartnerReport {
   pluppex_technology_fee: number;
   target_fee: number;
   pluppex_fee: number;
+  fixed_fee_total: number;
+  variable_fee_total: number;
+  average_commission_per_turma: number;
+  pluppex_percentage: number;
+  target_percentage: number;
+  turma_commissions: Array<{
+    id: string;
+    name: string;
+    revenue: number;
+    commission: number;
+    enrollments: number;
+  }>;
   chartData: Array<{ date: string; target: number; pluppex: number }>;
   _debug?: { txCount: number; leadCount: number };
 }
@@ -83,6 +97,12 @@ export function safePartnerReport(report: PartnerReport | null): PartnerReport {
     pluppex_technology_fee: 0,
     target_fee: 0,
     pluppex_fee: 0,
+    fixed_fee_total: 0,
+    variable_fee_total: 0,
+    average_commission_per_turma: 0,
+    pluppex_percentage: 0,
+    target_percentage: 0,
+    turma_commissions: [],
     chartData: [],
     _debug: { txCount: 0, leadCount: 0 },
   };

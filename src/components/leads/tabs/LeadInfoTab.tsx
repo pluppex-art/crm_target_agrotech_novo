@@ -30,6 +30,7 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = ({
   contractSigned,
   onPixComplete,
   onContractSign,
+  onPaymentProofUploaded,
 }) => {
   const { profiles } = useProfileStore();
 
@@ -72,6 +73,9 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = ({
         const field = fileType === 'payment_proof' ? 'payment_proof_url' : 'contract_url';
         updateFormField({ [field]: url });
         await toggleField?.(field, url);
+        if (fileType === 'payment_proof') {
+          await onPaymentProofUploaded?.();
+        }
       } else {
         alert('Falha ao enviar arquivo. Tente novamente.');
       }

@@ -22,7 +22,7 @@ export const transactionService = {
     // 1. Fetch from financial_transactions (V2)
     let query = supabase
       .from('financial_transactions')
-      .select('*, financial_categories(name), leads(responsible), perfis(name)')
+      .select('*, financial_categories(name), leads(responsible), perfis(name), turmas(name)')
       .order('created_at', { ascending: false });
 
     if (filters) {
@@ -102,14 +102,26 @@ export const transactionService = {
     // We fetch without type/status filters first to categorize them in JS
     const allTransactions = await this.getAll({ startDate, endDate });
 
-    // 2. Fetch Lead Revenue (Pipeline Sales)
-    let enrollmentsQuery = supabase
+    // 2. Fetch Lead Revenue (Pipeline Sales) — split by taxa and valor payment dates
+    let taxaQuery = supabase
       .from('lead_class_enrollments')
-      .select('valor_recebido, taxa_matricula_recebido, enrolled_at')
-      .neq('status', 'CANCELLED');
-    
-    if (startDate) enrollmentsQuery = enrollmentsQuery.gte('enrolled_at', startDate + 'T00:00:00');
-    if (endDate) enrollmentsQuery = enrollmentsQuery.lte('enrolled_at', endDate + 'T23:59:59');
+      .select('taxa_matricula_recebido, taxa_matricula_paid_at')
+      .neq('status', 'CANCELLED')
+      .gt('taxa_matricula_recebido', 0);
+    let valorQuery = supabase
+      .from('lead_class_enrollments')
+      .select('valor_recebido, valor_recebido_paid_at')
+      .neq('status', 'CANCELLED')
+      .gt('valor_recebido', 0);
+
+    if (startDate) {
+      taxaQuery = taxaQuery.gte('taxa_matricula_paid_at', startDate + 'T00:00:00');
+      valorQuery = valorQuery.gte('valor_recebido_paid_at', startDate + 'T00:00:00');
+    }
+    if (endDate) {
+      taxaQuery = taxaQuery.lte('taxa_matricula_paid_at', endDate + 'T23:59:59');
+      valorQuery = valorQuery.lte('valor_recebido_paid_at', endDate + 'T23:59:59');
+    }
 
     // 3. Global Accounts Receivable (Total pending in system)
     const { data: pendingEnrollments } = await supabase
@@ -121,7 +133,7 @@ export const transactionService = {
     // For now, we'll use a simplified version or assume getPaidAmount logic.
     // To keep this method fast, let's focus on realized first.
 
-    const { data: enrollResult } = await enrollmentsQuery;
+    const [{ data: taxaResult }, { data: valorResult }] = await Promise.all([taxaQuery, valorQuery]);
 
     let receita_total = 0;
     let despesa_total = 0;
@@ -140,12 +152,15 @@ export const transactionService = {
       }
     });
 
-    // Add Realized Lead Revenue
-    (enrollResult || []).forEach(e => {
-      receita_total += (Number(e.valor_recebido) || 0) + (Number(e.taxa_matricula_recebido) || 0);
-    });
+    // Add Realized Lead Revenue by payment date
+    (taxaResult || []).forEach((e: any) => { receita_total += Number(e.taxa_matricula_recebido) || 0; });
+    (valorResult || []).forEach((e: any) => { receita_total += Number(e.valor_recebido) || 0; });
 
-    const alunos_ganhos = (enrollResult || []).length;
+    const alunosIds = new Set([
+      ...(taxaResult || []).map((e: any) => e.id).filter(Boolean),
+      ...(valorResult || []).map((e: any) => e.id).filter(Boolean),
+    ]);
+    const alunos_ganhos = alunosIds.size || (taxaResult?.length || 0);
     const lucro_liquido = receita_total - despesa_total;
     const margem_liquida = receita_total > 0 ? (lucro_liquido / receita_total) * 100 : 0;
 
@@ -184,36 +199,64 @@ export const transactionService = {
     }
     const manualTxs = Array.from(manualById.values());
 
-    // 2. Pipeline enrollment transactions with FK disambiguation for turmas
-    let enrollQuery = supabase
+    // 2. Pipeline enrollment transactions split by payment date
+    // Taxa: filtrada por taxa_matricula_paid_at | Valor: filtrada por valor_recebido_paid_at
+    let taxaEnrollQuery = supabase
       .from('lead_class_enrollments')
-      .select('*, leads(id, name, value, product, responsible), turmas!class_id(id, name, date)')
-      .neq('status', 'CANCELLED');
+      .select('id, taxa_matricula_recebido, taxa_matricula_paid_at, enrolled_at, leads(id, name, value, product, responsible), turmas!class_id(id, name, date)')
+      .neq('status', 'CANCELLED')
+      .gt('taxa_matricula_recebido', 0);
+    let valorEnrollQuery = supabase
+      .from('lead_class_enrollments')
+      .select('id, valor_recebido, valor_recebido_paid_at, enrolled_at, leads(id, name, value, product, responsible), turmas!class_id(id, name, date)')
+      .neq('status', 'CANCELLED')
+      .gt('valor_recebido', 0);
 
-    if (startDate) enrollQuery = enrollQuery.gte('enrolled_at', startDate + 'T00:00:00');
-    if (endDate) enrollQuery = enrollQuery.lte('enrolled_at', endDate + 'T23:59:59');
+    if (startDate) {
+      taxaEnrollQuery = taxaEnrollQuery.gte('taxa_matricula_paid_at', startDate + 'T00:00:00');
+      valorEnrollQuery = valorEnrollQuery.gte('valor_recebido_paid_at', startDate + 'T00:00:00');
+    }
+    if (endDate) {
+      taxaEnrollQuery = taxaEnrollQuery.lte('taxa_matricula_paid_at', endDate + 'T23:59:59');
+      valorEnrollQuery = valorEnrollQuery.lte('valor_recebido_paid_at', endDate + 'T23:59:59');
+    }
 
-    const { data: enrollments, error: enrollError } = await enrollQuery;
-    if (enrollError) console.error('[getCashFlowTransactions] enrollment query error:', enrollError);
+    const [{ data: taxaEnrolls, error: taxaErr }, { data: valorEnrolls, error: valorErr }] = await Promise.all([taxaEnrollQuery, valorEnrollQuery]);
+    if (taxaErr) console.error('[getCashFlowTransactions] taxa query error:', taxaErr);
+    if (valorErr) console.error('[getCashFlowTransactions] valor query error:', valorErr);
 
-    const mappedEnrollments = (enrollments || []).map(e => {
-      const realizedAmt = (Number(e.valor_recebido) || 0) + (Number(e.taxa_matricula_recebido) || 0);
-      return {
-        id: e.id,
-        description: `Venda: ${e.leads?.name || 'Lead'} - ${e.leads?.product || 'Produto'}`,
-        amount: realizedAmt,
+    const mappedEnrollments = [
+      ...(taxaEnrolls || []).map((e: any) => ({
+        id: e.id + '_taxa',
+        description: `Taxa Matrícula: ${e.leads?.name || 'Lead'} - ${e.leads?.product || 'Produto'}`,
+        amount: Number(e.taxa_matricula_recebido) || 0,
         type: 'INCOME',
-        status: realizedAmt > 0 ? 'PAID' : 'PENDING',
+        status: 'PAID',
         category_id: 'sales',
-        payment_date: e.enrolled_at,
-        due_date: e.enrolled_at,
-        created_at: e.created_at,
+        payment_date: e.taxa_matricula_paid_at || e.enrolled_at,
+        due_date: e.taxa_matricula_paid_at || e.enrolled_at,
+        created_at: e.enrolled_at,
         origin_type: 'PIPELINE',
         leads: e.leads,
         turmas: e.turmas,
         financial_categories: { name: 'Vendas' }
-      } as any;
-    });
+      } as any)),
+      ...(valorEnrolls || []).map((e: any) => ({
+        id: e.id + '_valor',
+        description: `Venda: ${e.leads?.name || 'Lead'} - ${e.leads?.product || 'Produto'}`,
+        amount: Number(e.valor_recebido) || 0,
+        type: 'INCOME',
+        status: 'PAID',
+        category_id: 'sales',
+        payment_date: e.valor_recebido_paid_at || e.enrolled_at,
+        due_date: e.valor_recebido_paid_at || e.enrolled_at,
+        created_at: e.enrolled_at,
+        origin_type: 'PIPELINE',
+        leads: e.leads,
+        turmas: e.turmas,
+        financial_categories: { name: 'Vendas' }
+      } as any)),
+    ];
 
     return [...manualTxs, ...mappedEnrollments].sort((a, b) =>
       new Date(b.payment_date || b.created_at).getTime() - new Date(a.payment_date || a.created_at).getTime()
@@ -237,25 +280,33 @@ export const transactionService = {
 
     const LEAD_SELECT = 'id, name, status, created_at, updated_at, value, product, responsible';
 
-    // 1. Leads by "Ganho/Fechado/Aprovado" stage in period
+    // 1. Leads by "Ganho/Fechado/Aprovado" stage
     const [byStatus, enrollmentsInPeriod] = await Promise.all([
       supabase
         .from('leads')
         .select(LEAD_SELECT + ', pipeline_stages!inner(name)')
-        .or('pipeline_stages.name.ilike.%Ganho%,pipeline_stages.name.ilike.%Fechado%,pipeline_stages.name.ilike.%Aprovado%')
-        .or(`updated_at.gte.${startDate},created_at.gte.${startDate}`)
-        .lte('updated_at', endDate + 'T23:59:59'),
-      // 2. Leads with financial activity in lead_class_enrollments in period
+        .or('pipeline_stages.name.ilike.%Ganho%,pipeline_stages.name.ilike.%Fechado%,pipeline_stages.name.ilike.%Aprovado%'),
+      // 2. Leads with financial activity in lead_class_enrollments
       supabase
         .from('lead_class_enrollments')
-        .select('lead_id')
+        .select('lead_id, enrolled_at, updated_at, valor_recebido, taxa_matricula_recebido, pix_completed')
         .neq('status', 'CANCELLED')
-        .or(`valor_recebido.gt.0,taxa_matricula_recebido.gt.0,pix_completed.eq.true`)
-        .or(`enrolled_at.gte.${startDate + 'T00:00:00'},updated_at.gte.${startDate + 'T00:00:00'}`)
-        .lte('updated_at', endDate + 'T23:59:59'),
     ]);
 
-    const enrollLeadIds = [...new Set((enrollmentsInPeriod.data || []).map((e: any) => e.lead_id).filter(Boolean))];
+    // Filtragem em JS para evitar erro 400 de múltiplos .or() no PostgREST
+    const filteredLeads = ((byStatus.data || []) as any[]).filter(l => {
+      const updated = l.updated_at || '';
+      const created = l.created_at || '';
+      return (updated >= startDate || created >= startDate) && (updated <= endDate + 'T23:59:59');
+    });
+
+    const enrollLeadIds = [...new Set((enrollmentsInPeriod.data || [])
+      .filter((e: any) => {
+        const isFin = Number(e.valor_recebido) > 0 || Number(e.taxa_matricula_recebido) > 0 || e.pix_completed === true;
+        const inPeriod = (e.enrolled_at >= startDate + 'T00:00:00' || e.updated_at >= startDate + 'T00:00:00') && e.updated_at <= endDate + 'T23:59:59';
+        return isFin && inPeriod;
+      })
+      .map((e: any) => e.lead_id).filter(Boolean))];
 
     let byEnrollmentLeads: any[] = [];
     if (enrollLeadIds.length > 0) {
@@ -266,7 +317,7 @@ export const transactionService = {
     // Deduplicate leads
     const seen = new Set<string>();
     const allLeads: any[] = [];
-    for (const l of [...(byStatus.data || []), ...byEnrollmentLeads]) {
+    for (const l of [...filteredLeads, ...byEnrollmentLeads]) {
       if (!seen.has(l.id)) {
         seen.add(l.id);
         allLeads.push(l);

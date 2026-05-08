@@ -50,7 +50,7 @@ export function SellerSemaphore({ data, currentSellerName, isAdmin, companyReven
     let barColor = '#ef4444';
     if (pct >= 100) { color = 'gold'; barColor = '#eab308'; }
     else if (pct >= 70) { color = 'green'; barColor = '#10b981'; }
-    else if (pct >= 40) { color = 'yellow'; barColor = '#f59e0b'; }
+    else if (pct >= 50) { color = 'yellow'; barColor = '#f59e0b'; }
 
     return {
       label: 'Total da Empresa',
@@ -67,10 +67,10 @@ export function SellerSemaphore({ data, currentSellerName, isAdmin, companyReven
   }, [isAdmin, visibleData, data, companyRevenueGoal, selectedSellerName]);
 
   const statusLabels: Record<string, string> = {
-    red: 'Abaixo da Meta',
-    yellow: 'Em Progresso',
-    green: 'Meta Atingida',
-    gold: 'Superou a Meta!',
+    red: 'Crítico (Abaixo 50%)',
+    yellow: 'Em Risco (50-69%)',
+    green: 'No Alvo (>= 70%)',
+    gold: 'Superou a Meta! (>= 100%)',
   };
 
   const statusConfig: Record<string, { text: string; border: string; bg: string; dot: string }> = {

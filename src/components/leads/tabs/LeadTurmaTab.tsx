@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { GraduationCap, Calendar, Clock, MapPin, Plus, Activity, CheckSquare, ChevronDown, Upload, Eye, FileText, Loader2, X as XIcon, QrCode } from 'lucide-react';
+import { GraduationCap, Calendar, Clock, MapPin, Activity, CheckSquare, ChevronDown, Upload, Eye, FileText, Loader2, X as XIcon, QrCode } from 'lucide-react';
 import { NewActivityModal } from '../../tasks/NewActivityModal';
 import { cn } from '../../../lib/utils';
 import type { TurmaAttendee } from '../../../services/turmaService';
@@ -13,7 +13,8 @@ interface LeadTurmaTabProps {
   leadName?: string;
   valorRecebido?: number | null;
   leadValue?: number;
-  updateAttendeePayment?: (attendeeId: string, valor_recebido: number, forma_pagamento: string) => Promise<void>;
+  updateAttendeePayment?: (attendeeId: string, valor_recebido: number, forma_pagamento: string, paid_at?: string | null) => Promise<void>;
+  updateEnrollmentDates?: (enrollmentId: string, dates: { taxa_matricula_paid_at?: string | null; valor_recebido_paid_at?: string | null }) => Promise<void>;
   onActivityCreated?: () => void;
   formData?: any;
   updateFormField?: (updates: any) => void;
@@ -38,9 +39,8 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
   loadingTurmas,
   leadId,
   leadName,
-  valorRecebido,
-  leadValue,
   updateAttendeePayment,
+  updateEnrollmentDates,
   onActivityCreated,
   formData,
   updateFormField,
@@ -69,6 +69,13 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
       if (url) {
         updateFormField?.({ professor_proof_url: url });
         await toggleField?.('professor_proof_url', url);
+        // Auto-save valor_recebido_paid_at for the first active enrollment
+        const firstEnrollmentId = leadTurmas[0]?.attendee?.id;
+        if (firstEnrollmentId) {
+          await updateEnrollmentDates?.(firstEnrollmentId, {
+            valor_recebido_paid_at: new Date().toISOString(),
+          });
+        }
       } else {
         alert('Falha ao enviar arquivo.');
       }
@@ -87,14 +94,14 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
   };
 
   useEffect(() => {
-    const initial: Record<string, PaymentState> = {};
+    const initialPayments: Record<string, PaymentState> = {};
     leadTurmas.forEach(({ attendee }: { attendee: TurmaAttendee }) => {
-      initial[attendee.id] = {
+      initialPayments[attendee.id] = {
         open: false,
         entries: [{ valor: '', forma: '' }],
       };
     });
-    setPaymentStates(initial);
+    setPaymentStates(initialPayments);
   }, [leadTurmas]);
 
   const getPayment = (attendeeId: string): PaymentState =>
@@ -133,7 +140,7 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
 
     setLoadingSave(attendeeId);
     try {
-      await updateAttendeePayment?.(attendeeId, val, entry.forma);
+      await updateAttendeePayment?.(attendeeId, val, entry.forma, new Date().toISOString());
       updatePaymentState(attendeeId, { open: false, entries: [{ valor: '', forma: '' }] });
     } catch (error) {
       console.error('Error saving payment:', error);
@@ -221,7 +228,6 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
         </div>
       ) : leadTurmas.length > 0 ? (
         leadTurmas.map(({ turma, attendee }: any) => {
-          // Usar dados do attendee como fonte de verdade para os cálculos financeiros
           const payment = getPayment(attendee.id);
           const leadForCalc = {
             ...formData,
@@ -262,7 +268,6 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
               <div className="pt-3 border-t border-slate-100 space-y-2">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Resumo Financeiro</p>
 
-                {/* Pagamento da Turma */}
                 {(attendee.valor_recebido ?? 0) > 0 && (
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-slate-500 flex items-center gap-1">
@@ -275,7 +280,6 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
                   </div>
                 )}
 
-                {/* Taxa de Matrícula */}
                 {(attendee.taxa_matricula_recebido ?? 0) > 0 && (
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-slate-500 flex items-center gap-1">
@@ -288,7 +292,6 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
                   </div>
                 )}
 
-                {/* Total Pago */}
                 <div className="flex items-center justify-between text-xs border-t border-slate-100 pt-1">
                   <span className="font-bold text-slate-600">Total Pago</span>
                   <span className="font-bold text-emerald-700">
@@ -296,7 +299,6 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
                   </span>
                 </div>
 
-                {/* A Receber */}
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-bold text-slate-500">A Receber</span>
                   <span className={cn('font-bold', valorAReceber <= 0 ? 'text-emerald-600' : 'text-orange-600')}>
@@ -308,7 +310,6 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
                   <p className="text-[10px] text-slate-400 italic">Nenhum pagamento registrado nesta turma.</p>
                 )}
               </div>
-
 
               {(valorAReceber ?? 0) > 0 && (
                 <div className="pt-3 border-t border-slate-100 space-y-3">

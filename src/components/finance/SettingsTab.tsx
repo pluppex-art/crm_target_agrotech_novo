@@ -6,6 +6,7 @@ import { PartnerRule, FinancialFeeRule, FinancialCategory, UserCompensationProfi
 import { compensationProfileService, VALID_LEVELS } from '../../services/compensationProfileService';
 import { profileService, UserProfile } from '../../services/profileService';
 import { categoryService } from '../../services/categoryService';
+import { oteService } from '../../services/oteService';
 import { cn } from '../../lib/utils';
 
 type SettingsSection = 'ote' | 'squads' | 'commission' | 'partner' | 'fees';
@@ -142,9 +143,19 @@ function OteProfilesSection() {
   };
 
   const handleDelete = async (p: UserCompensationProfile & { user_name?: string }) => {
-    if (!confirm(`Excluir permanentemente o perfil OTE de "${p.user_name}" (${p.role_type} — ${p.level})?\n\nEsta ação não pode ser desfeita.`)) return;
-    await compensationProfileService.delete(p.id);
-    load();
+    try {
+      const hasSales = await oteService.hasUserSales(p.user_id);
+      if (hasSales) {
+        alert(`Não é possível excluir totalmente o perfil de "${p.user_name}" pois ele já possui histórico de vendas/comissões.\n\nPara remover este colaborador dos cálculos futuros, apenas desative o perfil (ícone de pausa).`);
+        return;
+      }
+
+      if (!confirm(`Excluir permanentemente o perfil OTE de "${p.user_name}" (${p.role_type} — ${p.level})?\n\nEsta ação não pode ser desfeita.`)) return;
+      await compensationProfileService.delete(p.id);
+      load();
+    } catch (err) {
+      console.error('Error deleting profile:', err);
+    }
   };
 
   return (
@@ -700,17 +711,17 @@ function SquadsSection() {
 // ─── Seção: Regras de Parceria ────────────────────────────────────────────────
 function PartnerRulesSection() {
   const [rules, setRules] = useState<PartnerRule[]>([]);
-  const [categories, setCategories] = useState<FinancialCategory[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [editing, setEditing] = useState<PartnerRule | null>(null);
   const [form, setForm] = useState({ origin_type: 'PLUPPEX' as 'TARGET' | 'PLUPPEX', technology_fee_percent: 0, fixed_fee: 0, category_id: '' as string | null, valid_from: new Date().toISOString().split('T')[0], valid_until: '' as string | null, active: true });
 
   const load = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [r, c] = await Promise.all([financialRulesService.getPartnerRules(), categoryService.getAll()]);
-      setRules(r); setCategories(c);
+      const r = await financialRulesService.getPartnerRules();
+      setRules(r);
     } finally { setIsLoading(false); }
   }, []);
 
@@ -729,6 +740,27 @@ function PartnerRulesSection() {
       setShowForm(false);
       load();
     } finally { setIsSaving(false); }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editing) return;
+    setIsSaving(true);
+    try {
+      await financialRulesService.updatePartnerRule(editing.id, {
+        technology_fee_percent: editing.technology_fee_percent,
+        fixed_fee: editing.fixed_fee,
+        valid_from: editing.valid_from,
+        valid_until: editing.valid_until
+      });
+      setEditing(null);
+      await load();
+    } finally { setIsSaving(false); }
+  };
+
+  const handleDelete = async (r: PartnerRule) => {
+    if (!confirm(`Excluir regra de ${r.origin_type}?`)) return;
+    await financialRulesService.deletePartnerRule(r.id);
+    load();
   };
 
   return (
@@ -794,26 +826,77 @@ function PartnerRulesSection() {
                 <th className="px-5 py-4 text-right">Taxa Fixa</th>
                 <th className="px-5 py-4">Vigência</th>
                 <th className="px-5 py-4 text-center">Status</th>
+                <th className="px-5 py-4 text-center">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {rules.map(r => (
-                <tr key={r.id} className="hover:bg-slate-50/60">
-                  <td className="px-5 py-3.5">
-                    <span className={cn('inline-flex px-2.5 py-1 rounded-full text-xs font-bold', r.origin_type === 'TARGET' ? 'bg-blue-100 text-blue-700' : 'bg-violet-100 text-violet-700')}>
-                      {r.origin_type}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3.5 text-right font-bold text-slate-700">{r.technology_fee_percent}%</td>
-                  <td className="px-5 py-3.5 text-right text-slate-600">R$ {r.fixed_fee.toFixed(2)}</td>
-                  <td className="px-5 py-3.5 text-slate-500 text-xs">{new Date(r.valid_from).toLocaleDateString('pt-BR')} → {r.valid_until ? new Date(r.valid_until).toLocaleDateString('pt-BR') : 'Indefinido'}</td>
-                  <td className="px-5 py-3.5 text-center">
-                    <button onClick={() => handleToggle(r)} className={cn('transition-colors', r.active ? 'text-emerald-500 hover:text-emerald-700' : 'text-slate-300 hover:text-slate-500')}>
-                      {r.active ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {rules.map(r => {
+                const isEd = editing?.id === r.id;
+                return (
+                  <tr key={r.id} className="hover:bg-slate-50/60">
+                    <td className="px-5 py-3.5">
+                      <span className={cn('inline-flex px-2.5 py-1 rounded-full text-xs font-bold', r.origin_type === 'TARGET' ? 'bg-blue-100 text-blue-700' : 'bg-violet-100 text-violet-700')}>
+                        {r.origin_type}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3.5 text-right font-bold text-slate-700">
+                      {isEd ? (
+                        <input type="number" step="0.01" value={editing.technology_fee_percent} onChange={e => setEditing(ed => ed && ({ ...ed, technology_fee_percent: parseFloat(e.target.value) || 0 }))}
+                          className="w-20 px-2 py-1 bg-slate-50 border border-indigo-200 rounded text-right outline-none" />
+                      ) : (
+                        `${r.technology_fee_percent}%`
+                      )}
+                    </td>
+                    <td className="px-5 py-3.5 text-right text-slate-600">
+                      {isEd ? (
+                        <input type="number" step="0.01" value={editing.fixed_fee} onChange={e => setEditing(ed => ed && ({ ...ed, fixed_fee: parseFloat(e.target.value) || 0 }))}
+                          className="w-24 px-2 py-1 bg-slate-50 border border-indigo-200 rounded text-right outline-none" />
+                      ) : (
+                        `R$ ${r.fixed_fee.toFixed(2)}`
+                      )}
+                    </td>
+                    <td className="px-5 py-3.5 text-slate-500 text-xs">
+                      {isEd ? (
+                        <div className="flex items-center gap-1">
+                          <input type="date" value={editing.valid_from} onChange={e => setEditing(ed => ed && ({ ...ed, valid_from: e.target.value }))} className="px-1 py-1 bg-slate-50 border border-indigo-200 rounded outline-none" />
+                          <span>→</span>
+                          <input type="date" value={editing.valid_until || ''} onChange={e => setEditing(ed => ed && ({ ...ed, valid_until: e.target.value || null }))} className="px-1 py-1 bg-slate-50 border border-indigo-200 rounded outline-none" />
+                        </div>
+                      ) : (
+                        `${new Date(r.valid_from).toLocaleDateString('pt-BR')} → ${r.valid_until ? new Date(r.valid_until).toLocaleDateString('pt-BR') : 'Indefinido'}`
+                      )}
+                    </td>
+                    <td className="px-5 py-3.5 text-center">
+                      <button onClick={() => handleToggle(r)} className={cn('transition-colors', r.active ? 'text-emerald-500 hover:text-emerald-700' : 'text-slate-300 hover:text-slate-500')}>
+                        {r.active ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
+                      </button>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center justify-center gap-1">
+                        {isEd ? (
+                          <>
+                            <button onClick={handleSaveEdit} disabled={isSaving} className="p-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">
+                              {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                            </button>
+                            <button onClick={() => setEditing(null)} className="p-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200">
+                              <X size={14} />
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button onClick={() => setEditing(r)} className="p-1.5 rounded-lg text-slate-400 hover:bg-indigo-50 hover:text-indigo-600">
+                              <Pencil size={14} />
+                            </button>
+                            <button onClick={() => handleDelete(r)} className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600">
+                              <Trash2 size={14} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
@@ -827,6 +910,7 @@ function FeeRulesSection() {
   const [isLoading, setIsLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [editing, setEditing] = useState<FinancialFeeRule | null>(null);
   const [form, setForm] = useState({ name: '', amount: 0, is_percentage: true, type: 'TAX' as FinancialFeeRule['type'], application_context: 'GROSS_REVENUE' as FinancialFeeRule['application_context'], valid_from: new Date().toISOString().split('T')[0], valid_until: '' as string | null, active: true });
 
   const load = useCallback(async () => {
@@ -850,6 +934,30 @@ function FeeRulesSection() {
       setShowForm(false);
       load();
     } finally { setIsSaving(false); }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editing) return;
+    setIsSaving(true);
+    try {
+      await financialRulesService.updateFeeRule(editing.id, {
+        name: editing.name,
+        amount: editing.amount,
+        is_percentage: editing.is_percentage,
+        type: editing.type,
+        application_context: editing.application_context,
+        valid_from: editing.valid_from,
+        valid_until: editing.valid_until
+      });
+      setEditing(null);
+      await load();
+    } finally { setIsSaving(false); }
+  };
+
+  const handleDelete = async (r: FinancialFeeRule) => {
+    if (!confirm(`Excluir taxa "${r.name}"?`)) return;
+    await financialRulesService.deleteFeeRule(r.id);
+    load();
   };
 
   const typeLabel: Record<string, string> = { TAX: 'Imposto', GATEWAY: 'Gateway', DISCOUNT: 'Desconto', ADMIN_FEE: 'Taxa Adm.', TECHNOLOGY: 'Tecnologia' };
@@ -913,34 +1021,91 @@ function FeeRulesSection() {
         {isLoading ? (
           <div className="flex items-center justify-center h-40"><Loader2 className="w-7 h-7 text-indigo-500 animate-spin" /></div>
         ) : rules.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-40"><Percent className="w-12 h-12 text-slate-200 mb-3" /><p className="text-slate-500 text-sm">Nenhuma taxa cadastrada.</p></div>
+          <div className="flex flex-col items-center justify-center h-40"><Settings className="w-12 h-12 text-slate-200 mb-3" /><p className="text-slate-500 text-sm">Nenhuma taxa cadastrada.</p></div>
         ) : (
           <table className="w-full text-sm text-left">
             <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b">
               <tr>
-                <th className="px-5 py-4">Nome</th>
-                <th className="px-5 py-4">Tipo</th>
+                <th className="px-5 py-4">Nome / Tipo</th>
                 <th className="px-5 py-4 text-right">Valor</th>
                 <th className="px-5 py-4">Aplicação</th>
                 <th className="px-5 py-4 text-center">Status</th>
+                <th className="px-5 py-4 text-center">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {rules.map(r => (
-                <tr key={r.id} className="hover:bg-slate-50/60">
-                  <td className="px-5 py-3.5 font-medium text-slate-800">{r.name}</td>
-                  <td className="px-5 py-3.5"><span className="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-bold">{typeLabel[r.type]}</span></td>
-                  <td className="px-5 py-3.5 text-right font-bold text-slate-700">
-                    {r.is_percentage ? <span className="flex items-center justify-end gap-1"><Percent size={13} />{r.amount}%</span> : <span className="flex items-center justify-end gap-1"><DollarSign size={13} />R$ {r.amount.toFixed(2)}</span>}
-                  </td>
-                  <td className="px-5 py-3.5 text-slate-500 text-xs">{ctxLabel[r.application_context]}</td>
-                  <td className="px-5 py-3.5 text-center">
-                    <button onClick={() => handleToggle(r)} className={cn('transition-colors', r.active ? 'text-emerald-500 hover:text-emerald-700' : 'text-slate-300 hover:text-slate-500')}>
-                      {r.active ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {rules.map(r => {
+                const isEd = editing?.id === r.id;
+                return (
+                  <tr key={r.id} className="hover:bg-slate-50/60">
+                    <td className="px-5 py-3.5">
+                      {isEd ? (
+                        <div className="space-y-1">
+                          <input value={editing.name} onChange={e => setEditing(ed => ed && ({ ...ed, name: e.target.value }))} className="w-full px-2 py-1 bg-slate-50 border border-indigo-200 rounded text-xs outline-none" />
+                          <select value={editing.type} onChange={e => setEditing(ed => ed && ({ ...ed, type: e.target.value as any }))} className="w-full px-2 py-1 bg-slate-50 border border-indigo-200 rounded text-[10px] outline-none">
+                            {Object.entries(typeLabel).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                          </select>
+                        </div>
+                      ) : (
+                        <div>
+                          <p className="font-bold text-slate-700">{r.name}</p>
+                          <p className="text-[10px] text-slate-400 uppercase font-black">{typeLabel[r.type]}</p>
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-5 py-3.5 text-right">
+                      {isEd ? (
+                        <div className="flex flex-col items-end gap-1">
+                          <input type="number" step="0.01" value={editing.amount} onChange={e => setEditing(ed => ed && ({ ...ed, amount: parseFloat(e.target.value) || 0 }))} className="w-20 px-2 py-1 bg-slate-50 border border-indigo-200 rounded text-right text-xs outline-none" />
+                          <select value={editing.is_percentage ? 'pct' : 'fixed'} onChange={e => setEditing(ed => ed && ({ ...ed, is_percentage: e.target.value === 'pct' }))} className="w-20 px-2 py-1 bg-slate-50 border border-indigo-200 rounded text-[10px] outline-none">
+                            <option value="pct">%</option>
+                            <option value="fixed">R$</option>
+                          </select>
+                        </div>
+                      ) : (
+                        <span className="font-bold text-slate-700">{r.is_percentage ? `${r.amount}%` : `R$ ${r.amount.toFixed(2)}`}</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      {isEd ? (
+                        <select value={editing.application_context} onChange={e => setEditing(ed => ed && ({ ...ed, application_context: e.target.value as any }))} className="w-full px-2 py-1 bg-slate-50 border border-indigo-200 rounded text-[10px] outline-none">
+                          {Object.entries(ctxLabel).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                        </select>
+                      ) : (
+                        <span className="text-xs text-slate-500">{ctxLabel[r.application_context]}</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3.5 text-center">
+                      <button onClick={() => handleToggle(r)} className={cn('transition-colors', r.active ? 'text-emerald-500 hover:text-emerald-700' : 'text-slate-300 hover:text-slate-500')}>
+                        {r.active ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
+                      </button>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center justify-center gap-1">
+                        {isEd ? (
+                          <>
+                            <button onClick={handleSaveEdit} disabled={isSaving} className="p-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">
+                              {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                            </button>
+                            <button onClick={() => setEditing(null)} className="p-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200">
+                              <X size={14} />
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button onClick={() => setEditing(r)} className="p-1.5 rounded-lg text-slate-400 hover:bg-indigo-50 hover:text-indigo-600">
+                              <Pencil size={14} />
+                            </button>
+                            <button onClick={() => handleDelete(r)} className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600">
+                              <Trash2 size={14} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}

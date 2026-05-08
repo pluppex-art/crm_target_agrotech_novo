@@ -100,5 +100,19 @@ export const financialRulesService = {
       return null;
     }
     return data as FinancialFeeRule;
+  },
+
+  async deletePartnerRule(id: string): Promise<boolean> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return false;
+    const { error } = await supabase.from('partner_rules').delete().eq('id', id);
+    return !error;
+  },
+
+  async deleteFeeRule(id: string): Promise<boolean> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return false;
+    const { error } = await supabase.from('financial_fee_rules').delete().eq('id', id);
+    return !error;
   }
 };

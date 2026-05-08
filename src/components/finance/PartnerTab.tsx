@@ -100,7 +100,6 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
         
         <div className="flex items-center gap-3">
           <div className="hidden md:flex items-center gap-2 mr-2">
-            {/* Badge Transações - HIGH VISIBILITY */}
             <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 rounded-lg shadow-sm border border-slate-800">
               <BarChart3 size={12} className="text-indigo-400" />
               <span className="text-[10px] font-black text-white uppercase tracking-wider">
@@ -108,7 +107,6 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
               </span>
             </div>
             
-            {/* Badge Leads Ganhos - HIGH VISIBILITY */}
             <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-600 rounded-lg shadow-sm border border-emerald-500">
               <CheckCircle2 size={12} className="text-emerald-100" />
               <span className="text-[10px] font-black text-white uppercase tracking-wider">
@@ -126,14 +124,15 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
         </div>
       </div>
 
-      {/* Grid de Métricas - Compact */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <MetricItem title="Faturamento Bruto" value={safeR.total_revenue} color="green" icon={TrendingUp} sub="Volume Consolidado" />
-        <MetricItem title="Performance Target" value={safeR.target_sales} color="green" icon={Target} sub="Target Squad Sales" />
+      {/* Grid de Métricas - Expanded */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <MetricItem title="Faturamento Bruto" value={safeR.total_revenue} color="slate" icon={TrendingUp} sub="Volume Consolidado" />
+        <MetricItem title="Fee Fixo Total" value={safeR.fixed_fee_total} color="violet" icon={CreditCard} sub="Taxas Fixas de Operação" />
+        <MetricItem title="Média / Turma" value={safeR.average_commission_per_turma} color="green" icon={BarChart3} sub="Média Comissão por Turma" />
         <MetricItem title="Performance Pluppex" value={safeR.pluppex_sales} color="violet" icon={Rocket} sub="Pluppex Squad Sales" />
       </div>
 
-      {/* Resultados e Margem - Compact */}
+      {/* Resultados e Margem */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="md:col-span-2 p-6 rounded-2xl bg-emerald-600 text-white flex flex-col justify-between shadow-xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-24 -mt-24" />
@@ -173,48 +172,92 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
         </div>
       </div>
 
-      {/* Gráfico e Taxas - Compact */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-3">
-          <div className="flex items-center justify-between mb-4 px-1">
-            <h3 className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Evolução Comparativa</h3>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <span className="text-[9px] font-black text-slate-600 uppercase">Target</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-violet-500" />
-                <span className="text-[9px] font-black text-slate-600 uppercase">Pluppex</span>
+        <div className="lg:col-span-3 space-y-6">
+          {/* Evolução Chart */}
+          <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Evolução Comparativa</h3>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span className="text-[10px] font-bold text-slate-600 uppercase">Target</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-violet-500" />
+                  <span className="text-[10px] font-bold text-slate-600 uppercase">Pluppex</span>
+                </div>
               </div>
             </div>
+            
+            <div className="h-[250px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={safeR.chartData} margin={{ top: 0, right: 0, left: -25, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorTarget" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.05} />
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="colorPluppex" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.05} />
+                      <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#cbd5e1', fontSize: 10, fontWeight: 700 }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#cbd5e1', fontSize: 10, fontWeight: 700 }} />
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', padding: '12px' }}
+                    labelStyle={{ fontWeight: 900, color: '#1e293b', fontSize: '11px', marginBottom: '4px' }}
+                    formatter={(value: number) => [`R$ ${fmt(value)}`, '']}
+                  />
+                  <Area type="monotone" dataKey="target" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorTarget)" />
+                  <Area type="monotone" dataKey="pluppex" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#colorPluppex)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-          
-          <div className="h-[220px] w-full bg-white/50 rounded-2xl p-4 border border-slate-50">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={safeR.chartData} margin={{ top: 0, right: 0, left: -25, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorTarget" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.05} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="colorPluppex" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.05} />
-                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#cbd5e1', fontSize: 9, fontWeight: 700 }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#cbd5e1', fontSize: 9, fontWeight: 700 }} />
-                <Tooltip 
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', padding: '10px' }}
-                  labelStyle={{ fontWeight: 900, color: '#1e293b', fontSize: '10px', marginBottom: '4px' }}
-                  formatter={(value: number) => [`R$ ${fmt(value)}`, '']}
-                />
-                <Area type="monotone" dataKey="target" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorTarget)" />
-                <Area type="monotone" dataKey="pluppex" stroke="#8b5cf6" strokeWidth={2} fillOpacity={1} fill="url(#colorPluppex)" />
-              </AreaChart>
-            </ResponsiveContainer>
+
+          {/* Turmas Table */}
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-slate-50 flex items-center justify-between">
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Performance por Turma</h3>
+              <span className="px-2 py-1 bg-slate-50 text-slate-400 text-[8px] font-black rounded uppercase">
+                {safeR.turma_commissions?.length || 0} Turmas Ativas
+              </span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-slate-50/50">
+                  <tr>
+                    <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Turma</th>
+                    <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest text-center">Matrículas</th>
+                    <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">Faturamento</th>
+                    <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">Comissão Parceria</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {(safeR.turma_commissions || []).map((turma: any) => (
+                    <tr key={turma.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-6 py-4">
+                        <span className="text-sm font-bold text-slate-700">{turma.name}</span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="px-2 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-[10px] font-black">
+                          {turma.enrollments}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <span className="text-sm font-bold text-slate-600 tracking-tight">R$ {fmt(turma.revenue)}</span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <span className="text-sm font-black text-violet-600 tracking-tight">R$ {fmt(turma.commission)}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
@@ -233,6 +276,16 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
           </div>
 
           <div className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm space-y-3">
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Fee Fixo</span>
+                <span className="text-xs font-black text-indigo-500 tracking-tighter">R$ {fmt(safeR.fixed_fee_total || 0)}</span>
+              </div>
+              <div className="h-0.5 w-full bg-slate-50 rounded-full">
+                <div className="h-full bg-indigo-500 w-full rounded-full opacity-30" />
+              </div>
+            </div>
+
             <div>
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Target Fee</span>

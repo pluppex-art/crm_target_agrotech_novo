@@ -20,19 +20,27 @@ export function DashboardTab({ startDate, endDate }: { startDate: string; endDat
       try {
         const supabase = getSupabaseClient();
 
-        const [kpiData, txs, enrollRes] = await Promise.all([
+        const [kpiData, txs, taxaRes, valorRes] = await Promise.all([
           transactionService.getKPIs({ startDate, endDate }),
           transactionService.getAll({ paymentDateStart: startDate, paymentDateEnd: endDate }),
           supabase
             .from('lead_class_enrollments')
-            .select('valor_recebido, taxa_matricula_recebido, enrolled_at')
+            .select('taxa_matricula_recebido, taxa_matricula_paid_at')
             .neq('status', 'CANCELLED')
-            .gte('enrolled_at', startDate + 'T00:00:00')
-            .lte('enrolled_at', endDate + 'T23:59:59'),
+            .gt('taxa_matricula_recebido', 0)
+            .gte('taxa_matricula_paid_at', startDate + 'T00:00:00')
+            .lte('taxa_matricula_paid_at', endDate + 'T23:59:59'),
+          supabase
+            .from('lead_class_enrollments')
+            .select('valor_recebido, valor_recebido_paid_at')
+            .neq('status', 'CANCELLED')
+            .gt('valor_recebido', 0)
+            .gte('valor_recebido_paid_at', startDate + 'T00:00:00')
+            .lte('valor_recebido_paid_at', endDate + 'T23:59:59'),
         ]);
         setKpis(kpiData);
 
-        // Build daily chart data from manual V2 transactions + enrollments
+        // Build daily chart data from manual V2 transactions + enrollments by payment date
         const daily: Record<string, { date: string; income: number; expense: number }> = {};
 
         txs.forEach(t => {
@@ -45,11 +53,19 @@ export function DashboardTab({ startDate, endDate }: { startDate: string; endDat
           }
         });
 
-        // Add pipeline enrollment revenue to chart
-        (enrollRes.data || []).forEach((e: any) => {
-          const date = (e.enrolled_at || '').split('T')[0];
+        (taxaRes.data || []).forEach((e: any) => {
+          const date = (e.taxa_matricula_paid_at || '').split('T')[0];
           if (!date) return;
-          const amt = (Number(e.valor_recebido) || 0) + (Number(e.taxa_matricula_recebido) || 0);
+          const amt = Number(e.taxa_matricula_recebido) || 0;
+          if (amt > 0) {
+            if (!daily[date]) daily[date] = { date, income: 0, expense: 0 };
+            daily[date].income += amt;
+          }
+        });
+        (valorRes.data || []).forEach((e: any) => {
+          const date = (e.valor_recebido_paid_at || '').split('T')[0];
+          if (!date) return;
+          const amt = Number(e.valor_recebido) || 0;
           if (amt > 0) {
             if (!daily[date]) daily[date] = { date, income: 0, expense: 0 };
             daily[date].income += amt;

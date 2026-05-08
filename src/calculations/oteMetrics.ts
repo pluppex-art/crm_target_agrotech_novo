@@ -67,7 +67,7 @@ export function oteStatusColor(result: CommissionResult): {
   bg: string; text: string; border: string;
 } {
   const pct = result.achievement_percent ?? 0;
-  if (pct >= 100) return { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' };
-  if (pct >= 70)  return { bg: 'bg-amber-50',   text: 'text-amber-700',   border: 'border-amber-200' };
+  if (pct >= 70) return { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' };
+  if (pct >= 50) return { bg: 'bg-amber-50',   text: 'text-amber-700',   border: 'border-amber-200' };
   return             { bg: 'bg-rose-50',    text: 'text-rose-700',    border: 'border-rose-200' };
 }

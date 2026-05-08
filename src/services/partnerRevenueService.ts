@@ -10,10 +10,20 @@ export interface PartnerReport {
   pluppex_technology_fee: number;
   target_fee: number;
   pluppex_fee: number;
+  fixed_fee_total: number;
+  variable_fee_total: number;
   target_net_result: number;
   pluppex_percentage: number;
   target_percentage: number;
   net_margin: number;
+  average_commission_per_turma: number;
+  turma_commissions: {
+    id: string;
+    name: string;
+    revenue: number;
+    commission: number;
+    enrollments: number;
+  }[];
   chartData: {
     date: string;
     pluppex: number;
@@ -29,7 +39,7 @@ export const partnerRevenueService = {
   async getPartnerReport(startDate: string, endDate: string): Promise<PartnerReport> {
     const supabase = getSupabaseClient();
 
-    // 1. Fetch active rules with absolute fallbacks
+    // 1. Fetch active rules
     const { data: rules } = await supabase
       ?.from('partner_rules')
       .select('*')
@@ -43,12 +53,18 @@ export const partnerRevenueService = {
     const pluppexFixedFee = Number(pluppexRule?.fixed_fee || 0);
     const targetFixedFee = Number(targetRule?.fixed_fee || 0);
 
-    // 2. Fetch mapping data (squads/members)
-    const [profilesRes, squadsRes, membersRes] = await Promise.all([
+    // 2. Fetch mapping data
+    const [profilesRes, squadsRes, membersRes, turmasRes] = await Promise.all([
       supabase?.from('perfis').select('id, name, department') || { data: [] },
       supabase?.from('squads').select('id, name') || { data: [] },
-      supabase?.from('squad_members').select('user_id, squad_id').eq('active', true) || { data: [] }
+      supabase?.from('squad_members').select('user_id, squad_id').eq('active', true) || { data: [] },
+      supabase?.from('turmas').select('id, name') || { data: [] }
     ]);
+
+    const turmaMap: Record<string, string> = {};
+    (turmasRes.data || []).forEach((t: any) => {
+      turmaMap[t.id] = t.name;
+    });
 
     const squadNameMap: Record<string, string> = {};
     (squadsRes.data || []).forEach((s: any) => {
@@ -76,36 +92,33 @@ export const partnerRevenueService = {
       }
     });
 
-    // 3. Fetch Financial Data (Unified & Filtered by Payment Date)
+    // 3. Fetch Financial Data
     const transactions = await transactionService.getCashFlowTransactions(startDate, endDate);
     
-    // Log para debug
-    console.log(`[PartnerService] Loaded ${transactions.length} transactions for period ${startDate} to ${endDate}`);
-
     // 4. Consolidate Data
     let total_revenue = 0;
     let target_sales = 0;
     let pluppex_sales = 0;
     let target_fee = 0;
     let pluppex_fee = 0;
+    let fixed_fee_total = 0;
+    let variable_fee_total = 0;
     let pluppex_technology_fee = 0;
 
+    const turmaData: Record<string, { revenue: number, commission: number, enrollments: number }> = {};
     const dailyData: Record<string, { pluppex: number, target: number }> = {};
     const formatDate = (d: string) => {
       const date = new Date(d);
       return `${date.getUTCDate().toString().padStart(2, '0')}/${(date.getUTCMonth() + 1).toString().padStart(2, '0')}`;
     };
 
-    // Initialize dailyData
     const start = new Date(startDate);
     const end = new Date(endDate);
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
       dailyData[formatDate(d.toISOString())] = { pluppex: 0, target: 0 };
     }
 
-    // Process Unified Transactions (Manual + Legacy + Pipeline)
     transactions.forEach(tx => {
-      // Use extremely robust logic (checking amount, value, and vendas)
       const amt = Number(tx.amount) || Number((tx as any).value) || Number((tx as any).vendas) || 0;
       const status = (tx.status || '').toUpperCase();
       const type = (tx.type || '').toUpperCase();
@@ -117,7 +130,6 @@ export const partnerRevenueService = {
 
       total_revenue += amt;
       
-      // Determine origin based on responsible or user_id
       const leads = Array.isArray(tx.leads) ? tx.leads[0] : tx.leads;
       const respName = (leads?.responsible || (tx as any).responsible || (tx as any).perfis?.name || '').trim().toLowerCase();
       let origin = 'TARGET';
@@ -129,19 +141,39 @@ export const partnerRevenueService = {
       }
 
       const dateKey = formatDate(tx.payment_date || tx.created_at);
+      let fee = 0;
+      let fixed = 0;
+      let variable = 0;
 
       if (origin === 'PLUPPEX') {
-        const fee = pluppexFixedFee + (amt * pluppexFeePercent);
+        fixed = pluppexFixedFee;
+        variable = amt * pluppexFeePercent;
+        fee = fixed + variable;
         pluppex_sales += amt;
         pluppex_fee += fee;
-        pluppex_technology_fee += fee;
         if (dailyData[dateKey]) dailyData[dateKey].pluppex += amt;
       } else {
-        const fee = targetFixedFee + (amt * targetFeePercent);
+        fixed = targetFixedFee;
+        variable = amt * targetFeePercent;
+        fee = fixed + variable;
         target_sales += amt;
         target_fee += fee;
-        pluppex_technology_fee += fee;
         if (dailyData[dateKey]) dailyData[dateKey].target += amt;
+      }
+
+      fixed_fee_total += fixed;
+      variable_fee_total += variable;
+      pluppex_technology_fee += fee;
+
+      // Turma performance tracking - Enhanced detection
+      const classId = tx.class_id || (tx as any).turma_id || (tx as any).turmas?.id;
+      if (classId) {
+        if (!turmaData[classId]) {
+          turmaData[classId] = { revenue: 0, commission: 0, enrollments: 0 };
+        }
+        turmaData[classId].revenue += amt;
+        turmaData[classId].commission += fee;
+        turmaData[classId].enrollments += 1;
       }
     });
 
@@ -153,8 +185,15 @@ export const partnerRevenueService = {
         return ma !== mb ? Number(ma) - Number(mb) : Number(da) - Number(db);
       });
 
-    const target_net_result = total_revenue - pluppex_technology_fee;
-    const net_margin = total_revenue > 0 ? (target_net_result / total_revenue) * 100 : 0;
+    const turma_commissions = Object.entries(turmaData).map(([id, stats]) => ({
+      id,
+      name: turmaMap[id] || `Turma #${id.substring(0, 4)}`,
+      ...stats
+    })).sort((a, b) => b.revenue - a.revenue);
+
+    const average_commission_per_turma = turma_commissions.length > 0 
+      ? pluppex_technology_fee / turma_commissions.length 
+      : 0;
 
     return {
       period_start: startDate,
@@ -165,10 +204,14 @@ export const partnerRevenueService = {
       pluppex_technology_fee,
       target_fee,
       pluppex_fee,
-      target_net_result,
+      fixed_fee_total,
+      variable_fee_total,
+      target_net_result: total_revenue - pluppex_technology_fee,
       pluppex_percentage: total_revenue > 0 ? (pluppex_sales / total_revenue) * 100 : 0,
       target_percentage: total_revenue > 0 ? (target_sales / total_revenue) * 100 : 0,
-      net_margin,
+      net_margin: total_revenue > 0 ? ((total_revenue - pluppex_technology_fee) / total_revenue) * 100 : 0,
+      average_commission_per_turma,
+      turma_commissions,
       chartData,
       _debug: {
         txCount: transactions.length,

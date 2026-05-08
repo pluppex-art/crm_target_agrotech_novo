@@ -436,6 +436,14 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
                 contractSigned={form.formData.contract_signed}
                 onPixComplete={(v) => form.toggleField('pix_completed', v)}
                 onContractSign={(v) => form.toggleField('contract_signed', v)}
+                onPaymentProofUploaded={async () => {
+                  const enrollmentId = leadTurmas.leadTurmas[0]?.attendee?.id;
+                  if (enrollmentId) {
+                    await leadTurmas.updateEnrollmentDates(enrollmentId, {
+                      taxa_matricula_paid_at: new Date().toISOString(),
+                    });
+                  }
+                }}
               />
             </div>
           )}

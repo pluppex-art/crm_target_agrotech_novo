@@ -52,5 +52,6 @@ export interface LeadInfoTabProps {
   contractSigned?: boolean;
   onPixComplete?: (v: boolean) => void;
   onContractSign?: (v: boolean) => void;
+  onPaymentProofUploaded?: () => Promise<void>;
 }
 

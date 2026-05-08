@@ -12,6 +12,9 @@ export interface TurmaAttendee {
   vendas: number;
   valor_recebido?: number | null;
   forma_pagamento?: string | null;
+  taxa_matricula_recebido?: number | null;
+  taxa_matricula_paid_at?: string | null;
+  valor_recebido_paid_at?: string | null;
 }
 
 export interface Turma {
@@ -45,6 +48,9 @@ function mapEnrollmentToAttendee(e: any): TurmaAttendee {
     vendas: Number(e.vendas) || 0,
     valor_recebido: e.valor_recebido ?? null,
     forma_pagamento: e.forma_pagamento ?? null,
+    taxa_matricula_recebido: e.taxa_matricula_recebido ?? null,
+    taxa_matricula_paid_at: e.taxa_matricula_paid_at ?? null,
+    valor_recebido_paid_at: e.valor_recebido_paid_at ?? null,
   };
 }
 
@@ -322,17 +328,49 @@ export const turmaService = {
     return turmaService.remove(id);
   },
 
-  async updateAttendeePayment(attendeeId: string, valor_recebido: number | null, forma_pagamento: string): Promise<boolean> {
+  async updateAttendeePayment(
+    attendeeId: string,
+    valor_recebido: number | null,
+    forma_pagamento: string,
+    valor_recebido_paid_at?: string | null
+  ): Promise<boolean> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return false;
+
+    const updates: Record<string, any> = {
+      valor_recebido: valor_recebido ?? null,
+      forma_pagamento: forma_pagamento || null,
+    };
+    if (valor_recebido_paid_at !== undefined) {
+      updates.valor_recebido_paid_at = valor_recebido_paid_at || null;
+    }
+
+    const { error } = await supabase
+      .from('lead_class_enrollments')
+      .update(updates)
+      .eq('id', attendeeId);
+
+    if (error) {
+      console.error('Error updating attendee payment:', error);
+      return false;
+    }
+    return true;
+  },
+
+  async updateEnrollmentDates(
+    enrollmentId: string,
+    dates: { taxa_matricula_paid_at?: string | null; valor_recebido_paid_at?: string | null }
+  ): Promise<boolean> {
     const supabase = getSupabaseClient();
     if (!supabase) return false;
 
     const { error } = await supabase
       .from('lead_class_enrollments')
-      .update({ valor_recebido: valor_recebido ?? null, forma_pagamento: forma_pagamento || null })
-      .eq('id', attendeeId);
+      .update(dates)
+      .eq('id', enrollmentId);
 
     if (error) {
-      console.error('Error updating attendee payment:', error);
+      console.error('Error updating enrollment dates:', error);
       return false;
     }
     return true;
