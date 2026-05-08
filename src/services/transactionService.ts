@@ -19,11 +19,11 @@ export const transactionService = {
     const supabase = getSupabaseClient();
     if (!supabase) return [];
 
+    // 1. Fetch from financial_transactions (V2)
     let query = supabase
       .from('financial_transactions')
-      .select('*, financial_categories(name), leads(responsible)')
+      .select('*, financial_categories(name), leads(responsible), perfis(name)')
       .order('created_at', { ascending: false });
-
 
     if (filters) {
       if (filters.startDate) query = query.gte('created_at', filters.startDate);
@@ -33,27 +33,14 @@ export const transactionService = {
       if (filters.type) query = query.eq('type', filters.type);
       if (filters.status) query = query.eq('status', filters.status);
       if (filters.categoryId) query = query.eq('category_id', filters.categoryId);
-
       if (filters.userId) {
-        if (Array.isArray(filters.userId)) {
-          query = query.in('user_id', filters.userId);
-        } else {
-          query = query.eq('user_id', filters.userId);
-        }
+        if (Array.isArray(filters.userId)) query = query.in('user_id', filters.userId);
+        else query = query.eq('user_id', filters.userId);
       }
-      if (filters.classId) query = query.eq('class_id', filters.classId);
-      if (filters.leadId) query = query.eq('lead_id', filters.leadId);
     }
+    const { data: v2Data } = await query.limit(500);
 
-    // Add a safe limit to prevent catastrophic slowness
-    query = query.limit(500);
-
-    const { data, error } = await query;
-    if (error) {
-      console.error('Error fetching financial_transactions:', error);
-      return [];
-    }
-    return data as any;
+    return v2Data || [];
   },
 
   async create(transaction: Omit<FinancialTransaction, 'id' | 'created_at' | 'updated_at'>): Promise<FinancialTransaction | null> {
@@ -108,58 +95,57 @@ export const transactionService = {
     };
     if (!supabase) return empty;
 
-    // Query 1: Transações PAGAS no período — filtradas por payment_date (caixa realizado)
-    let paidQuery = supabase
-      .from('financial_transactions')
-      .select('amount, type')
-      .eq('status', 'PAID');
-    if (filters?.startDate) paidQuery = paidQuery.gte('payment_date', filters.startDate);
-    if (filters?.endDate) paidQuery = paidQuery.lte('payment_date', filters.endDate);
+    const startDate = filters?.startDate;
+    const endDate = filters?.endDate;
 
-    // Query 2: Transações PENDENTES e VENCIDAS — sem filtro de data (tudo em aberto)
-    const pendingQuery = supabase
-      .from('financial_transactions')
-      .select('amount, type')
-      .in('status', ['PENDING', 'OVERDUE']);
+    // 1. Get ALL unified transactions (Manual V2 + Legacy)
+    // We fetch without type/status filters first to categorize them in JS
+    const allTransactions = await this.getAll({ startDate, endDate });
 
-    // Query 3: Alunos ganhos no período — leads fechados (PIPELINE INCOME criados no período)
-    let studentsQuery = supabase
-      .from('financial_transactions')
-      .select('lead_id')
-      .eq('type', 'INCOME')
-      .eq('origin_type', 'PIPELINE')
-      .not('lead_id', 'is', null);
-    if (filters?.startDate) studentsQuery = studentsQuery.gte('created_at', filters.startDate);
-    if (filters?.endDate) studentsQuery = studentsQuery.lte('created_at', filters.endDate + 'T23:59:59');
+    // 2. Fetch Lead Revenue (Pipeline Sales)
+    let enrollmentsQuery = supabase
+      .from('lead_class_enrollments')
+      .select('valor_recebido, taxa_matricula_recebido, enrolled_at')
+      .neq('status', 'CANCELLED');
+    
+    if (startDate) enrollmentsQuery = enrollmentsQuery.gte('enrolled_at', startDate + 'T00:00:00');
+    if (endDate) enrollmentsQuery = enrollmentsQuery.lte('enrolled_at', endDate + 'T23:59:59');
 
-    const [paidResult, pendingResult, studentsResult] = await Promise.all([
-      paidQuery,
-      pendingQuery,
-      studentsQuery,
-    ]);
+    // 3. Global Accounts Receivable (Total pending in system)
+    const { data: pendingEnrollments } = await supabase
+      .from('lead_class_enrollments')
+      .select('valor_recebido, taxa_matricula_recebido, leads(value, product)')
+      .neq('status', 'CANCELLED');
+    
+    // We'll need products to calculate pending amount for courses (since we need to know the price)
+    // For now, we'll use a simplified version or assume getPaidAmount logic.
+    // To keep this method fast, let's focus on realized first.
 
-    if (paidResult.error || pendingResult.error) {
-      console.error('transactionService.getKPIs:', paidResult.error ?? pendingResult.error);
-      return empty;
-    }
+    const { data: enrollResult } = await enrollmentsQuery;
 
     let receita_total = 0;
     let despesa_total = 0;
-    (paidResult.data ?? []).forEach(t => {
-      const amt = Number(t.amount) || 0;
-      if (t.type === 'INCOME') receita_total += amt;
-      if (t.type === 'EXPENSE') despesa_total += amt;
-    });
-
     let contas_receber = 0;
     let contas_pagar = 0;
-    (pendingResult.data ?? []).forEach(t => {
+
+    // Categorize Manual/Legacy Transactions
+    allTransactions.forEach(t => {
       const amt = Number(t.amount) || 0;
-      if (t.type === 'INCOME') contas_receber += amt;
-      if (t.type === 'EXPENSE') contas_pagar += amt;
+      if (t.status === 'PAID') {
+        if (t.type === 'INCOME') receita_total += amt;
+        else despesa_total += amt;
+      } else if (t.status === 'PENDING' || t.status === 'OVERDUE') {
+        if (t.type === 'INCOME') contas_receber += amt;
+        else contas_pagar += amt;
+      }
     });
 
-    const alunos_ganhos = (studentsResult.data ?? []).length;
+    // Add Realized Lead Revenue
+    (enrollResult || []).forEach(e => {
+      receita_total += (Number(e.valor_recebido) || 0) + (Number(e.taxa_matricula_recebido) || 0);
+    });
+
+    const alunos_ganhos = (enrollResult || []).length;
     const lucro_liquido = receita_total - despesa_total;
     const margem_liquida = receita_total > 0 ? (lucro_liquido / receita_total) * 100 : 0;
 
@@ -174,10 +160,9 @@ export const transactionService = {
     };
   },
 
-  // Retorna transações para exibição no Fluxo de Caixa:
-  //   - PAGAS no período (filtradas por payment_date)
-  //   - PENDENTES/VENCIDAS (todas em aberto, sem filtro de data)
-  // Inclui join com leads para exibir nome do aluno nas transações de pipeline.
+  // Retorna transações para exibição no Fluxo de Caixa e cálculo de parceria:
+  //   - Transações V2 pagas no período (por payment_date) + todas pendentes/vencidas
+  //   - Matrículas do pipeline (lead_class_enrollments) filtradas pelo período
   async getCashFlowTransactions(
     startDate?: string,
     endDate?: string
@@ -185,38 +170,54 @@ export const transactionService = {
     const supabase = getSupabaseClient();
     if (!supabase) return [];
 
-    const SELECT = `
-      *,
-      financial_categories(name),
-      leads(id, name, value, product, responsible),
-      turmas(id, name, date)
-    `;
+    // 1. V2 manual transactions paid in period + all pending/overdue
+    const [paidTxs, pendingTxs, overdueTxs] = await Promise.all([
+      this.getAll({ paymentDateStart: startDate, paymentDateEnd: endDate, status: 'PAID' }),
+      this.getAll({ status: 'PENDING' }),
+      this.getAll({ status: 'OVERDUE' }),
+    ]);
 
-
-    // Optimized: Only fetch PAID in the period, and limit PENDING/OVERDUE to a reasonable amount
-    let paidQuery = supabase
-      .from('financial_transactions')
-      .select(SELECT)
-      .eq('status', 'PAID')
-      .order('payment_date', { ascending: false });
-    if (startDate) paidQuery = paidQuery.gte('payment_date', startDate);
-    if (endDate) paidQuery = paidQuery.lte('payment_date', endDate);
-
-    const pendingQuery = supabase
-      .from('financial_transactions')
-      .select(SELECT)
-      .in('status', ['PENDING', 'OVERDUE'])
-      .order('due_date', { ascending: true })
-      .limit(300);
-
-    const [paidResult, pendingResult] = await Promise.all([paidQuery, pendingQuery]);
-
-    if (paidResult.error || pendingResult.error) {
-      console.error('transactionService.getCashFlowTransactions:', paidResult.error ?? pendingResult.error);
-      return [];
+    // Deduplicate (paid query may overlap with pending if dates are loose)
+    const manualById = new Map<string, FinancialTransaction>();
+    for (const t of [...paidTxs, ...pendingTxs, ...overdueTxs]) {
+      if (!manualById.has(t.id)) manualById.set(t.id, t);
     }
+    const manualTxs = Array.from(manualById.values());
 
-    return [...(paidResult.data ?? []), ...(pendingResult.data ?? [])] as any;
+    // 2. Pipeline enrollment transactions with FK disambiguation for turmas
+    let enrollQuery = supabase
+      .from('lead_class_enrollments')
+      .select('*, leads(id, name, value, product, responsible), turmas!class_id(id, name, date)')
+      .neq('status', 'CANCELLED');
+
+    if (startDate) enrollQuery = enrollQuery.gte('enrolled_at', startDate + 'T00:00:00');
+    if (endDate) enrollQuery = enrollQuery.lte('enrolled_at', endDate + 'T23:59:59');
+
+    const { data: enrollments, error: enrollError } = await enrollQuery;
+    if (enrollError) console.error('[getCashFlowTransactions] enrollment query error:', enrollError);
+
+    const mappedEnrollments = (enrollments || []).map(e => {
+      const realizedAmt = (Number(e.valor_recebido) || 0) + (Number(e.taxa_matricula_recebido) || 0);
+      return {
+        id: e.id,
+        description: `Venda: ${e.leads?.name || 'Lead'} - ${e.leads?.product || 'Produto'}`,
+        amount: realizedAmt,
+        type: 'INCOME',
+        status: realizedAmt > 0 ? 'PAID' : 'PENDING',
+        category_id: 'sales',
+        payment_date: e.enrolled_at,
+        due_date: e.enrolled_at,
+        created_at: e.created_at,
+        origin_type: 'PIPELINE',
+        leads: e.leads,
+        turmas: e.turmas,
+        financial_categories: { name: 'Vendas' }
+      } as any;
+    });
+
+    return [...manualTxs, ...mappedEnrollments].sort((a, b) =>
+      new Date(b.payment_date || b.created_at).getTime() - new Date(a.payment_date || a.created_at).getTime()
+    );
   },
 
   // Returns ALL "Ganho" leads in period (for counting + KPI + taxa display).

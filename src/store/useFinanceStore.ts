@@ -62,11 +62,13 @@ export const useFinanceStore = create<FinanceStore>((set, get) => ({
 
   subscribe: () => {
     const supabase = getSupabaseClient();
+    if (!supabase) return () => {};
 
-    const channelId = `finance-${Math.random().toString(36).substring(7)}`;
+    const channelId = `finance-combined-${Math.random().toString(36).substring(7)}`;
     const channel = supabase
       .channel(channelId)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, (payload) => {
+      // Listen to transactions
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'financial_transactions' }, (payload) => {
         const { eventType, new: newRecord, old: oldRecord } = payload;
         set((state) => {
           let updated = [...state.transactions];
@@ -81,6 +83,14 @@ export const useFinanceStore = create<FinanceStore>((set, get) => ({
           }
           return { transactions: updated };
         });
+      })
+      // Listen to enrollments (triggers KPI refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'lead_class_enrollments' }, () => {
+        // When enrollments change, we should ideally refresh KPIs.
+        // Since store doesn't hold KPIs directly (they are fetched in components),
+        // we can just trigger a re-fetch of transactions or let the component handle it via useEffect.
+        // However, some components might rely on this store.
+        get().fetchTransactions();
       })
       .subscribe();
 

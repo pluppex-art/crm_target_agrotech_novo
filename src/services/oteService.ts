@@ -69,88 +69,27 @@ export const oteService = {
   async calculatePeriodFromProfiles(
     periodMonthDate: string
   ): Promise<{ calculated: number; warnings: string[]; totalScanned: number }> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return { calculated: 0, warnings: [], totalScanned: 0 };
+
+    // Delega o cálculo para a função PostgreSQL SECURITY DEFINER (roda no servidor, ignora RLS)
+    const { data, error } = await supabase
+      .rpc('calculate_ote_period', { p_period: periodMonthDate });
+
+    if (error) {
+      console.error('[oteService] calculate_ote_period RPC error:', error);
+      return { calculated: 0, warnings: [`Erro no cálculo server-side: ${error.message}`], totalScanned: 0 };
+    }
+
+    const calculated = (data as any)?.calculated ?? 0;
+
+    // Avisos: verificar perfis CRM sem configuração OTE
     const profiles = await compensationProfileService.getAll();
-
-    // Determina intervalo do período solicitado
-    const periodStart = periodMonthDate; // ex: '2026-04-01'
-    const periodDateObj = new Date(periodMonthDate);
-    const periodEnd = new Date(periodDateObj.getFullYear(), periodDateObj.getMonth() + 1, 0)
-      .toISOString().split('T')[0]; // último dia do mês
-
-    // Filtra perfis ativos — permitimos retroatividade se o perfil estiver marcado como ativo
-    const activeProfiles = profiles.filter(p => {
-      if (!p.active) return false;
-      // Para fins de cálculo histórico (ex: Abril), ignoramos a trava de start_date se o usuário quer ver os dados
-      const endOk = !p.end_date || p.end_date >= periodStart; 
-      return endOk;
-    });
-
-    let calculatedCount = 0;
-    const warnings: string[] = [];
-
-    // Parallelize calculations for better performance
-    const results = await Promise.all(activeProfiles.map(async (profile) => {
-      try {
-        if (profile.role_type?.toUpperCase() === 'CLOSER' || profile.role_type?.toUpperCase() === 'SDR') {
-          const result = await this.calculateAndUpsertSellerCommission(
-            profile.user_id, periodMonthDate, profile.level
-          );
-          if (result) return { success: true };
-          return {
-            success: false,
-            warning: `Não existe uma Regra de Comissão ativa para o cargo CLOSER/SDR no nível "${profile.level}". Cadastre em Configurações → Regras de Comissão.`
-          };
-        } else if (profile.role_type?.toUpperCase() === 'MANAGER') {
-          const supabase = getSupabaseClient();
-          if (!supabase) return { success: false };
-
-          const { data: squads } = await supabase
-            .from('squads')
-            .select('id')
-            .eq('manager_id', profile.user_id)
-            .eq('active', true);
-
-          if (!squads || squads.length === 0) {
-            return {
-              success: false,
-              warning: `Gestor(a) ${profile.user_name || profile.user_id.substring(0, 8)} não está vinculado(a) a nenhum squad ativo como responsável. Configure em Gestão de Squads.`
-            };
-          }
-
-          // Calcula para cada squad gerenciado (o upsert cuida de não duplicar se for o mesmo squad)
-          let calculatedAny = false;
-          for (const s of squads) {
-            const result = await this.calculateAndUpsertManagerCommission(
-              profile.user_id, s.id, periodMonthDate, profile.level
-            );
-            if (result) calculatedAny = true;
-          }
-
-          if (calculatedAny) return { success: true };
-
-          return {
-            success: false,
-            warning: `Não existe uma Regra de Comissão ativa para o cargo MANAGER no nível "${profile.level}". Cadastre em Configurações → Regras de Comissão.`
-          };
-        }
-      } catch (err) {
-        console.error(`Error calculating for profile ${profile.user_id}:`, err);
-        return { success: false, warning: `Erro ao calcular para ${profile.user_name || profile.user_id.substring(0, 8)}.` };
-      }
-      return { success: false };
-    }));
-
-    results.forEach(res => {
-      if (res?.success) calculatedCount++;
-      if (res?.warning) warnings.push(res.warning);
-    });
-
-    // --- BUSCA PROFUNDA: Identificar perfis no CRM (COMERCIAL) que não têm Perfil OTE ---
     const allCrmProfiles = await profileService.getProfiles();
+    const warnings: string[] = [];
     const managerKeywords = ['GESTOR', 'GERENTE', 'DIRETOR', 'COORDENADOR', 'MANAGER', 'LIDER', 'LEAD'];
 
     allCrmProfiles.forEach(p => {
-      // Só processa avisos para quem é do departamento COMERCIAL
       const isComercial = p.department?.toUpperCase() === 'COMERCIAL';
       if (!isComercial) return;
 
@@ -163,7 +102,6 @@ export const oteService = {
           warnings.push(`⚠️ A gestora/gestor comercial ${p.full_name || p.name || p.email} está sem Perfil OTE ativo.`);
         }
       } else {
-        // Para Closers/SDRs comerciais
         const hasOteProfile = profiles.some(op => op.user_id === p.id && (op.role_type?.toUpperCase() === 'CLOSER' || op.role_type?.toUpperCase() === 'SDR'));
         if (!hasOteProfile) {
           warnings.push(`⚠️ O vendedor/comercial ${p.full_name || p.name || p.email} está sem Perfil OTE ativo.`);
@@ -171,7 +109,7 @@ export const oteService = {
       }
     });
 
-    return { calculated: calculatedCount, warnings, totalScanned: activeProfiles.length };
+    return { calculated, warnings, totalScanned: calculated };
   },
 
 
@@ -183,15 +121,15 @@ export const oteService = {
     const supabase = getSupabaseClient();
     if (!supabase) return null;
 
-    // Busca o nome e o squad do usuário na tabela perfis
+    // Busca o nome do usuário na tabela perfis (perfis não tem squad_id — squad vem de squad_members)
     const { data: userData } = await supabase
       .from('perfis')
-      .select('name, squad_id')
+      .select('name')
       .eq('id', userId)
       .single();
-    
+
     const userName = (userData?.name || '').trim().toLowerCase();
-    let squadId = userData?.squad_id;
+    let squadId: string | null = null;
 
     const rule = await this.getCommissionRule('CLOSER', level);
     if (!rule) {
@@ -203,7 +141,7 @@ export const oteService = {
     const dateObj = new Date(periodMonthDate);
     const endDate = new Date(dateObj.getFullYear(), dateObj.getMonth() + 1, 0).toISOString().split('T')[0];
 
-    // Busca todas as transações de ENTRADA PAGAS no período
+    // Busca todas as transações de ENTRADA PAGAS no período (Manuais)
     const txs = await transactionService.getAll({
       paymentDateStart: startDate,
       paymentDateEnd: endDate,
@@ -212,7 +150,7 @@ export const oteService = {
     });
     
     // Filtra transações onde o lead associado é de responsabilidade do vendedor
-    const sellerTxs = txs.filter((t: any) => {
+    const sellerManualTxs = txs.filter((t: any) => {
       const resp = (t.leads?.responsible || '').trim().toLowerCase();
       if (!resp || !userName) return false;
 
@@ -226,7 +164,32 @@ export const oteService = {
       return commonWords.length >= 2;
     });
 
-    const realizedRevenue = sellerTxs.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+    // Busca matrículas do período usando lce.responsible diretamente (evita join ambíguo em leads)
+    const { data: enrollments } = await supabase
+      .from('lead_class_enrollments')
+      .select('valor_recebido, taxa_matricula_recebido, responsible')
+      .neq('status', 'CANCELLED')
+      .gte('enrolled_at', startDate + 'T00:00:00')
+      .lte('enrolled_at', endDate + 'T23:59:59');
+
+    const sellerEnrollments = (enrollments || []).filter((e: any) => {
+      const resp = (e.responsible || '').trim().toLowerCase();
+      if (!resp || !userName) return false;
+      if (resp === userName) return true;
+      if (userName.includes(resp) || resp.includes(userName)) return true;
+
+      const respWords = resp.split(/\s+/).filter((w: string) => w.length > 2);
+      const userWords = userName.split(/\s+/).filter((w: string) => w.length > 2);
+      const commonWords = respWords.filter((rw: string) => userWords.some((uw: string) => uw.includes(rw) || rw.includes(uw)));
+      return commonWords.length >= 2;
+    });
+
+    const manualRevenue = sellerManualTxs.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+    const enrollmentRevenue = sellerEnrollments.reduce((sum, e) => 
+      sum + (Number(e.valor_recebido) || 0) + (Number(e.taxa_matricula_recebido) || 0), 0
+    );
+
+    const realizedRevenue = manualRevenue + enrollmentRevenue;
 
     // Busca a meta (target_revenue) na tabela 'goals' para o vendedor - busca a mais recente até o fim do período
     const { data: goalData } = await supabase
@@ -335,30 +298,59 @@ export const oteService = {
 
     const targetRevenue = companyGoalData ? Number(companyGoalData.revenue_goal) : 0;
     
-    // Busca todas as transações de ENTRADA PAGAS no período
+    // Busca todas as transações de ENTRADA PAGAS no período (Manuais)
     const txs = await transactionService.getAll({
       paymentDateStart: startDate,
       paymentDateEnd: endDate,
       type: 'INCOME',
       status: 'PAID'
     });
-
-    // Busca todos os membros do squad para filtrar as vendas
-    const { data: squadMembers } = await supabase
-      .from('perfis')
-      .select('name')
-      .eq('squad_id', squadId);
     
-    const memberNames = (squadMembers || []).map(m => m.name?.trim().toLowerCase()).filter(Boolean);
+    // Busca matrículas do período usando lce.responsible diretamente
+    const { data: enrollments } = await supabase
+      .from('lead_class_enrollments')
+      .select('valor_recebido, taxa_matricula_recebido, responsible')
+      .neq('status', 'CANCELLED')
+      .gte('enrolled_at', startDate + 'T00:00:00')
+      .lte('enrolled_at', endDate + 'T23:59:59');
 
-    const realizedRevenue = txs.reduce((sum, t) => {
-      const resp = (t.leads?.responsible || '').trim().toLowerCase();
-      // Só soma se o responsável pelo lead for um membro do squad do gestor
-      if (memberNames.includes(resp)) {
-        return sum + (Number(t.amount) || 0);
-      }
-      return sum;
+    // Busca o nome do manager e membros ativos do squad via squad_members
+    const [managerUserData, squadMembersList] = await Promise.all([
+      supabase.from('perfis').select('name').eq('id', userId).single(),
+      supabase
+        .from('squad_members')
+        .select('perfis!squad_members_user_id_fkey(name)')
+        .eq('squad_id', squadId)
+        .eq('active', true)
+    ]);
+
+    const managerName = (managerUserData.data?.name || '').trim().toLowerCase();
+
+    const memberNames = (squadMembersList.data || []).map((m: any) => {
+      const p = Array.isArray(m.perfis) ? m.perfis[0] : m.perfis;
+      return p?.name?.trim().toLowerCase();
+    }).filter(Boolean) as string[];
+
+    // Include manager's own name in the revenue attribution (manager can also sell)
+    const allNames = [...new Set([...memberNames, ...(managerName ? [managerName] : [])])];
+
+    const matchesName = (name: string) => {
+      if (!name || !allNames.length) return false;
+      if (allNames.includes(name)) return true;
+      return allNames.some(n => n.includes(name) || name.includes(n));
+    };
+
+    const manualRevenue = txs.reduce((sum, t) => {
+      const resp = ((t as any).leads?.responsible || (t as any).responsible || '').trim().toLowerCase();
+      return matchesName(resp) ? sum + (Number(t.amount) || 0) : sum;
     }, 0);
+
+    const enrollmentRevenue = (enrollments || []).reduce((sum: number, e: any) => {
+      const resp = (e.responsible || '').trim().toLowerCase();
+      return matchesName(resp) ? sum + (Number(e.valor_recebido) || 0) + (Number(e.taxa_matricula_recebido) || 0) : sum;
+    }, 0);
+
+    const realizedRevenue = manualRevenue + enrollmentRevenue;
 
     const rule = await this.getCommissionRule('MANAGER', level);
 

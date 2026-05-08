@@ -28,7 +28,7 @@ export interface PartnerReport {
 export const partnerRevenueService = {
   async getPartnerReport(startDate: string, endDate: string): Promise<PartnerReport> {
     const supabase = getSupabaseClient();
-    
+
     // 1. Fetch active rules with absolute fallbacks
     const { data: rules } = await supabase
       ?.from('partner_rules')
@@ -59,8 +59,9 @@ export const partnerRevenueService = {
     const nameToCompanyMap: Record<string, string> = {};
 
     (membersRes.data || []).forEach((m: any) => {
-      if (squadNameMap[m.squad_id]) {
-        userCompanyMap[m.user_id] = squadNameMap[m.squad_id].includes('PLUPPEX') ? 'PLUPPEX' : 'TARGET';
+      const squadName = (squadNameMap[m.squad_id] || '').toUpperCase();
+      if (squadName) {
+        userCompanyMap[m.user_id] = squadName.includes('PLUPPEX') ? 'PLUPPEX' : 'TARGET';
       }
     });
 
@@ -69,19 +70,17 @@ export const partnerRevenueService = {
         const dept = (p.department || '').toUpperCase();
         userCompanyMap[p.id] = dept.includes('PLUPPEX') ? 'PLUPPEX' : 'TARGET';
       }
-      if (p.name) nameToCompanyMap[p.name] = userCompanyMap[p.id];
+      if (p.name) {
+        const normalizedName = p.name.trim().toLowerCase();
+        nameToCompanyMap[normalizedName] = userCompanyMap[p.id];
+      }
     });
 
-    // 3. Fetch Financial Data
-    const [transactions, ganhoLeads] = await Promise.all([
-      transactionService.getAll({
-        paymentDateStart: startDate,
-        paymentDateEnd: endDate,
-        type: 'INCOME',
-        status: 'PAID'
-      }),
-      transactionService.getGanhoLeads(startDate, endDate)
-    ]);
+    // 3. Fetch Financial Data (Unified & Filtered by Payment Date)
+    const transactions = await transactionService.getCashFlowTransactions(startDate, endDate);
+    
+    // Log para debug
+    console.log(`[PartnerService] Loaded ${transactions.length} transactions for period ${startDate} to ${endDate}`);
 
     // 4. Consolidate Data
     let total_revenue = 0;
@@ -104,39 +103,32 @@ export const partnerRevenueService = {
       dailyData[formatDate(d.toISOString())] = { pluppex: 0, target: 0 };
     }
 
-    // Process Transactions
+    // Process Unified Transactions (Manual + Legacy + Pipeline)
     transactions.forEach(tx => {
-      const amt = Number(tx.value || 0);
-      total_revenue += amt;
-      const origin = tx.user_id && userCompanyMap[tx.user_id] === 'PLUPPEX' ? 'PLUPPEX' : 'TARGET';
-      const dateKey = formatDate(tx.payment_date || tx.created_at);
+      // Use extremely robust logic (checking amount, value, and vendas)
+      const amt = Number(tx.amount) || Number((tx as any).value) || Number((tx as any).vendas) || 0;
+      const status = (tx.status || '').toUpperCase();
+      const type = (tx.type || '').toUpperCase();
 
-      if (origin === 'PLUPPEX') {
-        const fee = pluppexFixedFee + (amt * pluppexFeePercent);
-        pluppex_sales += amt;
-        pluppex_fee += fee;
-        pluppex_technology_fee += fee;
-        if (dailyData[dateKey]) dailyData[dateKey].pluppex += amt;
-      } else {
-        const fee = targetFixedFee + (amt * targetFeePercent);
-        target_sales += amt;
-        target_fee += fee;
-        pluppex_technology_fee += fee;
-        if (dailyData[dateKey]) dailyData[dateKey].target += amt;
+      const isPaid = ['PAID', 'PAGO', 'CONFIRMADO', 'COMPLETED', 'SUCCESS', 'RECEBIDO', 'ACTIVE', 'ENROLLED'].includes(status);
+      const isIncome = ['INCOME', 'RECEITA', 'ENTRADA', 'CREDIT', 'VENDA'].includes(type);
+
+      if (!isPaid || !isIncome) return;
+
+      total_revenue += amt;
+      
+      // Determine origin based on responsible or user_id
+      const leads = Array.isArray(tx.leads) ? tx.leads[0] : tx.leads;
+      const respName = (leads?.responsible || (tx as any).responsible || (tx as any).perfis?.name || '').trim().toLowerCase();
+      let origin = 'TARGET';
+      
+      if (respName && nameToCompanyMap[respName]) {
+        origin = nameToCompanyMap[respName];
+      } else if (tx.user_id && userCompanyMap[tx.user_id]) {
+        origin = userCompanyMap[tx.user_id];
       }
-    });
 
-    // Process Leads (Fallback for missing transactions)
-    ganhoLeads.forEach(lead => {
-      const amt = Number(lead.value || 0);
-      // Avoid double counting if transaction already exists for this lead
-      const hasTx = transactions.some(tx => tx.lead_id === lead.id);
-      if (hasTx) return;
-
-      total_revenue += amt;
-      const rawOrigin = (lead as any).responsible ? nameToCompanyMap[(lead as any).responsible] : 'TARGET';
-      const origin = rawOrigin === 'PLUPPEX' ? 'PLUPPEX' : 'TARGET';
-      const dateKey = formatDate(lead.updated_at || lead.created_at);
+      const dateKey = formatDate(tx.payment_date || tx.created_at);
 
       if (origin === 'PLUPPEX') {
         const fee = pluppexFixedFee + (amt * pluppexFeePercent);
@@ -180,7 +172,7 @@ export const partnerRevenueService = {
       chartData,
       _debug: {
         txCount: transactions.length,
-        leadCount: ganhoLeads.length
+        leadCount: transactions.filter(t => t.origin_type === 'PIPELINE').length
       }
     };
   }

@@ -36,8 +36,9 @@ export function OteTab({ startDate, endDate }: { startDate: string; endDate: str
       const filteredSquads = allSquads.filter(s => s.active || resultsSquadIds.has(s.id));
       setSquads(filteredSquads.map(s => ({ id: s.id, name: s.name })));
       
-      // AUTO-INIT: If no results found and we are not already initializing, start automatically
-      if (data.length === 0 && autoInit && !isInitializing) {
+      // AUTO-INIT: If no results found OR all realized = 0 (stale from old buggy code)
+      const allZero = data.length > 0 && data.every(r => Number(r.realized_revenue) === 0);
+      if ((data.length === 0 || allZero) && autoInit && !isInitializing) {
         handleInitializePeriod(true);
       }
     } catch (err) {

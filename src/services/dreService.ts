@@ -19,8 +19,22 @@ export const dreService = {
       type: filters.type,
       categoryId: filters.categoryId
     });
+    
+    // Fetch Lead Revenue (Automatic Vales)
+    // For DRE, we treat all lead revenue as 'RECEITA_BRUTA'
+    const { data: enrollments } = await supabase
+      .from('lead_class_enrollments')
+      .select('valor_recebido, taxa_matricula_recebido')
+      .neq('status', 'CANCELLED')
+      .gte('enrolled_at', (filters.startDate || '') + 'T00:00:00')
+      .lte('enrolled_at', (filters.endDate || '') + 'T23:59:59');
 
     let receita_bruta = 0;
+    
+    // Add lead revenue
+    (enrollments || []).forEach(e => {
+      receita_bruta += (Number(e.valor_recebido) || 0) + (Number(e.taxa_matricula_recebido) || 0);
+    });
     let deducoes = 0;
     let csp = 0;
     let despesas_op = 0;
