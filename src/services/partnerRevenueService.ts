@@ -141,29 +141,21 @@ export const partnerRevenueService = {
       }
 
       const dateKey = formatDate(tx.payment_date || tx.created_at);
-      let fee = 0;
-      let fixed = 0;
       let variable = 0;
 
       if (origin === 'PLUPPEX') {
-        fixed = pluppexFixedFee;
         variable = amt * pluppexFeePercent;
-        fee = fixed + variable;
         pluppex_sales += amt;
-        pluppex_fee += fee;
+        pluppex_fee += variable; // Acumula variável aqui, somaremos o fixo no final
         if (dailyData[dateKey]) dailyData[dateKey].pluppex += amt;
       } else {
-        fixed = targetFixedFee;
         variable = amt * targetFeePercent;
-        fee = fixed + variable;
         target_sales += amt;
-        target_fee += fee;
+        target_fee += variable; // Acumula variável aqui, somaremos o fixo no final
         if (dailyData[dateKey]) dailyData[dateKey].target += amt;
       }
 
-      fixed_fee_total += fixed;
       variable_fee_total += variable;
-      pluppex_technology_fee += fee;
 
       // Turma performance tracking - Enhanced detection
       const classId = tx.class_id || (tx as any).turma_id || (tx as any).turmas?.id;
@@ -172,7 +164,7 @@ export const partnerRevenueService = {
           turmaData[classId] = { revenue: 0, commission: 0, enrollments: 0 };
         }
         turmaData[classId].revenue += amt;
-        turmaData[classId].commission += fee;
+        turmaData[classId].commission += variable;
         turmaData[classId].enrollments += 1;
       }
     });
@@ -190,6 +182,12 @@ export const partnerRevenueService = {
       name: turmaMap[id] || `Turma #${id.substring(0, 4)}`,
       ...stats
     })).sort((a, b) => b.revenue - a.revenue);
+
+    // 5. Finalize totals with fixed fees (calculated once per report period)
+    fixed_fee_total = pluppexFixedFee + targetFixedFee;
+    pluppex_technology_fee = variable_fee_total + fixed_fee_total;
+    pluppex_fee += pluppexFixedFee;
+    target_fee += targetFixedFee;
 
     const average_commission_per_turma = turma_commissions.length > 0 
       ? pluppex_technology_fee / turma_commissions.length 
