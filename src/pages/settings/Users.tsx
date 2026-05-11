@@ -11,6 +11,7 @@ export function Users() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -55,7 +56,7 @@ export function Users() {
       }
       handleCloseModal();
     } catch (err: any) {
-      const msg = err?.message || err?.details || 'Erro ao salvar usuário.';
+      const msg = typeof err === 'string' ? err : (err?.message || err?.details || 'Erro ao salvar usuário.');
       setFormError(msg);
     } finally {
       setSubmitting(false);
@@ -168,8 +169,9 @@ export function Users() {
                         <Edit2 size={16} />
                       </button>
                       <button 
-                        onClick={() => deleteProfile(user.id)}
+                        onClick={() => setDeleteConfirmId(user.id)}
                         className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                        title="Excluir usuário"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -186,9 +188,12 @@ export function Users() {
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <h2 className="text-xl font-bold text-slate-800">{editingId ? 'Editar Usuário' : 'Novo Usuário'}</h2>
-              <button onClick={handleCloseModal} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 transition-colors">
+              <button 
+                onClick={handleCloseModal} 
+                className="p-2 hover:bg-slate-200 rounded-xl text-slate-400 hover:text-slate-600 transition-all"
+              >
                 <X size={20} />
               </button>
             </div>
@@ -322,6 +327,64 @@ export function Users() {
           </div>
         </div>
       )}
+
+      {/* Modal de Confirmação de Exclusão */}
+      {deleteConfirmId && (() => {
+        const userToDelete = profiles.find(p => p.id === deleteConfirmId);
+        return (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in duration-300">
+              <div className="relative h-2 bg-red-500" />
+              <div className="px-8 pt-8 pb-6 text-center">
+                <div className="w-20 h-20 rounded-2xl bg-red-50 flex items-center justify-center mx-auto mb-6 rotate-3 hover:rotate-0 transition-transform duration-300 shadow-inner">
+                  <Trash2 size={40} className="text-red-500" />
+                </div>
+
+                <h2 className="text-2xl font-black text-slate-800 mb-1">Excluir Usuário</h2>
+                <p className="text-sm text-slate-400 mb-5">Confirme com atenção antes de prosseguir</p>
+
+                {/* Destaque do usuário a ser excluído */}
+                <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-4 text-left">
+                  <div className="w-10 h-10 bg-red-100 text-red-600 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">
+                    {(userToDelete?.name || '?').charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-800">{userToDelete?.name ?? 'Sem nome'}</p>
+                    <p className="text-xs text-slate-400">{userToDelete?.email}</p>
+                    <p className="text-[10px] text-slate-400 uppercase font-bold mt-0.5">{userToDelete?.department}</p>
+                  </div>
+                </div>
+
+                {/* Aviso de cuidado */}
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6 text-left">
+                  <p className="text-xs font-bold text-amber-800 mb-1">⚠️ Cuidado — verifique se é o usuário correto!</p>
+                  <p className="text-xs text-amber-700 leading-relaxed">
+                    Esta ação é <strong>irreversível</strong>. O usuário perderá o acesso imediatamente e todos os seus dados serão desvinculados do sistema.
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={async () => {
+                      await deleteProfile(deleteConfirmId);
+                      setDeleteConfirmId(null);
+                    }}
+                    className="w-full py-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-2xl transition-all shadow-lg shadow-red-200 active:scale-[0.98]"
+                  >
+                    Sim, excluir este usuário
+                  </button>
+                  <button
+                    onClick={() => setDeleteConfirmId(null)}
+                    className="w-full py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-2xl transition-all"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

@@ -12,7 +12,7 @@ export default async function handler(req: any, res: any) {
   }
 
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !key) {
     return res.status(500).json({ error: 'Configuração do Supabase ausente no servidor.' });

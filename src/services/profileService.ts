@@ -1,4 +1,4 @@
-import { getSupabaseClient, getServiceSupabaseClient } from '../lib/supabase';
+import { getSupabaseClient } from '../lib/supabase';
 
 export interface CreateProfilePayload {
   name?: string;
@@ -98,11 +98,9 @@ export const profileService = {
 
   async createProfile(profile: CreateProfilePayload): Promise<{ data: UserProfile | null; error: any }> {
     const supabase = getSupabaseClient();
-    if (!supabase) return { data: null, error: 'Supabase client not initialized' };
 
+    // Step 1: Create auth user via server API (uses SUPABASE_SERVICE_ROLE_KEY securely on the server)
     let userId: string;
-
-    // Create auth user via API
     try {
       const resp = await fetch('/api/create-user', {
         method: 'POST',
@@ -113,30 +111,39 @@ export const profileService = {
           name: profile.name,
         }),
       });
+
       const result = await resp.json();
-      if (!resp.ok) throw new Error(result.error || 'Erro ao criar usuário auth.');
+
+      if (!resp.ok) {
+        console.error('[createProfile] Auth API error:', result);
+        return { data: null, error: result.error || 'Erro ao criar usuário na autenticação.' };
+      }
+
+      if (!result.id) {
+        return { data: null, error: 'Servidor não retornou o ID do usuário.' };
+      }
+
       userId = result.id;
     } catch (err: any) {
-      console.error('Auth creation via API failed:', err.message);
-      return { data: null, error: err.message };
+      console.error('[createProfile] Network error calling /api/create-user:', err);
+      return { data: null, error: 'Erro de rede ao criar usuário. Verifique se o servidor está rodando.' };
     }
 
-    const { password, ...insertData } = profile;
-    const finalInsertData = {
-      id: userId,
-      ...insertData
-    };
-
+    // Step 2: Upsert profile record (trigger may have already inserted a minimal row)
+    const { password, ...rawInsert } = profile;
+    // Convert empty strings to null so optional fields don't violate constraints
+    const insertData = Object.fromEntries(
+      Object.entries(rawInsert).map(([k, v]) => [k, v === '' ? null : v])
+    );
     const { data, error } = await supabase
       .from('perfis')
-      .insert([finalInsertData])
+      .upsert({ id: userId, ...insertData })
       .select()
       .single();
 
     if (error) {
-      console.error('Error creating profile record:', error);
-      // Optional: cleanup auth user if profile record fails?
-      return { data: null, error };
+      console.error('[createProfile] Error inserting perfis record:', error);
+      return { data: null, error: error.message || 'Erro ao salvar perfil no banco de dados.' };
     }
 
     return { data, error: null };

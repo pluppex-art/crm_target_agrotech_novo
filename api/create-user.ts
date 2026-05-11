@@ -12,36 +12,32 @@ export default async function handler(req: any, res: any) {
   }
 
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !key) {
-    return res.status(500).json({ error: 'Configuração do Supabase ausente no servidor.' });
+    return res.status(500).json({ error: 'Configuração do Supabase ausente no servidor. Verifique SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY no Vercel.' });
   }
 
   const supabaseAdmin = createClient(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  const { data, error } = await supabaseAdmin.auth.admin.createUser({
-    email,
+  const cleanEmail = email.trim().toLowerCase();
+
+  let { data, error } = await supabaseAdmin.auth.admin.createUser({
+    email: cleanEmail,
     password,
     email_confirm: true,
     user_metadata: { name },
   });
 
+  // Se falhou, tenta recuperar o usuário já existente (qualquer tipo de erro)
   if (error) {
-    const isAlreadyRegistered = error.message.toLowerCase().includes('registered') || 
-                                error.message.toLowerCase().includes('already exists');
-    
-    if (isAlreadyRegistered) {
-      const { data: listData, error: listError } = await supabaseAdmin.auth.admin.listUsers({
-        perPage: 1000
-      });
-      if (!listError) {
-        const existingUser = listData.users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
-        if (existingUser) {
-          return res.status(200).json({ id: existingUser.id });
-        }
+    const { data: listData, error: listError } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+    if (!listError && listData?.users) {
+      const existingUser = listData.users.find((u: any) => u.email?.toLowerCase() === cleanEmail);
+      if (existingUser) {
+        return res.status(200).json({ id: existingUser.id });
       }
     }
     return res.status(400).json({ error: error.message });
