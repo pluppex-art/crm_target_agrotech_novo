@@ -47,7 +47,7 @@ export const NewActivityModal: React.FC<NewActivityModalProps> = ({
     scheduled_time: '',
     priority: 'medium' as 'low' | 'medium' | 'high',
     category: '',
-    responsible: '',
+    responsavel_usuario_id: '',
   });
 
   const { user } = useAuthStore();
@@ -65,7 +65,7 @@ export const NewActivityModal: React.FC<NewActivityModalProps> = ({
           scheduled_time: initialTask.scheduled_time || '',
           priority: initialTask.priority,
           category: initialTask.category || '',
-          responsible: initialTask.responsible || '',
+          responsavel_usuario_id: initialTask.responsavel_usuario_id || '',
         });
       } else {
         setFormData({
@@ -75,7 +75,7 @@ export const NewActivityModal: React.FC<NewActivityModalProps> = ({
           scheduled_time: '',
           priority: 'medium',
           category: '',
-          responsible: currentUserProfile?.name || '',
+          responsavel_usuario_id: currentUserProfile?.id || '',
         });
       }
     }
@@ -94,7 +94,7 @@ export const NewActivityModal: React.FC<NewActivityModalProps> = ({
       const isVendedorCargo = p.cargos?.name?.toLowerCase().includes('vendedor');
       return isComercialDept || isVendedorCargo;
     })
-    .map(p => p.name as string);
+    .map(p => ({ id: p.id, name: p.name as string }));
 
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
@@ -109,8 +109,7 @@ export const NewActivityModal: React.FC<NewActivityModalProps> = ({
         category: formData.category || 'Geral',
         status: 'pending',
         lead_id: leadId,
-        lead_name: leadName,
-        responsible: formData.responsible || undefined,
+        responsavel_usuario_id: formData.responsavel_usuario_id || null,
       });
       if (leadId) resetLeadAlerts(leadId);
       onCreated?.();
@@ -122,7 +121,7 @@ export const NewActivityModal: React.FC<NewActivityModalProps> = ({
         scheduled_time: '',
         priority: 'medium',
         category: categories[0]?.name || '',
-        responsible: '',
+        responsavel_usuario_id: '',
       });
     } catch (error) {
       console.error('Error adding activity:', error);
@@ -286,13 +285,13 @@ export const NewActivityModal: React.FC<NewActivityModalProps> = ({
                 Responsável
               </label>
               <select
-                value={formData.responsible}
-                onChange={(e) => setFormData({ ...formData, responsible: e.target.value })}
+                value={formData.responsavel_usuario_id}
+                onChange={(e) => setFormData({ ...formData, responsavel_usuario_id: e.target.value })}
                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700"
               >
                 <option value="">Selecione o responsável...</option>
                 {responsibles.map(r => (
-                  <option key={r} value={r}>{r}</option>
+                  <option key={r.id} value={r.id}>{r.name}</option>
                 ))}
               </select>
             </div>

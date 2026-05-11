@@ -136,7 +136,7 @@ export const enrollmentService = {
       .insert([{
         lead_id:                current.lead_id,
         class_id:               params.to_class_id,
-        responsavel_usuario_id: (current as any).responsavel_usuario_id ?? current.created_by ?? current.lead_id,
+        responsavel_usuario_id: (current as any).responsavel_usuario_id ?? current.created_by,
         status:                 'ENROLLED',
         contracted_amount:      current.contracted_amount,
         income_transaction_id:  current.income_transaction_id ?? null,

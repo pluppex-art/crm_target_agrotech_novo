@@ -24,7 +24,7 @@ export function NewTurmaModal({ isOpen, onClose, turma }: NewTurmaModalProps) {
     location: '',
     price: '',
     enrollment_fee: '',
-    capacity: 20,
+    student_goal: 20,
   });
 
   useEffect(() => {
@@ -38,10 +38,10 @@ export function NewTurmaModal({ isOpen, onClose, turma }: NewTurmaModalProps) {
         location: turma.location,
         price: turma.price != null ? String(turma.price) : '',
         enrollment_fee: turma.enrollment_fee != null ? String(turma.enrollment_fee) : '',
-        capacity: turma.capacity || 20,
+        student_goal: turma.student_goal || 20,
       });
     } else {
-      setFormData({ name: '', professor_name: '', professor_email: '', date: '', time: '', location: '', price: '', enrollment_fee: '', capacity: 20 });
+      setFormData({ name: '', professor_name: '', professor_email: '', date: '', time: '', location: '', price: '', enrollment_fee: '', student_goal: 20 });
     }
   }, [turma]);
 
@@ -58,7 +58,7 @@ export function NewTurmaModal({ isOpen, onClose, turma }: NewTurmaModalProps) {
           location: formData.location || null,
           price: formData.price ? parseFloat(formData.price) : null,
           enrollment_fee: formData.enrollment_fee ? parseFloat(formData.enrollment_fee) : null,
-          capacity: formData.capacity,
+          student_goal: formData.student_goal,
         };
         if (turma) {
           await updateTurma(turma.id, payload);
@@ -213,8 +213,8 @@ export function NewTurmaModal({ isOpen, onClose, turma }: NewTurmaModalProps) {
                     type="number"
                     min="1"
                     max="100"
-                    value={formData.capacity}
-                    onChange={(e) => setFormData({ ...formData, capacity: parseInt(e.target.value) || 20 })}
+                    value={formData.student_goal}
+                    onChange={(e) => setFormData({ ...formData, student_goal: parseInt(e.target.value) || 20 })}
                     className="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm"
                   />
                 </div>

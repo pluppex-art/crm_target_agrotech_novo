@@ -12,7 +12,16 @@ export interface Task {
   category?: string;
   lead_id?: string;
   lead_name?: string;
-  responsible?: string;
+  responsavel_usuario_id?: string | null;
+  responsible?: string | null;  // derivado do JOIN com perfis (não é coluna do DB)
+}
+
+function mapTaskRow(row: any): Task {
+  return {
+    ...row,
+    responsible: (row.perfis as { name?: string } | null)?.name ?? null,
+    perfis: undefined,
+  };
 }
 
 export const taskService = {
@@ -22,7 +31,7 @@ export const taskService = {
 
     const { data, error } = await supabase
       .from('tasks')
-      .select('*')
+      .select('*, perfis!tasks_responsavel_usuario_id_fkey(name)')
       .eq('lead_id', leadId)
       .order('due_date', { ascending: true });
 
@@ -31,7 +40,7 @@ export const taskService = {
       return [];
     }
 
-    return data as Task[];
+    return (data as any[]).map(mapTaskRow);
   },
 
   async getAllTasks(): Promise<Task[]> {
@@ -40,7 +49,7 @@ export const taskService = {
 
     const { data, error } = await supabase
       .from('tasks')
-      .select('*')
+      .select('*, perfis!tasks_responsavel_usuario_id_fkey(name)')
       .order('due_date', { ascending: true });
 
     if (error) {
@@ -48,17 +57,20 @@ export const taskService = {
       return [];
     }
 
-    return data as Task[];
+    return (data as any[]).map(mapTaskRow);
   },
 
   async createTask(task: Omit<Task, 'id' | 'created_at'>): Promise<Task | null> {
     const supabase = getSupabaseClient();
     if (!supabase) return null;
 
+    // Strip virtual/non-DB fields before inserting
+    const { responsible, lead_name, ...dbPayload } = task as any;
+
     const { data, error } = await supabase
       .from('tasks')
-      .insert([task])
-      .select()
+      .insert([dbPayload])
+      .select('*, perfis!tasks_responsavel_usuario_id_fkey(name)')
       .single();
 
     if (error) {
@@ -66,7 +78,7 @@ export const taskService = {
       return null;
     }
 
-    return data as Task;
+    return mapTaskRow(data as any);
   },
 
   async updateTaskStatus(taskId: string, status: 'pending' | 'completed'): Promise<boolean> {
@@ -90,9 +102,11 @@ export const taskService = {
     const supabase = getSupabaseClient();
     if (!supabase) return false;
 
+    const { responsible, lead_name, ...dbUpdates } = updates as any;
+
     const { error } = await supabase
       .from('tasks')
-      .update(updates)
+      .update(dbUpdates)
       .eq('id', taskId);
 
     if (error) {

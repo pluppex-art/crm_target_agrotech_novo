@@ -27,6 +27,25 @@ export interface LeadClassEnrollment {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  responsavel_usuario_id: string;
+  board_status: string;
+  name: string | null;
+  photo: string | null;
+  responsible: string | null;
+  vendas: number;
+  discount: string | null;
+  discount_type: string | null;
+  discount_applied: boolean | null;
+  forma_pagamento: string | null;
+  valor_recebido: number | null;
+  taxa_matricula_recebido: number | null;
+  taxa_matricula_paid_at: string | null;
+  valor_recebido_paid_at: string | null;
+  pix_completed: boolean | null;
+  contract_signed: boolean | null;
+  payment_proof_url: string | null;
+  contract_url: string | null;
+  professor_proof_url: string | null;
 }
 
 // Enrollment com dados da turma incluídos (via join)

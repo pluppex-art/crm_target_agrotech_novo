@@ -34,7 +34,6 @@ export interface Turma {
   meta?: number;
   status: 'agendada' | 'em_andamento' | 'concluida' | 'cancelada';
   attendees: TurmaAttendee[];
-  capacity?: number;
 }
 
 function mapEnrollmentToAttendee(e: any): TurmaAttendee {

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { turmaService, Turma, TurmaAttendee } from '../services/turmaService';
 import { useAuthStore } from '../store/useAuthStore';
+import { useProfileStore } from '../store/useProfileStore';
 import { noteService } from '../services/noteService';
 import { financialCalculator } from '../services/financialCalculator';
 
@@ -12,6 +13,7 @@ export const useLeadTurmas = ({ leadId }: UseLeadTurmasProps) => {
   const [leadTurmas, setLeadTurmas] = useState<{ turma: Turma; attendee: TurmaAttendee }[]>([]);
   const [loadingTurmas, setLoadingTurmas] = useState(false);
   const { user } = useAuthStore();
+  const { profiles } = useProfileStore();
 
   useEffect(() => {
     if (leadId) {
@@ -60,7 +62,8 @@ export const useLeadTurmas = ({ leadId }: UseLeadTurmasProps) => {
 
     // 5. Log to History (Notes)
     if (valor_novo > 0) {
-      const authorName = user?.user_metadata?.full_name || user?.email || 'Professor';
+      const profileName = profiles.find(p => p.id === user?.id)?.name;
+      const authorName = profileName || user?.user_metadata?.full_name || user?.email || 'Professor';
       await noteService.createNote({
         lead_id: leadId,
         author_id: user?.id ?? '',

@@ -25,7 +25,7 @@ export const TaskReminderWatcher: React.FC = () => {
 
       tasks.forEach(task => {
         // Only pending tasks for the current user
-        if (task.status !== 'pending' || task.responsible !== currentUserProfile.name) return;
+        if (task.status !== 'pending' || task.responsavel_usuario_id !== user.id) return;
         if (!task.due_date || !task.scheduled_time) return;
         if (notifiedIds.current.has(task.id)) return;
 

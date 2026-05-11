@@ -17,7 +17,7 @@ interface Turma {
   id: string;
   name: string;
   status: string;
-  max_students?: number;
+  student_goal?: number;
   price?: number;
   enrollment_fee?: number;
   date?: string;
@@ -56,7 +56,7 @@ export function calcOccupancy(turmas: Turma[]): OccupancyItem[] {
     .filter(t => t.status !== 'concluida')
     .map(t => {
       const occupied = t.attendees.filter(a => a.status !== 'cancelado').length;
-      const total    = t.max_students ?? 0;
+      const total    = t.student_goal ?? 0;
       return {
         id: t.id,
         name: t.name,

@@ -10,7 +10,7 @@ import { useProfileStore } from '../store/useProfileStore';
 import { noteService } from '../services/noteService';
 import { useAuthStore } from '../store/useAuthStore';
 import type { Lead } from '../types/leads';
-import { getLeadEffectiveValue, parseBRNumber } from '@/lib/utils';
+import { getLeadEffectiveValue, parseBRNumber } from '../lib/utils';
 
 interface UseLeadFormProps {
   lead: Lead;
@@ -26,7 +26,7 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
     name: lead.name,
     email: lead.email,
     phone: lead.phone,
-    product: lead.product,
+    product: lead.product || '',
     value: lead.value.toString(),
     city: lead.city || '',
     cnpj: lead.cnpj || '',
@@ -58,7 +58,7 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
       name: lead.name,
       email: lead.email,
       phone: lead.phone,
-      product: lead.product,
+      product: lead.product || '',
       value: lead.value.toString(),
       city: lead.city || '',
       cnpj: lead.cnpj || '',
@@ -194,7 +194,7 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
             lead_id: lead.id,
             author_id: user?.id ?? '',
             content: `📢 Transferência: ${currentUserName} transferiu este lead para ${formData.responsible}`,
-            author_name: 'Sistema',
+            author_name: currentUserName,
           });
 
           // 2. Notificar Novo Responsável
@@ -213,7 +213,7 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
     } finally {
       setIsSaving(false);
     }
-  }, [formData, lead.id, lead.responsible, onClose]);
+  }, [formData, lead.id, lead.responsible, products, onClose]);
 
   const updateFormField = useCallback((updates: any) => {
     setFormData(prev => ({ ...prev, ...updates }));

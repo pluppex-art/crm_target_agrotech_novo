@@ -16,7 +16,7 @@ export const noteService = {
 
     const { data, error } = await supabase
       .from('notes')
-      .select('*')
+      .select('*, perfis!notes_author_id_fkey(name)')
       .eq('lead_id', leadId)
       .order('created_at', { ascending: false });
 
@@ -25,7 +25,11 @@ export const noteService = {
       return [];
     }
 
-    return data as Note[];
+    return (data as any[]).map((row) => ({
+      ...row,
+      author_name: (row.perfis as { name?: string } | null)?.name ?? row.author_name ?? null,
+      perfis: undefined,
+    })) as Note[];
   },
 
   async createNote(note: Omit<Note, 'id' | 'created_at'>): Promise<Note | null> {

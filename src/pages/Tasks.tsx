@@ -78,7 +78,7 @@ export function Tasks() {
 
   const filteredTasks = tasks.filter(t => {
     // 0. Permission check: users only see their own tasks unless admin
-    if (!isAdmin && t.responsible !== currentUserProfile?.name) return false;
+    if (!isAdmin && t.responsavel_usuario_id !== user?.id) return false;
 
     // 1. Search global
     if (searchTerm.trim()) {
@@ -96,7 +96,7 @@ export function Tasks() {
     // 4. Priority
     if (priorityFilter !== 'all' && t.priority !== priorityFilter) return false;
     // 5. Responsible (Admin only)
-    if (isAdmin && responsibleFilter !== 'all' && t.responsible !== responsibleFilter) return false;
+    if (isAdmin && responsibleFilter !== 'all' && t.responsavel_usuario_id !== responsibleFilter) return false;
     
     // 6. Date Range
     if (dateFilter !== 'all') {
@@ -219,7 +219,14 @@ export function Tasks() {
                 value: responsibleFilter,
                 onChange: setResponsibleFilter,
                 activeColorClass: 'bg-purple-50 text-purple-700 border-purple-100',
-                options: Array.from(new Set(tasks.map(t => t.responsible).filter(Boolean))).map(r => ({ value: r!, label: r! }))
+                options: tasks
+                  .filter(t => t.responsavel_usuario_id && t.responsible)
+                  .reduce<{ value: string; label: string }[]>((acc, t) => {
+                    if (!acc.some(o => o.value === t.responsavel_usuario_id)) {
+                      acc.push({ value: t.responsavel_usuario_id!, label: t.responsible! });
+                    }
+                    return acc;
+                  }, [])
               } : null,
               {
                 id: 'category',
