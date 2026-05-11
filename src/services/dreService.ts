@@ -20,21 +20,33 @@ export const dreService = {
       categoryId: filters.categoryId
     });
     
-    // Fetch Lead Revenue (Automatic Vales)
-    // For DRE, we treat all lead revenue as 'RECEITA_BRUTA'
-    const { data: enrollments } = await supabase
+    // Fetch Lead Revenue from lead_class_enrollments filtered by actual payment dates
+    let valorDreQuery = supabase
       .from('lead_class_enrollments')
-      .select('valor_recebido, taxa_matricula_recebido')
+      .select('valor_recebido')
       .neq('status', 'CANCELLED')
-      .gte('enrolled_at', (filters.startDate || '') + 'T00:00:00')
-      .lte('enrolled_at', (filters.endDate || '') + 'T23:59:59');
+      .gt('valor_recebido', 0);
+    let taxaDreQuery = supabase
+      .from('lead_class_enrollments')
+      .select('taxa_matricula_recebido')
+      .neq('status', 'CANCELLED')
+      .gt('taxa_matricula_recebido', 0);
+
+    if (filters.startDate) {
+      valorDreQuery = valorDreQuery.gte('valor_recebido_paid_at', filters.startDate + 'T00:00:00');
+      taxaDreQuery = taxaDreQuery.gte('taxa_matricula_paid_at', filters.startDate + 'T00:00:00');
+    }
+    if (filters.endDate) {
+      valorDreQuery = valorDreQuery.lte('valor_recebido_paid_at', filters.endDate + 'T23:59:59');
+      taxaDreQuery = taxaDreQuery.lte('taxa_matricula_paid_at', filters.endDate + 'T23:59:59');
+    }
+
+    const [{ data: valorEnrollments }, { data: taxaEnrollments }] = await Promise.all([valorDreQuery, taxaDreQuery]);
 
     let receita_bruta = 0;
-    
-    // Add lead revenue
-    (enrollments || []).forEach(e => {
-      receita_bruta += (Number(e.valor_recebido) || 0) + (Number(e.taxa_matricula_recebido) || 0);
-    });
+
+    (valorEnrollments || []).forEach((e: any) => { receita_bruta += Number(e.valor_recebido) || 0; });
+    (taxaEnrollments || []).forEach((e: any) => { receita_bruta += Number(e.taxa_matricula_recebido) || 0; });
     let deducoes = 0;
     let csp = 0;
     let despesas_op = 0;

@@ -30,6 +30,7 @@ import { financialCalculator } from '../services/financialCalculator';
 import { calcPipelinePayments } from '../calculations/pipelineMetrics';
 import { notifyStageChange } from '../services/leadNotificationService';
 import { useSettingsStore } from '@/store/useSettingsStore';
+import { useSquadStore } from '../store/useSquadStore';
 
 
 
@@ -96,6 +97,7 @@ export const Pipeline: React.FC = () => {
   const userToggledRef = useRef<Set<string>>(new Set());
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
 
   const currentPipeline = pipelines.find(p => p.id === currentPipelineId);
 
@@ -369,6 +371,8 @@ export const Pipeline: React.FC = () => {
           setInitialStageIdForNewLead(undefined);
           setIsNewLeadModalOpen(true);
         }}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
       />
 
 
@@ -393,19 +397,157 @@ export const Pipeline: React.FC = () => {
         isVendedor={isComercial}
       />
 
-      <PipelineBoard
-        filteredLeads={filters.filteredLeads}
-        columns={filteredColumns}
-        selectedStatus={filters.selectedStatus}
-        minimizedColumns={minimizedColumns}
-        toggleColumnMinimized={toggleColumnMinimized}
-        onDragEnd={onDragEnd}
-        onLeadDoubleClick={setSelectedLead}
-        onAddLeadToColumn={(columnId) => {
-          setInitialStageIdForNewLead(columnId);
-          setIsNewLeadModalOpen(true);
-        }}
-      />
+      {viewMode === 'kanban' ? (
+        <PipelineBoard
+          filteredLeads={filters.filteredLeads}
+          columns={filteredColumns}
+          selectedStatus={filters.selectedStatus}
+          minimizedColumns={minimizedColumns}
+          toggleColumnMinimized={toggleColumnMinimized}
+          onDragEnd={onDragEnd}
+          onLeadDoubleClick={setSelectedLead}
+          onAddLeadToColumn={(columnId) => {
+            setInitialStageIdForNewLead(columnId);
+            setIsNewLeadModalOpen(true);
+          }}
+        />
+      ) : (
+        <div className="bg-white border border-slate-200 rounded-[32px] overflow-hidden shadow-sm flex-1 flex flex-col min-h-0">
+          <div className="overflow-x-auto flex-1 custom-scrollbar">
+            <table className="w-full text-sm border-separate border-spacing-0">
+              <thead className="sticky top-0 z-10 bg-slate-50 shadow-sm">
+                <tr className="text-slate-500 uppercase text-[10px] font-black tracking-widest">
+                  <th className="px-6 py-4 text-left border-b border-slate-100">Cliente</th>
+                  <th className="px-6 py-4 text-left border-b border-slate-100">Estágio</th>
+                  <th className="px-6 py-4 text-left border-b border-slate-100">Produto</th>
+                  <th className="px-6 py-4 text-left border-b border-slate-100">Squad / Responsável</th>
+                  <th className="px-6 py-4 text-center border-b border-slate-100">Temp.</th>
+                  <th className="px-6 py-4 text-right border-b border-slate-100">Valor Total</th>
+                  <th className="px-6 py-4 text-center border-b border-slate-100">Último Contato</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {filters.filteredLeads.map((lead) => {
+                  const stage = COLUMNS.find(c => c.id === lead.stage_id);
+                  const productObj = products.find(p => p.name === lead.product);
+                  const fee = productObj?.enrollment_fee ?? 197;
+                  const totalValue = financialCalculator.getEffectiveValue(lead) + fee;
+                  
+                  const responsibleProfile = profiles.find(p => p.name === lead.responsible);
+                  const { getSquadInfoForUser } = useSquadStore.getState();
+                  const squadInfo = getSquadInfoForUser(responsibleProfile?.id || '', lead.responsible || '', profiles);
+
+                  return (
+                    <tr 
+                      key={lead.id} 
+                      className="group hover:bg-emerald-50/30 transition-colors cursor-pointer"
+                      onClick={() => setSelectedLead(lead)}
+                    >
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <img 
+                            src={lead.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(lead.name)}&background=random`} 
+                            className="w-8 h-8 rounded-full object-cover border border-slate-100 shadow-sm"
+                            alt=""
+                          />
+                          <div>
+                            <div className="font-bold text-slate-800 group-hover:text-emerald-700 transition-colors">{lead.name}</div>
+                            <div className="text-[11px] text-slate-400 font-medium">{lead.phone || lead.email || 'Sem contato'}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        {stage ? (
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className={cn(
+                                "w-2 h-2 rounded-full",
+                                stage.color.startsWith('bg-') ? stage.color : ""
+                              )}
+                              style={{ backgroundColor: stage.color.startsWith('bg-') ? undefined : stage.color }}
+                            />
+                            <span className="text-[11px] font-bold text-slate-600 uppercase tracking-tight">
+                              {stage.title}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-400 italic">Sem estágio</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-xs font-semibold text-slate-600 truncate max-w-[200px]" title={lead.product}>
+                          {lead.product}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 bg-slate-300 rounded-full" />
+                            <span className="text-xs font-medium text-slate-500">{lead.responsible || 'Sem resp.'}</span>
+                          </div>
+                          {squadInfo && (
+                            <span 
+                              className="text-[8px] font-black px-1.5 py-0.5 rounded-md tracking-tighter uppercase border w-fit"
+                              style={{ 
+                                backgroundColor: `${squadInfo.color}10`,
+                                color: squadInfo.color,
+                                borderColor: `${squadInfo.color}30`
+                              }}
+                            >
+                              SQUAD {squadInfo.name}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <div className="flex justify-center gap-0.5">
+                          {[...Array(5)].map((_, i) => (
+                            <div 
+                              key={i} 
+                              className={cn(
+                                "w-1 h-3 rounded-full",
+                                i < (lead.stars || 0) ? "bg-orange-400 shadow-[0_0_8px_rgba(251,146,60,0.5)]" : "bg-slate-100"
+                              )} 
+                            />
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="font-black text-slate-800 tabular-nums">
+                          R$ {totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <div className="flex flex-col items-center">
+                          <span className="text-xs font-bold text-slate-500">
+                            {lead.last_contact_at ? new Date(lead.last_contact_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '—'}
+                          </span>
+                          {lead.last_contact_at && (
+                            <span className="text-[10px] text-slate-400">
+                              {new Date(lead.last_contact_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {filters.filteredLeads.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-12 text-center text-slate-400 italic bg-slate-50/20">
+                      Nenhum lead encontrado com os filtros atuais.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 text-[11px] font-bold text-slate-400 flex justify-between items-center">
+            <span>{filters.filteredLeads.length} LEADS FILTRADOS</span>
+            <span className="uppercase tracking-widest">Target Agrotech CRM</span>
+          </div>
+        </div>
+      )}
 
       {/* Lead Details Modal */}
       {selectedLead && (

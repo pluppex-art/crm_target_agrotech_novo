@@ -14,6 +14,7 @@ export interface Lead {
   stage_id: string;
   pipeline_id: string;
   responsible: string | null;
+  responsavel_usuario_id?: string | null;
   value: string | number;
   discount?: string | number;
   discount_type?: 'percent' | 'money';

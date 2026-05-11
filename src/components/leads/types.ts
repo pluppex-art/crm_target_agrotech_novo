@@ -18,7 +18,7 @@ export interface LeadDetailsModalProps {
   onStageChange?: (stageId: string) => void;
   turmaAttendee?: { turmaId: string; attendeeId: string; currentStatus: AttendanceStatus };
   onTurmaStatusChange?: (turmaId: string, attendeeId: string, status: AttendanceStatus) => void;
-  responsibles?: string[];
+  responsibles?: { id: string; name: string }[];
 }
 
 export type TabType = 'info' | 'history' | 'notes' | 'tasks' | 'turma' | 'checklist';
@@ -47,7 +47,7 @@ export interface LeadInfoTabProps {
   onCancel: MouseEventHandler<HTMLButtonElement>;
   currentStageName?: string;
   showConfirmations?: boolean;
-  responsibles?: string[];
+  responsibles?: { id: string; name: string }[];
   pixCompleted?: boolean;
   contractSigned?: boolean;
   onPixComplete?: (v: boolean) => void;

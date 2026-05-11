@@ -47,8 +47,8 @@ export function Leads() {
 
   const responsibles = useMemo(() =>
     profiles
-      .filter(p => p.status === 'active' && p.name && p.department?.toLowerCase() === 'comercial')
-      .map(p => p.name as string),
+      .filter(p => p.status === 'active' && p.id && p.name && p.department?.toLowerCase() === 'comercial')
+      .map(p => ({ id: p.id, name: p.name as string })),
     [profiles]
   );
 
@@ -70,7 +70,7 @@ export function Leads() {
       if (filterProduct !== 'all' && lead.product !== filterProduct) return false;
       
       // 3. Responsible
-      if (filterResponsible !== 'all' && lead.responsible !== filterResponsible) return false;
+      if (filterResponsible !== 'all' && lead.responsavel_usuario_id !== filterResponsible && lead.responsible !== filterResponsible) return false;
       
       // 4. Stage
       if (filterStage !== 'all' && lead.stage_id !== filterStage) return false;
@@ -164,7 +164,7 @@ export function Leads() {
               value: filterResponsible,
               onChange: setFilterResponsible,
               activeColorClass: 'bg-teal-50 text-teal-700 border-teal-100',
-              options: responsibles.map(r => ({ value: r, label: r }))
+              options: responsibles.map(r => ({ value: r.id, label: r.name }))
             }
           ]}
         />

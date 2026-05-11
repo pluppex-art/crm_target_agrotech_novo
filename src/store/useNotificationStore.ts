@@ -111,6 +111,18 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       const targetUserId = userId || user?.id;
       if (!targetUserId) return;
 
+      // Dedup: skip if same title already inserted for this user in the last hour
+      const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const { data: existing } = await supabase
+        .from('notifications')
+        .select('id')
+        .eq('user_id', targetUserId)
+        .eq('title', notif.title)
+        .gte('created_at', since)
+        .limit(1);
+
+      if (existing && existing.length > 0) return;
+
       const { error } = await supabase
         .from('notifications')
         .insert([{

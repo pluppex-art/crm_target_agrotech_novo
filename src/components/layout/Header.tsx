@@ -26,6 +26,7 @@ import { useNotificationStore } from '../../store/useNotificationStore';
 import { cn, formatRelativeTime } from '../../lib/utils';
 import { LogOut } from 'lucide-react';
 import { AIAgentHeader } from './AIAgentHeader';
+import { TimeClockHeaderWidget } from './TimeClockHeaderWidget';
 
 type SearchResult = {
   id: string;
@@ -215,6 +216,7 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
       </div>
       
       <div className="flex items-center gap-4">
+        <TimeClockHeaderWidget />
         <AIAgentHeader />
 
         <div className="relative" ref={notificationsRef}>

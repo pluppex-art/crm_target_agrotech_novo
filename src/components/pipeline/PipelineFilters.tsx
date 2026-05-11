@@ -9,7 +9,7 @@ interface PipelineFiltersProps {
   selectedResponsible: string;
   selectedStars: number[];
   selectedSquad: string;
-  responsibles: string[];
+  responsibles: { id: string; name: string }[];
 
   products: any[];
   columns: any[];
@@ -192,8 +192,8 @@ export const PipelineFilters: React.FC<PipelineFiltersProps> = ({
               )}
             >
               <option value="all">Todos responsáveis</option>
-              {responsibles.map((name: string) => (
-                <option key={name} value={name}>{name}</option>
+              {responsibles.map(r => (
+                <option key={r.id} value={r.id}>{r.name}</option>
               ))}
             </select>
             <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />

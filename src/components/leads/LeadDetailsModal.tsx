@@ -144,15 +144,19 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
 
   // Build vendedores list from all active profiles
   const vendedores = useMemo(() => {
-    const list = profiles.filter(p => p.status === 'active' || !p.status);
-    
+    const list = profiles
+      .filter(p => p.status === 'active' || !p.status)
+      .filter(p => p.id && p.name)
+      .map(p => ({ id: p.id, name: p.name as string }));
+
     // Always include the lead's current responsible even if not in list
-    const names = list.map(p => p.name as string).filter(Boolean);
-    if (lead?.responsible && !names.includes(lead.responsible)) {
-      return [lead.responsible, ...names];
+    const hasCurrentResp = list.some(v => v.name === lead?.responsible);
+    if (lead?.responsible && !hasCurrentResp) {
+      const fallbackId = lead.responsavel_usuario_id || lead.responsible;
+      return [{ id: fallbackId, name: lead.responsible }, ...list];
     }
-    return names;
-  }, [profiles, lead?.responsible]);
+    return list;
+  }, [profiles, lead?.responsible, lead?.responsavel_usuario_id]);
   const isTurmaMode = !!turmaAttendee;
   const stages = isTurmaMode ? TURMA_STAGES : pipelineStages;
   const currentStageData = stages?.find(s => s.id === currentStageId);

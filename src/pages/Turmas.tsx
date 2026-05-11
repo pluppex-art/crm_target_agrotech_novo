@@ -59,7 +59,7 @@ export function Turmas() {
   const [filterProduct, setFilterProduct] = useState('all');
   const [filterProfessor, setFilterProfessor] = useState('all');
   const [setupRequired] = useState(false);
-  const [responsibles, setResponsibles] = useState<string[]>([]);
+  const [responsibles, setResponsibles] = useState<{ id: string; name: string }[]>([]);
   const [viewMode, setViewMode] = useState<'kanban' | 'lista'>('kanban');
 
   // Attendee detail modal
@@ -75,19 +75,19 @@ export function Turmas() {
     fetchTurmas();
   }, [fetchTurmas]);
 
-  // Fetch distinct responsibles directly from the database
+  // Fetch responsibles from perfis (active commercial users)
   useEffect(() => {
     const fetchResponsibles = async () => {
       const supabase = getSupabaseClient();
       if (!supabase) return;
       const { data } = await supabase
-        .from('leads')
-        .select('responsible')
-        .not('responsible', 'is', null)
-        .neq('responsible', '');
+        .from('perfis')
+        .select('id, name')
+        .eq('status', 'active')
+        .eq('department', 'Comercial')
+        .not('name', 'is', null);
       if (data) {
-        const unique = Array.from(new Set(data.map((r: any) => r.responsible).filter(Boolean))) as string[];
-        setResponsibles(unique);
+        setResponsibles(data.filter((p: any) => p.id && p.name).map((p: any) => ({ id: p.id, name: p.name })));
       }
     };
     fetchResponsibles();

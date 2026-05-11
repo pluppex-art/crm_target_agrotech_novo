@@ -62,6 +62,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
     city: string;
     cnpj: string;
     responsible: string;
+    responsavel_usuario_id: string;
     subStatus: LeadSubStatus;
     discount_applied: boolean;
     discount: string;
@@ -79,6 +80,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
     city: '',
     cnpj: '',
     responsible: '',
+    responsavel_usuario_id: '',
     subStatus: 'qualified',
     discount_applied: false,
     discount: '',
@@ -113,9 +115,9 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
       fetchProducts();
       fetchProfiles();
       setSelectedStageId(initialStageId ?? '');
-      const consultantName = user?.user_metadata?.full_name || user?.user_metadata?.name || '';
-      if (!formData.responsible && consultantName) {
-        setFormData(prev => ({ ...prev, responsible: consultantName }));
+      const myProfile = profiles.find(p => p.id === user?.id);
+      if (!formData.responsible && myProfile) {
+        setFormData(prev => ({ ...prev, responsible: myProfile.name || '', responsavel_usuario_id: myProfile.id }));
       }
     }
   }, [isOpen, initialStageId, fetchProducts, fetchProfiles, user]);
@@ -184,6 +186,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
         city: formData.city,
         cnpj: formData.cnpj,
         responsible: formData.responsible,
+        responsavel_usuario_id: formData.responsavel_usuario_id || undefined,
         status: initialStatus as LeadStatus,
         subStatus: initialStatus === 'qualified' ? formData.subStatus : null,
         stars: 0,
@@ -242,6 +245,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
           city: '',
           cnpj: '',
           responsible: '',
+          responsavel_usuario_id: '',
           subStatus: 'qualified',
           discount_applied: false,
           discount: '',
@@ -374,14 +378,21 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                   <select
                     required
-                    value={formData.responsible}
-                    onChange={(e) => setFormData(prev => ({ ...prev, responsible: e.target.value }))}
+                    value={formData.responsavel_usuario_id}
+                    onChange={(e) => {
+                      const p = vendedores.find(v => v.id === e.target.value);
+                      setFormData(prev => ({
+                        ...prev,
+                        responsible: p?.name || '',
+                        responsavel_usuario_id: e.target.value,
+                      }));
+                    }}
                     className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"
                   >
                     <option value="">Selecione o responsável</option>
                     {vendedores.map(p => (
-                      <option key={`resp-${p.id}`} value={p.name}>
-                        {p.name} [{getSquadInfoForUser(p.id, p.name, profiles).name}]
+                      <option key={`resp-${p.id}`} value={p.id}>
+                        {p.name} [{getSquadInfoForUser(p.id, p.name || '', profiles).name}]
                       </option>
                     ))}
 

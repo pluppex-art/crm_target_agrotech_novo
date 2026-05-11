@@ -3,7 +3,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { useProfileStore } from '../store/useProfileStore';
 import type { Lead } from '../types/leads';
-import { checkLeadInactivity, fireAlerts } from '../services/alertService';
+import { checkLeadInactivity, fireAlerts, getSentAlerts } from '../services/alertService';
 import { notifyLeadTransferred } from '../services/leadNotificationService';
 import type { Task } from '../services/taskService';
 
@@ -35,9 +35,12 @@ export const usePipelineAlerts = (leads: Lead[], tasks: Task[] = []) => {
       fireAlerts(alerts, userEmail, undefined, user?.id);
     }
 
-    // Notify admins/coordinators for leads that reached the transfer threshold
+    // Notify admins/coordinators only the first time a lead crosses the transfer threshold
+    const sentAlerts = getSentAlerts();
     for (const lead of toTransfer) {
-      notifyLeadTransferred(lead, lead.responsible || '', profiles);
+      if (!sentAlerts[lead.id]?.h48) {
+        notifyLeadTransferred(lead, lead.responsible || '', profiles);
+      }
     }
   }, [myLeads, autoTransferHours, notificationPrefs, user, tasks, profiles]);
 

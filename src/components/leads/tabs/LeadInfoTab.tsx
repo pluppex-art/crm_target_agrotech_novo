@@ -442,21 +442,22 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = ({
           <div className="relative">
             <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <select
-              value={formData.responsible}
-              onChange={(e) => updateFormField({ responsible: e.target.value })}
+              value={formData.responsavel_usuario_id || ''}
+              onChange={(e) => {
+                const r = (responsibles ?? []).find(r => r.id === e.target.value);
+                updateFormField({
+                  responsible: r?.name ?? e.target.value,
+                  responsavel_usuario_id: e.target.value || null,
+                });
+              }}
               className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"
             >
               <option value="">Selecione...</option>
-              {/* Always include the lead's current responsible even if not in list yet */}
-              {formData.responsible && !(responsibles ?? []).includes(formData.responsible) && (
-                <option value={formData.responsible}>{formData.responsible}</option>
-              )}
-              {responsibles?.map(name => {
-                const p = profiles.find(profile => profile.name === name);
-                const info = getSquadInfoForUser(p?.id || '', name, profiles);
+              {responsibles?.map(r => {
+                const info = getSquadInfoForUser(r.id, r.name, profiles);
                 return (
-                  <option key={name} value={name}>
-                    {name} [{info.name}]
+                  <option key={r.id} value={r.id}>
+                    {r.name} [{info.name}]
                   </option>
                 );
               })}

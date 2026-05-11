@@ -43,8 +43,7 @@ export function Products() {
   };
 
   const modalInitialData = useMemo(() => {
-    if (!editingProduct) return undefined;
-    return { id: editingProduct.id, name: editingProduct.name, category: editingProduct.category } as any;
+    return editingProduct ?? undefined;
   }, [editingProduct]);
 
   const getProductTurmaStatus = (product: Product) => {

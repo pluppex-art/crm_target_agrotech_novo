@@ -26,6 +26,7 @@ const blankForm = {
   date: '',
   time: '',
   location: '',
+  instructor_cost: '',
 };
 
 export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
@@ -58,6 +59,7 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
         date: initialData.date || '',
         time: initialData.time || '',
         location: initialData.location || '',
+        instructor_cost: (initialData as any).instructor_cost != null ? String((initialData as any).instructor_cost) : '',
       });
     } else {
       setFormData(blankForm);
@@ -80,6 +82,7 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
         date: formData.date || null,
         time: formData.time || null,
         location: formData.location || null,
+        instructor_cost: formData.instructor_cost ? parseFloat(formData.instructor_cost) : 0,
       };
 
       if (initialData?.id) {
@@ -216,6 +219,14 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
                 {field('Data de Início', 'date', { type: 'date', icon: <Calendar size={16} /> })}
                 {field('Horário', 'time', { type: 'time', icon: <Clock size={16} /> })}
               </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {field('Custo do Instrutor (R$)', 'instructor_cost', { type: 'number', placeholder: '0.00', icon: <DollarSign size={16} /> })}
+              </div>
+              {formData.instructor_cost && parseFloat(formData.instructor_cost) > 0 && (
+                <p className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                  Ao concluir a turma, R$ {parseFloat(formData.instructor_cost).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} será lançado como despesa CSP no financeiro.
+                </p>
+              )}
             </motion.div>
 
             <div className="flex justify-end gap-3 pt-6 border-t border-gray-50 shrink-0">

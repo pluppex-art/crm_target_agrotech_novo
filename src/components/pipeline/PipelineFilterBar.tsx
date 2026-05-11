@@ -11,7 +11,7 @@ interface PipelineFilterBarProps {
   selectedStars: number | 'all';
   responsibleSearch: string;
   isResponsibleDropdownOpen: boolean;
-  filteredResponsibles: string[];
+  filteredResponsibles: { id: string; name: string }[];
   COLUMNS: { id: string; title: string }[];
   products: { id: string; name: string }[];
   activeFilterCount: number;
@@ -167,7 +167,7 @@ const PipelineFilterBar: React.FC<PipelineFilterBarProps> = ({
           >
             <option value="all">Todos responsáveis</option>
             {filteredResponsibles.map(r => (
-              <option key={r} value={r}>{r}</option>
+              <option key={r.id} value={r.id}>{r.name}</option>
             ))}
           </select>
           <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />

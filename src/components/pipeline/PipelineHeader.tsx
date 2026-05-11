@@ -1,5 +1,5 @@
 import React from 'react';
-import { Loader2, Download, Plus, Trophy, UserCheck, CalendarRange } from 'lucide-react';
+import { Loader2, Download, Plus, Trophy, UserCheck, CalendarRange, LayoutGrid, List } from 'lucide-react';
 
 import { PipelineSelect } from './PipelineSelect';
 import { PipelineMetricCards } from './PipelineMetricCards';
@@ -17,6 +17,8 @@ interface PipelineHeaderProps {
   isLoading: boolean;
   hasPermissionCreate: boolean;
   onNewLeadClick: () => void;
+  viewMode: 'kanban' | 'list';
+  onViewModeChange: (mode: 'kanban' | 'list') => void;
 }
 
 
@@ -31,6 +33,8 @@ export const PipelineHeader: React.FC<PipelineHeaderProps> = ({
   isLoading,
   hasPermissionCreate,
   onNewLeadClick,
+  viewMode,
+  onViewModeChange,
 }) => {
 
   return (
@@ -61,6 +65,29 @@ export const PipelineHeader: React.FC<PipelineHeaderProps> = ({
         <button className="p-1.5 bg-white border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 transition-colors" title="Exportar">
           <Download size={16} />
         </button>
+
+        <div className="flex items-center bg-white border border-gray-200 rounded-lg overflow-hidden h-[34px]">
+          <button
+            onClick={() => onViewModeChange('kanban')}
+            className={cn(
+              "p-1.5 transition-colors h-full flex items-center px-2",
+              viewMode === 'kanban' ? "bg-emerald-50 text-emerald-600 font-bold" : "text-gray-400 hover:bg-gray-50"
+            )}
+            title="Visualização Kanban"
+          >
+            <LayoutGrid size={16} />
+          </button>
+          <button
+            onClick={() => onViewModeChange('list')}
+            className={cn(
+              "p-1.5 transition-colors h-full flex items-center px-2 border-l border-gray-100",
+              viewMode === 'list' ? "bg-emerald-50 text-emerald-600 font-bold" : "text-gray-400 hover:bg-gray-50"
+            )}
+            title="Visualização em Lista"
+          >
+            <List size={16} />
+          </button>
+        </div>
 
         {hasPermissionCreate && (
           <button

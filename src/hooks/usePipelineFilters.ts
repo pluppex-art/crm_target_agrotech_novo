@@ -80,36 +80,35 @@ export const usePipelineFilters = (
       });
   }, [leads]);
 
-  // Nomes de responsáveis
+  // Lista de responsáveis: {id, name}[]
   const responsibles = useMemo(() => {
     const fromProfiles = profiles
       .filter(p => {
-        if (!p.status || p.status !== 'active' || !p.name) return false;
+        if (!p.status || p.status !== 'active' || !p.id || !p.name) return false;
         const isComercialDept = p.department?.toLowerCase() === 'comercial';
         const isVendedorCargo = p.cargos?.name?.toLowerCase().includes('vendedor');
         return isComercialDept || isVendedorCargo;
       })
-      .map(p => p.name as string);
+      .map(p => ({ id: p.id, name: p.name as string }));
 
-    const fromLeads = leads
-      .map(l => l.responsible)
-      .filter((name): name is string => !!name?.trim());
-
-    const seen = new Set<string>();
-    return [...fromProfiles, ...fromLeads].filter(name => {
-      const key = name.trim().toLowerCase();
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
+    // Add responsible from leads that might not be in active profiles
+    const seen = new Set<string>(fromProfiles.map(r => r.id));
+    leads.forEach(l => {
+      if (l.responsavel_usuario_id && !seen.has(l.responsavel_usuario_id) && l.responsible) {
+        fromProfiles.push({ id: l.responsavel_usuario_id, name: l.responsible });
+        seen.add(l.responsavel_usuario_id);
+      }
     });
+
+    return fromProfiles;
   }, [profiles, leads]);
 
-  // Comercial users see all leads but filter defaults to their own name
+  // Comercial users see all leads but filter defaults to their own ID
   useEffect(() => {
-    if (isComercial && myProfileName && selectedResponsible === 'all') {
-      setSelectedResponsible(myProfileName);
+    if (isComercial && authUserId && selectedResponsible === 'all') {
+      setSelectedResponsible(authUserId);
     }
-  }, [isComercial, myProfileName]);
+  }, [isComercial, authUserId]);
 
   const filteredLeads = useMemo(() => leads.filter(lead => {
     const matchesSearch =
@@ -118,13 +117,9 @@ export const usePipelineFilters = (
       (lead.phone && lead.phone.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (lead.responsible && lead.responsible.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    const selectedResponsibleLower = selectedResponsible.trim().toLowerCase();
-    const leadResponsibleLower = (lead.responsible ?? '').trim().toLowerCase();
-    
     const matchesResponsible = selectedResponsible === 'all' ||
-      leadResponsibleLower === selectedResponsibleLower ||
-      leadResponsibleLower.includes(selectedResponsibleLower) ||
-      selectedResponsibleLower.includes(leadResponsibleLower);
+      lead.responsavel_usuario_id === selectedResponsible ||
+      (lead.responsible ?? '').trim().toLowerCase() === selectedResponsible.trim().toLowerCase();
     
     const selectedProductLower = selectedProduct.trim().toLowerCase();
     const leadProductLower = (lead.product ?? '').trim().toLowerCase();
@@ -140,16 +135,15 @@ export const usePipelineFilters = (
     // Todos os leads (ativos ou não) devem aparecer nas colunas, sem sumir por causa da data.
 
     const matchesSquad = selectedSquad === 'all' || (() => {
-      const squadName = selectedSquad.toUpperCase(); // Ex: "TARGET" ou "PLUPPEX"
+      const squadName = selectedSquad.toUpperCase();
       const members = squadMapping[squadName] || [];
-      if (!leadResponsibleLower) return false;
+      const respLower = (lead.responsible ?? '').trim().toLowerCase();
+      if (!respLower) return false;
 
-      // Smart match
       return members.some(mName => {
-        if (mName === leadResponsibleLower) return true;
-        if (mName.includes(leadResponsibleLower) || leadResponsibleLower.includes(mName)) return true;
-        
-        const leadWords = leadResponsibleLower.split(/\s+/).filter(w => w.length > 2);
+        if (mName === respLower) return true;
+        if (mName.includes(respLower) || respLower.includes(mName)) return true;
+        const leadWords = respLower.split(/\s+/).filter(w => w.length > 2);
         const memberWords = mName.split(/\s+/).filter(w => w.length > 2);
         const common = leadWords.filter(lw => memberWords.some(mw => mw.includes(lw) || lw.includes(mw)));
         return common.length >= 2;

@@ -20,7 +20,7 @@ type AlertKey = typeof INACTIVITY_LEVELS[number]['key'];
 
 const SENT_ALERTS_KEY = 'crm_sent_alerts';
 
-function getSentAlerts(): Record<string, Partial<Record<AlertKey, boolean>>> {
+export function getSentAlerts(): Record<string, Partial<Record<AlertKey, boolean>>> {
   try {
     return JSON.parse(localStorage.getItem(SENT_ALERTS_KEY) || '{}');
   } catch {
@@ -168,6 +168,8 @@ export async function fireAlerts(
       ? `Lead sem contato há ${label}. Transferido para novo responsável.`
       : `Responsável: ${lead.responsible || 'Não definido'} | Produto: ${lead.product}`;
 
+    markAlertSent(lead.id, key);
+
     sendOSNotification(title, body);
 
     if (userEmail) {
@@ -178,8 +180,6 @@ export async function fireAlerts(
       const msg = `⚠️ *Alerta CRM*\n\nO cliente *${lead.name}* está sem contato há *${label}*.\n\nProduto: ${lead.product}\nTelefone do cliente: ${lead.phone}\n\nAcesse o CRM e entre em contato!`;
       openWhatsApp(userPhone, msg);
     }
-
-    markAlertSent(lead.id, key);
 
     useNotificationStore.getState().addNotification({
       title,

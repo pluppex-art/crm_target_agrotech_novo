@@ -11,6 +11,11 @@ export interface Product {
   category?: string;
   image_url?: string;
   student_goal?: number;
+  professor_name?: string | null;
+  professor_email?: string | null;
+  date?: string | null;
+  time?: string | null;
+  location?: string | null;
 }
 
 export const productService = {
@@ -20,7 +25,7 @@ export const productService = {
 
     const { data, error } = await supabase
       .from('turmas')
-      .select('id, created_at, name, description, price, enrollment_fee, category, image_url, student_goal')
+      .select('id, created_at, name, description, price, enrollment_fee, category, image_url, student_goal, professor_name, professor_email, date, time, location')
       .order('name', { ascending: true });
 
     if (error) {
@@ -38,6 +43,11 @@ export const productService = {
       category: row.category ?? undefined,
       image_url: row.image_url ?? undefined,
       student_goal: row.student_goal ?? undefined,
+      professor_name: row.professor_name,
+      professor_email: row.professor_email,
+      date: row.date,
+      time: row.time,
+      location: row.location,
     })) as Product[];
   },
 
@@ -45,11 +55,11 @@ export const productService = {
     const supabase = getSupabaseClient();
     if (!supabase) return null;
 
-    const { name, description, price, enrollment_fee, category, image_url, student_goal } = product;
+    const { name, description, price, enrollment_fee, category, image_url, student_goal, professor_name, professor_email, date, time, location } = product;
     const { data, error } = await supabase
       .from('turmas')
-      .insert([{ name, description, price, enrollment_fee, category, image_url, student_goal, status: 'agendada' }])
-      .select('id, created_at, name, description, price, enrollment_fee, category, image_url, student_goal')
+      .insert([{ name, description, price, enrollment_fee, category, image_url, student_goal, professor_name, professor_email, date, time, location, status: 'agendada' }])
+      .select('id, created_at, name, description, price, enrollment_fee, category, image_url, student_goal, professor_name, professor_email, date, time, location')
       .single();
 
     if (error) {

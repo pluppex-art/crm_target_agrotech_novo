@@ -68,17 +68,24 @@ export const oteService = {
     const supabase = getSupabaseClient();
     if (!supabase) return false;
 
-    const { count, error } = await supabase
+    // Try responsible_id (UUID FK) first — column added in migration 006
+    const { count: byId } = await (supabase as any)
       .from('lead_class_enrollments')
       .select('*', { count: 'exact', head: true })
-      .eq('responsible', userId);
+      .eq('responsible_id', userId);
 
-    if (error) {
-      console.error('[oteService] Error checking user sales:', error);
-      return false;
-    }
+    if ((byId || 0) > 0) return true;
 
-    return (count || 0) > 0;
+    // Fallback: match by name
+    const { data: profile } = await supabase.from('perfis').select('name').eq('id', userId).maybeSingle();
+    if (!profile?.name) return false;
+
+    const { count: byName } = await supabase
+      .from('lead_class_enrollments')
+      .select('*', { count: 'exact', head: true })
+      .ilike('responsible', profile.name);
+
+    return (byName || 0) > 0;
   },
 
   /**
