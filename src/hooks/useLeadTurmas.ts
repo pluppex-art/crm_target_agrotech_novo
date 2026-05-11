@@ -63,6 +63,7 @@ export const useLeadTurmas = ({ leadId }: UseLeadTurmasProps) => {
       const authorName = user?.user_metadata?.full_name || user?.email || 'Professor';
       await noteService.createNote({
         lead_id: leadId,
+        author_id: user?.id ?? '',
         author_name: authorName,
         content: `💰 PAGAMENTO REGISTRADO: ${financialCalculator.formatCurrency(valor_novo)} via ${forma_pagamento}. (Total acumulado: ${financialCalculator.formatCurrency(newTotal)})`
       });

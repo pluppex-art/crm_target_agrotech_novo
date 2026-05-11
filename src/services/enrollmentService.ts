@@ -58,13 +58,14 @@ export const enrollmentService = {
     const { data, error } = await supabase
       .from('lead_class_enrollments')
       .insert([{
-        lead_id:               params.lead_id,
-        class_id:              params.class_id,
-        status:                'ENROLLED',
-        contracted_amount:     params.contracted_amount ?? null,
-        income_transaction_id: params.income_transaction_id ?? null,
-        notes:                 params.notes ?? null,
-        created_by:            params.created_by ?? null,
+        lead_id:                params.lead_id,
+        class_id:               params.class_id,
+        responsavel_usuario_id: params.responsavel_usuario_id,
+        status:                 'ENROLLED',
+        contracted_amount:      params.contracted_amount ?? null,
+        income_transaction_id:  params.income_transaction_id ?? null,
+        notes:                  params.notes ?? null,
+        created_by:             params.created_by ?? null,
       }])
       .select()
       .single();
@@ -133,13 +134,14 @@ export const enrollmentService = {
     const { data: next, error: insertError } = await supabase
       .from('lead_class_enrollments')
       .insert([{
-        lead_id:               current.lead_id,
-        class_id:              params.to_class_id,
-        status:                'ENROLLED',
-        contracted_amount:     current.contracted_amount,
-        income_transaction_id: current.income_transaction_id ?? null,
-        notes:                 `Transferido de turma ${current.class_id}`,
-        created_by:            current.created_by ?? null,
+        lead_id:                current.lead_id,
+        class_id:               params.to_class_id,
+        responsavel_usuario_id: (current as any).responsavel_usuario_id ?? current.created_by ?? current.lead_id,
+        status:                 'ENROLLED',
+        contracted_amount:      current.contracted_amount,
+        income_transaction_id:  current.income_transaction_id ?? null,
+        notes:                  `Transferido de turma ${current.class_id}`,
+        created_by:             current.created_by ?? null,
       }])
       .select()
       .single();
@@ -348,7 +350,7 @@ export const enrollmentService = {
       .from('lead_class_enrollments')
       .select(`
         *,
-        turmas (
+        turmas!class_id (
           id,
           name,
           date,
@@ -365,7 +367,7 @@ export const enrollmentService = {
       return [];
     }
 
-    return (data ?? []) as EnrollmentWithDetails[];
+    return (data ?? []) as unknown as EnrollmentWithDetails[];
   },
 
   // ───────────────────────────────────────────────────────────────────────────

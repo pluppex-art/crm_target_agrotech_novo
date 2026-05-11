@@ -6,17 +6,17 @@ export const financialRulesService = {
   async getPartnerRules(): Promise<PartnerRule[]> {
     const supabase = getSupabaseClient();
     if (!supabase) return [];
-    
+
     const { data, error } = await supabase
       .from('partner_rules')
       .select('*')
       .order('origin_type');
-      
+
     if (error) {
       console.error('Error fetching partner rules:', error);
       return [];
     }
-    return data as PartnerRule[];
+    return (data || []) as unknown as PartnerRule[];
   },
 
   async updatePartnerRule(id: string, updates: Partial<PartnerRule>): Promise<boolean> {
@@ -25,7 +25,7 @@ export const financialRulesService = {
 
     const { error } = await supabase
       .from('partner_rules')
-      .update(updates)
+      .update(updates as any)
       .eq('id', id);
 
     if (error) {
@@ -41,7 +41,7 @@ export const financialRulesService = {
 
     const { data, error } = await supabase
       .from('partner_rules')
-      .insert([rule])
+      .insert([rule as any])
       .select()
       .single();
 
@@ -49,57 +49,23 @@ export const financialRulesService = {
       console.error('Error creating partner rule:', error);
       return null;
     }
-    return data as PartnerRule;
+    return data as unknown as PartnerRule;
   },
 
-  // --- Fee Rules ---
+  // --- Fee Rules (financial_fee_rules table no longer exists; stubs retained for compatibility) ---
   async getFeeRules(): Promise<FinancialFeeRule[]> {
-    const supabase = getSupabaseClient();
-    if (!supabase) return [];
-    
-    const { data, error } = await supabase
-      .from('financial_fee_rules')
-      .select('*')
-      .order('name');
-      
-    if (error) {
-      console.error('Error fetching fee rules:', error);
-      return [];
-    }
-    return data as FinancialFeeRule[];
+    console.warn('financialRulesService.getFeeRules: financial_fee_rules table no longer exists.');
+    return [];
   },
 
-  async updateFeeRule(id: string, updates: Partial<FinancialFeeRule>): Promise<boolean> {
-    const supabase = getSupabaseClient();
-    if (!supabase) return false;
-
-    const { error } = await supabase
-      .from('financial_fee_rules')
-      .update(updates)
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error updating fee rule:', error);
-      return false;
-    }
-    return true;
+  async updateFeeRule(_id: string, _updates: Partial<FinancialFeeRule>): Promise<boolean> {
+    console.warn('financialRulesService.updateFeeRule: financial_fee_rules table no longer exists.');
+    return false;
   },
 
-  async createFeeRule(rule: Omit<FinancialFeeRule, 'id' | 'created_at'>): Promise<FinancialFeeRule | null> {
-    const supabase = getSupabaseClient();
-    if (!supabase) return null;
-
-    const { data, error } = await supabase
-      .from('financial_fee_rules')
-      .insert([rule])
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error creating fee rule:', error);
-      return null;
-    }
-    return data as FinancialFeeRule;
+  async createFeeRule(_rule: Omit<FinancialFeeRule, 'id' | 'created_at'>): Promise<FinancialFeeRule | null> {
+    console.warn('financialRulesService.createFeeRule: financial_fee_rules table no longer exists.');
+    return null;
   },
 
   async deletePartnerRule(id: string): Promise<boolean> {
@@ -109,10 +75,8 @@ export const financialRulesService = {
     return !error;
   },
 
-  async deleteFeeRule(id: string): Promise<boolean> {
-    const supabase = getSupabaseClient();
-    if (!supabase) return false;
-    const { error } = await supabase.from('financial_fee_rules').delete().eq('id', id);
-    return !error;
+  async deleteFeeRule(_id: string): Promise<boolean> {
+    console.warn('financialRulesService.deleteFeeRule: financial_fee_rules table no longer exists.');
+    return false;
   }
 };

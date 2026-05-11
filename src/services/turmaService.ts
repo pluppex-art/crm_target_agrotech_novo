@@ -151,6 +151,7 @@ export const turmaService = {
       .insert([{
         class_id: turmaId,
         lead_id: attendee.lead_id ?? null,
+        responsavel_usuario_id: attendee.lead_id ?? turmaId,
         status: 'ENROLLED',
         board_status: attendee.status || 'matriculado',
         name: attendee.name || '',
@@ -225,7 +226,7 @@ export const turmaService = {
       enrollment_fee: data.enrollment_fee ?? 0,
       category: data.category ?? 'Geral',
       location: data.location,
-      status: data.status,
+      status: data.status as Turma['status'],
       attendees: [],
     };
   },
@@ -435,6 +436,7 @@ export const turmaService = {
       .insert([{
         class_id: classId,
         lead_id: leadData.id,
+        responsavel_usuario_id: leadData.id,
         status: 'ENROLLED',
         discount: leadData.discount || null,
         discount_applied: leadData.discount_applied || false,

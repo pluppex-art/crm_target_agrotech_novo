@@ -30,7 +30,7 @@ export function NotificationsPage() {
     subscribe: subscribeNotifs
   } = useNotificationStore();
 
-  const [filter, setFilter] = useState<'all' | 'unread' | 'system' | 'user' | 'alerts'>('all');
+  const [filter, setFilter] = useState<'all' | 'unread' | 'system' | 'user'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
@@ -43,7 +43,6 @@ export function NotificationsPage() {
     const matchesFilter = 
       filter === 'all' ? true :
       filter === 'unread' ? !n.read :
-      filter === 'alerts' ? n.category === 'alerts' :
       filter === 'system' ? n.category === 'system' :
       n.category === 'user';
     
@@ -108,9 +107,8 @@ export function NotificationsPage() {
             {[
               { id: 'all', label: 'Tudo', icon: <Bell className="w-4 h-4" /> },
               { id: 'unread', label: 'Não Lidas', icon: <Clock className="w-4 h-4" /> },
-              { id: 'alerts', label: 'Alertas', icon: <AlertCircle className="w-4 h-4 text-red-500" /> },
+              { id: 'system', label: 'Alertas / Sistema', icon: <AlertCircle className="w-4 h-4 text-red-500" /> },
               { id: 'user', label: 'Usuários', icon: <User className="w-4 h-4" /> },
-              { id: 'system', label: 'Sistema', icon: <SystemIcon className="w-4 h-4" /> },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -219,11 +217,11 @@ export function NotificationsPage() {
                               onClick={() => navigate(notification.link || '/pipeline')}
                               className="ml-auto flex items-center gap-1 text-xs font-bold text-emerald-600 hover:text-emerald-700 underline underline-offset-4 transition-colors"
                             >
-                              {notification.category === 'alerts' ? 'Ver Lead' : 'Ver detalhes'}
+                              {notification.category === 'system' ? 'Ver Lead' : 'Ver detalhes'}
                               <ChevronRight className="w-4 h-4" />
                             </button>
                           )}
-                          {notification.category === 'alerts' && notification.meta && (
+                          {notification.category === 'system' && notification.meta && (
                             <>
                               <button 
                                 onClick={() => {

@@ -33,9 +33,9 @@ export function DashboardTab({ startDate, endDate }: { startDate: string; endDat
           transactionService.getKPIs({ startDate, endDate }),
           transactionService.getCashFlowTransactions(startDate, endDate),
           partnerRevenueService.getPartnerReport(startDate, endDate),
-          supabase.from('finance_categories').select('id, name, color')
+          supabase.from('financial_categories').select('id, name')
         ]);
-        
+
         setKpis(kpiData);
 
         // 1. Daily Trend Data
@@ -44,7 +44,7 @@ export function DashboardTab({ startDate, endDate }: { startDate: string; endDat
           const date = (t.payment_date || t.created_at || '').split('T')[0];
           if (!date || date < startDate || date > endDate) return;
           if (!daily[date]) daily[date] = { date, income: 0, expense: 0 };
-          
+
           if (t.status === 'PAID' || t.origin_type === 'PIPELINE') {
             if (t.type === 'INCOME') daily[date].income += Number(t.amount) || 0;
             else daily[date].expense += Number(t.amount) || 0;
@@ -60,9 +60,9 @@ export function DashboardTab({ startDate, endDate }: { startDate: string; endDat
 
         // 3. Category Data
         const catMap: Record<string, number> = {};
-        const catNames: Record<string, {name: string, color?: string}> = {};
-        (categoriesRes.data || []).forEach((c: any) => {
-          catNames[c.id] = { name: c.name, color: c.color };
+        const catNames: Record<string, { name: string }> = {};
+        (categoriesRes.data || []).forEach((c: { id: string; name: string }) => {
+          catNames[c.id] = { name: c.name };
         });
 
         txs.forEach(t => {
@@ -73,10 +73,10 @@ export function DashboardTab({ startDate, endDate }: { startDate: string; endDat
           }
         });
 
-        setCategoryData(Object.entries(catMap).map(([name, value]) => ({
+        setCategoryData(Object.entries(catMap).map(([name, value], idx) => ({
           name,
           value,
-          color: (categoriesRes.data || []).find((c: any) => c.name === name)?.color || COLORS[Math.abs(name.length) % COLORS.length]
+          color: COLORS[idx % COLORS.length]
         })).sort((a, b) => b.value - a.value));
 
         // 4. Turma Trend Data (Performance by Class)

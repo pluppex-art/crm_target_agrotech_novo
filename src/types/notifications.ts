@@ -9,6 +9,6 @@ export interface Notification {
   type: NotificationType;
   read: boolean;
   link?: string;
-  category: 'user' | 'system' | 'alerts';
+  category: 'user' | 'system';
   meta?: string;
 }

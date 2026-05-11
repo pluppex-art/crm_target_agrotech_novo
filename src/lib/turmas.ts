@@ -64,7 +64,7 @@ export async function fetchLeadById(leadId: string): Promise<Lead | null> {
     console.error('Error fetching lead:', error); 
     return null; 
   }
-  return data as Lead;
+  return { ...data, origin: (data as any).lead_source ?? '', subStatus: (data as any).substatus ?? null } as unknown as Lead;
 }
 
 

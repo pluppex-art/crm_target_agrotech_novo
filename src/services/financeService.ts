@@ -1,6 +1,5 @@
 import { getSupabaseClient } from '../lib/supabase';
 import { transactionService } from './transactionService';
-import { TransactionType } from '../types/finance_v2';
 
 export interface LegacyTransaction {
   status: string;
@@ -16,7 +15,7 @@ export const financeService = {
   // Mantém compatibilidade temporária: lê da nova tabela mas devolve no formato antigo
   async getTransactions(): Promise<LegacyTransaction[]> {
     const newTx = await transactionService.getAll();
-    
+
     // Fallback mapeando V2 para V1 para não quebrar a interface atual antes da Fase 3
     return newTx.map(t => ({
       id: t.id,
@@ -29,39 +28,50 @@ export const financeService = {
     }));
   },
 
-  // Mantém a criação apontando para a tabela antiga por segurança até o UI ser refatorado,
-  // ou podemos tentar já inserir na nova. O ideal na transição suave é inserir na nova.
-  // Porém, a interface antiga não envia category_id, ela envia texto 'category'.
-  // Por isso, redirecionamos para a tabela velha, e a migration final (006) fará a unificação.
   async createTransaction(transaction: Omit<LegacyTransaction, 'id'>): Promise<LegacyTransaction | null> {
     const supabase = getSupabaseClient();
     if (!supabase) return null;
 
-    // Ainda escreve na velha tabela de transações para não quebrar UI existente.
+    // transactions table no longer exists — write to financial_transactions instead.
+    // Map legacy fields to the new schema as best-effort.
     const { data, error } = await supabase
-      .from('transactions')
-      .insert([transaction])
+      .from('financial_transactions')
+      .insert([{
+        description: transaction.description,
+        amount: transaction.amount,
+        type: transaction.type === 'income' ? 'INCOME' : 'EXPENSE',
+        status: (transaction.status?.toUpperCase() as any) || 'PENDING',
+        origin_type: 'MANUAL',
+        payment_date: transaction.date || null,
+        due_date: transaction.date || null,
+      }])
       .select()
       .single();
 
     if (error) {
-      console.error('Error creating legacy transaction:', error);
+      console.error('Error creating transaction:', error);
       return null;
     }
 
-    return data as LegacyTransaction;
+    return {
+      id: data.id,
+      description: data.description,
+      amount: Number(data.amount),
+      type: data.type === 'INCOME' ? 'income' : 'expense',
+      status: data.status,
+      date: data.payment_date || data.created_at,
+      category: 'Sem Categoria',
+    };
   },
 
   async deleteTransaction(id: string): Promise<boolean> {
     const supabase = getSupabaseClient();
     if (!supabase) return false;
 
-    // Tenta deletar das duas para garantir, já que não sabemos se o ID veio da nova ou velha
-    const { error: err1 } = await supabase.from('transactions').delete().eq('id', id);
-    const { error: err2 } = await supabase.from('financial_transactions').delete().eq('id', id);
+    const { error } = await supabase.from('financial_transactions').delete().eq('id', id);
 
-    if (err1 && err2) {
-      console.error('Error deleting transaction from both tables');
+    if (error) {
+      console.error('Error deleting transaction:', error);
       return false;
     }
 

@@ -2,7 +2,7 @@ import { getSupabaseClient } from '../lib/supabase';
 
 export interface Goal {
   id: string;
-  type: 'company' | 'seller';
+  type: string; // DB stores plain string; common values: 'company' | 'seller'
   seller_name: string | null;
   seller_id: string | null; // stores seller name in current implementation
   revenue_goal: number;

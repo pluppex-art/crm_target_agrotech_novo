@@ -40,16 +40,27 @@ export const transactionService = {
     }
     const { data: v2Data } = await query.limit(500);
 
-    return v2Data || [];
+    return (v2Data || []) as unknown as FinancialTransaction[];
   },
 
   async create(transaction: Omit<FinancialTransaction, 'id' | 'created_at' | 'updated_at'>): Promise<FinancialTransaction | null> {
     const supabase = getSupabaseClient();
     if (!supabase) return null;
 
+    // Strip any joined/virtual fields before inserting
+    const {
+      financial_categories: _fc, leads: _l, perfis: _p, turmas: _t,
+      origin_type, partner_origin,
+      ...dbFields
+    } = transaction as any;
+
     const { data, error } = await supabase
       .from('financial_transactions')
-      .insert([transaction])
+      .insert({
+        ...dbFields,
+        origin_type: origin_type ?? 'MANUAL',
+        partner_origin: partner_origin ?? null,
+      })
       .select()
       .single();
 

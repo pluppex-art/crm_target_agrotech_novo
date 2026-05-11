@@ -160,17 +160,19 @@ export const pipelineService = {
     const supabase = getSupabaseClient();
     if (!supabase) return false;
 
-    const updates = stageIds.map((id, index) => ({
-      id,
-      position: index
-    }));
+    // Update each stage position individually (upsert requires all required fields)
+    const results = await Promise.all(
+      stageIds.map((id, index) =>
+        supabase
+          .from('pipeline_stages')
+          .update({ position: index })
+          .eq('id', id)
+      )
+    );
 
-    const { error } = await supabase
-      .from('pipeline_stages')
-      .upsert(updates, { onConflict: 'id' });
-
-    if (error) {
-      console.error('Error reordering stages:', error);
+    const firstError = results.find(r => r.error)?.error;
+    if (firstError) {
+      console.error('Error reordering stages:', firstError);
       return false;
     }
 

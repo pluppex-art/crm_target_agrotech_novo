@@ -185,7 +185,7 @@ export async function fireAlerts(
       title,
       message: body,
       type: 'urgent',
-      category: 'alerts',
+      category: 'system',
       link: `/pipeline?lead=${lead.id}`,
       meta: JSON.stringify({
         leadId: lead.id,

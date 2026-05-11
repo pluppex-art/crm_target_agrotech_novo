@@ -35,10 +35,10 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
       if (error) throw error;
 
-      set({ 
-        notifications: data || [], 
+      set({
+        notifications: (data || []) as unknown as Notification[],
         unreadCount: (data || []).filter(n => !n.read).length,
-        isLoading: false 
+        isLoading: false
       });
     } catch (error) {
       console.error('Error fetching notifications:', error);

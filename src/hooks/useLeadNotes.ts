@@ -32,6 +32,7 @@ export const useLeadNotes = ({ leadId }: UseLeadNotesProps) => {
     const note = await noteService.createNote({
       content: newNote,
       lead_id: leadId,
+      author_id: user?.id ?? '',
       author_name: authorName,
     });
     if (note) {

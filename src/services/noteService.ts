@@ -5,6 +5,7 @@ export interface Note {
   created_at: string;
   content: string;
   lead_id: string;
+  author_id: string;
   author_name?: string;
 }
 
@@ -33,7 +34,7 @@ export const noteService = {
 
     const { data, error } = await supabase
       .from('notes')
-      .insert([note])
+      .insert(note)
       .select()
       .single();
 

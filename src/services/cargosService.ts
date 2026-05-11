@@ -31,7 +31,7 @@ export const cargosService = {
       return [];
     }
 
-    return data || [];
+    return (data || []).map(c => ({ ...c, permissions: (c.permissions as unknown as string[]) || [] }));
   },
 
   async createCargo(cargo: CreateCargoPayload): Promise<{ data: Cargo | null; error: any }> {
@@ -49,7 +49,7 @@ export const cargosService = {
       return { data: null, error };
     }
 
-    return { data, error: null };
+    return { data: data ? { ...data, permissions: (data.permissions as unknown as string[]) || [] } : null, error: null };
   },
 
   async updateCargo(id: string, cargo: Partial<CreateCargoPayload>): Promise<{ data: Cargo | null; error: any }> {
@@ -68,7 +68,7 @@ export const cargosService = {
       return { data: null, error };
     }
 
-    return { data, error: null };
+    return { data: data ? { ...data, permissions: (data.permissions as unknown as string[]) || [] } : null, error: null };
   },
 
   async deleteCargo(id: string): Promise<boolean> {

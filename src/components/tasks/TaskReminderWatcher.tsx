@@ -41,7 +41,7 @@ export const TaskReminderWatcher: React.FC = () => {
               title: `⏰ Lembrete: ${task.title}`,
               message: task.description || 'Você tem uma tarefa agendada para agora.',
               type: 'pending',
-              category: 'alerts',
+              category: 'system',
               link: '/tasks'
             });
 

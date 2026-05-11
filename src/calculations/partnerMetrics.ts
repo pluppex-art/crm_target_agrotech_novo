@@ -89,6 +89,8 @@ export function calcPartnerMargin(report: PartnerReport): number {
  */
 export function safePartnerReport(report: PartnerReport | null): PartnerReport {
   return report ?? {
+    period_start: '',
+    period_end: '',
     total_revenue: 0,
     target_sales: 0,
     pluppex_sales: 0,

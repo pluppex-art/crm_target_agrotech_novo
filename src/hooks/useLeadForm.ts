@@ -192,6 +192,7 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
           // 1. Criar Nota de Transferência
           await noteService.createNote({
             lead_id: lead.id,
+            author_id: user?.id ?? '',
             content: `📢 Transferência: ${currentUserName} transferiu este lead para ${formData.responsible}`,
             author_name: 'Sistema',
           });

@@ -46,6 +46,7 @@ export interface EnrollmentWithDetails extends LeadClassEnrollment {
 export interface EnrollParams {
   lead_id: string;
   class_id: string;
+  responsavel_usuario_id: string;
   contracted_amount?: number;
   income_transaction_id?: string;
   notes?: string;

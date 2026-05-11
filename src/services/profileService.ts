@@ -22,6 +22,18 @@ export interface UserProfile extends CreateProfilePayload {
   } | null;
 }
 
+/** Normalise raw DB row so that cargos.permissions is always string[] and status is narrowed. */
+function normaliseProfile(raw: any): UserProfile {
+  if (!raw) return raw;
+  return {
+    ...raw,
+    status: (raw.status as 'active' | 'inactive') ?? 'active',
+    cargos: raw.cargos
+      ? { ...raw.cargos, permissions: (raw.cargos.permissions as unknown as string[]) || [] }
+      : raw.cargos,
+  };
+}
+
 export const profileService = {
   async getProfiles(): Promise<UserProfile[]> {
     const supabase = getSupabaseClient();
@@ -36,7 +48,7 @@ export const profileService = {
       return [];
     }
 
-    return data || [];
+    return (data || []).map(normaliseProfile);
   },
 
   async getProfile(id: string): Promise<UserProfile | null> {
@@ -54,7 +66,7 @@ export const profileService = {
       return null;
     }
 
-    return data;
+    return normaliseProfile(data);
   },
 
   async updateProfile(id: string, profile: Partial<UserProfile>): Promise<{ data: UserProfile | null; error: any }> {
@@ -93,7 +105,7 @@ export const profileService = {
       }
     }
 
-    return { data, error: null };
+    return { data: normaliseProfile(data), error: null };
   },
 
   async createProfile(profile: CreateProfilePayload): Promise<{ data: UserProfile | null; error: any }> {
@@ -146,7 +158,7 @@ export const profileService = {
       return { data: null, error: error.message || 'Erro ao salvar perfil no banco de dados.' };
     }
 
-    return { data, error: null };
+    return { data: normaliseProfile(data), error: null };
   },
 
   async deleteProfile(id: string): Promise<boolean> {

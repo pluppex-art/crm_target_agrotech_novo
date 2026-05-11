@@ -93,7 +93,7 @@ export const supabaseService = {
 
     const { error } = await supabase
       .from('leads')
-      .update({ subStatus })
+      .update({ substatus: subStatus })
       .eq('id', leadId);
 
     if (error) {
@@ -135,11 +135,12 @@ export const supabaseService = {
       return null;
     }
 
-    // Map response back to interface format
+    // Map response back to interface format (DB uses lead_source/substatus; Lead uses origin/subStatus)
     return {
       ...data,
+      origin: data.lead_source ?? '',
       subStatus: data.substatus,
-    } as Lead;
+    } as unknown as Lead;
   },
 
   async updateLead(leadId: string, lead: Partial<Omit<Lead, 'id' | 'created_at'>>): Promise<boolean> {
@@ -279,11 +280,7 @@ export const supabaseService = {
       .delete()
       .eq('lead_id', leadId);
 
-    // Delete associated contracts
-    await supabase
-      .from('contracts')
-      .delete()
-      .eq('lead_id', leadId);
+    // contracts table no longer exists — skip that deletion step
 
     const { error } = await supabase
       .from('leads')

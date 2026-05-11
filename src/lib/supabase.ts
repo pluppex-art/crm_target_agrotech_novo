@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '../types/supabase';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -22,25 +23,25 @@ if (!supabaseAnonKey) {
 }
 
 /** Client singleton compartilhado por toda a aplicação. */
-export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase: SupabaseClient<Database> = createClient<Database>(supabaseUrl, supabaseAnonKey);
 
 /**
  * Retorna o client Supabase singleton.
  * Mantido para compatibilidade com código legado que chama getSupabaseClient().
  */
-export function getSupabaseClient(): SupabaseClient {
+export function getSupabaseClient(): SupabaseClient<Database> {
   return supabase;
 }
 
 const supabaseServiceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY as string | undefined;
 
 /** Client com service role key para operações admin (createUser, deleteUser). */
-export const supabaseAdmin: SupabaseClient = createClient(
+export const supabaseAdmin: SupabaseClient<Database> = createClient<Database>(
   supabaseUrl,
   supabaseServiceRoleKey ?? supabaseAnonKey,
   { auth: { autoRefreshToken: false, persistSession: false } }
 );
 
-export function getServiceSupabaseClient(): SupabaseClient {
+export function getServiceSupabaseClient(): SupabaseClient<Database> {
   return supabaseAdmin;
 }

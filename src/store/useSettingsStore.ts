@@ -91,7 +91,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   updateNotificationPrefs: async (prefs) => {
     const { error } = await supabase
       .from('crm_settings')
-      .upsert({ key: 'notification_preferences', value: prefs }, { onConflict: 'key' });
+      .upsert({ key: 'notification_preferences', value: prefs as unknown as any }, { onConflict: 'key' });
     if (error) throw error;
     set({ notificationPrefs: prefs });
   },
