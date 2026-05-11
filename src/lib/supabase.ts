@@ -32,11 +32,15 @@ export function getSupabaseClient(): SupabaseClient {
   return supabase;
 }
 
-/**
- * Alias de getSupabaseClient para compatibilidade com imports de cargosService.
- * NOTA: no frontend só temos acesso à anon key — não existe client com service role.
- * Operações que exigem service role devem ser feitas via Edge Functions no backend.
- */
+const supabaseServiceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY as string | undefined;
+
+/** Client com service role key para operações admin (createUser, deleteUser). */
+export const supabaseAdmin: SupabaseClient = createClient(
+  supabaseUrl,
+  supabaseServiceRoleKey ?? supabaseAnonKey,
+  { auth: { autoRefreshToken: false, persistSession: false } }
+);
+
 export function getServiceSupabaseClient(): SupabaseClient {
-  return supabase;
+  return supabaseAdmin;
 }

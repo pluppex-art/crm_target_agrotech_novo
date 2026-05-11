@@ -28,7 +28,7 @@ function getSupabaseAdmin() {
   if (!supabaseAdminClient) {
     // Backend deve usar variáveis próprias do servidor
     const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 
     if (!url && !key) {
       throw new Error(
@@ -224,33 +224,47 @@ async function startServer() {
         return res.status(400).json({ error: "email e password são obrigatórios." });
       }
       const supabaseAdmin = getSupabaseAdmin();
-      const { data, error } = await supabaseAdmin.auth.admin.createUser({
-        email,
+      const cleanEmail = email.trim().toLowerCase();
+      
+      let { data, error } = await supabaseAdmin.auth.admin.createUser({
+        email: cleanEmail,
         password,
         email_confirm: true,
         user_metadata: { name },
       });
 
       if (error) {
-        const isAlreadyRegistered = error.message.toLowerCase().includes('registered') || 
-                                    error.message.toLowerCase().includes('already exists');
+        console.warn(`[create-user] Tentativa 1 falhou para ${cleanEmail}:`, JSON.stringify(error, null, 2));
         
-        if (isAlreadyRegistered) {
-          console.log(`[create-user] User ${email} already exists in Auth. Fetching ID...`);
-          // If user exists, fetch their ID
-          const { data: listData, error: listError } = await supabaseAdmin.auth.admin.listUsers({
-            perPage: 1000 // Try to get all to avoid pagination issues
+        // Se falhou com 500, tenta sem metadata (pode ser trigger quebrando)
+        if (error.status === 500 || error.code === 'unexpected_failure') {
+          console.log(`[create-user] Tentando criar sem metadata para ${cleanEmail}...`);
+          const retry = await supabaseAdmin.auth.admin.createUser({
+            email: cleanEmail,
+            password,
+            email_confirm: true
           });
-          
-          if (!listError) {
-            const existingUser = listData.users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
-            if (existingUser) {
-              console.log(`[create-user] Found existing ID: ${existingUser.id}`);
-              return res.status(200).json({ id: existingUser.id });
-            }
+          data = retry.data;
+          error = retry.error;
+        }
+      }
+
+      if (error) {
+        console.warn(`[create-user] Criar usuário falhou definitivamente para ${cleanEmail}:`, JSON.stringify(error, null, 2));
+        
+        // Sempre tenta buscar o usuário existente quando há qualquer erro
+        const { data: listData, error: listError } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+        
+        if (!listError && listData?.users) {
+          const existingUser = listData.users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
+          if (existingUser) {
+            console.log(`[create-user] Usuário encontrado com ID existente: ${existingUser.id}`);
+            return res.status(200).json({ id: existingUser.id });
           }
         }
-        console.error("[create-user] Erro:", error.message);
+        
+        // Se realmente não existe, retorna o erro original
+        console.error("[create-user] Usuário não encontrado após busca. Erro original:", error.message);
         return res.status(400).json({ error: error.message });
       }
       return res.json({ id: data.user?.id });
