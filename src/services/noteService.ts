@@ -39,7 +39,7 @@ export const noteService = {
     const { data, error } = await supabase
       .from('notes')
       .insert(note)
-      .select()
+      .select('*, perfis!notes_author_id_fkey(name)')
       .single();
 
     if (error) {
@@ -47,7 +47,12 @@ export const noteService = {
       return null;
     }
 
-    return data as Note;
+    const row = data as any;
+    return {
+      ...row,
+      author_name: (row.perfis as { name?: string } | null)?.name ?? row.author_name ?? null,
+      perfis: undefined,
+    } as Note;
   },
 
   async deleteNote(noteId: string): Promise<boolean> {
