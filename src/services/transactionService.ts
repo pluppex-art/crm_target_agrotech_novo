@@ -109,50 +109,42 @@ export const transactionService = {
     const startDate = filters?.startDate;
     const endDate = filters?.endDate;
 
-    // 1. Get ALL unified transactions (Manual V2 + Legacy)
-    // We fetch without type/status filters first to categorize them in JS
+    // Helper: check if an effective date falls within the filter range
+    const inRange = (paidAt: string | null, enrolledAt: string): boolean => {
+      const d = (paidAt || enrolledAt || '').split('T')[0];
+      if (!d) return true;
+      if (startDate && d < startDate) return false;
+      if (endDate && d > endDate) return false;
+      return true;
+    };
+
+    // 1. Manual financial transactions (non-PIPELINE) in the period
     const allTransactions = await this.getAll({ startDate, endDate });
 
-    // 2. Fetch Lead Revenue (Pipeline Sales) — split by taxa and valor payment dates
-    let taxaQuery = supabase
-      .from('lead_class_enrollments')
-      .select('taxa_matricula_recebido, taxa_matricula_paid_at')
-      .neq('status', 'CANCELLED')
-      .gt('taxa_matricula_recebido', 0);
-    let valorQuery = supabase
-      .from('lead_class_enrollments')
-      .select('valor_recebido, valor_recebido_paid_at')
-      .neq('status', 'CANCELLED')
-      .gt('valor_recebido', 0);
-
-    if (startDate) {
-      taxaQuery = taxaQuery.gte('taxa_matricula_paid_at', startDate + 'T00:00:00');
-      valorQuery = valorQuery.gte('valor_recebido_paid_at', startDate + 'T00:00:00');
-    }
-    if (endDate) {
-      taxaQuery = taxaQuery.lte('taxa_matricula_paid_at', endDate + 'T23:59:59');
-      valorQuery = valorQuery.lte('valor_recebido_paid_at', endDate + 'T23:59:59');
-    }
-
-    // 3. Global Accounts Receivable (Total pending in system)
-    const { data: pendingEnrollments } = await supabase
-      .from('lead_class_enrollments')
-      .select('valor_recebido, taxa_matricula_recebido, leads(value, product)')
-      .neq('status', 'CANCELLED');
-    
-    // We'll need products to calculate pending amount for courses (since we need to know the price)
-    // For now, we'll use a simplified version or assume getPaidAmount logic.
-    // To keep this method fast, let's focus on realized first.
-
-    const [{ data: taxaResult }, { data: valorResult }] = await Promise.all([taxaQuery, valorQuery]);
+    // 2. Enrollments NOT linked to a financial_transaction (income_transaction_id IS NULL).
+    //    Fetch all — date filtering done in JS to handle NULL paid_at (fallback: enrolled_at).
+    const [{ data: taxaEnrolls }, { data: valorEnrolls }] = await Promise.all([
+      supabase
+        .from('lead_class_enrollments')
+        .select('id, taxa_matricula_recebido, taxa_matricula_paid_at, enrolled_at')
+        .neq('status', 'CANCELLED')
+        .gt('taxa_matricula_recebido', 0)
+        .is('income_transaction_id', null),
+      supabase
+        .from('lead_class_enrollments')
+        .select('id, valor_recebido, valor_recebido_paid_at, enrolled_at')
+        .neq('status', 'CANCELLED')
+        .gt('valor_recebido', 0)
+        .is('income_transaction_id', null),
+    ]);
 
     let receita_total = 0;
     let despesa_total = 0;
     let contas_receber = 0;
     let contas_pagar = 0;
 
-    // Categorize Manual/Legacy Transactions
-    allTransactions.forEach(t => {
+    // From financial_transactions (covers PIPELINE linked enrollments + all manual entries)
+    allTransactions.forEach((t: FinancialTransaction) => {
       const amt = Number(t.amount) || 0;
       if (t.status === 'PAID') {
         if (t.type === 'INCOME') receita_total += amt;
@@ -163,15 +155,22 @@ export const transactionService = {
       }
     });
 
-    // Add Realized Lead Revenue by payment date
-    (taxaResult || []).forEach((e: any) => { receita_total += Number(e.taxa_matricula_recebido) || 0; });
-    (valorResult || []).forEach((e: any) => { receita_total += Number(e.valor_recebido) || 0; });
+    // From unlinked enrollments — use paid_at when available, enrolled_at as fallback
+    const alunosIds = new Set<string>();
+    (taxaEnrolls || []).forEach((e: any) => {
+      if (inRange(e.taxa_matricula_paid_at, e.enrolled_at)) {
+        receita_total += Number(e.taxa_matricula_recebido) || 0;
+        alunosIds.add(e.id);
+      }
+    });
+    (valorEnrolls || []).forEach((e: any) => {
+      if (inRange(e.valor_recebido_paid_at, e.enrolled_at)) {
+        receita_total += Number(e.valor_recebido) || 0;
+        alunosIds.add(e.id);
+      }
+    });
 
-    const alunosIds = new Set([
-      ...(taxaResult || []).map((e: any) => e.id).filter(Boolean),
-      ...(valorResult || []).map((e: any) => e.id).filter(Boolean),
-    ]);
-    const alunos_ganhos = alunosIds.size || (taxaResult?.length || 0);
+    const alunos_ganhos = alunosIds.size;
     const lucro_liquido = receita_total - despesa_total;
     const margem_liquida = receita_total > 0 ? (lucro_liquido / receita_total) * 100 : 0;
 
