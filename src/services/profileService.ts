@@ -73,8 +73,8 @@ export const profileService = {
     const supabase = getSupabaseClient();
     if (!supabase) return { data: null, error: 'Supabase client not initialized' };
 
-    const { email, password, role_id, ...updateData } = profile;
-    const finalUpdateData = { id, ...updateData, role_id: role_id || null };
+    const { password, role_id, email, ...updateData } = profile;
+    const finalUpdateData = { id, ...updateData, role_id: role_id || null, ...(email ? { email } : {}) };
 
     // Update perfis table
     const { data, error: perfisError } = await supabase

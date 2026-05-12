@@ -20,7 +20,7 @@ export function Users() {
     department: 'Comercial',
     cpf: '',
     password: '',
-    status: 'active' as const,
+    status: 'active' as 'active' | 'inactive',
   });
 
   useEffect(() => {
@@ -89,7 +89,7 @@ export function Users() {
       department: 'Comercial',
       cpf: '',
       password: '',
-      status: 'active' as const
+      status: 'active' as 'active' | 'inactive'
     });
   };
 
@@ -277,6 +277,20 @@ export function Users() {
                     <option value="TI">TI</option>
                   </select>
                 </div>
+
+                {editingId && (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Status</label>
+                    <select
+                      value={formData.status}
+                      onChange={(e) => setFormData({...formData, status: e.target.value as 'active' | 'inactive'})}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700"
+                    >
+                      <option value="active">Ativo</option>
+                      <option value="inactive">Inativo</option>
+                    </select>
+                  </div>
+                )}
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Cargo / Permissão</label>
