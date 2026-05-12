@@ -220,7 +220,7 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
                 {field('Horário', 'time', { type: 'time', icon: <Clock size={16} /> })}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {field('Custo do Instrutor (R$)', 'instructor_cost', { type: 'number', placeholder: '0.00', icon: <DollarSign size={16} /> })}
+                {field('Custo do Instrutor (R$)', 'instructor_cost', { type: 'number', required: true, placeholder: '0.00', icon: <DollarSign size={16} /> })}
               </div>
               {formData.instructor_cost && parseFloat(formData.instructor_cost) > 0 && (
                 <p className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">

@@ -191,9 +191,19 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
         </div>
 
         <div className="flex items-center justify-between pt-1.5">
-          <span className="text-sm font-bold text-slate-800">
-            R$ {totalDisplayValue.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
-          </span>
+          <div className="flex flex-col items-start gap-1">
+            <span className={cn(
+              "text-sm font-bold",
+              totalDisplayValue === 0 ? "text-slate-400" : "text-slate-800"
+            )}>
+              R$ {totalDisplayValue.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+            </span>
+            {totalDisplayValue === 0 && (
+              <span className="text-[9px] font-black bg-amber-50 text-amber-600 border border-amber-100 px-1.5 py-0.5 rounded-md uppercase tracking-tighter">
+                Sem Valor
+              </span>
+            )}
+          </div>
           
           <div className="flex items-center gap-2">
             {/* Inactivity badge (Countdown) */}

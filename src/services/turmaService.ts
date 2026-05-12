@@ -16,6 +16,8 @@ export interface TurmaAttendee {
   taxa_matricula_recebido?: number | null;
   taxa_matricula_paid_at?: string | null;
   valor_recebido_paid_at?: string | null;
+  seller_origin?: 'target' | 'pluppex' | null;
+  cost_center?: 'cursos' | 'servico_drone' | 'administrativo' | null;
 }
 
 export interface Turma {
@@ -51,6 +53,8 @@ function mapEnrollmentToAttendee(e: any): TurmaAttendee {
     taxa_matricula_recebido: e.taxa_matricula_recebido ?? null,
     taxa_matricula_paid_at: e.taxa_matricula_paid_at ?? null,
     valor_recebido_paid_at: e.valor_recebido_paid_at ?? null,
+    seller_origin: e.seller_origin ?? null,
+    cost_center: e.cost_center ?? null,
   };
 }
 
@@ -158,6 +162,8 @@ export const turmaService = {
         photo: attendee.photo || '',
         responsible: attendee.responsible || '',
         vendas: Number(attendee.vendas) || 0,
+        seller_origin: attendee.seller_origin || null,
+        cost_center: attendee.cost_center || null,
       }])
       .select()
       .single();
@@ -445,6 +451,7 @@ export const turmaService = {
         contract_signed: leadData.contract_signed || false,
         taxa_matricula_recebido: leadData.taxa_matricula_recebido || null,
         valor_recebido: leadData.valor_recebido || null,
+        valor_recebido_paid_at: leadData.valor_recebido_paid_at || null,
         forma_pagamento: leadData.forma_pagamento || null,
         payment_proof_url: leadData.payment_proof_url || null,
         contract_url: leadData.contract_url || null,
@@ -453,6 +460,8 @@ export const turmaService = {
         photo: leadData.photo || '',
         responsible: leadData.responsible || '',
         vendas: Number(leadData.vendas) || 0,
+        seller_origin: leadData.seller_origin || null,
+        cost_center: leadData.cost_center || null,
       }]);
 
     if (insertError) {

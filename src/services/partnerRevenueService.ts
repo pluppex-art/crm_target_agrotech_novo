@@ -1,5 +1,4 @@
 import { getSupabaseClient } from '../lib/supabase';
-import { transactionService } from './transactionService';
 
 export interface PartnerReport {
   period_start: string;
@@ -58,43 +57,12 @@ export const partnerRevenueService = {
     const pluppexFixedFee = Number(pluppexRule?.fixed_fee || 0);
     const targetFixedFee = Number(targetRule?.fixed_fee || 0);
 
-    // 2. Fetch mapping data
-    const [profilesRes, squadsRes, membersRes, turmasRes] = await Promise.all([
-      supabase?.from('perfis').select('id, name, department') || { data: [] },
-      supabase?.from('squads').select('id, name') || { data: [] },
-      supabase?.from('squad_members').select('user_id, squad_id').eq('active', true) || { data: [] },
-      supabase?.from('turmas').select('id, name, date') || { data: [] }
-    ]);
+    // 2. Fetch turma map only (origin now comes from seller_origin column)
+    const turmasRes = await (supabase?.from('turmas').select('id, name, date') || { data: [] });
 
     const turmaMap: Record<string, { name: string, date: string }> = {};
     (turmasRes.data || []).forEach((t: any) => {
       turmaMap[t.id] = { name: t.name, date: t.date };
-    });
-
-    const squadNameMap: Record<string, string> = {};
-    (squadsRes.data || []).forEach((s: any) => {
-      if (s.name) squadNameMap[s.id] = s.name.toUpperCase();
-    });
-
-    const userCompanyMap: Record<string, string> = {};
-    const nameToCompanyMap: Record<string, string> = {};
-
-    (membersRes.data || []).forEach((m: any) => {
-      const squadName = (squadNameMap[m.squad_id] || '').toUpperCase();
-      if (squadName) {
-        userCompanyMap[m.user_id] = squadName.includes('PLUPPEX') ? 'PLUPPEX' : 'TARGET';
-      }
-    });
-
-    (profilesRes.data || []).forEach((p: any) => {
-      if (!userCompanyMap[p.id]) {
-        const dept = (p.department || '').toUpperCase();
-        userCompanyMap[p.id] = dept.includes('PLUPPEX') ? 'PLUPPEX' : 'TARGET';
-      }
-      if (p.name) {
-        const normalizedName = p.name.trim().toLowerCase();
-        nameToCompanyMap[normalizedName] = userCompanyMap[p.id];
-      }
     });
 
     // 3. Fetch Financial Data (Baseado nas turmas do período)
@@ -102,9 +70,9 @@ export const partnerRevenueService = {
     // independente de quando o pagamento foi feito (Maio de Maio).
     const { data: enrollments } = await (supabase
       .from('lead_class_enrollments') as any)
-      .select('*, leads(id, name, responsible), turmas!class_id(id, name, date)')
+      .select('*, seller_origin, leads(id, name, responsible), turmas!class_id(id, name, date)')
       .neq('status', 'CANCELLED')
-      .eq('cost_center', 'cursos')
+      .or('cost_center.eq.cursos,cost_center.is.null')
       .gte('turmas.date', startDate + 'T00:00:00')
       .lte('turmas.date', endDate + 'T23:59:59');
 
@@ -116,7 +84,6 @@ export const partnerRevenueService = {
       const receivedTaxa = Number(e.taxa_matricula_recebido) || 0;
       const receivedValor = Number(e.valor_recebido) || 0;
 
-      // Se houver qualquer valor recebido (taxa ou valor do curso), processamos como receita realizada
       if (receivedTaxa > 0 || receivedValor > 0) {
         transactions.push({
           id: e.id,
@@ -127,6 +94,7 @@ export const partnerRevenueService = {
           class_id: e.class_id,
           turmas: e.turmas,
           leads: e.leads,
+          seller_origin: e.seller_origin,
           payment_date: e.taxa_matricula_paid_at || e.valor_recebido_paid_at || e.enrolled_at,
           origin_type: 'PIPELINE'
         });
@@ -192,24 +160,18 @@ export const partnerRevenueService = {
 
       if (!isPaid || !isIncome) return;
 
-      // Filtro estrito para mostrar APENAS 'cursos' (conforme solicitado pelo usuário)
+      // Inclui NULL (registros anteriores à migration 008) e 'cursos'; exclui drone/admin
       const costCenter = (tx as any).cost_center;
-      if (costCenter !== 'cursos') return;
+      if (costCenter && costCenter !== 'cursos') return;
 
       total_revenue += amt;
       
       const className = (tx as any).turmas?.name || '';
       if (className.toUpperCase().includes('APLICAÇÃO')) return;
 
-      const leads = Array.isArray(tx.leads) ? tx.leads[0] : tx.leads;
-      const respName = (leads?.responsible || (tx as any).responsible || (tx as any).perfis?.name || '').trim().toLowerCase();
-      let origin = 'TARGET';
-      
-      if (respName && nameToCompanyMap[respName]) {
-        origin = nameToCompanyMap[respName];
-      } else if (tx.user_id && userCompanyMap[tx.user_id]) {
-        origin = userCompanyMap[tx.user_id];
-      }
+      // seller_origin é a fonte de verdade (migration 008); fallback para TARGET
+      const sellerOrigin = ((tx as any).seller_origin || '').toUpperCase();
+      const origin = sellerOrigin === 'PLUPPEX' ? 'PLUPPEX' : 'TARGET';
 
       const dateKey = formatDate(tx.payment_date || tx.created_at);
       let variable = 0;

@@ -313,6 +313,8 @@ export const Pipeline: React.FC = () => {
         responsible: enrollLead.responsible || '',
         status: 'matriculado',
         vendas: financialCalculator.getTotalContracted(enrollLead, products),
+        seller_origin: enrollLead.seller_origin,
+        cost_center: enrollLead.cost_center,
       });
 
       if (result) {

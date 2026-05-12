@@ -74,6 +74,8 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
     address: string;
     instagram: string;
     emergency_contact: string;
+    seller_origin: 'target' | 'pluppex';
+    cost_center: 'cursos' | 'servico_drone' | 'administrativo';
   }>({
     name: '',
     email: '',
@@ -95,6 +97,8 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
     address: '',
     instagram: '',
     emergency_contact: '',
+    seller_origin: 'target',
+    cost_center: 'cursos',
   });
 
   const [proofFile, setProofFile] = useState<File | null>(null);
@@ -120,17 +124,48 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
     return name.includes('perdido') || name.includes('desistiu') || name.includes('perda');
   }, [selectedStage]);
 
+  const [checkingEmail, setCheckingEmail] = useState(false);
+  const [duplicateEmailError, setDuplicateEmailError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const checkEmail = async () => {
+      if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        setDuplicateEmailError(null);
+        return;
+      }
+
+      setCheckingEmail(true);
+      try {
+        const dupes = await supabaseService.checkDuplicateLead({ email: formData.email });
+        if (dupes.email) {
+          setDuplicateEmailError('Este e-mail já está cadastrado em outro lead.');
+        } else {
+          setDuplicateEmailError(null);
+        }
+      } catch (err) {
+        console.error('Error checking email:', err);
+      } finally {
+        setCheckingEmail(false);
+      }
+    };
+
+    const timer = setTimeout(checkEmail, 600);
+    return () => clearTimeout(timer);
+  }, [formData.email]);
+
   useEffect(() => {
     if (isOpen) {
       fetchProducts();
       fetchProfiles();
-      setSelectedStageId(initialStageId ?? '');
+      // Auto-seleciona primeira etapa se nenhuma fornecida
+      const defaultStage = initialStageId ?? currentPipelineStages[0]?.id ?? '';
+      setSelectedStageId(defaultStage);
       const myProfile = profiles.find(p => p.id === user?.id);
       if (!formData.responsible && myProfile) {
         setFormData(prev => ({ ...prev, responsible: myProfile.name || '', responsavel_usuario_id: myProfile.id }));
       }
     }
-  }, [isOpen, initialStageId, fetchProducts, fetchProfiles, user]);
+  }, [isOpen, initialStageId, fetchProducts, fetchProfiles, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const calculateFinalValue = () => {
     const val = parseBRNumber(formData.value);
@@ -160,6 +195,12 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
     // Email Validation
     if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       setFieldErrors({ email: 'Por favor, insira um e-mail válido.' });
+      return;
+    }
+
+    // Stage obrigatória quando pipeline está disponível
+    if (pipelineId && !selectedStageId) {
+      alert('Selecione a etapa do pipeline antes de salvar.');
       return;
     }
 
@@ -213,6 +254,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
         pix_completed: formData.pix_completed,
         contract_signed: formData.contract_signed,
         valor_recebido: isGanhoStage ? calculateFinalValue() : undefined,
+        valor_recebido_paid_at: isGanhoStage ? new Date().toISOString() : undefined,
         forma_pagamento: isGanhoStage ? 'PIX' : undefined,
         taxa_matricula_recebido: formData.taxa_matricula_recebido ?? undefined,
         motivo_perda: isPerdidoStage ? formData.motivo_perda : undefined,
@@ -222,6 +264,8 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
         address: formData.address || undefined,
         instagram: formData.instagram || undefined,
         emergency_contact: formData.emergency_contact || undefined,
+        seller_origin: formData.seller_origin,
+        cost_center: formData.cost_center,
       };
 
       const newLead = await addLead(newLeadData);
@@ -284,6 +328,8 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
           address: '',
           instagram: '',
           emergency_contact: '',
+          seller_origin: 'target',
+          cost_center: 'cursos',
         });
         setProofFile(null);
         setContractFile(null);
@@ -386,18 +432,24 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                     <input
                       type="email"
                       value={formData.email}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setFormData(prev => ({ ...prev, email: e.target.value })); setFieldErrors(p => ({ ...p, email: undefined })); }}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => { 
+                        setFormData(prev => ({ ...prev, email: e.target.value })); 
+                        setFieldErrors(p => ({ ...p, email: undefined })); 
+                      }}
                       className={cn(
                         "w-full px-4 py-2.5 bg-white border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm",
-                        fieldErrors.email ? "border-red-400 bg-red-50" : "border-slate-200"
+                        (fieldErrors.email || duplicateEmailError) ? "border-red-400 bg-red-50" : "border-slate-200"
                       )}
                       placeholder="email@exemplo.com"
                     />
-                    <Mail size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                      {checkingEmail && <Loader2 size={14} className="animate-spin text-slate-400" />}
+                      <Mail size={15} className={cn("transition-colors", duplicateEmailError ? "text-red-400" : "text-slate-400")} />
+                    </div>
                   </div>
-                  {fieldErrors.email && (
+                  {(fieldErrors.email || duplicateEmailError) && (
                     <p className="flex items-center gap-1 text-xs text-red-600 font-medium">
-                      <AlertCircle size={12} /> {fieldErrors.email}
+                      <AlertCircle size={12} /> {fieldErrors.email || duplicateEmailError}
                     </p>
                   )}
                 </div>
@@ -501,19 +553,56 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                   </div>
                 </div>
               </div>
+              
+              {/* Vendedor Origin + Cost Center */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Origem do Vendedor <span className="text-red-500">*</span></label>
+                  <div className="relative">
+                    <select
+                      required
+                      value={formData.seller_origin}
+                      onChange={(e) => setFormData(prev => ({ ...prev, seller_origin: e.target.value as any }))}
+                      className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"
+                    >
+                      <option value="target">Target</option>
+                      <option value="pluppex">Pluppex</option>
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Centro de Custo <span className="text-red-500">*</span></label>
+                  <div className="relative">
+                    <select
+                      required
+                      value={formData.cost_center}
+                      onChange={(e) => setFormData(prev => ({ ...prev, cost_center: e.target.value as any }))}
+                      className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"
+                    >
+                      <option value="cursos">Cursos</option>
+                      <option value="servico_drone">Serviço de Drone</option>
+                      <option value="administrativo">Administrativo</option>
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
+                  </div>
+                </div>
+              </div>
 
               {/* Pipeline Stage */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {currentPipelineStages.length > 0 && (
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Etapa do Pipeline</label>
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Etapa do Pipeline <span className="text-red-500">*</span></label>
                     <div className="relative">
                       <select
+                        required
                         value={selectedStageId}
                         onChange={(e) => setSelectedStageId(e.target.value)}
                         className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"
                       >
-                        <option value="">Primeira etapa</option>
+                        <option value="">Selecione uma etapa</option>
                         {currentPipelineStages.map((stage: any) => (
                           <option key={stage.id} value={stage.id}>{stage.name}</option>
                         ))}

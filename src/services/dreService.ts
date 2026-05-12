@@ -49,9 +49,9 @@ export const dreService = {
       taxaDreQuery = taxaDreQuery.lte('taxa_matricula_paid_at', filters.endDate + 'T23:59:59');
     }
 
-    // Filtro explícito de cursos
-    valorDreQuery = (valorDreQuery as any).eq('cost_center', 'cursos');
-    taxaDreQuery = (taxaDreQuery as any).eq('cost_center', 'cursos');
+    // Inclui registros sem cost_center (NULL = cursos por padrão antes da migration 008)
+    valorDreQuery = (valorDreQuery as any).or('cost_center.eq.cursos,cost_center.is.null');
+    taxaDreQuery = (taxaDreQuery as any).or('cost_center.eq.cursos,cost_center.is.null');
 
     const [{ data: valorEnrollments }, { data: taxaEnrollments }] = await Promise.all([valorDreQuery, taxaDreQuery]);
 

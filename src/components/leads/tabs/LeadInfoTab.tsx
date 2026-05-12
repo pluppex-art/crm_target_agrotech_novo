@@ -578,6 +578,40 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = ({
             />
           </div>
         </div>
+        
+        {/* Vendedor Origin + Cost Center */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Origem do Vendedor</label>
+            <div className="relative">
+              <select
+                value={formData.seller_origin || 'target'}
+                onChange={(e) => updateFormField({ seller_origin: e.target.value as any })}
+                className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"
+              >
+                <option value="target">Target</option>
+                <option value="pluppex">Pluppex</option>
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Centro de Custo</label>
+            <div className="relative">
+              <select
+                value={formData.cost_center || 'cursos'}
+                onChange={(e) => updateFormField({ cost_center: e.target.value as any })}
+                className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"
+              >
+                <option value="cursos">Cursos</option>
+                <option value="servico_drone">Serviço de Drone</option>
+                <option value="administrativo">Administrativo</option>
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
+            </div>
+          </div>
+        </div>
 
         {/* ── SEÇÃO DE DOCUMENTOS PARA CONTRATO ── */}
         <div className="pt-4 border-t border-slate-100">

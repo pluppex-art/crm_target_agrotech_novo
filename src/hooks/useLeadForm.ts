@@ -52,6 +52,8 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
     emergency_contact: lead.emergency_contact || '',
     rg_photo_url: lead.rg_photo_url || null,
     profile_photo_url: lead.profile_photo_url || null,
+    seller_origin: lead.seller_origin || 'target',
+    cost_center: lead.cost_center || 'cursos',
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -85,12 +87,13 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
       payment_proof_url: lead.payment_proof_url ?? null,
       contract_url: lead.contract_url ?? null,
       professor_proof_url: lead.professor_proof_url ?? null,
-      cpf: lead.cpf || '',
       address: lead.address || '',
       instagram: lead.instagram || '',
       emergency_contact: lead.emergency_contact || '',
       rg_photo_url: lead.rg_photo_url || null,
       profile_photo_url: lead.profile_photo_url || null,
+      seller_origin: lead.seller_origin || 'target',
+      cost_center: lead.cost_center || 'cursos',
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lead.id]);
@@ -172,6 +175,14 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
         return;
       }
 
+      // D03: Validação de valor para estágios qualificados ou além
+      const numericValue = parseBRNumber(formData.value);
+      if (lead.status !== 'new' && numericValue <= 0) {
+        alert('Leads em etapas qualificadas ou além devem ter um valor definido maior que R$ 0.');
+        setIsSaving(false);
+        return;
+      }
+
       const responsibleChanged =
         formData.responsible &&
         formData.responsible !== lead.responsible;
@@ -196,12 +207,13 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
         forma_pagamento: formData.forma_pagamento || undefined,
         taxa_matricula_recebido: formData.taxa_matricula_recebido ?? undefined,
         professor_proof_url: formData.professor_proof_url ?? undefined,
-        cpf: formData.cpf || undefined,
         address: formData.address || undefined,
         instagram: formData.instagram || undefined,
         emergency_contact: formData.emergency_contact || undefined,
         rg_photo_url: formData.rg_photo_url || undefined,
         profile_photo_url: formData.profile_photo_url || undefined,
+        seller_origin: formData.seller_origin as any,
+        cost_center: formData.cost_center as any,
       };
 
       const { updateLead } = useLeadStore.getState();
