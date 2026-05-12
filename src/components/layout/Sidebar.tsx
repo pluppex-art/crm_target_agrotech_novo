@@ -19,13 +19,14 @@ import {
 import { useAuthStore } from '../../store/useAuthStore';
 import { useProfileStore } from '../../store/useProfileStore';
 import { useEffect } from 'react';
-import { cn } from '@/lib/utils';
+import { cn } from '../../lib/utils';
 import { NavLink } from 'react-router-dom';
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/', permission: 'dashboard.view' },
   { icon: Kanban, label: 'Pipeline', path: '/pipeline', permission: 'pipeline.view' },
-  { icon: Clock, label: 'Horário de Ponto', path: '/ponto', permission: 'leads.view' },
+  { icon: Users, label: 'Leads', path: '/leads', permission: 'leads.view' },
+  { icon: Clock, label: 'Horário de Ponto', path: '/ponto' },
   { icon: DollarSign, label: 'Financeiro', path: '/finance', permission: 'finance.view' },
   { icon: MessageSquare, label: 'AI Sales Chat', path: '/ai-chat', permission: 'ai-chat.view' },
   { icon: FileText, label: 'Contratos', path: '/contracts', permission: 'contracts.view' },
@@ -33,7 +34,7 @@ const menuItems = [
   { icon: Megaphone, label: 'Marketing', path: '/marketing', permission: 'marketing.view' },
   { icon: Calendar, label: 'Tarefas', path: '/tasks', permission: 'tasks.view' },
   { icon: GraduationCap, label: 'Turmas', path: '/turmas', permission: 'turmas.view' },
-  { icon: Bell, label: 'Notificações', path: '/notifications' }, // Sem permissão específica
+  { icon: Bell, label: 'Notificações', path: '/notifications' },
   { icon: Settings, label: 'Configurações', path: '/settings', permission: 'settings.view' },
 ];
 
@@ -118,7 +119,7 @@ export function Sidebar({ collapsed = false, onToggle, onClose, isOpen }: Sideba
             <img
               src="https://tfwclxxcgnmndcnbklkx.supabase.co/storage/v1/object/public/icones/Logotipo%20da%20TARGET%20AGROTECH.png"
               alt="Target Agrotech CRM"
-              className="h-24 w-auto object-contain"
+              className="h-10 w-auto object-contain"
             />
           </div>
         )}
