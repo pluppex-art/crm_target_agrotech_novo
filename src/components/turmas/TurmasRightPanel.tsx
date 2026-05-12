@@ -129,7 +129,10 @@ export function TurmasRightPanel({
       <div className="px-4 sm:px-6 py-3 bg-slate-50/50 border-b border-slate-100 grid grid-cols-4 gap-2 sm:gap-3">
         {STATUS_COLUMNS.map(col => {
           const count = (liveSelectedTurma.attendees || []).filter(a => a.status === col.id).length;
-          const total = (liveSelectedTurma.attendees || []).filter(a => a.status === col.id).reduce((s: number, a) => s + (a.vendas || 0), 0 as number);
+          const totalReceived = (liveSelectedTurma.attendees || []).filter(a => a.status === col.id).reduce((s: number, a) => 
+            s + (Number(a.valor_recebido) || 0) + (Number(a.taxa_matricula_recebido) || 0), 
+          0 as number);
+          
           return (
             <div key={col.id} className={cn('rounded-xl p-2.5 border transition-colors', col.bg)}>
               <div className="flex items-center gap-1 mb-1">
@@ -137,7 +140,9 @@ export function TurmasRightPanel({
                 <span className={cn('text-[10px] font-bold hidden sm:block', col.color)}>{col.label}</span>
               </div>
               <p className="text-xl font-bold text-slate-800">{count}</p>
-              <p className="text-[10px] text-slate-500 mt-0.5">R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}</p>
+              <p className="text-[10px] text-slate-500 mt-0.5" title="Total Recebido">
+                Rec. R$ {totalReceived.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+              </p>
             </div>
           );
         })}

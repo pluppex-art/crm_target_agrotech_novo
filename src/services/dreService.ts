@@ -11,13 +11,21 @@ export const dreService = {
     const categoryDreMap = new Map<string, string>();
     categories?.forEach(c => categoryDreMap.set(c.id, c.dre_group));
 
-    // Fetch PAID transactions in period (using payment_date for cash basis DRE)
-    const transactions = await transactionService.getAll({ 
+    // Fetch PAID transactions in period
+    const allTransactions = await transactionService.getAll({ 
       status: 'PAID',
       paymentDateStart: filters.startDate,
       paymentDateEnd: filters.endDate,
       type: filters.type,
       categoryId: filters.categoryId
+    });
+
+    // Filtro rigoroso para manter consistência com o Dashboard
+    const transactions = allTransactions.filter(t => {
+      if (t.cost_center && t.cost_center !== 'cursos') return false;
+      const desc = (t.description || '').toUpperCase();
+      if (desc.includes('APLICAÇÃO')) return false;
+      return true;
     });
     
     // Fetch Lead Revenue from lead_class_enrollments filtered by actual payment dates
@@ -40,6 +48,10 @@ export const dreService = {
       valorDreQuery = valorDreQuery.lte('valor_recebido_paid_at', filters.endDate + 'T23:59:59');
       taxaDreQuery = taxaDreQuery.lte('taxa_matricula_paid_at', filters.endDate + 'T23:59:59');
     }
+
+    // Filtro explícito de cursos
+    valorDreQuery = (valorDreQuery as any).eq('cost_center', 'cursos');
+    taxaDreQuery = (taxaDreQuery as any).eq('cost_center', 'cursos');
 
     const [{ data: valorEnrollments }, { data: taxaEnrollments }] = await Promise.all([valorDreQuery, taxaDreQuery]);
 

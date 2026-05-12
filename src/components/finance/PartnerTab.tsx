@@ -1,19 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
 import { 
   Handshake, 
-  AlertCircle, 
-  Loader2, 
+  RefreshCw, 
   TrendingUp, 
   DollarSign, 
-  RefreshCw, 
-  Zap,
-  Target,
   Rocket,
   ShieldCheck,
   CreditCard,
   Cpu,
   BarChart3,
-  CheckCircle2
+  CheckCircle2,
+  Zap,
+  GraduationCap
 } from 'lucide-react';
 import { partnerRevenueService, PartnerReport } from '../../services/partnerRevenueService';
 import { fmt, cn } from '../../lib/utils';
@@ -79,12 +77,16 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
     );
   }
 
+  function Loader2({ className }: { className?: string }) {
+    return <RefreshCw className={cn("animate-spin", className)} />;
+  }
+
   const safeR = safePartnerReport(report);
 
   return (
     <div className="space-y-6 w-full pb-12 animate-in fade-in duration-500 px-4">
       
-      {/* Header Compacto & VISÍVEL */}
+      {/* Header Premium */}
       <div className="flex items-center justify-between border-b border-slate-100 pb-6">
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-100">
@@ -110,7 +112,7 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
             <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-600 rounded-lg shadow-sm border border-emerald-500">
               <CheckCircle2 size={12} className="text-emerald-100" />
               <span className="text-[10px] font-black text-white uppercase tracking-wider">
-                {safeR._debug?.leadCount || 0} <span className="text-emerald-100/60 ml-0.5">Ganhos</span>
+                {safeR.total_matriculas || 0} <span className="text-emerald-100/60 ml-0.5">Ganhos</span>
               </span>
             </div>
           </div>
@@ -124,7 +126,7 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
         </div>
       </div>
 
-      {/* Grid de Métricas - Expanded */}
+      {/* Grid de Métricas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricItem title="Faturamento Bruto" value={safeR.total_revenue} color="slate" icon={TrendingUp} sub="Volume Consolidado" />
         <MetricItem title="Fee Fixo Total" value={safeR.fixed_fee_total} color="violet" icon={CreditCard} sub="Taxas Fixas de Operação" />
@@ -221,9 +223,9 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
           {/* Turmas Table */}
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
             <div className="p-6 border-b border-slate-50 flex items-center justify-between">
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Performance por Turma</h3>
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Performance por Turma (BPO)</h3>
               <span className="px-2 py-1 bg-slate-50 text-slate-400 text-[8px] font-black rounded uppercase">
-                {safeR.turma_commissions?.length || 0} Turmas Ativas
+                {safeR.turmas?.length || 0} Turmas Ativas
               </span>
             </div>
             <div className="overflow-x-auto">
@@ -232,26 +234,37 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
                   <tr>
                     <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Turma</th>
                     <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest text-center">Matrículas</th>
-                    <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">Faturamento</th>
-                    <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">Comissão Parceria</th>
+                    <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">Receita Total</th>
+                    <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">BPO Target (8%)</th>
+                    <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right text-violet-600">BPO Pluppex (18%)</th>
+                    <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">Total BPO</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {(safeR.turma_commissions || []).map((turma: any) => (
-                    <tr key={turma.id} className="hover:bg-slate-50/50 transition-colors">
+                  {(safeR.turmas || []).map((turma) => (
+                    <tr key={turma.class_id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="px-6 py-4">
-                        <span className="text-sm font-bold text-slate-700">{turma.name}</span>
+                        <div className="flex items-center gap-3">
+                          <GraduationCap className="w-4 h-4 text-slate-300" />
+                          <span className="text-sm font-bold text-slate-700">{turma.class_name}</span>
+                        </div>
                       </td>
                       <td className="px-6 py-4 text-center">
                         <span className="px-2 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-[10px] font-black">
-                          {turma.enrollments}
+                          {turma.total_matriculas}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <span className="text-sm font-bold text-slate-600 tracking-tight">R$ {fmt(turma.revenue)}</span>
+                        <span className="text-sm font-bold text-slate-600 tracking-tight">R$ {fmt(turma.receita_total)}</span>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <span className="text-sm font-black text-violet-600 tracking-tight">R$ {fmt(turma.commission)}</span>
+                        <span className="text-sm font-medium text-slate-500 tracking-tight">R$ {fmt(turma.bpo_target)}</span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <span className="text-sm font-black text-violet-600 tracking-tight">R$ {fmt(turma.bpo_pluppex)}</span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <span className="text-sm font-black text-slate-800 tracking-tight">R$ {fmt(turma.total_bpo)}</span>
                       </td>
                     </tr>
                   ))}
@@ -261,6 +274,7 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
           </div>
         </div>
 
+        {/* Sidebar Sidebar Repasses */}
         <div className="flex flex-col gap-3">
           <h3 className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1 text-violet-500">Repasses Pluppex</h3>
           

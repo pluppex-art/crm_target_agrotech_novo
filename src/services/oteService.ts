@@ -121,7 +121,7 @@ export const oteService = {
       const isComercial = p.department?.toUpperCase() === 'COMERCIAL';
       if (!isComercial) return;
 
-      const isManagerRole = p.cargos?.name && managerKeywords.some(k => p.cargos.name.toUpperCase().includes(k));
+      const isManagerRole = p.cargos?.name && managerKeywords.some(k => p.cargos!.name.toUpperCase().includes(k));
       const isManagerDept = p.department && managerKeywords.some(k => p.department.toUpperCase().includes(k));
 
       if (isManagerRole || isManagerDept) {
@@ -179,28 +179,38 @@ export const oteService = {
     
     // Filtra transações onde o lead associado é de responsabilidade do vendedor
     const sellerManualTxs = txs.filter((t: any) => {
-      const resp = (t.leads?.responsible || '').trim().toLowerCase();
+      // 1. Prioridade para responsible_id (UUID)
+      if (t.responsible_id === userId) return true;
+
+      // 2. Fallback para nome (fuzzy match)
+      const leads = Array.isArray(t.leads) ? t.leads[0] : t.leads;
+      const resp = (leads?.responsible || t.responsible || '').trim().toLowerCase();
       if (!resp || !userName) return false;
 
       if (resp === userName) return true;
       if (userName.includes(resp) || resp.includes(userName)) return true;
 
-      const respWords = resp.split(/\s+/).filter(w => w.length > 2);
+      const respWords = resp.split(/\s+/).filter((w: string) => w.length > 2);
       const userWords = userName.split(/\s+/).filter(w => w.length > 2);
-      const commonWords = respWords.filter(rw => userWords.some(uw => uw.includes(rw) || rw.includes(uw)));
+      const commonWords = respWords.filter((rw: string) => userWords.some(uw => uw.includes(rw) || rw.includes(uw)));
       
       return commonWords.length >= 2;
     });
 
-    // Busca matrículas do período usando lce.responsible diretamente (evita join ambíguo em leads)
-    const { data: enrollments } = await supabase
-      .from('lead_class_enrollments')
-      .select('valor_recebido, taxa_matricula_recebido, responsible')
+    // Busca matrículas do período usando lce.responsible diretamente
+    const { data: enrollments } = await (supabase
+      .from('lead_class_enrollments') as any)
+      .select('valor_recebido, taxa_matricula_recebido, responsible, responsible_id, cost_center')
       .neq('status', 'CANCELLED')
+      .eq('cost_center', 'cursos') // OTE geralmente é para o core business (cursos)
       .gte('enrolled_at', startDate + 'T00:00:00')
       .lte('enrolled_at', endDate + 'T23:59:59');
 
     const sellerEnrollments = (enrollments || []).filter((e: any) => {
+      // 1. Prioridade para responsible_id
+      if (e.responsible_id === userId) return true;
+
+      // 2. Fallback para nome
       const resp = (e.responsible || '').trim().toLowerCase();
       if (!resp || !userName) return false;
       if (resp === userName) return true;
@@ -334,11 +344,12 @@ export const oteService = {
       status: 'PAID'
     });
     
-    // Busca matrículas do período usando lce.responsible diretamente
-    const { data: enrollments } = await supabase
-      .from('lead_class_enrollments')
-      .select('valor_recebido, taxa_matricula_recebido, responsible')
+    // Busca matrículas do período filtrando apenas CURSOS
+    const { data: enrollments } = await (supabase
+      .from('lead_class_enrollments') as any)
+      .select('valor_recebido, taxa_matricula_recebido, responsible, responsible_id, cost_center')
       .neq('status', 'CANCELLED')
+      .eq('cost_center', 'cursos')
       .gte('enrolled_at', startDate + 'T00:00:00')
       .lte('enrolled_at', endDate + 'T23:59:59');
 
@@ -347,19 +358,21 @@ export const oteService = {
       supabase.from('perfis').select('name').eq('id', userId).single(),
       supabase
         .from('squad_members')
-        .select('perfis!squad_members_user_id_fkey(name)')
+        .select('user_id, squad_id, perfis!squad_members_user_id_fkey(name)')
         .eq('squad_id', squadId)
         .eq('active', true)
     ]);
 
     const managerName = (managerUserData.data?.name || '').trim().toLowerCase();
 
+    const memberIds = (squadMembersList.data || []).map((m: any) => m.user_id).filter(Boolean);
     const memberNames = (squadMembersList.data || []).map((m: any) => {
       const p = Array.isArray(m.perfis) ? m.perfis[0] : m.perfis;
       return p?.name?.trim().toLowerCase();
     }).filter(Boolean) as string[];
 
-    // Include manager's own name in the revenue attribution (manager can also sell)
+    // Atribuição híbrida: por ID (exato) e por Nome (legado/fuzzy)
+    const allMemberIds = Array.from(new Set([...memberIds, userId]));
     const allNames = Array.from(new Set([...memberNames, ...(managerName ? [managerName] : [])]));
 
     const matchesName = (name: string) => {
@@ -369,11 +382,22 @@ export const oteService = {
     };
 
     const manualRevenue = txs.reduce((sum, t) => {
-      const resp = ((t as any).leads?.responsible || (t as any).responsible || '').trim().toLowerCase();
+      // 1. Checa por ID
+      if (t.responsible_id && allMemberIds.includes(t.responsible_id)) return sum + (Number(t.amount) || 0);
+
+      // 2. Checa por Nome
+      const leads = Array.isArray((t as any).leads) ? (t as any).leads[0] : (t as any).leads;
+      const resp = (leads?.responsible || (t as any).responsible || '').trim().toLowerCase();
       return matchesName(resp) ? sum + (Number(t.amount) || 0) : sum;
     }, 0);
 
     const enrollmentRevenue = (enrollments || []).reduce((sum: number, e: any) => {
+      // 1. Checa por ID
+      if (e.responsible_id && allMemberIds.includes(e.responsible_id)) {
+        return sum + (Number(e.valor_recebido) || 0) + (Number(e.taxa_matricula_recebido) || 0);
+      }
+
+      // 2. Checa por Nome
       const resp = (e.responsible || '').trim().toLowerCase();
       return matchesName(resp) ? sum + (Number(e.valor_recebido) || 0) + (Number(e.taxa_matricula_recebido) || 0) : sum;
     }, 0);
@@ -456,18 +480,24 @@ export const oteService = {
     }
     if (!data || data.length === 0) return [];
 
-    // Busca nomes na tabela perfis (FK aponta para auth.users, não perfis — join manual)
-    const allProfiles = await profileService.getProfiles();
-    const userIds = Array.from(new Set(data.map((r: any) => r.user_id)));
+    // Busca nomes na tabela perfis diretamente para garantir que todos sejam encontrados
+    const { data: allProfiles } = await supabase.from('perfis').select('id, name, email');
     
-    // Busca squads em paralelo
-    const membersRes = await supabase.from('squad_members').select('user_id, squad_id').in('user_id', userIds).eq('active', true);
+    // Filtra apenas dados válidos
+    const validData = (data as any[]).filter(r => !!r.user_id);
+    const userIds = Array.from(new Set(validData.map((r: any) => r.user_id)));
+    
+    // Busca squads em paralelo - evita 400 Bad Request em listas gigantes de IDs
+    const membersRes = await supabase
+      .from('squad_members')
+      .select('user_id, squad_id, perfis!squad_members_user_id_fkey(name)')
+      .eq('active', true);
 
     const nameMap: Record<string, string> = {};
     const userProfileSquadMap: Record<string, string> = {};
     
-    allProfiles.forEach((p: any) => {
-      nameMap[p.id] = p.full_name || p.name || p.email || p.id.substring(0, 8);
+    (allProfiles || []).forEach((p: any) => {
+      nameMap[p.id] = p.name || p.email || p.id.substring(0, 8);
       if (p.squad_id) {
         userProfileSquadMap[p.id] = p.squad_id;
       }
@@ -481,7 +511,7 @@ export const oteService = {
     });
 
     // Busca nomes de squads (combina IDs da tabela de resultados + IDs vindos dos perfis)
-    const resultSquadIds = data.map((r: any) => r.squad_id).filter(Boolean);
+    const resultSquadIds = validData.map((r: any) => r.squad_id).filter(Boolean);
     const profileSquadIds = Object.values(userProfileSquadMap);
     const allSquadIds = Array.from(new Set([...resultSquadIds, ...profileSquadIds]));
 
@@ -495,14 +525,44 @@ export const oteService = {
       squadMap[s.id] = { name: s.name, color: s.color };
     });
 
-    return (data as CommissionResult[]).map(r => {
+    const processed = validData.map(r => {
       const effectiveSquadId = r.squad_id || userProfileSquadMap[r.user_id];
+      const userIdStr = String(r.user_id);
       return {
         ...r,
-        user_name: nameMap[r.user_id] || r.user_id.substring(0, 8),
+        user_name: nameMap[userIdStr] || userIdStr.substring(0, 8) || 'N/A',
         squad_name: effectiveSquadId ? squadMap[effectiveSquadId]?.name : undefined,
         squad_color: effectiveSquadId ? squadMap[effectiveSquadId]?.color : undefined
-      };
+      } as CommissionResult & { user_name?: string };
     });
+
+    // Filtro de deduplicação: Se um usuário tem resultados com e sem squad no mesmo mês/cargo, 
+    // removemos o que não tem squad (geralmente lixo ou cálculo incompleto).
+    const finalResults: typeof processed = [];
+    const grouped = new Map<string, typeof processed>();
+
+    processed.forEach(r => {
+      const key = `${r.user_id}_${r.role_type}`;
+      if (!grouped.has(key)) grouped.set(key, []);
+      grouped.get(key)!.push(r);
+    });
+
+    grouped.forEach((items) => {
+      if (items.length <= 1) {
+        finalResults.push(...items);
+        return;
+      }
+
+      const hasSquad = items.some(i => !!i.squad_id);
+      if (hasSquad) {
+        // Se temos resultados com squad, removemos qualquer um que NÃO tenha squad_id
+        finalResults.push(...items.filter(i => !!i.squad_id));
+      } else {
+        // Se nenhum tem squad, mantém o primeiro ou todos (casos raros)
+        finalResults.push(items[0]);
+      }
+    });
+
+    return finalResults.sort((a, b) => (b.total_amount || 0) - (a.total_amount || 0));
   }
 };

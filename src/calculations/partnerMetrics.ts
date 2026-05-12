@@ -26,14 +26,19 @@ export interface PartnerReport {
   average_commission_per_turma: number;
   pluppex_percentage: number;
   target_percentage: number;
-  turma_commissions: Array<{
-    id: string;
-    name: string;
-    revenue: number;
-    commission: number;
-    enrollments: number;
-  }>;
   chartData: Array<{ date: string; target: number; pluppex: number }>;
+  total_bpo: number;
+  total_bpo_pluppex: number;
+  total_matriculas: number;
+  turmas: Array<{
+    class_id: string;
+    class_name: string;
+    total_matriculas: number;
+    receita_total: number;
+    bpo_target: number;
+    bpo_pluppex: number;
+    total_bpo: number;
+  }>;
   _debug?: { txCount: number; leadCount: number };
 }
 
@@ -104,8 +109,11 @@ export function safePartnerReport(report: PartnerReport | null): PartnerReport {
     average_commission_per_turma: 0,
     pluppex_percentage: 0,
     target_percentage: 0,
-    turma_commissions: [],
+    turmas: [],
     chartData: [],
+    total_bpo: 0,
+    total_bpo_pluppex: 0,
+    total_matriculas: 0,
     _debug: { txCount: 0, leadCount: 0 },
   };
 }

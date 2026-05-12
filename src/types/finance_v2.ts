@@ -30,6 +30,7 @@ export interface FinancialTransaction {
   partner_origin: PartnerOrigin;
   cancellation_reason: string | null;
   cancelled_at: string | null;
+  cost_center?: 'cursos' | 'servico_drone' | 'administrativo' | null;
   created_at: string;
   updated_at: string;
 }

@@ -121,13 +121,25 @@ export const transactionService = {
 
     // Single enrollment query covers realized revenue (unlinked) + outstanding balance.
     // income_transaction_id IS NULL avoids double-counting with financial_transactions.
-    const [allTransactions, { data: enrollments }] = await Promise.all([
-      this.getAll({ startDate, endDate }),
+    // Busca transações manuais (V2)
+    // 1. Pagas no período (para receita/despesa realizada)
+    // 2. Pendentes/Atrasadas com vencimento no período (para projeção)
+    const [paidManual, pendingManual] = await Promise.all([
+      this.getAll({ paymentDateStart: startDate, paymentDateEnd: endDate, status: 'PAID' }),
       supabase
-        .from('lead_class_enrollments')
-        .select('id, taxa_matricula_recebido, taxa_matricula_paid_at, valor_recebido, valor_recebido_paid_at, contracted_amount, enrolled_at, income_transaction_id')
-        .neq('status', 'CANCELLED'),
+        .from('financial_transactions')
+        .select('*, financial_categories(name), leads(responsible), perfis(name), turmas(name)')
+        .in('status', ['PENDING', 'OVERDUE'])
+        .gte('due_date', startDate || '2000-01-01')
+        .lte('due_date', endDate || '2099-12-31')
     ]);
+
+    const allTransactions = [...paidManual, ...(pendingManual.data || [])];
+
+    const { data: enrollments } = await supabase
+        .from('lead_class_enrollments')
+        .select('id, taxa_matricula_recebido, taxa_matricula_paid_at, valor_recebido, valor_recebido_paid_at, contracted_amount, enrolled_at, income_transaction_id, cost_center')
+        .neq('status', 'CANCELLED');
 
     let receita_total = 0;
     let despesa_total = 0;
@@ -137,6 +149,11 @@ export const transactionService = {
 
     // PENDING/OVERDUE PIPELINE excluded — enrollment balance is the source of truth
     allTransactions.forEach((t: FinancialTransaction) => {
+      // Filtro rigoroso para o Dashboard
+      if (t.cost_center && t.cost_center !== 'cursos') return;
+      const desc = (t.description || '').toUpperCase();
+      if (desc.includes('APLICAÇÃO')) return;
+
       const amt = Number(t.amount) || 0;
       if (t.status === 'PAID') {
         if (t.type === 'INCOME') receita_total += amt;
@@ -149,6 +166,13 @@ export const transactionService = {
 
     const alunosIds = new Set<string>();
     (enrollments || []).forEach((e: any) => {
+      // Filtro rigoroso por centro de custo e nome (evita serviços de drone no dashboard de cursos)
+      const isCurso = (e.cost_center === 'cursos' || !e.cost_center);
+      const isAplicacao = (e.leads?.product || '').toUpperCase().includes('APLICAÇÃO') || 
+                          (e.turmas?.name || '').toUpperCase().includes('APLICAÇÃO');
+      
+      if (!isCurso || isAplicacao) return;
+
       const taxa = Number(e.taxa_matricula_recebido) || 0;
       const valor = Number(e.valor_recebido) || 0;
       const contracted = Number(e.contracted_amount) || 0;
@@ -164,8 +188,11 @@ export const transactionService = {
         }
       }
 
+      // A Receber de Matrículas: saldo pendente de alunos que se matricularam NO PERÍODO
       const balance = contracted - valor;
-      if (contracted > 0 && balance > 0) contas_receber_matriculas += balance;
+      if (contracted > 0 && balance > 0 && inRange(null, e.enrolled_at)) {
+        contas_receber_matriculas += balance;
+      }
     });
 
     const alunos_ganhos = alunosIds.size;
@@ -197,16 +224,37 @@ export const transactionService = {
     const supabase = getSupabaseClient();
     if (!supabase) return [];
 
-    // 1. V2 manual transactions paid in period + all pending/overdue
+    // 1. V2 manual transactions
+    // Pagas no período (por payment_date) + Pendentes/Vencidas no período (por due_date)
     const [paidTxs, pendingTxs, overdueTxs] = await Promise.all([
       this.getAll({ paymentDateStart: startDate, paymentDateEnd: endDate, status: 'PAID' }),
-      this.getAll({ status: 'PENDING' }),
-      this.getAll({ status: 'OVERDUE' }),
+      supabase
+        .from('financial_transactions')
+        .select('*, financial_categories(name), leads(responsible), perfis(name), turmas(name)')
+        .eq('status', 'PENDING')
+        .gte('due_date', startDate || '2000-01-01')
+        .lte('due_date', endDate || '2099-12-31'),
+      supabase
+        .from('financial_transactions')
+        .select('*, financial_categories(name), leads(responsible), perfis(name), turmas(name)')
+        .eq('status', 'OVERDUE')
+        .gte('due_date', startDate || '2000-01-01')
+        .lte('due_date', endDate || '2099-12-31'),
     ]);
 
-    // Deduplicate (paid query may overlap with pending if dates are loose)
+    // Deduplicate and filter by cost_center
     const manualById = new Map<string, FinancialTransaction>();
-    for (const t of [...paidTxs, ...pendingTxs, ...overdueTxs]) {
+    const allManual = [
+      ...paidTxs,
+      ...(pendingTxs.data || []),
+      ...(overdueTxs.data || [])
+    ];
+
+    for (const t of allManual) {
+      if (t.cost_center && t.cost_center !== 'cursos') continue;
+      const desc = (t.description || '').toUpperCase();
+      if (desc.includes('APLICAÇÃO')) continue;
+      
       if (!manualById.has(t.id)) manualById.set(t.id, t);
     }
     const manualTxs = Array.from(manualById.values());
@@ -215,12 +263,12 @@ export const transactionService = {
     // Taxa: filtrada por taxa_matricula_paid_at | Valor: filtrada por valor_recebido_paid_at
     let taxaEnrollQuery = supabase
       .from('lead_class_enrollments')
-      .select('id, taxa_matricula_recebido, taxa_matricula_paid_at, enrolled_at, leads(id, name, value, product, responsible), turmas!class_id(id, name, date)')
+      .select('id, taxa_matricula_recebido, taxa_matricula_paid_at, enrolled_at, cost_center, leads(id, name, value, product, responsible), turmas!class_id(id, name, date)')
       .neq('status', 'CANCELLED')
       .gt('taxa_matricula_recebido', 0);
     let valorEnrollQuery = supabase
       .from('lead_class_enrollments')
-      .select('id, valor_recebido, valor_recebido_paid_at, enrolled_at, leads(id, name, value, product, responsible), turmas!class_id(id, name, date)')
+      .select('id, valor_recebido, valor_recebido_paid_at, enrolled_at, cost_center, leads(id, name, value, product, responsible), turmas!class_id(id, name, date)')
       .neq('status', 'CANCELLED')
       .gt('valor_recebido', 0);
 
@@ -232,6 +280,10 @@ export const transactionService = {
       taxaEnrollQuery = taxaEnrollQuery.lte('taxa_matricula_paid_at', endDate + 'T23:59:59');
       valorEnrollQuery = valorEnrollQuery.lte('valor_recebido_paid_at', endDate + 'T23:59:59');
     }
+
+    // Filtro explícito de cursos
+    taxaEnrollQuery = (taxaEnrollQuery as any).eq('cost_center', 'cursos');
+    valorEnrollQuery = (valorEnrollQuery as any).eq('cost_center', 'cursos');
 
     const [{ data: taxaEnrolls, error: taxaErr }, { data: valorEnrolls, error: valorErr }] = await Promise.all([taxaEnrollQuery, valorEnrollQuery]);
     if (taxaErr) console.error('[getCashFlowTransactions] taxa query error:', taxaErr);
@@ -249,6 +301,7 @@ export const transactionService = {
         due_date: e.taxa_matricula_paid_at || e.enrolled_at,
         created_at: e.enrolled_at,
         origin_type: 'PIPELINE',
+        cost_center: e.cost_center || 'cursos',
         leads: e.leads,
         turmas: e.turmas,
         financial_categories: { name: 'Vendas' }
@@ -264,6 +317,7 @@ export const transactionService = {
         due_date: e.valor_recebido_paid_at || e.enrolled_at,
         created_at: e.enrolled_at,
         origin_type: 'PIPELINE',
+        cost_center: e.cost_center || 'cursos',
         leads: e.leads,
         turmas: e.turmas,
         financial_categories: { name: 'Vendas' }
@@ -296,8 +350,7 @@ export const transactionService = {
     const [byStatus, enrollmentsInPeriod] = await Promise.all([
       supabase
         .from('leads')
-        .select(LEAD_SELECT + ', pipeline_stages!inner(name)')
-        .or('pipeline_stages.name.ilike.%Ganho%,pipeline_stages.name.ilike.%Fechado%,pipeline_stages.name.ilike.%Aprovado%'),
+        .select(LEAD_SELECT + ', pipeline_stages!inner(name)'),
       // 2. Leads with financial activity in lead_class_enrollments
       supabase
         .from('lead_class_enrollments')
@@ -307,6 +360,10 @@ export const transactionService = {
 
     // Filtragem em JS para evitar erro 400 de múltiplos .or() no PostgREST
     const filteredLeads = ((byStatus.data || []) as any[]).filter(l => {
+      const stageName = l.pipeline_stages?.name || '';
+      const isWon = /Ganho|Fechado|Aprovado/i.test(stageName);
+      if (!isWon) return false;
+
       const updated = l.updated_at || '';
       const created = l.created_at || '';
       return (updated >= startDate || created >= startDate) && (updated <= endDate + 'T23:59:59');

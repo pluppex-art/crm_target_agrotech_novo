@@ -17,17 +17,22 @@ export interface PartnerReport {
   target_percentage: number;
   net_margin: number;
   average_commission_per_turma: number;
-  turma_commissions: {
-    id: string;
-    name: string;
-    revenue: number;
-    commission: number;
-    enrollments: number;
-  }[];
   chartData: {
     date: string;
     pluppex: number;
     target: number;
+  }[];
+  total_bpo: number;
+  total_bpo_pluppex: number;
+  total_matriculas: number;
+  turmas: {
+    class_id: string;
+    class_name: string;
+    total_matriculas: number;
+    receita_total: number;
+    bpo_target: number;
+    bpo_pluppex: number;
+    total_bpo: number;
   }[];
   _debug?: {
     txCount: number;
@@ -58,12 +63,12 @@ export const partnerRevenueService = {
       supabase?.from('perfis').select('id, name, department') || { data: [] },
       supabase?.from('squads').select('id, name') || { data: [] },
       supabase?.from('squad_members').select('user_id, squad_id').eq('active', true) || { data: [] },
-      supabase?.from('turmas').select('id, name') || { data: [] }
+      supabase?.from('turmas').select('id, name, date') || { data: [] }
     ]);
 
-    const turmaMap: Record<string, string> = {};
+    const turmaMap: Record<string, { name: string, date: string }> = {};
     (turmasRes.data || []).forEach((t: any) => {
-      turmaMap[t.id] = t.name;
+      turmaMap[t.id] = { name: t.name, date: t.date };
     });
 
     const squadNameMap: Record<string, string> = {};
@@ -92,8 +97,59 @@ export const partnerRevenueService = {
       }
     });
 
-    // 3. Fetch Financial Data
-    const transactions = await transactionService.getCashFlowTransactions(startDate, endDate);
+    // 3. Fetch Financial Data (Baseado nas turmas do período)
+    // Buscamos todas as matrículas de turmas que acontecem no mês selecionado, 
+    // independente de quando o pagamento foi feito (Maio de Maio).
+    const { data: enrollments } = await (supabase
+      .from('lead_class_enrollments') as any)
+      .select('*, leads(id, name, responsible), turmas!class_id(id, name, date)')
+      .neq('status', 'CANCELLED')
+      .eq('cost_center', 'cursos')
+      .gte('turmas.date', startDate + 'T00:00:00')
+      .lte('turmas.date', endDate + 'T23:59:59');
+
+    // Mapeia os enrollments para o formato de transação esperado pela lógica abaixo
+    const transactions: any[] = [];
+    (enrollments || []).forEach((e: any) => {
+      if (!e.turmas) return;
+
+      const receivedTaxa = Number(e.taxa_matricula_recebido) || 0;
+      const receivedValor = Number(e.valor_recebido) || 0;
+
+      // Se houver qualquer valor recebido (taxa ou valor do curso), processamos como receita realizada
+      if (receivedTaxa > 0 || receivedValor > 0) {
+        transactions.push({
+          id: e.id,
+          amount: receivedTaxa + receivedValor,
+          status: 'PAID',
+          type: 'INCOME',
+          cost_center: 'cursos',
+          class_id: e.class_id,
+          turmas: e.turmas,
+          leads: e.leads,
+          payment_date: e.taxa_matricula_paid_at || e.valor_recebido_paid_at || e.enrolled_at,
+          origin_type: 'PIPELINE'
+        });
+      }
+    });
+
+    // Também busca transações manuais vinculadas a essas turmas
+    const { data: manualTxs } = await (supabase
+      .from('financial_transactions')
+      .select('*, leads(id, name, responsible), turmas!inner(id, name, date)') as any)
+      .eq('status', 'PAID')
+      .gte('turmas.date', startDate + 'T00:00:00')
+      .lte('turmas.date', endDate + 'T23:59:59');
+    
+    if (manualTxs) {
+      manualTxs.forEach((tx: any) => {
+        // Evita duplicidade se a transação já foi processada via enrollment (income_transaction_id)
+        const isAlreadyAdded = transactions.some(t => t.id === tx.id);
+        if (!isAlreadyAdded) {
+           transactions.push(tx);
+        }
+      });
+    }
     
     // 4. Consolidate Data
     let total_revenue = 0;
@@ -104,8 +160,16 @@ export const partnerRevenueService = {
     let fixed_fee_total = 0;
     let variable_fee_total = 0;
     let pluppex_technology_fee = 0;
+    let variable_pluppex_only = 0;
+    let variable_target_only = 0;
+    let total_matriculas = 0;
 
-    const turmaData: Record<string, { revenue: number, commission: number, enrollments: number }> = {};
+    const turmaData: Record<string, { 
+      receita_total: number, 
+      bpo_target: number, 
+      bpo_pluppex: number, 
+      uniqueEnrollmentIds: Set<string>
+    }> = {};
     const dailyData: Record<string, { pluppex: number, target: number }> = {};
     const formatDate = (d: string) => {
       const date = new Date(d);
@@ -128,8 +192,15 @@ export const partnerRevenueService = {
 
       if (!isPaid || !isIncome) return;
 
+      // Filtro estrito para mostrar APENAS 'cursos' (conforme solicitado pelo usuário)
+      const costCenter = (tx as any).cost_center;
+      if (costCenter !== 'cursos') return;
+
       total_revenue += amt;
       
+      const className = (tx as any).turmas?.name || '';
+      if (className.toUpperCase().includes('APLICAÇÃO')) return;
+
       const leads = Array.isArray(tx.leads) ? tx.leads[0] : tx.leads;
       const respName = (leads?.responsible || (tx as any).responsible || (tx as any).perfis?.name || '').trim().toLowerCase();
       let origin = 'TARGET';
@@ -146,28 +217,46 @@ export const partnerRevenueService = {
       if (origin === 'PLUPPEX') {
         variable = amt * pluppexFeePercent;
         pluppex_sales += amt;
-        pluppex_fee += variable; // Acumula variável aqui, somaremos o fixo no final
+        pluppex_fee += variable;
+        variable_pluppex_only += variable;
         if (dailyData[dateKey]) dailyData[dateKey].pluppex += amt;
       } else {
         variable = amt * targetFeePercent;
         target_sales += amt;
-        target_fee += variable; // Acumula variável aqui, somaremos o fixo no final
+        target_fee += variable;
+        variable_target_only += variable;
         if (dailyData[dateKey]) dailyData[dateKey].target += amt;
       }
 
       variable_fee_total += variable;
 
-      // Turma performance tracking - Enhanced detection
+      // Turma performance tracking
       const classId = tx.class_id || (tx as any).turma_id || (tx as any).turmas?.id;
       if (classId) {
         if (!turmaData[classId]) {
-          turmaData[classId] = { revenue: 0, commission: 0, enrollments: 0 };
+          turmaData[classId] = { receita_total: 0, bpo_target: 0, bpo_pluppex: 0, uniqueEnrollmentIds: new Set() };
         }
-        turmaData[classId].revenue += amt;
-        turmaData[classId].commission += variable;
-        turmaData[classId].enrollments += 1;
+        turmaData[classId].receita_total += amt;
+        
+        // Extrai o ID original da matrícula (remove o sufixo _taxa ou _valor)
+        const originalEnrollmentId = tx.id.replace('_taxa', '').replace('_valor', '');
+        if (tx.origin_type === 'PIPELINE') {
+          turmaData[classId].uniqueEnrollmentIds.add(originalEnrollmentId);
+        }
+        if (origin === 'PLUPPEX') {
+          turmaData[classId].bpo_pluppex += variable;
+        } else {
+          turmaData[classId].bpo_target += variable;
+        }
       }
     });
+
+    // Calcula o total de matrículas únicas no período
+    const allUniqueEnrollments = new Set<string>();
+    Object.values(turmaData).forEach(t => {
+      t.uniqueEnrollmentIds.forEach(id => allUniqueEnrollments.add(id));
+    });
+    total_matriculas = allUniqueEnrollments.size;
 
     const chartData = Object.entries(dailyData)
       .map(([date, values]) => ({ date, ...values }))
@@ -177,20 +266,30 @@ export const partnerRevenueService = {
         return ma !== mb ? Number(ma) - Number(mb) : Number(da) - Number(db);
       });
 
-    const turma_commissions = Object.entries(turmaData).map(([id, stats]) => ({
-      id,
-      name: turmaMap[id] || `Turma #${id.substring(0, 4)}`,
-      ...stats
-    })).sort((a, b) => b.revenue - a.revenue);
+    const turmas = Object.entries(turmaData)
+      .map(([id, stats]) => {
+        const turmaInfo = turmaMap[id];
+        return {
+          class_id: id,
+          class_name: turmaInfo?.name || `Turma #${id.substring(0, 4)}`,
+          class_date: turmaInfo?.date || '',
+          receita_total: stats.receita_total,
+          bpo_target: stats.bpo_target,
+          bpo_pluppex: stats.bpo_pluppex,
+          total_matriculas: stats.uniqueEnrollmentIds.size,
+          total_bpo: stats.bpo_target + stats.bpo_pluppex
+        };
+      })
+      .sort((a, b) => b.receita_total - a.receita_total);
 
-    // 5. Finalize totals with fixed fees (calculated once per report period)
+    // 5. Finalize totals with fixed fees
     fixed_fee_total = pluppexFixedFee + targetFixedFee;
     pluppex_technology_fee = variable_fee_total + fixed_fee_total;
     pluppex_fee += pluppexFixedFee;
     target_fee += targetFixedFee;
 
-    const average_commission_per_turma = turma_commissions.length > 0 
-      ? pluppex_technology_fee / turma_commissions.length 
+    const average_commission_per_turma = turmas.length > 0 
+      ? pluppex_technology_fee / turmas.length 
       : 0;
 
     return {
@@ -209,8 +308,11 @@ export const partnerRevenueService = {
       target_percentage: total_revenue > 0 ? (target_sales / total_revenue) * 100 : 0,
       net_margin: total_revenue > 0 ? ((total_revenue - pluppex_technology_fee) / total_revenue) * 100 : 0,
       average_commission_per_turma,
-      turma_commissions,
+      turmas,
       chartData,
+      total_bpo: variable_fee_total,
+      total_bpo_pluppex: variable_pluppex_only,
+      total_matriculas,
       _debug: {
         txCount: transactions.length,
         leadCount: transactions.filter(t => t.origin_type === 'PIPELINE').length

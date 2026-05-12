@@ -213,7 +213,7 @@ export function Finance() {
         </div>
 
         {/* Tab content */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto p-8">
           {activeTab === 'dashboard' && <DashboardTab startDate={startDate} endDate={endDate} />}
           {activeTab === 'cashflow' && <CashFlowTab startDate={startDate} endDate={endDate} />}
           {activeTab === 'dre' && <DreTab startDate={startDate} endDate={endDate} />}
