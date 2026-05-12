@@ -71,13 +71,24 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
       : `${remainingHours}h restantes`;
 
   const stageName = (lead.status ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const subStatusName = (lead.subStatus ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  
   const isInactiveStage =
+    lead.status === 'closed' ||
     stageName.includes('ganho') ||
     stageName.includes('aprovado') ||
     stageName.includes('fechado') ||
+    stageName.includes('concluido') ||
+    stageName.includes('matriculado') ||
+    stageName.includes('confirmado') ||
+    stageName.includes('certificado') ||
+    stageName.includes('pos-venda') ||
     stageName.includes('perdido') ||
-    stageName.includes('aquecimento') ||
-    stageName.includes('desqualificado');
+    stageName.includes('desqualificado') ||
+    subStatusName.includes('ganho') ||
+    subStatusName.includes('concluido') ||
+    subStatusName.includes('matriculado') ||
+    subStatusName.includes('confirmado');
 
   // Also disable timer if lead has any task assigned
   const timerDisabled = isInactiveStage || hasTasks;

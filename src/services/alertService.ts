@@ -103,11 +103,20 @@ export interface InactivityCheckResult {
   toTransfer: Lead[];
 }
 
-const INACTIVE_STAGE_KEYWORDS = ['ganho', 'aprovado', 'fechado', 'perdido', 'aquecimento', 'desqualificado'];
+const INACTIVE_STAGE_KEYWORDS = ['ganho', 'aprovado', 'fechado', 'concluido', 'matriculado', 'confirmado', 'certificado', 'pos-venda', 'perdido', 'desqualificado'];
 
 function isLeadInInactiveStage(lead: Lead): boolean {
-  const stageLower = (lead.status ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-  return INACTIVE_STAGE_KEYWORDS.some(kw => stageLower.includes(kw));
+  if (lead.status === 'closed') return true;
+  const stageLower = (lead.status ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const subStatusLower = (lead.subStatus ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  
+  const isInactive = INACTIVE_STAGE_KEYWORDS.some(kw => stageLower.includes(kw)) ||
+                     subStatusLower.includes('concluido') ||
+                     subStatusLower.includes('ganho') ||
+                     subStatusLower.includes('matriculado') ||
+                     subStatusLower.includes('confirmado');
+                     
+  return isInactive;
 }
 
 export function checkLeadInactivity(
