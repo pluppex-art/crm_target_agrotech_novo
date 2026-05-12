@@ -384,10 +384,10 @@ export function Dashboard() {
       {/* KPI Metrics */}
       <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
         <MetricCard label="Total de Leads" value={String(globalSalesMetrics.leadsCount)} icon={Users} color="bg-emerald-50 text-emerald-600" />
-        <MetricCard label="Ganhos" value={String(globalSalesMetrics.closedLeadsCount)} icon={Users} color="bg-emerald-50 text-emerald-600" />
-        <MetricCard label="Conversão" value={`${globalSalesMetrics.conversionRate.toFixed(1)}%`} icon={Users} color="bg-purple-50 text-purple-600" />
-        <MetricCard label="Ciclo Médio (Dias)" value={String(globalSalesMetrics.averageSalesCycle)} icon={Clock} color="bg-rose-50 text-rose-600" />
-        <MetricCard label="Sem Atividade (>2 dias)" value={String(globalSalesMetrics.inactiveLeadsCount)} icon={AlertCircle} color="bg-amber-50 text-amber-600" />
+        <MetricCard label="Ganhos" value={String(salesMetrics.closedLeadsCount)} icon={Users} color="bg-emerald-50 text-emerald-600" />
+        <MetricCard label="Conversão" value={`${salesMetrics.conversionRate.toFixed(1)}%`} icon={Users} color="bg-purple-50 text-purple-600" />
+        <MetricCard label="Ciclo Médio (Dias)" value={String(salesMetrics.averageSalesCycle)} icon={Clock} color="bg-rose-50 text-rose-600" />
+        <MetricCard label="Sem Atividade (>2 dias)" value={String(salesMetrics.inactiveLeadsCount)} icon={AlertCircle} color="bg-amber-50 text-amber-600" />
       </div>
 
       {/* ── Ranking + Semáforo + Taxa de Ocupação ── */}
