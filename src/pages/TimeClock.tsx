@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Clock, 
-  Play, 
-  Pause, 
-  Square, 
-  Calendar as CalendarIcon, 
-  History, 
-  CheckCircle2, 
+import {
+  Clock,
+  Play,
+  Square,
+  Calendar as CalendarIcon,
+  History,
+  CheckCircle2,
   AlertCircle,
   Coffee,
   Briefcase,
@@ -15,14 +14,13 @@ import {
   Search,
   Filter,
   Download,
-  MoreVertical,
   ExternalLink,
   MapPin
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { useAuthStore } from '../store/useAuthStore';
 import { useProfileStore } from '../store/useProfileStore';
+import { useTimeClockStore } from '../store/useTimeClockStore';
 
 interface TimeLog {
   id: string;
@@ -40,7 +38,7 @@ export function TimeClock() {
   const { profiles } = useProfileStore();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [logs, setLogs] = useState<TimeLog[]>([]);
-  const [activeStatus, setActiveStatus] = useState<'off' | 'working' | 'break'>('off');
+  const { status: activeStatus, setStatus: setActiveStatus } = useTimeClockStore();
   const [view, setView] = useState<'personal' | 'admin'>('personal');
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -77,14 +75,16 @@ export function TimeClock() {
     
     setLogs(prev => [newLog, ...prev]);
     
-    if (type === 'entrada' || type === 'volta_intervalo') setActiveStatus('working');
+    if (type === 'entrada') setActiveStatus('working');
     else if (type === 'saida_intervalo') setActiveStatus('break');
+    else if (type === 'volta_intervalo') setActiveStatus('returned');
     else setActiveStatus('off');
   };
 
   const getStatusColor = () => {
     switch (activeStatus) {
-      case 'working': return 'text-emerald-600 bg-emerald-50 border-emerald-100';
+      case 'working':
+      case 'returned': return 'text-emerald-600 bg-emerald-50 border-emerald-100';
       case 'break': return 'text-amber-600 bg-amber-50 border-amber-100';
       default: return 'text-slate-400 bg-slate-50 border-slate-100';
     }
@@ -147,8 +147,8 @@ export function TimeClock() {
                 {currentTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
               </div>
               <div className={cn("inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold mt-3 border transition-all uppercase tracking-widest", getStatusColor())}>
-                <div className={cn("w-2 h-2 rounded-full animate-pulse", activeStatus === 'working' ? 'bg-emerald-500' : activeStatus === 'break' ? 'bg-amber-500' : 'bg-slate-400')} />
-                {activeStatus === 'working' ? 'Em Jornada' : activeStatus === 'break' ? 'Em Intervalo' : 'Fora de Jornada'}
+                <div className={cn("w-2 h-2 rounded-full animate-pulse", (activeStatus === 'working' || activeStatus === 'returned') ? 'bg-emerald-500' : activeStatus === 'break' ? 'bg-amber-500' : 'bg-slate-400')} />
+                {(activeStatus === 'working' || activeStatus === 'returned') ? 'Em Jornada' : activeStatus === 'break' ? 'Em Intervalo' : 'Fora de Jornada'}
               </div>
             </div>
           </div>
@@ -188,7 +188,7 @@ export function TimeClock() {
                     label="Registrar Saída" 
                     icon={Square} 
                     onClick={() => handlePunch('saida')} 
-                    active={activeStatus === 'working'}
+                    active={activeStatus === 'working' || activeStatus === 'returned'}
                     variant="red"
                   />
                 </div>

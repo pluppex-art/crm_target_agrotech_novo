@@ -1,29 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { Clock, Play, Coffee, ArrowRight, Square } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Play, Coffee, ArrowRight, Square } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { useTimeClockStore } from '../../store/useTimeClockStore';
 
 export function TimeClockHeaderWidget() {
   const [time, setTime] = useState(new Date());
-  const [status, setStatus] = useState<'off' | 'working' | 'break' | 'returned'>('off');
+  const { status, setStatus } = useTimeClockStore();
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
-    const savedStatus = localStorage.getItem('ponto_status') as any;
-    if (savedStatus) setStatus(savedStatus);
     return () => clearInterval(timer);
   }, []);
 
   const handlePunch = () => {
-    let nextStatus: typeof status = 'off';
-    
-    // Ciclo completo: Entrada -> Intervalo -> Retorno -> Saída Final
-    if (status === 'off') nextStatus = 'working';
-    else if (status === 'working') nextStatus = 'break';
-    else if (status === 'break') nextStatus = 'returned';
-    else if (status === 'returned') nextStatus = 'off';
-    
-    setStatus(nextStatus);
-    localStorage.setItem('ponto_status', nextStatus);
+    if (status === 'off') setStatus('working');
+    else if (status === 'working') setStatus('break');
+    else if (status === 'break') setStatus('returned');
+    else if (status === 'returned') setStatus('off');
   };
 
   const getStatusConfig = () => {
