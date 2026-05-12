@@ -54,7 +54,7 @@ function SellerGoalsList({ sellers, sellerGoals, savingSeller, savedSeller, upda
                 onChange={v => updateSeller(profile.id, 'leads', v.replace(/\D/g, ''))}
               />
               <GoalInput
-                label="Ligações"
+                label="Ligações/dia"
                 icon={<Phone size={12} className="text-slate-400" />}
                 value={g.calls}
                 onChange={v => updateSeller(profile.id, 'calls', v.replace(/\D/g, ''))}
@@ -213,7 +213,7 @@ export function ManageGoals() {
     <div className="p-6 max-w-3xl mx-auto">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-slate-800">Metas</h1>
-        <p className="text-sm text-slate-500">Defina metas de receita e leads fechados para a empresa e para cada vendedor.</p>
+        <p className="text-sm text-slate-500">Defina metas de receita, leads fechados e ligações diárias para a empresa e para cada vendedor.</p>
       </div>
 
       {/* Company goals */}
@@ -241,7 +241,7 @@ export function ManageGoals() {
             onChange={setCompanyLeads}
           />
           <GoalInput
-            label="Ligações"
+            label="Ligações/dia"
             icon={<Phone size={12} className="text-slate-400" />}
             value={companyCalls}
             onChange={setCompanyCalls}
