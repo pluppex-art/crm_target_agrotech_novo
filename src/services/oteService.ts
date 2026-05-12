@@ -202,7 +202,6 @@ export const oteService = {
       .from('lead_class_enrollments') as any)
       .select('valor_recebido, taxa_matricula_recebido, responsible, responsible_id, cost_center')
       .neq('status', 'CANCELLED')
-      .eq('cost_center', 'cursos') // OTE geralmente é para o core business (cursos)
       .gte('enrolled_at', startDate + 'T00:00:00')
       .lte('enrolled_at', endDate + 'T23:59:59');
 
@@ -349,7 +348,6 @@ export const oteService = {
       .from('lead_class_enrollments') as any)
       .select('valor_recebido, taxa_matricula_recebido, responsible, responsible_id, cost_center')
       .neq('status', 'CANCELLED')
-      .eq('cost_center', 'cursos')
       .gte('enrolled_at', startDate + 'T00:00:00')
       .lte('enrolled_at', endDate + 'T23:59:59');
 

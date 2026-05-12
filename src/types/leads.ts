@@ -43,6 +43,6 @@ export interface Lead {
   rg_photo_url?: string | null;
   profile_photo_url?: string | null;
   seller_origin?: 'target' | 'pluppex' | null;
-  cost_center?: 'cursos' | 'servico_drone' | 'administrativo' | null;
+  cost_center?: 'cursos' | null;
 }
 

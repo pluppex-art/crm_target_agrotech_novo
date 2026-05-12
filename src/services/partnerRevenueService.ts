@@ -72,7 +72,6 @@ export const partnerRevenueService = {
       .from('lead_class_enrollments') as any)
       .select('*, seller_origin, leads(id, name, responsible), turmas!class_id(id, name, date)')
       .neq('status', 'CANCELLED')
-      .or('cost_center.eq.cursos,cost_center.is.null')
       .gte('turmas.date', startDate + 'T00:00:00')
       .lte('turmas.date', endDate + 'T23:59:59');
 
@@ -90,7 +89,7 @@ export const partnerRevenueService = {
           amount: receivedTaxa + receivedValor,
           status: 'PAID',
           type: 'INCOME',
-          cost_center: 'cursos',
+          cost_center: e.cost_center,
           class_id: e.class_id,
           turmas: e.turmas,
           leads: e.leads,
@@ -160,14 +159,12 @@ export const partnerRevenueService = {
 
       if (!isPaid || !isIncome) return;
 
-      // Inclui NULL (registros anteriores à migration 008) e 'cursos'; exclui drone/admin
+      // Sem filtro de cursos: inclui todos os registros (drone, administrativo, etc)
       const costCenter = (tx as any).cost_center;
-      if (costCenter && costCenter !== 'cursos') return;
 
       total_revenue += amt;
       
-      const className = (tx as any).turmas?.name || '';
-      if (className.toUpperCase().includes('APLICAÇÃO')) return;
+
 
       // seller_origin é a fonte de verdade (migration 008); fallback para TARGET
       const sellerOrigin = ((tx as any).seller_origin || '').toUpperCase();

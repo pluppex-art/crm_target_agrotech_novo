@@ -51,6 +51,7 @@ export const supabaseService = {
         professor_proof_url: activeEnrollment?.professor_proof_url || null,
         rg_photo_url: activeEnrollment?.rg_photo_url || null,
         profile_photo_url: activeEnrollment?.profile_photo_url || null,
+        cost_center: activeEnrollment?.cost_center || lead.cost_center || 'cursos',
       } as Lead;
     });
   },
@@ -181,6 +182,7 @@ export const supabaseService = {
 
     // Se houver campos financeiros, atualiza a matrícula (lead_class_enrollments) mais recente
     const financialUpdates: any = {};
+    if (lead.cost_center !== undefined) financialUpdates.cost_center = lead.cost_center;
     if (discount !== undefined) financialUpdates.discount = discount;
     if (discount_applied !== undefined) financialUpdates.discount_applied = discount_applied;
     if (discount_type !== undefined) financialUpdates.discount_type = discount_type;

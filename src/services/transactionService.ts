@@ -38,7 +38,7 @@ export const transactionService = {
         else query = query.eq('user_id', filters.userId);
       }
     }
-    const { data: v2Data } = await query.limit(500);
+    const { data: v2Data } = await query.limit(1000);
 
     return (v2Data || []) as unknown as FinancialTransaction[];
   },
@@ -149,11 +149,6 @@ export const transactionService = {
 
     // PENDING/OVERDUE PIPELINE excluded — enrollment balance is the source of truth
     allTransactions.forEach((t: FinancialTransaction) => {
-      // Filtro rigoroso para o Dashboard
-      if (t.cost_center && t.cost_center !== 'cursos') return;
-      const desc = (t.description || '').toUpperCase();
-      if (desc.includes('APLICAÇÃO')) return;
-
       const amt = Number(t.amount) || 0;
       if (t.status === 'PAID') {
         if (t.type === 'INCOME') receita_total += amt;
@@ -166,10 +161,8 @@ export const transactionService = {
 
     const alunosIds = new Set<string>();
     (enrollments || []).forEach((e: any) => {
-      // Filtro rigoroso por centro de custo e nome (evita serviços de drone no dashboard de cursos)
-      const isCurso = (e.cost_center === 'cursos' || !e.cost_center);
-      const isAplicacao = (e.leads?.product || '').toUpperCase().includes('APLICAÇÃO') || 
-                          (e.turmas?.name || '').toUpperCase().includes('APLICAÇÃO');
+      const isCurso = true;
+      const isAplicacao = false;
       
       if (!isCurso || isAplicacao) return;
 
@@ -251,10 +244,6 @@ export const transactionService = {
     ];
 
     for (const t of allManual) {
-      if (t.cost_center && t.cost_center !== 'cursos') continue;
-      const desc = (t.description || '').toUpperCase();
-      if (desc.includes('APLICAÇÃO')) continue;
-      
       if (!manualById.has(t.id)) manualById.set(t.id, t);
     }
     const manualTxs = Array.from(manualById.values());
@@ -281,9 +270,8 @@ export const transactionService = {
       valorEnrollQuery = valorEnrollQuery.lte('valor_recebido_paid_at', endDate + 'T23:59:59');
     }
 
-    // Filtro de cursos: inclui registros com cost_center = 'cursos' OU sem cost_center (NULL)
-    taxaEnrollQuery = (taxaEnrollQuery as any).or('cost_center.eq.cursos,cost_center.is.null');
-    valorEnrollQuery = (valorEnrollQuery as any).or('cost_center.eq.cursos,cost_center.is.null');
+    // Sem filtro de cursos: inclui todos os registros
+    // taxas e valores ja sao filtrados por status !== CANCELLED e valor > 0 acima
 
     const [{ data: taxaEnrolls, error: taxaErr }, { data: valorEnrolls, error: valorErr }] = await Promise.all([taxaEnrollQuery, valorEnrollQuery]);
     if (taxaErr) console.error('[getCashFlowTransactions] taxa query error:', taxaErr);

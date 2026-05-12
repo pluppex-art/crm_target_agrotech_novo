@@ -14,7 +14,14 @@ import { calcCashFlowKPIs } from '../../calculations/cashFlowMetrics';
 
 
 function formatDate(iso: string) {
-  return new Date(iso + 'T12:00:00').toLocaleDateString('pt-BR', {
+  if (!iso) return '—';
+  // Handle full ISO strings or date-only strings
+  const datePart = iso.includes('T') ? iso.split('T')[0] : iso;
+  const date = new Date(datePart + 'T12:00:00');
+  
+  if (isNaN(date.getTime())) return 'Data Inválida';
+  
+  return date.toLocaleDateString('pt-BR', {
     weekday: 'short', day: '2-digit', month: 'short',
   });
 }
@@ -135,13 +142,17 @@ export function CashFlowTab({ startDate, endDate }: { startDate: string; endDate
   const studentsByProduct = useMemo(() => {
     const groups: Record<string, { product: string; total: number; count: number; items: TxWithLead[] }> = {};
     pipelineTxs.forEach(t => {
-      const productName = t.turmas?.name || t.leads?.product || 'Outros / Diversos';
-      if (!groups[productName]) {
-        groups[productName] = { product: productName, total: 0, count: 0, items: [] };
+      const costCenter = (t.cost_center || 'cursos').toLowerCase();
+      const groupLabel = costCenter === 'cursos' ? 'Cursos' : 
+                         costCenter === 'servico_drone' ? 'Serviço de Drone' : 
+                         'Administrativo';
+      
+      if (!groups[groupLabel]) {
+        groups[groupLabel] = { product: groupLabel, total: 0, count: 0, items: [] };
       }
-      groups[productName].total += Number(t.amount);
-      groups[productName].count += 1;
-      groups[productName].items.push(t);
+      groups[groupLabel].total += Number(t.amount);
+      groups[groupLabel].count += 1;
+      groups[groupLabel].items.push(t);
     });
     return Object.values(groups).sort((a, b) => b.total - a.total);
   }, [pipelineTxs]);

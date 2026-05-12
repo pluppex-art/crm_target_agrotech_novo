@@ -21,12 +21,7 @@ export const dreService = {
     });
 
     // Filtro rigoroso para manter consistência com o Dashboard
-    const transactions = allTransactions.filter(t => {
-      if (t.cost_center && t.cost_center !== 'cursos') return false;
-      const desc = (t.description || '').toUpperCase();
-      if (desc.includes('APLICAÇÃO')) return false;
-      return true;
-    });
+    const transactions = allTransactions;
     
     // Fetch Lead Revenue from lead_class_enrollments filtered by actual payment dates
     let valorDreQuery = supabase
@@ -49,9 +44,7 @@ export const dreService = {
       taxaDreQuery = taxaDreQuery.lte('taxa_matricula_paid_at', filters.endDate + 'T23:59:59');
     }
 
-    // Inclui registros sem cost_center (NULL = cursos por padrão antes da migration 008)
-    valorDreQuery = (valorDreQuery as any).or('cost_center.eq.cursos,cost_center.is.null');
-    taxaDreQuery = (taxaDreQuery as any).or('cost_center.eq.cursos,cost_center.is.null');
+    // Sem filtro de cursos: inclui todos os registros
 
     const [{ data: valorEnrollments }, { data: taxaEnrollments }] = await Promise.all([valorDreQuery, taxaDreQuery]);
 
