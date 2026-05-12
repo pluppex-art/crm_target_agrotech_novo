@@ -47,6 +47,12 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
     payment_proof_url: lead.payment_proof_url ?? null,
     contract_url: lead.contract_url ?? null,
     professor_proof_url: lead.professor_proof_url ?? null,
+    cpf: lead.cpf || '',
+    address: lead.address || '',
+    instagram: lead.instagram || '',
+    emergency_contact: lead.emergency_contact || '',
+    rg_photo_url: lead.rg_photo_url || null,
+    profile_photo_url: lead.profile_photo_url || null,
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -80,6 +86,12 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
       payment_proof_url: lead.payment_proof_url ?? null,
       contract_url: lead.contract_url ?? null,
       professor_proof_url: lead.professor_proof_url ?? null,
+      cpf: lead.cpf || '',
+      address: lead.address || '',
+      instagram: lead.instagram || '',
+      emergency_contact: lead.emergency_contact || '',
+      rg_photo_url: lead.rg_photo_url || null,
+      profile_photo_url: lead.profile_photo_url || null,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lead.id]);
@@ -180,6 +192,12 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
         forma_pagamento: formData.forma_pagamento || undefined,
         taxa_matricula_recebido: formData.taxa_matricula_recebido ?? undefined,
         professor_proof_url: formData.professor_proof_url ?? undefined,
+        cpf: formData.cpf || undefined,
+        address: formData.address || undefined,
+        instagram: formData.instagram || undefined,
+        emergency_contact: formData.emergency_contact || undefined,
+        rg_photo_url: formData.rg_photo_url || undefined,
+        profile_photo_url: formData.profile_photo_url || undefined,
       };
 
       const { updateLead } = useLeadStore.getState();

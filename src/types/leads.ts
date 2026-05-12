@@ -36,5 +36,12 @@ export interface Lead {
   forma_pagamento?: string | null;
   motivo_perda?: string | null;
   cnpj?: string | null;
+  // Document fields
+  cpf?: string | null;
+  address?: string | null;
+  instagram?: string | null;
+  emergency_contact?: string | null;
+  rg_photo_url?: string | null;
+  profile_photo_url?: string | null;
 }
 

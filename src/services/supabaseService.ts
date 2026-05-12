@@ -49,6 +49,8 @@ export const supabaseService = {
         payment_proof_url: activeEnrollment?.payment_proof_url || null,
         contract_url: activeEnrollment?.contract_url || null,
         professor_proof_url: activeEnrollment?.professor_proof_url || null,
+        rg_photo_url: activeEnrollment?.rg_photo_url || null,
+        profile_photo_url: activeEnrollment?.profile_photo_url || null,
       } as Lead;
     });
   },
@@ -115,6 +117,7 @@ export const supabaseService = {
       pix_completed, contract_signed,
       valor_recebido, taxa_matricula_recebido, forma_pagamento,
       payment_proof_url, contract_url, professor_proof_url,
+      rg_photo_url, profile_photo_url,
       ...baseLead 
     } = lead as any;
     
@@ -154,6 +157,7 @@ export const supabaseService = {
       pix_completed, contract_signed,
       valor_recebido, taxa_matricula_recebido, forma_pagamento,
       payment_proof_url, contract_url, professor_proof_url,
+      rg_photo_url, profile_photo_url,
       ...baseLead 
     } = lead as any;
     
@@ -188,6 +192,8 @@ export const supabaseService = {
     if (payment_proof_url !== undefined) financialUpdates.payment_proof_url = payment_proof_url;
     if (contract_url !== undefined) financialUpdates.contract_url = contract_url;
     if (professor_proof_url !== undefined) financialUpdates.professor_proof_url = professor_proof_url;
+    if (rg_photo_url !== undefined) financialUpdates.rg_photo_url = rg_photo_url;
+    if (profile_photo_url !== undefined) financialUpdates.profile_photo_url = profile_photo_url;
 
     if (Object.keys(financialUpdates).length > 0) {
       // 1. Achar a matrícula mais recente

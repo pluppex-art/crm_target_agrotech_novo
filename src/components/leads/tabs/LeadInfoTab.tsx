@@ -54,15 +54,19 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = ({
 
   const [uploadingProof, setUploadingProof] = useState(false);
   const [uploadingContract, setUploadingContract] = useState(false);
+  const [uploadingRG, setUploadingRG] = useState(false);
+  const [uploadingProfile, setUploadingProfile] = useState(false);
   const proofInputRef = useRef<HTMLInputElement>(null);
   const contractInputRef = useRef<HTMLInputElement>(null);
+  const rgInputRef = useRef<HTMLInputElement>(null);
+  const profileInputRef = useRef<HTMLInputElement>(null);
 
   const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
   const ALLOWED_EXT = '.jpg,.jpeg,.png,.pdf';
 
   const handleFileUpload = async (
     file: File,
-    fileType: 'payment_proof' | 'contract',
+    fileType: 'payment_proof' | 'contract' | 'rg_photo' | 'profile_photo',
     setLoading: (v: boolean) => void
   ) => {
     if (!ALLOWED_TYPES.includes(file.type)) {
@@ -73,7 +77,12 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = ({
     try {
       const url = await uploadLeadFile(lead.id, fileType, file);
       if (url) {
-        const field = fileType === 'payment_proof' ? 'payment_proof_url' : 'contract_url';
+        const field = 
+          fileType === 'payment_proof' ? 'payment_proof_url' : 
+          fileType === 'contract' ? 'contract_url' : 
+          fileType === 'rg_photo' ? 'rg_photo_url' : 
+          'profile_photo_url';
+        
         updateFormField({ [field]: url });
         await toggleField?.(field, url);
         if (fileType === 'payment_proof') {
@@ -87,8 +96,13 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = ({
     }
   };
 
-  const handleDeleteFile = async (fileType: 'payment_proof' | 'contract') => {
-    const field = fileType === 'payment_proof' ? 'payment_proof_url' : 'contract_url';
+  const handleDeleteFile = async (fileType: 'payment_proof' | 'contract' | 'rg_photo' | 'profile_photo') => {
+    const field = 
+      fileType === 'payment_proof' ? 'payment_proof_url' : 
+      fileType === 'contract' ? 'contract_url' : 
+      fileType === 'rg_photo' ? 'rg_photo_url' : 
+      'profile_photo_url';
+    
     const url = formData[field];
     if (!url) return;
     if (!confirm('Remover este arquivo?')) return;
@@ -554,7 +568,7 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = ({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">CPF/CNPJ</label>
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">CPF Principal (para NF)</label>
             <input
               type="text"
               value={formData.cnpj}
@@ -562,6 +576,136 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = ({
               className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm"
               placeholder="000.000.000-00 ou 00.000.000/0000-00"
             />
+          </div>
+        </div>
+
+        {/* ── SEÇÃO DE DOCUMENTOS PARA CONTRATO ── */}
+        <div className="pt-4 border-t border-slate-100">
+          <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+            <FileText size={12} className="text-emerald-500" /> Documentos para contrato
+          </h4>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* CPF Específico */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">CPF do Aluno</label>
+              <input
+                type="text"
+                value={formData.cpf || ''}
+                onChange={(e) => updateFormField({ cpf: formatCPFCNPJ(e.target.value) })}
+                className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm text-sm"
+                placeholder="000.000.000-00"
+              />
+            </div>
+
+            {/* Instagram */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Instagram (@)</label>
+              <input
+                type="text"
+                value={formData.instagram || ''}
+                onChange={(e) => updateFormField({ instagram: e.target.value })}
+                className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm text-sm"
+                placeholder="@usuario"
+              />
+            </div>
+
+            {/* Contato de Emergência */}
+            <div className="flex flex-col gap-1.5 md:col-span-2">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Contato de Emergência (Nome + Número)</label>
+              <input
+                type="text"
+                value={formData.emergency_contact || ''}
+                onChange={(e) => updateFormField({ emergency_contact: e.target.value })}
+                className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm text-sm"
+                placeholder="Ex: Maria (Esposa) - (66) 99999-9999"
+              />
+            </div>
+
+            {/* Endereço Completo */}
+            <div className="flex flex-col gap-1.5 md:col-span-2">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Endereço Completo com CEP</label>
+              <textarea
+                rows={2}
+                value={formData.address || ''}
+                onChange={(e) => updateFormField({ address: e.target.value })}
+                className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm text-sm resize-none"
+                placeholder="Rua, Número, Bairro, Cidade - UF, CEP"
+              />
+            </div>
+
+            {/* Uploads de Foto */}
+            <div className="grid grid-cols-2 gap-3 md:col-span-2 mt-2">
+              {/* RG Photo */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Foto RG ou CNH</label>
+                <div className="flex items-center gap-2 bg-white p-1 pr-2 rounded-xl border border-slate-200 shadow-sm w-full">
+                  <input
+                    ref={rgInputRef}
+                    type="file"
+                    accept={ALLOWED_EXT}
+                    className="hidden"
+                    onChange={e => {
+                      const f = e.target.files?.[0];
+                      if (f) handleFileUpload(f, 'rg_photo', setUploadingRG);
+                      e.target.value = '';
+                    }}
+                  />
+                  <button
+                    onClick={() => rgInputRef.current?.click()}
+                    disabled={uploadingRG}
+                    className={cn(
+                      "flex-1 flex items-center gap-2 px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all",
+                      formData.rg_photo_url ? "bg-emerald-50 text-emerald-600" : "bg-slate-50 text-slate-500 hover:bg-slate-100"
+                    )}
+                  >
+                    {uploadingRG ? <Loader2 size={12} className="animate-spin" /> : <ClipboardCheck size={12} />}
+                    <span className="truncate">{formData.rg_photo_url ? 'RG Anexado' : 'Anexar RG/CNH'}</span>
+                  </button>
+                  {formData.rg_photo_url && (
+                    <div className="flex items-center gap-0.5 border-l border-slate-100 ml-1 pl-1">
+                      <a href={formData.rg_photo_url} target="_blank" rel="noreferrer" className="p-1 text-slate-400 hover:text-emerald-500"><Eye size={14} /></a>
+                      <button onClick={() => handleDeleteFile('rg_photo')} className="p-1 text-slate-400 hover:text-red-500"><XIcon size={14} /></button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Profile Photo */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Foto de Perfil</label>
+                <div className="flex items-center gap-2 bg-white p-1 pr-2 rounded-xl border border-slate-200 shadow-sm w-full">
+                  <input
+                    ref={profileInputRef}
+                    type="file"
+                    accept={ALLOWED_EXT}
+                    className="hidden"
+                    onChange={e => {
+                      const f = e.target.files?.[0];
+                      if (f) handleFileUpload(f, 'profile_photo', setUploadingProfile);
+                      e.target.value = '';
+                    }}
+                  />
+                  <button
+                    onClick={() => profileInputRef.current?.click()}
+                    disabled={uploadingProfile}
+                    className={cn(
+                      "flex-1 flex items-center gap-2 px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all",
+                      formData.profile_photo_url ? "bg-emerald-50 text-emerald-600" : "bg-slate-50 text-slate-500 hover:bg-slate-100"
+                    )}
+                  >
+                    {uploadingProfile ? <Loader2 size={12} className="animate-spin" /> : <User size={12} />}
+                    <span className="truncate">{formData.profile_photo_url ? 'Foto Anexada' : 'Anexar Foto'}</span>
+                  </button>
+                  {formData.profile_photo_url && (
+                    <div className="flex items-center gap-0.5 border-l border-slate-100 ml-1 pl-1">
+                      <a href={formData.profile_photo_url} target="_blank" rel="noreferrer" className="p-1 text-slate-400 hover:text-emerald-500"><Eye size={14} /></a>
+                      <button onClick={() => handleDeleteFile('profile_photo')} className="p-1 text-slate-400 hover:text-red-500"><XIcon size={14} /></button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

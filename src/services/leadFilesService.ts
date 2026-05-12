@@ -2,7 +2,7 @@ import { getSupabaseClient } from '../lib/supabase';
 
 const BUCKET = 'lead-files';
 
-export type LeadFileType = 'payment_proof' | 'contract';
+export type LeadFileType = 'payment_proof' | 'contract' | 'rg_photo' | 'profile_photo';
 
 /**
  * Uploads a file and returns the public URL, or null on failure.
