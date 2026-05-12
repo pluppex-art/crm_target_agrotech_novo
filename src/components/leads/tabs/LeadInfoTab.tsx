@@ -272,21 +272,23 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = ({
               </label>
 
               {/* Contador de Ligações Diárias */}
-              <div className="flex items-center gap-3 pt-1">
-                <button
-                  onClick={logCall}
-                  disabled={logging}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 rounded-xl text-[13px] font-bold transition-all disabled:opacity-60 shadow-sm"
-                >
-                  {logging ? <Loader2 size={14} className="animate-spin" /> : <Phone size={14} />}
-                  Registrar Ligação
-                </button>
-                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl">
-                  <Phone size={12} className="text-slate-400" />
-                  <span className="text-xs font-black text-slate-700 tabular-nums">{todayCount}</span>
-                  <span className="text-[10px] text-slate-400 font-medium">/dia</span>
+              {(
+                <div className="flex items-center gap-3 pt-1">
+                  <button
+                    onClick={logCall}
+                    disabled={logging}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 rounded-xl text-[13px] font-bold transition-all disabled:opacity-60 shadow-sm"
+                  >
+                    {logging ? <Loader2 size={14} className="animate-spin" /> : <Phone size={14} />}
+                    Registrar Ligação
+                  </button>
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl">
+                    <Phone size={12} className="text-slate-400" />
+                    <span className="text-xs font-black text-slate-700 tabular-nums">{todayCount}</span>
+                    <span className="text-[10px] text-slate-400 font-medium">/dia</span>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Coluna 2: Uploads */}

@@ -178,7 +178,6 @@ export function Dashboard() {
       callService.getTeamTodayStats(),
     ]);
     setGoals(goalsData);
-    // Merge calls count with goals (calls_goal per seller or company default)
     const sellerGoals = goalsData.filter((g: any) => g.type === 'seller');
     const companyCallsGoal = goalsData.find((g: any) => g.type === 'company')?.calls_goal ?? 30;
     setCallStats(teamCalls.map(s => {
@@ -434,20 +433,13 @@ export function Dashboard() {
           )}
         </div>
 
-        {/* Semáforos */}
-        <div className="flex flex-col gap-6">
-          <SellerSemaphore
-            data={salesMetrics.sellerSemaphoreData}
-            currentSellerName={currentSellerName}
-            isAdmin={hasPermission('admin.all')}
-            companyRevenueGoal={companyGoal?.revenue_goal || 0}
-          />
-          <CallsSemaphore
-            data={callStats}
-            isAdmin={hasPermission('admin.all')}
-            currentUserId={currentUser?.id ?? null}
-          />
-        </div>
+        {/* Semáforo de Vendedores */}
+        <SellerSemaphore
+          data={salesMetrics.sellerSemaphoreData}
+          currentSellerName={currentSellerName}
+          isAdmin={hasPermission('admin.all')}
+          companyRevenueGoal={companyGoal?.revenue_goal || 0}
+        />
       </div>
 
       {/* ── Linha 2: Funil + Turmas ── */}
@@ -501,6 +493,15 @@ export function Dashboard() {
       {/* Taxa de Ocupação por Turma */}
       <div className="mb-6">
         <OccupancyCard occupancyData={salesMetrics.occupancyData} />
+      </div>
+
+      {/* Ligações Diárias — Comercial */}
+      <div className="mb-6">
+        <CallsSemaphore
+          sellers={callStats}
+          isAdmin={hasPermission('admin.all')}
+          currentUserId={currentUser?.id ?? null}
+        />
       </div>
 
       {/* Trends + Meta */}
