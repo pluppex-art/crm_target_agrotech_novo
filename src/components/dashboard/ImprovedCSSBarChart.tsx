@@ -1,4 +1,6 @@
+import React from 'react';
 import { BarChart2 } from 'lucide-react';
+import { cn } from '../../lib/utils';
 
 interface BarItem {
   label: string;
@@ -10,7 +12,6 @@ interface BarItem {
 interface ImprovedCSSBarChartProps {
   data: BarItem[];
   color?: string;
-  gradient?: boolean;
   showValues?: boolean;
   emptyLabel?: string;
   minBarWidth?: number;
@@ -19,10 +20,10 @@ interface ImprovedCSSBarChartProps {
 
 export function ImprovedCSSBarChart({
   data,
-  color = '#10b981',
+  color = '#3b82f6',
   showValues = true,
   emptyLabel = 'Sem dados ainda',
-  minBarWidth = 0,
+  minBarWidth = 60,
   chartHeight = 180,
 }: ImprovedCSSBarChartProps) {
   const max = Math.max(...data.map(d => d.value), 1);
@@ -32,7 +33,7 @@ export function ImprovedCSSBarChart({
     return (
       <div
         className="flex flex-col items-center justify-center text-slate-300 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50"
-        style={{ height: chartHeight + 40 }}
+        style={{ height: chartHeight + 60 }}
       >
         <BarChart2 className="w-10 h-10 mb-2 opacity-40" />
         <p className="text-sm font-semibold text-slate-400">{emptyLabel}</p>
@@ -45,87 +46,61 @@ export function ImprovedCSSBarChart({
     : n >= 1_000 ? `${(n / 1_000).toFixed(0)}k`
     : String(n);
 
-  const totalMinWidth = minBarWidth > 0 ? data.length * minBarWidth : undefined;
-
-  const colWidth = (): React.CSSProperties =>
-    minBarWidth > 0
-      ? { width: minBarWidth, flexShrink: 0 }
-      : { flex: '1 1 0', minWidth: 36 };
-
   return (
-    <div className="w-full overflow-x-auto">
-      <div style={{ minWidth: totalMinWidth }}>
-        {/* Bars + inline labels */}
-        <div className="flex items-end gap-2 px-1" style={{ height: chartHeight }}>
-          {data.map((d, i) => {
-            const barHeightPx = max > 0
-              ? Math.max((d.value / max) * chartHeight * 0.78, d.value > 0 ? 6 : 0)
-              : 0;
-            const barColor = d.color ?? color;
-            const LABEL_W = 12;
-            const labelMaxH = chartHeight - 20;
+    <div className="w-full overflow-x-auto custom-scrollbar pb-2">
+      <div className="flex items-end justify-around gap-4 min-w-full px-2" style={{ height: chartHeight + 40 }}>
+        {data.map((d, i) => {
+          const percentage = (d.value / max) * 100;
+          const barHeight = Math.max(percentage * 0.8, d.value > 0 ? 5 : 0);
+          const barColor = d.color ?? color;
 
-            return (
-              <div
-                key={`col-${i}`}
-                style={{ ...colWidth(), height: chartHeight, position: 'relative', overflow: 'hidden' }}
-                className="flex flex-col items-end justify-end pb-1 gap-0.5 group"
-              >
-                {/* Value number above bar */}
-                {showValues && (
-                  <span className="text-[11px] font-bold text-slate-700 leading-none mb-0.5 shrink-0">
+          return (
+            <div
+              key={`bar-${i}`}
+              className="flex flex-col items-center justify-end h-full group"
+              style={{ minWidth: minBarWidth, flex: '1 1 0' }}
+            >
+              {/* Value Indicator */}
+              {showValues && (
+                <div className="mb-2 transition-all duration-300 transform translate-y-1 group-hover:translate-y-0 opacity-80 group-hover:opacity-100">
+                  <span className="text-[10px] font-black text-slate-600 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-100 shadow-sm whitespace-nowrap">
                     {d.sublabel ?? fmt(d.value)}
                   </span>
-                )}
+                </div>
+              )}
 
-                {/* Bar — offset right to leave room for label */}
+              {/* Bar Container */}
+              <div className="relative w-full flex flex-col items-center">
+                {/* Main Bar */}
                 <div
-                  className="rounded-t-xl transition-all duration-700 group-hover:brightness-110 shrink-0"
+                  className="w-full max-w-[40px] rounded-t-2xl transition-all duration-500 ease-out group-hover:scale-x-110 group-hover:brightness-110 relative"
                   style={{
-                    width: `calc(100% - ${LABEL_W}px)`,
-                    height: barHeightPx,
-                    backgroundColor: barColor,
-                    boxShadow: barHeightPx > 0 ? `0 -2px 8px ${barColor}44` : 'none',
-                  }}
-                />
-
-                {/* Label — always visible, absolute at left strip */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    bottom: 4,
-                    left: 0,
-                    width: LABEL_W,
-                    height: labelMaxH,
-                    overflow: 'hidden',
-                    display: 'flex',
-                    alignItems: 'flex-end',
-                    pointerEvents: 'none',
+                    height: `${barHeight}%`,
+                    background: `linear-gradient(to top, ${barColor}, ${barColor}dd)`,
+                    boxShadow: barHeight > 0 ? `0 4px 12px ${barColor}33` : 'none',
                   }}
                 >
-                  <span
-                    title={d.label}
-                    style={{
-                      writingMode: 'vertical-rl' as const,
-                      transform: 'rotate(180deg)',
-                      whiteSpace: 'nowrap',
-                      fontSize: 9,
-                      fontWeight: 500,
-                      lineHeight: 1,
-                      color: '#475569',
-                    }}
-                  >
-                    {d.label}
-                  </span>
+                  {/* Glass highlight */}
+                  <div className="absolute inset-x-0 top-0 h-1/2 bg-white/10 rounded-t-2xl" />
                 </div>
+                
+                {/* Empty State / Floor */}
+                <div className="w-full max-w-[40px] h-[2px] bg-slate-100 rounded-full" />
               </div>
-            );
-          })}
-        </div>
 
-        {/* Baseline */}
-        <div className="border-t-2 border-slate-200" />
+              {/* Label */}
+              <div className="mt-3 text-center w-full px-1">
+                <p className="text-[10px] font-bold text-slate-500 truncate uppercase tracking-tight group-hover:text-slate-800 transition-colors" title={d.label}>
+                  {d.label}
+                </p>
+              </div>
+            </div>
+          );
+        })}
       </div>
+      
+      {/* Decorative Baseline */}
+      <div className="h-[1px] w-full bg-slate-100 mt-1" />
     </div>
   );
 }

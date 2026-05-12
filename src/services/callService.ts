@@ -35,7 +35,7 @@ export const callService = {
 
     const { data: profiles, error: profErr } = await (supabase as any)
       .from('perfis')
-      .select('id, name, role, cargo, cargos:role_id(name)')
+      .select('id, name, cargos:role_id(name)')
       .eq('status', 'active');
     if (profErr) { console.error('callService.getTeamTodayStats profiles:', profErr); return []; }
 
@@ -69,7 +69,7 @@ export const callService = {
 
     const { data: profiles } = await (supabase as any)
       .from('perfis')
-      .select('id, name, role, cargo, cargos:role_id(name)')
+      .select('id, name, cargos:role_id(name)')
       .eq('status', 'active');
 
     const sellerProfiles = (profiles || []).filter((p: any) => isVendedor(p));
