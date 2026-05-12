@@ -4,7 +4,6 @@ import { Layout } from './components/layout/Layout';
 import { SettingsLayout } from './components/layout/SettingsLayout';
 import { Dashboard } from './pages/Dashboard';
 import { Pipeline } from './pages/Pipeline';
-import { Leads } from './pages/Leads';
 import { Tasks } from './pages/Tasks';
 import { Permissions } from './pages/Permissions';
 import { Profile } from './pages/settings/Profile';
@@ -102,7 +101,7 @@ export default function App() {
         >
           <Route path="/" element={<Dashboard />} />
           <Route path="/pipeline" element={<Pipeline />} />
-          <Route path="/leads" element={<Leads />} />
+
           <Route path="/finance" element={<Finance />} />
           <Route path="/ai-chat" element={<AIChat />} />
           <Route path="/contracts" element={<Contracts />} />
