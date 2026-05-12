@@ -63,7 +63,6 @@ export function TimeClock() {
       { id: '5', user_id: '3', user_name: 'Carlos Santos', user_department: 'Comercial', type: 'entrada', timestamp: new Date(new Date().setHours(8, 0)).toISOString(), location: 'Sede' },
     ];
     setLogs(mockLogs);
-    setActiveStatus('working');
   }, [user?.id]);
 
   const handlePunch = (type: TimeLog['type']) => {
