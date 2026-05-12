@@ -1,15 +1,15 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Save, Loader2, Building2, User } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Save, Loader2, Building2, User, Phone } from 'lucide-react';
 import { goalService } from '../../services/goalService';
 import { useProfileStore } from '../../store/useProfileStore';
 import type { UserProfile } from '../../services/profileService';
 
 interface SellerGoalsListProps {
   sellers: UserProfile[];
-  sellerGoals: Record<string, { revenue: string; leads: string }>;
+  sellerGoals: Record<string, { revenue: string; leads: string; calls: string }>;
   savingSeller: string | null;
   savedSeller: string | null;
-  updateSeller: (id: string, field: 'revenue' | 'leads', value: string) => void;
+  updateSeller: (id: string, field: 'revenue' | 'leads' | 'calls', value: string) => void;
   handleSaveSeller: (profile: UserProfile) => void;
 }
 
@@ -25,7 +25,7 @@ function SellerGoalsList({ sellers, sellerGoals, savingSeller, savedSeller, upda
     <div className="space-y-6">
       {sellers.map(profile => {
         const name = profile.name || profile.email || '?';
-        const g = sellerGoals[profile.id] || { revenue: '', leads: '' };
+        const g = sellerGoals[profile.id] || { revenue: '', leads: '', calls: '' };
         const isSaving = savingSeller === profile.id;
         const isSaved = savedSeller === profile.id;
         return (
@@ -41,7 +41,7 @@ function SellerGoalsList({ sellers, sellerGoals, savingSeller, savedSeller, upda
                 </span>
               )}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
               <GoalInput
                 label="Receita (R$)"
                 prefix="R$"
@@ -52,6 +52,12 @@ function SellerGoalsList({ sellers, sellerGoals, savingSeller, savedSeller, upda
                 label="Leads fechados"
                 value={g.leads}
                 onChange={v => updateSeller(profile.id, 'leads', v.replace(/\D/g, ''))}
+              />
+              <GoalInput
+                label="Ligações"
+                icon={<Phone size={12} className="text-slate-400" />}
+                value={g.calls}
+                onChange={v => updateSeller(profile.id, 'calls', v.replace(/\D/g, ''))}
               />
             </div>
             <div className="flex justify-end">
@@ -80,15 +86,20 @@ function GoalInput({
   value,
   onChange,
   prefix,
+  icon,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   prefix?: string;
+  icon?: React.ReactNode;
 }) {
   return (
     <div className="space-y-1">
-      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{label}</label>
+      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+        {icon}
+        {label}
+      </label>
       <div className="relative flex items-center">
         {prefix && (
           <span className="absolute left-3 text-xs font-bold text-slate-400 pointer-events-none">{prefix}</span>
@@ -115,11 +126,12 @@ export function ManageGoals() {
   // Company goal state
   const [companyRevenue, setCompanyRevenue] = useState('');
   const [companyLeads, setCompanyLeads] = useState('');
+  const [companyCalls, setCompanyCalls] = useState('');
   const [savingCompany, setSavingCompany] = useState(false);
   const [savedCompany, setSavedCompany] = useState(false);
 
-  // Per-seller goal state: { [name]: { revenue, leads } }
-  const [sellerGoals, setSellerGoals] = useState<Record<string, { revenue: string; leads: string }>>({});
+  // Per-seller goal state: { [name]: { revenue, leads, calls } }
+  const [sellerGoals, setSellerGoals] = useState<Record<string, { revenue: string; leads: string; calls: string }>>({});
   const [savingSeller, setSavingSeller] = useState<string | null>(null);
   const [savedSeller, setSavedSeller] = useState<string | null>(null);
 
@@ -133,15 +145,17 @@ export function ManageGoals() {
     if (company) {
       setCompanyRevenue(company.revenue_goal ? company.revenue_goal.toLocaleString('pt-BR') : '');
       setCompanyLeads(company.leads_goal ? String(company.leads_goal) : '');
+      setCompanyCalls(company.calls_goal ? String(company.calls_goal) : '');
     }
 
-    const sellerMap: Record<string, { revenue: string; leads: string }> = {};
+    const sellerMap: Record<string, { revenue: string; leads: string; calls: string }> = {};
     goals.filter(g => g.type === 'seller').forEach(g => {
       const key = g.seller_id || g.seller_name;
       if (key) {
         sellerMap[key] = {
           revenue: g.revenue_goal ? g.revenue_goal.toLocaleString('pt-BR') : '',
           leads: g.leads_goal ? String(g.leads_goal) : '',
+          calls: g.calls_goal ? String(g.calls_goal) : '',
         };
       }
     });
@@ -153,7 +167,7 @@ export function ManageGoals() {
 
   const handleSaveCompany = async () => {
     setSavingCompany(true);
-    const result = await goalService.upsertCompanyGoal(parseBR(companyRevenue), Number(companyLeads) || 0);
+    const result = await goalService.upsertCompanyGoal(parseBR(companyRevenue), Number(companyLeads) || 0, Number(companyCalls) || 0);
     setSavingCompany(false);
     if (result) {
       setSavedCompany(true);
@@ -168,8 +182,8 @@ export function ManageGoals() {
     const id = profile.id;
     const name = profile.name || profile.email || 'Vendedor';
     setSavingSeller(id);
-    const g = sellerGoals[id] || { revenue: '', leads: '' };
-    const result = await goalService.upsertSellerGoal(id, name, parseBR(g.revenue), Number(g.leads) || 0);
+    const g = sellerGoals[id] || { revenue: '', leads: '', calls: '' };
+    const result = await goalService.upsertSellerGoal(id, name, parseBR(g.revenue), Number(g.leads) || 0, Number(g.calls) || 0);
     setSavingSeller(null);
     if (result) {
       setSavedSeller(id);
@@ -180,10 +194,10 @@ export function ManageGoals() {
     }
   };
 
-  const updateSeller = (id: string, field: 'revenue' | 'leads', value: string) => {
+  const updateSeller = (id: string, field: 'revenue' | 'leads' | 'calls', value: string) => {
     setSellerGoals(prev => ({
       ...prev,
-      [id]: { ...(prev[id] || { revenue: '', leads: '' }), [field]: value },
+      [id]: { ...(prev[id] || { revenue: '', leads: '', calls: '' }), [field]: value },
     }));
   };
 
@@ -214,7 +228,7 @@ export function ManageGoals() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
           <GoalInput
             label="Receita mensal (R$)"
             prefix="R$"
@@ -225,6 +239,12 @@ export function ManageGoals() {
             label="Leads fechados"
             value={companyLeads}
             onChange={setCompanyLeads}
+          />
+          <GoalInput
+            label="Ligações"
+            icon={<Phone size={12} className="text-slate-400" />}
+            value={companyCalls}
+            onChange={setCompanyCalls}
           />
         </div>
 
