@@ -20,6 +20,8 @@ import { TrendsSection } from '../components/dashboard/TrendsSection';
 import { GoalVsIncomeChart } from '../components/dashboard/GoalVsIncomeChart';
 import { ImprovedCSSBarChart } from '../components/dashboard/ImprovedCSSBarChart';
 import { SellerSemaphore } from '../components/dashboard/SellerSemaphore';
+import { CallsSemaphore } from '../components/dashboard/CallsSemaphore';
+import { callService } from '../services/callService';
 
 type OccupancyItem = { name: string; pct: number; level: 'red' | 'yellow' | 'green'; alunos: number; capacity: number; color: string; category: string };
 
@@ -111,6 +113,7 @@ export function Dashboard() {
   const { fetchPipelines } = usePipelineStore();
 
   const [goals, setGoals] = useState<any[]>([]);
+  const [callStats, setCallStats] = useState<{ user_id: string; user_name: string; count: number; goal: number }[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStage, setFilterStage] = useState('all');
   const [filterProduct, setFilterProduct] = useState('all');
@@ -170,8 +173,18 @@ export function Dashboard() {
     fetchProfiles();
     fetchTurmas();
     fetchPipelines();
-    const goalsData = await goalService.getGoals();
+    const [goalsData, teamCalls] = await Promise.all([
+      goalService.getGoals(),
+      callService.getTeamTodayStats(),
+    ]);
     setGoals(goalsData);
+    // Merge calls count with goals (calls_goal per seller or company default)
+    const sellerGoals = goalsData.filter((g: any) => g.type === 'seller');
+    const companyCallsGoal = goalsData.find((g: any) => g.type === 'company')?.calls_goal ?? 30;
+    setCallStats(teamCalls.map(s => {
+      const sg = sellerGoals.find((g: any) => g.seller_id === s.user_id);
+      return { ...s, goal: sg?.calls_goal ?? companyCallsGoal ?? 30 };
+    }));
   }, [fetchLeads, fetchTransactions, fetchProfiles, fetchTurmas, fetchPipelines]);
 
   useEffect(() => { fetchInitialData(); }, [fetchInitialData]);
@@ -421,13 +434,20 @@ export function Dashboard() {
           )}
         </div>
 
-        {/* Semáforo dos Vendedores */}
-        <SellerSemaphore
-          data={salesMetrics.sellerSemaphoreData}
-          currentSellerName={currentSellerName}
-          isAdmin={hasPermission('admin.all')}
-          companyRevenueGoal={companyGoal?.revenue_goal || 0}
-        />
+        {/* Semáforos */}
+        <div className="flex flex-col gap-6">
+          <SellerSemaphore
+            data={salesMetrics.sellerSemaphoreData}
+            currentSellerName={currentSellerName}
+            isAdmin={hasPermission('admin.all')}
+            companyRevenueGoal={companyGoal?.revenue_goal || 0}
+          />
+          <CallsSemaphore
+            data={callStats}
+            isAdmin={hasPermission('admin.all')}
+            currentUserId={currentUser?.id ?? null}
+          />
+        </div>
       </div>
 
       {/* ── Linha 2: Funil + Turmas ── */}
