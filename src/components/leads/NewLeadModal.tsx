@@ -71,7 +71,6 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
     contract_signed: boolean;
     taxa_matricula_recebido: number | null | undefined;
     motivo_perda: string;
-    cpf: string;
     address: string;
     instagram: string;
     emergency_contact: string;
@@ -93,7 +92,6 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
     contract_signed: false,
     taxa_matricula_recebido: null,
     motivo_perda: '',
-    cpf: '',
     address: '',
     instagram: '',
     emergency_contact: '',
@@ -170,12 +168,17 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
       const dupes = await supabaseService.checkDuplicateLead({
         phone: formData.phone,
         email: formData.email,
+        cnpj: formData.cnpj,
       });
-      if (dupes.phone || dupes.email) {
+      if (dupes.phone || dupes.email || dupes.cnpj) {
         setFieldErrors({
           phone: dupes.phone ? 'Já existe um lead com este número de telefone.' : undefined,
           email: dupes.email ? 'Já existe um lead com este e-mail.' : undefined,
         });
+
+        if (dupes.cnpj) alert('Já existe um lead cadastrado com este CPF/CNPJ.');
+
+        setLoading(false);
         return;
       }
       // Validação para Ganho (Curso)
@@ -216,7 +219,6 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
         pipeline_id: pipelineId,
         stage_id: selectedStageId || undefined,
         origin: 'manual',
-        cpf: formData.cpf || undefined,
         address: formData.address || undefined,
         instagram: formData.instagram || undefined,
         emergency_contact: formData.emergency_contact || undefined,
@@ -279,7 +281,6 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
           contract_signed: false,
           taxa_matricula_recebido: undefined,
           motivo_perda: '',
-          cpf: '',
           address: '',
           instagram: '',
           emergency_contact: '',
@@ -543,19 +544,8 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
                   <FileText size={12} className="text-emerald-500" /> Documentos para contrato
                 </h4>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">CPF do Aluno</label>
-                    <input
-                      type="text"
-                      value={formData.cpf}
-                      onChange={(e) => setFormData(prev => ({ ...prev, cpf: formatCPFCNPJ(e.target.value) }))}
-                      className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm text-sm"
-                      placeholder="000.000.000-00"
-                    />
-                  </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Instagram (@)</label>
                     <input

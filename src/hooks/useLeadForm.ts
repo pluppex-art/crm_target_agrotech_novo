@@ -47,7 +47,6 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
     payment_proof_url: lead.payment_proof_url ?? null,
     contract_url: lead.contract_url ?? null,
     professor_proof_url: lead.professor_proof_url ?? null,
-    cpf: lead.cpf || '',
     address: lead.address || '',
     instagram: lead.instagram || '',
     emergency_contact: lead.emergency_contact || '',
@@ -158,13 +157,18 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
       const dupes = await supabaseService.checkDuplicateLead({
         phone: formData.phone,
         email: formData.email,
+        cnpj: formData.cnpj,
         excludeId: lead.id,
       });
-      if (dupes.phone || dupes.email) {
+      if (dupes.phone || dupes.email || dupes.cnpj) {
         setFieldErrors({
           phone: dupes.phone ? 'Telefone já cadastrado' : undefined,
           email: dupes.email ? 'E-mail já cadastrado' : undefined,
         });
+        
+        if (dupes.cnpj) alert('Já existe um lead cadastrado com este CPF/CNPJ.');
+        
+        setIsSaving(false);
         return;
       }
 

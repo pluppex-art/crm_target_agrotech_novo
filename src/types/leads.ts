@@ -37,7 +37,6 @@ export interface Lead {
   motivo_perda?: string | null;
   cnpj?: string | null;
   // Document fields
-  cpf?: string | null;
   address?: string | null;
   instagram?: string | null;
   emergency_contact?: string | null;

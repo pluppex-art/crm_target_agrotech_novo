@@ -219,12 +219,14 @@ export const supabaseService = {
   async checkDuplicateLead(params: {
     phone?: string;
     email?: string;
+    cpf?: string;
+    cnpj?: string;
     excludeId?: string;
-  }): Promise<{ phone: boolean; email: boolean }> {
+  }): Promise<{ phone: boolean; email: boolean; cpf: boolean; cnpj: boolean }> {
     const supabase = getSupabaseClient();
-    if (!supabase) return { phone: false, email: false };
+    if (!supabase) return { phone: false, email: false, cpf: false, cnpj: false };
 
-    const result = { phone: false, email: false };
+    const result = { phone: false, email: false, cpf: false, cnpj: false };
     const normalizedPhone = params.phone ? params.phone.replace(/\D/g, '') : '';
 
     if (normalizedPhone.length >= 10) {
@@ -258,6 +260,44 @@ export const supabaseService = {
       const { data, error } = await query.limit(1);
       if (!error && data && data.length > 0) {
         result.email = true;
+      }
+    }
+
+    if (params.cpf?.trim()) {
+      const normalizedCpf = params.cpf.replace(/\D/g, '');
+      if (normalizedCpf.length === 11) {
+        let query = supabase
+          .from('leads')
+          .select('id')
+          .or(`cpf.ilike.%${normalizedCpf}%,cpf.eq.${params.cpf}`);
+        
+        if (params.excludeId) {
+          query = query.neq('id', params.excludeId);
+        }
+
+        const { data, error } = await query.limit(1);
+        if (!error && data && data.length > 0) {
+          result.cpf = true;
+        }
+      }
+    }
+
+    if (params.cnpj?.trim()) {
+      const normalizedCnpj = params.cnpj.replace(/\D/g, '');
+      if (normalizedCnpj.length >= 11) {
+        let query = supabase
+          .from('leads')
+          .select('id')
+          .or(`cnpj.ilike.%${normalizedCnpj}%,cnpj.eq.${params.cnpj}`);
+        
+        if (params.excludeId) {
+          query = query.neq('id', params.excludeId);
+        }
+
+        const { data, error } = await query.limit(1);
+        if (!error && data && data.length > 0) {
+          result.cnpj = true;
+        }
       }
     }
 

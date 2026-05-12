@@ -127,7 +127,7 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = ({
       {/* Profile Header */}
       <div className="flex items-center gap-4 pb-5 border-b border-slate-100">
         <img
-          src={formData.photo || '/placeholder-avatar.jpg'}
+          src={formData.profile_photo_url || formData.photo || '/placeholder-avatar.jpg'}
           alt={formData.name}
           className="w-14 h-14 rounded-full object-cover border-4 border-white shadow-sm shrink-0"
         />
@@ -586,18 +586,6 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = ({
           </h4>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* CPF Específico */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">CPF do Aluno</label>
-              <input
-                type="text"
-                value={formData.cpf || ''}
-                onChange={(e) => updateFormField({ cpf: formatCPFCNPJ(e.target.value) })}
-                className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm text-sm"
-                placeholder="000.000.000-00"
-              />
-            </div>
-
             {/* Instagram */}
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Instagram (@)</label>
