@@ -238,18 +238,18 @@ export function DashboardTab({ startDate, endDate }: { startDate: string; endDat
                 <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                   <div className="h-full bg-emerald-500" style={{ width: '100%' }} />
                 </div>
-                {(kpis.contas_receber_matriculas > 0 || kpis.contas_receber_manual > 0) && (
+                {((kpis?.contas_receber_matriculas ?? 0) > 0 || (kpis?.contas_receber_manual ?? 0) > 0) && (
                   <div className="mt-1.5 space-y-0.5">
-                    {kpis.contas_receber_matriculas > 0 && (
+                    {(kpis?.contas_receber_matriculas ?? 0) > 0 && (
                       <div className="flex justify-between text-xs text-slate-400">
                         <span>Saldo de matrículas</span>
-                        <span>R$ {fmt(kpis.contas_receber_matriculas)}</span>
+                        <span>R$ {fmt(kpis!.contas_receber_matriculas)}</span>
                       </div>
                     )}
-                    {kpis.contas_receber_manual > 0 && (
+                    {(kpis?.contas_receber_manual ?? 0) > 0 && (
                       <div className="flex justify-between text-xs text-slate-400">
                         <span>Cobranças manuais</span>
-                        <span>R$ {fmt(kpis.contas_receber_manual)}</span>
+                        <span>R$ {fmt(kpis!.contas_receber_manual)}</span>
                       </div>
                     )}
                   </div>
