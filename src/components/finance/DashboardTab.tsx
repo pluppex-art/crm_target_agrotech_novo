@@ -8,7 +8,7 @@ import { MetricCard } from '../dashboard/MetricCard';
 import { fmt } from '../../lib/utils';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, BarChart, Bar, Legend, LineChart, Line
+  PieChart, Pie, Cell, BarChart, Bar, Legend
 } from 'recharts';
 
 const COLORS = ['#10b981', '#6366f1', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#14b8a6'];
@@ -232,12 +232,28 @@ export function DashboardTab({ startDate, endDate }: { startDate: string; endDat
             <div className="space-y-4">
               <div>
                 <div className="flex justify-between text-sm mb-1">
-                  <span className="text-slate-500">A Receber</span>
+                  <span className="text-slate-500 font-medium">A Receber</span>
                   <span className="font-bold text-emerald-600">R$ {fmt(kpis?.contas_receber || 0)}</span>
                 </div>
                 <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-emerald-500" style={{ width: '65%' }} />
+                  <div className="h-full bg-emerald-500" style={{ width: '100%' }} />
                 </div>
+                {(kpis.contas_receber_matriculas > 0 || kpis.contas_receber_manual > 0) && (
+                  <div className="mt-1.5 space-y-0.5">
+                    {kpis.contas_receber_matriculas > 0 && (
+                      <div className="flex justify-between text-xs text-slate-400">
+                        <span>Saldo de matrículas</span>
+                        <span>R$ {fmt(kpis.contas_receber_matriculas)}</span>
+                      </div>
+                    )}
+                    {kpis.contas_receber_manual > 0 && (
+                      <div className="flex justify-between text-xs text-slate-400">
+                        <span>Cobranças manuais</span>
+                        <span>R$ {fmt(kpis.contas_receber_manual)}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               <div>
                 <div className="flex justify-between text-sm mb-1">

@@ -102,14 +102,15 @@ export const transactionService = {
     const supabase = getSupabaseClient();
     const empty: FinanceKPIs = {
       receita_total: 0, despesa_total: 0, lucro_liquido: 0,
-      margem_liquida: 0, contas_receber: 0, contas_pagar: 0, alunos_ganhos: 0,
+      margem_liquida: 0, contas_receber: 0, contas_receber_matriculas: 0,
+      contas_receber_manual: 0, contas_pagar: 0, alunos_ganhos: 0,
     };
     if (!supabase) return empty;
 
     const startDate = filters?.startDate;
     const endDate = filters?.endDate;
 
-    // Helper: check if an effective date falls within the filter range
+    // paid_at may be NULL; fall back to enrolled_at so records aren't silently excluded by date filters
     const inRange = (paidAt: string | null, enrolledAt: string): boolean => {
       const d = (paidAt || enrolledAt || '').split('T')[0];
       if (!d) return true;
@@ -118,61 +119,60 @@ export const transactionService = {
       return true;
     };
 
-    // 1. Manual financial transactions (non-PIPELINE) in the period
-    const allTransactions = await this.getAll({ startDate, endDate });
-
-    // 2. Enrollments NOT linked to a financial_transaction (income_transaction_id IS NULL).
-    //    Fetch all — date filtering done in JS to handle NULL paid_at (fallback: enrolled_at).
-    const [{ data: taxaEnrolls }, { data: valorEnrolls }] = await Promise.all([
+    // Single enrollment query covers realized revenue (unlinked) + outstanding balance.
+    // income_transaction_id IS NULL avoids double-counting with financial_transactions.
+    const [allTransactions, { data: enrollments }] = await Promise.all([
+      this.getAll({ startDate, endDate }),
       supabase
         .from('lead_class_enrollments')
-        .select('id, taxa_matricula_recebido, taxa_matricula_paid_at, enrolled_at')
-        .neq('status', 'CANCELLED')
-        .gt('taxa_matricula_recebido', 0)
-        .is('income_transaction_id', null),
-      supabase
-        .from('lead_class_enrollments')
-        .select('id, valor_recebido, valor_recebido_paid_at, enrolled_at')
-        .neq('status', 'CANCELLED')
-        .gt('valor_recebido', 0)
-        .is('income_transaction_id', null),
+        .select('id, taxa_matricula_recebido, taxa_matricula_paid_at, valor_recebido, valor_recebido_paid_at, contracted_amount, enrolled_at, income_transaction_id')
+        .neq('status', 'CANCELLED'),
     ]);
 
     let receita_total = 0;
     let despesa_total = 0;
-    let contas_receber = 0;
+    let contas_receber_manual = 0;
+    let contas_receber_matriculas = 0;
     let contas_pagar = 0;
 
-    // From financial_transactions (covers PIPELINE linked enrollments + all manual entries)
+    // PENDING/OVERDUE PIPELINE excluded — enrollment balance is the source of truth
     allTransactions.forEach((t: FinancialTransaction) => {
       const amt = Number(t.amount) || 0;
       if (t.status === 'PAID') {
         if (t.type === 'INCOME') receita_total += amt;
         else despesa_total += amt;
       } else if (t.status === 'PENDING' || t.status === 'OVERDUE') {
-        if (t.type === 'INCOME') contas_receber += amt;
-        else contas_pagar += amt;
+        if (t.type === 'INCOME' && t.origin_type !== 'PIPELINE') contas_receber_manual += amt;
+        else if (t.type === 'EXPENSE') contas_pagar += amt;
       }
     });
 
-    // From unlinked enrollments — use paid_at when available, enrolled_at as fallback
     const alunosIds = new Set<string>();
-    (taxaEnrolls || []).forEach((e: any) => {
-      if (inRange(e.taxa_matricula_paid_at, e.enrolled_at)) {
-        receita_total += Number(e.taxa_matricula_recebido) || 0;
-        alunosIds.add(e.id);
+    (enrollments || []).forEach((e: any) => {
+      const taxa = Number(e.taxa_matricula_recebido) || 0;
+      const valor = Number(e.valor_recebido) || 0;
+      const contracted = Number(e.contracted_amount) || 0;
+
+      if (!e.income_transaction_id) {
+        if (taxa > 0 && inRange(e.taxa_matricula_paid_at, e.enrolled_at)) {
+          receita_total += taxa;
+          alunosIds.add(e.id);
+        }
+        if (valor > 0 && inRange(e.valor_recebido_paid_at, e.enrolled_at)) {
+          receita_total += valor;
+          alunosIds.add(e.id);
+        }
       }
-    });
-    (valorEnrolls || []).forEach((e: any) => {
-      if (inRange(e.valor_recebido_paid_at, e.enrolled_at)) {
-        receita_total += Number(e.valor_recebido) || 0;
-        alunosIds.add(e.id);
-      }
+
+      const balance = contracted - valor;
+      if (contracted > 0 && balance > 0) contas_receber_matriculas += balance;
     });
 
     const alunos_ganhos = alunosIds.size;
     const lucro_liquido = receita_total - despesa_total;
     const margem_liquida = receita_total > 0 ? (lucro_liquido / receita_total) * 100 : 0;
+
+    const contas_receber = contas_receber_manual + contas_receber_matriculas;
 
     return {
       receita_total,
@@ -180,6 +180,8 @@ export const transactionService = {
       lucro_liquido,
       margem_liquida,
       contas_receber,
+      contas_receber_manual,
+      contas_receber_matriculas,
       contas_pagar,
       alunos_ganhos,
     };

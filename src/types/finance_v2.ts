@@ -120,6 +120,8 @@ export interface FinanceKPIs {
   lucro_liquido: number;
   margem_liquida: number;
   contas_receber: number;
+  contas_receber_matriculas: number; // enrollment balance (contracted - received)
+  contas_receber_manual: number;     // PENDING/OVERDUE MANUAL transactions
   contas_pagar: number;
   alunos_ganhos: number;
 }
