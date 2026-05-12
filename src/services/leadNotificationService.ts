@@ -1,11 +1,13 @@
-import { supabase } from '../lib/supabase';
+import { useProductStore } from '../store/useProductStore';
+import { financialCalculator } from './financialCalculator';
 import type { Lead } from '../types/leads';
 import type { UserProfile } from './profileService';
+import { supabase } from '@/lib/supabase';
 
-function findProfileByName(name: string, profiles: UserProfile[]): UserProfile | undefined {
-  if (!name) return undefined;
-  const lower = name.toLowerCase();
-  return profiles.find(p => p.name?.toLowerCase() === lower);
+function findProfile(idOrName: string, profiles: UserProfile[]): UserProfile | undefined {
+  if (!idOrName) return undefined;
+  const lower = idOrName.toLowerCase();
+  return profiles.find(p => p.id === idOrName || p.name?.toLowerCase() === lower);
 }
 
 function findAdminProfiles(profiles: UserProfile[]): UserProfile[] {
@@ -46,12 +48,16 @@ async function insertNotificationForUser(
 }
 
 export async function notifyNewLead(lead: Lead, profiles: UserProfile[]): Promise<void> {
-  const responsible = findProfileByName(lead.responsible || '', profiles);
+  const responsible = findProfile(lead.responsavel_usuario_id || lead.responsible || '', profiles);
   if (!responsible) return;
+
+  const { products } = useProductStore.getState();
+  const prodObj = financialCalculator.findProduct(lead.product || '', products);
+  const prodName = prodObj?.name || lead.product || 'N/A';
 
   await insertNotificationForUser(responsible.id, {
     title: `Novo lead: ${lead.name}`,
-    message: `Você recebeu um novo lead. Produto: ${lead.product || 'N/A'}. Telefone: ${lead.phone}`,
+    message: `Você recebeu um novo lead. Produto: ${prodName}. Telefone: ${lead.phone}`,
     type: 'info',
     category: 'user',
     link: `/pipeline?lead=${lead.id}`,
@@ -63,11 +69,15 @@ export async function notifyLeadTransferred(
   newResponsibleName: string,
   profiles: UserProfile[]
 ): Promise<void> {
-  const newResponsible = findProfileByName(newResponsibleName, profiles);
+  const newResponsible = findProfile(newResponsibleName, profiles);
+  const { products } = useProductStore.getState();
+  const prodObj = financialCalculator.findProduct(lead.product || '', products);
+  const prodName = prodObj?.name || lead.product || 'N/A';
+
   if (newResponsible) {
     await insertNotificationForUser(newResponsible.id, {
       title: `Lead transferido para você: ${lead.name}`,
-      message: `O lead ficou 48h sem contato e foi transferido. Produto: ${lead.product || 'N/A'} | Tel: ${lead.phone}`,
+      message: `O lead ficou 48h sem contato e foi transferido. Produto: ${prodName} | Tel: ${lead.phone}`,
       type: 'urgent',
       category: 'user',
       link: `/pipeline?lead=${lead.id}`,
@@ -91,12 +101,16 @@ export async function notifyLeadAssignment(
   newResponsibleName: string,
   profiles: UserProfile[]
 ): Promise<void> {
-  const responsible = findProfileByName(newResponsibleName, profiles);
+  const responsible = findProfile(newResponsibleName, profiles);
   if (!responsible) return;
+
+  const { products } = useProductStore.getState();
+  const prodObj = financialCalculator.findProduct(lead.product || '', products);
+  const prodName = prodObj?.name || lead.product || 'N/A';
 
   await insertNotificationForUser(responsible.id, {
     title: `Lead atribuído a você: ${lead.name}`,
-    message: `Você é o novo responsável por ${lead.name}. Produto: ${lead.product || 'N/A'}`,
+    message: `Você é o novo responsável por ${lead.name}. Produto: ${prodName}`,
     type: 'info',
     category: 'user',
     link: `/pipeline?lead=${lead.id}`,
@@ -120,12 +134,18 @@ export async function notifyStageChange(
   const shouldNotify = COORDINATOR_NOTIFY_KEYWORDS.some(kw => stageLower.includes(kw));
   if (!shouldNotify) return;
 
+  const { products } = useProductStore.getState();
+  const prodObj = financialCalculator.findProduct(lead.product || '', products);
+  const prodName = prodObj?.name || lead.product || 'N/A';
+  const respProfile = findProfile(lead.responsavel_usuario_id || lead.responsible || '', profiles);
+  const respName = respProfile?.name || lead.responsible || 'N/A';
+
   const type = resolveStageType(stageLower);
   const admins = findAdminProfiles(profiles);
   for (const admin of admins) {
     await insertNotificationForUser(admin.id, {
       title: `Lead em "${stageName}": ${lead.name}`,
-      message: `Responsável: ${lead.responsible || 'N/A'} | Produto: ${lead.product || 'N/A'} | Tel: ${lead.phone}`,
+      message: `Responsável: ${respName} | Produto: ${prodName} | Tel: ${lead.phone}`,
       type,
       category: 'system',
       link: `/pipeline?lead=${lead.id}`,

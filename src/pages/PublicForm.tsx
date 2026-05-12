@@ -25,7 +25,6 @@ interface Step {
 const productPrices: Record<string, number> = {
   'Curso de Inseminação Artificial em Bovinos': 1500,
   'Curso de Piloto de Drone Agrícola': 2500,
-  'Outros': 0
 };
 
 export function PublicForm() {
@@ -65,11 +64,11 @@ export function PublicForm() {
   const steps: Step[] = [
     {
       id: 'name',
-      question: 'Qual é o seu nome completo?',
-      hint: 'Digite seu nome e sobrenome.',
+      question: 'Qual é o seu nome?',
+      hint: 'Pode ser apenas o seu primeiro nome.',
       type: 'text',
-      placeholder: 'Ex: João Silva',
-      required: true,
+      placeholder: 'Ex: João',
+      required: false,
     },
     {
       id: 'phone',
@@ -100,7 +99,7 @@ export function PublicForm() {
       question: 'Quais áreas você tem mais interesse?',
       hint: 'Pode selecionar uma opção (Não obrigatório).',
       type: 'select',
-      options: ['Curso de Inseminação Artificial em Bovinos', 'Curso de Piloto de Drone Agrícola', 'Outros'],
+      options: ['Curso de Inseminação Artificial em Bovinos', 'Curso de Piloto de Drone Agrícola'],
       required: false,
     },
   ];
@@ -135,8 +134,8 @@ export function PublicForm() {
 
   const validateInput = (id: string, value: string): string | null => {
     if (id === 'name') {
-      const parts = value.trim().split(/\s+/);
-      if (parts.length < 2) return 'Por favor, digite seu nome completo.';
+      // No validation needed for name if it's optional and can be just first name
+      return null;
     }
     if (id === 'email') {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

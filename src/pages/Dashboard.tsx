@@ -188,6 +188,22 @@ export function Dashboard() {
 
   useEffect(() => { fetchInitialData(); }, [fetchInitialData]);
 
+  const fetchCallStats = useCallback(async () => {
+    if (!startDate || !endDate) return;
+    const teamCalls = await callService.getTeamRangeStats(startDate, endDate);
+    const sellerGoals = goals.filter((g: any) => g.type === 'seller');
+    const companyCallsGoal = goals.find((g: any) => g.type === 'company')?.calls_goal ?? 30;
+    
+    setCallStats(teamCalls.map(s => {
+      const sg = sellerGoals.find((g: any) => g.seller_id === s.user_id);
+      return { ...s, goal: sg?.calls_goal ?? companyCallsGoal ?? 30 };
+    }));
+  }, [startDate, endDate, goals]);
+
+  useEffect(() => {
+    fetchCallStats();
+  }, [fetchCallStats]);
+
   useEffect(() => {
     const unsubLeads = subscribeToLeads();
     const unsubFinance = subscribeFinance();

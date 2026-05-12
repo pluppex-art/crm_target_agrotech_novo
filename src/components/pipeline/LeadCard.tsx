@@ -1,12 +1,13 @@
 import React from 'react';
 
-import { Flame, Phone, Plus, Trash2, Edit2, CheckSquare, AlertTriangle, Clock } from 'lucide-react';
+import { Flame, Phone, Plus, Trash2, Edit2, CheckSquare, Clock } from 'lucide-react';
 import { useLeadChecklist } from '../../hooks/useLeadChecklist';
 
 import { Lead, LeadSubStatus } from '../../types/leads';
 import { cn, getLeadEffectiveValue } from '../../lib/utils';
 import { useLeadStore } from '../../store/useLeadStore';
 import { useProductStore } from '../../store/useProductStore';
+import { financialCalculator } from '../../services/financialCalculator';
 import { useTaskStore } from '../../store/useTaskStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { useProfileStore } from '../../store/useProfileStore';
@@ -32,9 +33,9 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
   const { profiles } = useProfileStore();
 
   const { getSquadInfoForUser } = useSquadStore();
-  const responsibleProfile = profiles.find(p => p.name === lead.responsible);
+  const responsibleProfile = profiles.find(p => p.id === lead.responsavel_usuario_id || p.name === lead.responsible);
   
-  const squadInfo = getSquadInfoForUser(responsibleProfile?.id || '', lead.responsible || '', profiles);
+  const squadInfo = getSquadInfoForUser(lead.responsavel_usuario_id || responsibleProfile?.id || '', lead.responsible || responsibleProfile?.name || '', profiles);
 
 
 
@@ -43,11 +44,7 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
   // Has at least one task (pending or completed) - disables inactivity timer
   const hasTasks = tasks.some(t => t.lead_id === lead.id);
 
-  const product = products.find(p => {
-    const pName = p.name.toLowerCase().trim();
-    const lName = (lead.product ?? '').toLowerCase().trim();
-    return lName === pName || lName.includes(pName);
-  });
+  const product = financialCalculator.findProduct(lead.product ?? '', products);
   const enrollmentFee = product?.enrollment_fee ?? 0;
   const totalDisplayValue = getLeadEffectiveValue(lead) + enrollmentFee;
 
@@ -171,17 +168,16 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-slate-500">
             <Plus size={14} className="text-slate-300" />
-            <span className="text-xs font-medium">{lead.product}</span>
+            <span className="text-xs font-medium truncate max-w-[150px]" title={product?.name || lead.product || ''} spellCheck={false}>
+              {product?.name || lead.product}
+            </span>
           </div>
           {lead.responsible && (
             <div className="flex items-center gap-2 pl-4">
               <div className="flex items-center gap-1.5 text-xs text-slate-400">
                 <div className="w-1.5 h-1.5 bg-slate-300 rounded-full" />
-                <span className="font-medium">{lead.responsible}</span>
+                <span className="font-medium">{responsibleProfile?.name || lead.responsible}</span>
               </div>
-              {/* Squad Badge removed from here */}
-
-
             </div>
           )}
 

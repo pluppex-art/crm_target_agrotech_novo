@@ -45,6 +45,8 @@ import { TurmasRightPanel } from '../components/turmas/TurmasRightPanel';
 import { PageFilters, FilterConfig } from '../components/ui/PageFilters';
 import { Filter, User, Package } from 'lucide-react';
 import { useLeadStore } from '@/store/useLeadStore';
+import { useProductStore } from '@/store/useProductStore';
+import { financialCalculator } from '@/services/financialCalculator';
 
 
 
@@ -58,6 +60,7 @@ export function Turmas() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterProduct, setFilterProduct] = useState('all');
   const [filterProfessor, setFilterProfessor] = useState('all');
+  const { products, fetchProducts } = useProductStore();
   const [setupRequired] = useState(false);
   const [responsibles, setResponsibles] = useState<{ id: string; name: string }[]>([]);
   const [viewMode, setViewMode] = useState<'kanban' | 'lista'>('kanban');
@@ -73,7 +76,8 @@ export function Turmas() {
 
   useEffect(() => {
     fetchTurmas();
-  }, [fetchTurmas]);
+    fetchProducts();
+  }, [fetchTurmas, fetchProducts]);
 
   // Fetch responsibles from perfis (active commercial users)
   useEffect(() => {
@@ -236,7 +240,7 @@ export function Turmas() {
                 value: filterProduct,
                 onChange: setFilterProduct,
                 activeColorClass: 'bg-amber-50 text-amber-700 border-amber-100',
-                options: Array.from(new Set(turmas.map(t => t.name).filter((p): p is string => !!p))).map(p => ({ value: p, label: p }))
+                options: Array.from(new Set(products.map(p => p.name))).sort().map(name => ({ value: name, label: name }))
               },
               {
                 id: 'professor',
@@ -309,12 +313,19 @@ export function Turmas() {
               }
               // 2. Status
               if (filterStatus !== 'all' && t.status !== filterStatus) return false;
-              // 3. Product
-              if (filterProduct !== 'all' && t.name !== filterProduct) return false;
-              // 4. Professor
+              
+              // 3. Professor
               if (filterProfessor !== 'all' && t.professor_name !== filterProfessor) return false;
+
               return true;
-            }).map(turma => (
+            })
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .filter(t => {
+              // 3. Product (by name for visual grouping)
+              if (filterProduct !== 'all' && t.name !== filterProduct) return false;
+              return true;
+            })
+            .map(turma => (
               <TurmaCard
                 key={turma.id}
                 turma={turma}

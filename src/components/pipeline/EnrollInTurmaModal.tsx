@@ -22,7 +22,7 @@ export function EnrollInTurmaModal({ lead, onConfirm, onSkip }: EnrollModalProps
 
   const selectedTurma = useMemo(() => {
     return turmas.find(
-      (t) => t.name.toLowerCase() === (lead.product || '').toLowerCase() && t.status !== 'concluida' && t.status !== 'cancelada'
+      (t) => (t.id === lead.product || t.name.toLowerCase() === (lead.product || '').toLowerCase()) && t.status !== 'concluida' && t.status !== 'cancelada'
     );
   }, [turmas, lead.product]);
 

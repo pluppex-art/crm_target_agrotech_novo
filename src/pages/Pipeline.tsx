@@ -189,6 +189,30 @@ export const Pipeline: React.FC = () => {
 
 
 
+  const checkGanhoRequirements = useCallback((lead: Lead) => {
+    const targetStage = COLUMNS.find(c => c.id === lead.stage_id);
+    const productObj = financialCalculator.findProduct(lead.product, products);
+    const isService = financialCalculator.isServiceProduct(productObj, lead.product);
+
+    if (!isService) {
+      const hasFiles = !!lead.payment_proof_url && !!lead.contract_url;
+      if (!(lead.pix_completed && lead.contract_signed && hasFiles)) {
+        return {
+          valid: false,
+          message: 'Para mover para Ganho (Curso) é necessário:\n• Marcar Taxa Matrícula e Contrato assinado\n• Anexar Comprovante e Contrato (Vendedor na aba Informações)'
+        };
+      }
+    } else {
+      if (!lead.professor_proof_url) {
+        return {
+          valid: false,
+          message: 'Para mover para Ganho (Serviço) é necessário:\n• Anexar Comprovante de Pagamento (Professor na aba Turma)'
+        };
+      }
+    }
+    return { valid: true };
+  }, [COLUMNS, products]);
+
   const onDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over) return;
@@ -199,9 +223,11 @@ export const Pipeline: React.FC = () => {
 
     if (sourceStageId === newStageId) return;
 
-    // Checklist validation
     const draggedLead = leads.find(l => l.id === draggableId);
-    if (draggedLead && draggedLead.stage_id) {
+    if (!draggedLead) return;
+
+    // Checklist validation
+    if (draggedLead.stage_id) {
       const checklists = await checklistService.getChecklistsForStage(draggedLead.stage_id);
       const required = checklists.filter(c => c.required);
       const completions = await checklistService.getCompletionsForLead(draggedLead.id);
@@ -212,28 +238,44 @@ export const Pipeline: React.FC = () => {
       }
     }
 
-
     const targetStage = currentPipeline?.stages.find(s => s.id === newStageId);
     const stageLower = targetStage?.name.toLowerCase() ?? '';
     const isGanhoTarget = stageLower.includes('ganho') || stageLower.includes('fechado') || stageLower.includes('aprovado');
 
-    // Bloqueia arrastar para Ganho sem confirmações + arquivos
+    // Validation for Ganho
     if (isGanhoTarget) {
-      const movedLead = leads.find((l) => l.id === draggableId);
-      if (movedLead) {
-        const productObj = financialCalculator.findProduct(movedLead.product, products);
-        const isService = financialCalculator.isServiceProduct(productObj);
-        if (!isService) {
-          const hasFiles = !!movedLead.payment_proof_url && !!movedLead.contract_url;
-          if (!(movedLead.pix_completed && movedLead.contract_signed && hasFiles)) {
-            alert('Para mover para Ganho (Curso) é necessário:\n• Marcar Taxa Matrícula e Contrato assinado\n• Anexar Comprovante e Contrato (Vendedor na aba Informações)');
-            return;
-          }
+      const validation = checkGanhoRequirements(draggedLead);
+      if (!validation.valid) {
+        alert(validation.message);
+        return;
+      }
+    }
+
+    // REMOVE FROM TURMA if moving OUT of Ganho
+    const sourceStage = currentPipeline?.stages.find(s => s.id === sourceStageId);
+    const sourceLower = sourceStage?.name.toLowerCase() ?? '';
+    const isGanhoSource = sourceLower.includes('ganho') || sourceLower.includes('fechado') || sourceLower.includes('aprovado');
+
+    if (isGanhoSource && !isGanhoTarget) {
+      const enrollment = leadToTurma[draggedLead.id];
+      if (enrollment) {
+        const productObj = financialCalculator.findProduct(draggedLead.product || '', products);
+        // Check enrollment turma directly — the lead's product may differ from the enrolled turma
+        const enrollmentProduct = financialCalculator.findProduct(enrollment.id, products) ?? enrollment;
+        const isService = financialCalculator.isServiceProduct(enrollmentProduct as any, enrollment.name)
+          || financialCalculator.isServiceProduct(productObj, draggedLead.product);
+
+        if (isService) {
+          const { removeAttendee } = useTurmaStore.getState();
+          await removeAttendee(enrollment.id, enrollment.attendee.id);
         } else {
-          // Requisitos para Professor (Serviço)
-          if (!movedLead.professor_proof_url) {
-            alert('Para mover para Ganho (Serviço) é necessário:\n• Anexar Comprovante de Pagamento (Professor na aba Turma)');
-            return;
+          const productName = productObj?.name || enrollment.name;
+          const confirmRemove = window.confirm(`O lead "${draggedLead.name}" será removido da turma "${enrollment.name}" pois saiu da etapa Ganho.\n\nProduto do lead: ${productName}\n\nConfirmar?`);
+          if (confirmRemove) {
+            const { removeAttendee } = useTurmaStore.getState();
+            await removeAttendee(enrollment.id, enrollment.attendee.id);
+          } else {
+            return; // Cancel move
           }
         }
       }
@@ -246,24 +288,17 @@ export const Pipeline: React.FC = () => {
       status: (targetStage?.name ?? '') as LeadStatus,
     });
 
-    // Notify coordinator/admin for Contrato, Ganho, Perdido stages
     if (targetStage?.name) {
-      const movedLeadForNotif = leads.find(l => l.id === draggableId);
-      if (movedLeadForNotif) {
-        notifyStageChange(movedLeadForNotif, targetStage.name, profiles);
-      }
+      notifyStageChange(draggedLead, targetStage.name, profiles);
     }
 
     if (isGanhoTarget) {
-      const movedLead = leads.find((l) => l.id === draggableId);
-      if (movedLead) {
-        const productObj = financialCalculator.findProduct(movedLead.product, products);
-        const isService = financialCalculator.isServiceProduct(productObj);
-        if (!isService) {
-          setEnrollLead(movedLead);
-        }
-        triggerGanhoAnimation();
+      const productObj = financialCalculator.findProduct(draggedLead.product, products);
+      const isService = financialCalculator.isServiceProduct(productObj, draggedLead.product);
+      if (!isService) {
+        setEnrollLead(draggedLead);
       }
+      triggerGanhoAnimation();
     }
   };
 
@@ -272,6 +307,7 @@ export const Pipeline: React.FC = () => {
     try {
       const result = await addAttendee(turmaId, {
         lead_id: enrollLead.id,
+        responsavel_usuario_id: enrollLead.responsavel_usuario_id ?? null,
         name: enrollLead.name,
         photo: enrollLead.photo || `https://i.pravatar.cc/150?u=${enrollLead.id}`,
         responsible: enrollLead.responsible || '',
@@ -429,24 +465,24 @@ export const Pipeline: React.FC = () => {
               <tbody className="divide-y divide-slate-50">
                 {filters.filteredLeads.map((lead) => {
                   const stage = COLUMNS.find(c => c.id === lead.stage_id);
-                  const productObj = products.find(p => p.name === lead.product);
+                  const productObj = financialCalculator.findProduct(lead.product || '', products);
                   const fee = productObj?.enrollment_fee ?? 197;
                   const totalValue = financialCalculator.getEffectiveValue(lead) + fee;
-                  
-                  const responsibleProfile = profiles.find(p => p.name === lead.responsible);
+
+                  const responsibleProfile = profiles.find(p => p.id === lead.responsavel_usuario_id || p.name === lead.responsible);
                   const { getSquadInfoForUser } = useSquadStore.getState();
-                  const squadInfo = getSquadInfoForUser(responsibleProfile?.id || '', lead.responsible || '', profiles);
+                  const squadInfo = getSquadInfoForUser(lead.responsavel_usuario_id || responsibleProfile?.id || '', lead.responsible || responsibleProfile?.name || '', profiles);
 
                   return (
-                    <tr 
-                      key={lead.id} 
+                    <tr
+                      key={lead.id}
                       className="group hover:bg-emerald-50/30 transition-colors cursor-pointer"
                       onClick={() => setSelectedLead(lead)}
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <img 
-                            src={lead.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(lead.name)}&background=random`} 
+                          <img
+                            src={lead.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(lead.name)}&background=random`}
                             className="w-8 h-8 rounded-full object-cover border border-slate-100 shadow-sm"
                             alt=""
                           />
@@ -459,7 +495,7 @@ export const Pipeline: React.FC = () => {
                       <td className="px-6 py-4">
                         {stage ? (
                           <div className="flex items-center gap-2">
-                            <div 
+                            <div
                               className={cn(
                                 "w-2 h-2 rounded-full",
                                 stage.color.startsWith('bg-') ? stage.color : ""
@@ -475,20 +511,20 @@ export const Pipeline: React.FC = () => {
                         )}
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-xs font-semibold text-slate-600 truncate max-w-[200px]" title={lead.product}>
-                          {lead.product}
+                        <div className="text-xs font-semibold text-slate-600 truncate max-w-[200px]" title={productObj?.name || lead.product || ''}>
+                          {productObj?.name || lead.product}
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col gap-1">
                           <div className="flex items-center gap-2">
                             <div className="w-1.5 h-1.5 bg-slate-300 rounded-full" />
-                            <span className="text-xs font-medium text-slate-500">{lead.responsible || 'Sem resp.'}</span>
+                            <span className="text-xs font-medium text-slate-500">{responsibleProfile?.name || lead.responsible || 'Sem resp.'}</span>
                           </div>
                           {squadInfo && (
-                            <span 
+                            <span
                               className="text-[8px] font-black px-1.5 py-0.5 rounded-md tracking-tighter uppercase border w-fit"
-                              style={{ 
+                              style={{
                                 backgroundColor: `${squadInfo.color}10`,
                                 color: squadInfo.color,
                                 borderColor: `${squadInfo.color}30`
@@ -502,12 +538,12 @@ export const Pipeline: React.FC = () => {
                       <td className="px-6 py-4 text-center">
                         <div className="flex justify-center gap-0.5">
                           {[...Array(5)].map((_, i) => (
-                            <div 
-                              key={i} 
+                            <div
+                              key={i}
                               className={cn(
                                 "w-1 h-3 rounded-full",
                                 i < (lead.stars || 0) ? "bg-orange-400 shadow-[0_0_8px_rgba(251,146,60,0.5)]" : "bg-slate-100"
-                              )} 
+                              )}
                             />
                           ))}
                         </div>
@@ -559,16 +595,51 @@ export const Pipeline: React.FC = () => {
           pipelineStages={filteredColumns.length > 0 ? filteredColumns : COLUMNS}
           currentStageId={selectedLead.stage_id || (filteredColumns[0]?.id || COLUMNS[0]?.id)}
           responsibles={filters.responsibles}
-          onStageChange={(stageId: string) => {
+          onStageChange={async (stageId: string) => {
             const targetStage = currentPipeline?.stages.find(s => s.id === stageId);
+            const stageLower = targetStage?.name.toLowerCase() ?? '';
+            const isGanhoTarget = stageLower.includes('ganho') || stageLower.includes('fechado') || stageLower.includes('aprovado');
+
+            if (isGanhoTarget) {
+              const validation = checkGanhoRequirements(selectedLead);
+              if (!validation.valid) {
+                alert(validation.message);
+                return;
+              }
+            }
+
+            // REMOVE FROM TURMA if moving OUT of Ganho
+            const sourceStage = currentPipeline?.stages.find(s => s.id === selectedLead.stage_id);
+            const sourceLower = sourceStage?.name.toLowerCase() ?? '';
+            const isGanhoSource = sourceLower.includes('ganho') || sourceLower.includes('fechado') || sourceLower.includes('aprovado');
+
+            if (isGanhoSource && !isGanhoTarget) {
+              const enrollment = leadToTurma[selectedLead.id];
+              if (enrollment) {
+                const productObj = financialCalculator.findProduct(selectedLead.product || '', products);
+                const isService = financialCalculator.isServiceProduct(productObj, selectedLead.product);
+
+                if (isService) {
+                  const { removeAttendee } = useTurmaStore.getState();
+                  await removeAttendee(enrollment.id, enrollment.attendee.id);
+                } else {
+                  const confirmRemove = window.confirm(`O lead "${selectedLead.name}" será removido da turma "${enrollment.name}" pois saiu da etapa Ganho. Confirmar?`);
+                  if (confirmRemove) {
+                    const { removeAttendee } = useTurmaStore.getState();
+                    await removeAttendee(enrollment.id, enrollment.attendee.id);
+                  } else {
+                    return; // Cancel move
+                  }
+                }
+              }
+            }
+
             updateLeadStage(selectedLead.id, stageId);
             updateLead(selectedLead.id, { status: (targetStage?.name ?? '') as LeadStatus });
-            const stageLower = targetStage?.name.toLowerCase() ?? '';
-            if (stageLower.includes('ganho') || stageLower.includes('fechado') || stageLower.includes('aprovado')) {
-              const productObj = products.find(p => p.name === selectedLead.product);
-              const categoryName = (productObj?.category || '').toLowerCase();
-              const isService = categoryName.startsWith('serviço') || categoryName.startsWith('servico');
 
+            if (isGanhoTarget) {
+              const productObj = financialCalculator.findProduct(selectedLead.product, products);
+              const isService = financialCalculator.isServiceProduct(productObj, selectedLead.product);
               if (!isService) {
                 setEnrollLead(selectedLead);
               }
@@ -590,9 +661,9 @@ export const Pipeline: React.FC = () => {
           const isGanho = stageName.includes('ganho') || stageName.includes('fechado') || stageName.includes('aprovado');
 
           if (isGanho) {
-            const productObj = products.find(p => p.name === lead.product);
-            const categoryName = (productObj?.category || '').toLowerCase();
-            const isService = categoryName.startsWith('serviço') || categoryName.startsWith('servico');
+            const productObj = financialCalculator.findProduct(lead.product || '', products);
+            const categoryName = (productObj?.category || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            const isService = categoryName.startsWith('servico');
 
             if (!isService) {
               setEnrollLead(lead);

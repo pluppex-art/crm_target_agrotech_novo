@@ -47,8 +47,6 @@ export function Finance() {
   
   // Filter Modal States
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [tempStart, setTempStart] = useState(startDate);
-  const [tempEnd, setTempEnd] = useState(endDate);
 
   const filterLabel = useMemo(() => {
     const s = new Date(startDate + 'T12:00:00');
@@ -61,64 +59,6 @@ export function Finance() {
     
     return `${s.toLocaleDateString('pt-BR')} - ${e.toLocaleDateString('pt-BR')}`;
   }, [startDate, endDate]);
-
-  const applyFilter = () => {
-    setStartDate(tempStart);
-    setEndDate(tempEnd);
-    setIsFilterOpen(false);
-  };
-
-  const setShortcut = (type: string) => {
-    const now = new Date();
-    let s = new Date();
-    let e = new Date();
-
-    switch (type) {
-      case 'today':
-        break;
-      case 'yesterday':
-        s.setDate(s.getDate() - 1);
-        e.setDate(e.getDate() - 1);
-        break;
-      case '7days':
-        s.setDate(s.getDate() - 7);
-        break;
-      case '30days':
-        s.setDate(s.getDate() - 30);
-        break;
-      case 'thisMonth':
-        s = new Date(now.getFullYear(), now.getMonth(), 1);
-        e = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        break;
-      case 'lastMonth':
-        s = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        e = new Date(now.getFullYear(), now.getMonth(), 0);
-        break;
-      case 'thisYear':
-        s = new Date(now.getFullYear(), 0, 1);
-        e = new Date(now.getFullYear(), 11, 31);
-        break;
-    }
-
-    setTempStart(getISODate(s));
-    setTempEnd(getISODate(e));
-  };
-
-  const handleMonthChange = (month: number) => {
-    const current = new Date(tempStart + 'T12:00:00');
-    const s = new Date(current.getFullYear(), month, 1);
-    const e = new Date(current.getFullYear(), month + 1, 0);
-    setTempStart(getISODate(s));
-    setTempEnd(getISODate(e));
-  };
-
-  const handleYearChange = (year: number) => {
-    const current = new Date(tempStart + 'T12:00:00');
-    const s = new Date(year, current.getMonth(), 1);
-    const e = new Date(year, current.getMonth() + 1, 0);
-    setTempStart(getISODate(s));
-    setTempEnd(getISODate(e));
-  };
 
   if (!hasPermission('finance.view')) {
     return (
@@ -182,11 +122,7 @@ export function Finance() {
 
           <div className="flex items-center gap-3">
             <button
-              onClick={() => {
-                setTempStart(startDate);
-                setTempEnd(endDate);
-                setIsFilterOpen(true);
-              }}
+              onClick={() => setIsFilterOpen(true)}
               className="flex items-center gap-3 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-100 transition-all group"
             >
               <CalendarRange className="w-4 h-4 text-slate-400 group-hover:text-emerald-600" />

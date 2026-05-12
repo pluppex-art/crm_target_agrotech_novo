@@ -4,6 +4,8 @@ import { usePermissions } from '../hooks/usePermissions';
 import { useLeadStore } from '../store/useLeadStore';
 import { usePipelineStore } from '../store/usePipelineStore';
 import { useProfileStore } from '../store/useProfileStore';
+import { useProductStore } from '../store/useProductStore';
+import { financialCalculator } from '../services/financialCalculator';
 import { LeadsToolbar } from '../components/leads/LeadsToolbar';
 import { LeadsTable } from '../components/leads/LeadsTable';
 import { NewLeadModal } from '../components/leads/NewLeadModal';
@@ -16,6 +18,7 @@ export function Leads() {
   const { hasPermission, loading: permissionsLoading } = usePermissions();
   const { leads, fetchLeads, isLoading, subscribeToLeads, updateLeadStage, updateLead } = useLeadStore();
   const { pipelines, fetchPipelines } = usePipelineStore();
+  const { products, fetchProducts } = useProductStore();
   const { profiles, fetchProfiles } = useProfileStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -28,7 +31,8 @@ export function Leads() {
     fetchLeads();
     fetchPipelines();
     fetchProfiles();
-  }, [fetchLeads, fetchPipelines, fetchProfiles]);
+    fetchProducts();
+  }, [fetchLeads, fetchPipelines, fetchProfiles, fetchProducts]);
 
   useEffect(() => {
     const unsubscribe = subscribeToLeads();
@@ -52,32 +56,49 @@ export function Leads() {
     [profiles]
   );
 
+  const productFilterOptions = useMemo(() =>
+    Array.from(new Set(
+      leads
+        .map(l => financialCalculator.findProduct(l.product || '', products)?.name || l.product)
+        .filter((p): p is string => Boolean(p))
+    )).map(p => ({ value: p, label: p })),
+    [leads, products]
+  );
+
   const filteredLeads = useMemo(() => {
+    const noFilters = !searchTerm.trim() && filterProduct === 'all' && filterResponsible === 'all' && filterStage === 'all';
+    if (noFilters) return leads;
+
     return leads.filter(lead => {
+      const prodObj = financialCalculator.findProduct(lead.product || '', products);
+      const prodName = prodObj?.name || lead.product || '';
+      const respProfile = profiles.find(p => p.id === lead.responsavel_usuario_id || p.name === lead.responsible);
+      const respName = respProfile?.name || lead.responsible || '';
+
       // 1. Search text
       if (searchTerm.trim()) {
         const q = searchTerm.toLowerCase();
         const matchesSearch = (
           lead.name.toLowerCase().includes(q) ||
-          lead.product.toLowerCase().includes(q) ||
-          lead.responsible?.toLowerCase().includes(q) ||
+          prodName.toLowerCase().includes(q) ||
+          respName.toLowerCase().includes(q) ||
           lead.email?.toLowerCase().includes(q)
         );
         if (!matchesSearch) return false;
       }
-      
+
       // 2. Product
-      if (filterProduct !== 'all' && lead.product !== filterProduct) return false;
-      
+      if (filterProduct !== 'all' && lead.product !== filterProduct && prodName !== filterProduct) return false;
+
       // 3. Responsible
-      if (filterResponsible !== 'all' && lead.responsavel_usuario_id !== filterResponsible && lead.responsible !== filterResponsible) return false;
-      
+      if (filterResponsible !== 'all' && lead.responsavel_usuario_id !== filterResponsible && respName !== filterResponsible) return false;
+
       // 4. Stage
       if (filterStage !== 'all' && lead.stage_id !== filterStage) return false;
-      
+
       return true;
     });
-  }, [leads, searchTerm, filterProduct, filterResponsible, filterStage]);
+  }, [leads, searchTerm, filterProduct, filterResponsible, filterStage, products, profiles]);
 
   if (permissionsLoading) {
     return (
@@ -113,10 +134,10 @@ export function Leads() {
             {filteredLeads.length} {filteredLeads.length === 1 ? 'Cliente' : 'Clientes'}
           </div>
         </div>
-        
+
         <div className="flex items-center gap-4">
-          <LeadsToolbar 
-            isLoading={isLoading} 
+          <LeadsToolbar
+            isLoading={isLoading}
             onModalOpen={() => setIsModalOpen(true)}
             hasPermissionExport={hasPermission('leads.export')}
             hasPermissionCreate={hasPermission('leads.create')}
@@ -154,7 +175,7 @@ export function Leads() {
               value: filterProduct,
               onChange: setFilterProduct,
               activeColorClass: 'bg-amber-50 text-amber-700 border-amber-100',
-              options: Array.from(new Set(leads.map(l => l.product).filter(Boolean))).map(p => ({ value: p, label: p }))
+              options: productFilterOptions
             },
             {
               id: 'responsible',
@@ -201,3 +222,4 @@ export function Leads() {
     </div>
   );
 }
+

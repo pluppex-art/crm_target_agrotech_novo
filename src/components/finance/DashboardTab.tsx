@@ -53,27 +53,37 @@ export function DashboardTab({ startDate, endDate }: { startDate: string; endDat
 
         setKpis(kpiData);
 
-        // 1. Daily Trend Data
+        // 1. Generate ALL dates in range to fill gaps
+        const dateRange: string[] = [];
+        let curr = new Date(startDate + 'T12:00:00');
+        const last = new Date(endDate + 'T12:00:00');
+        while (curr <= last) {
+          dateRange.push(curr.toISOString().split('T')[0]);
+          curr.setDate(curr.getDate() + 1);
+        }
+
+        // 2. Daily Trend Data (Filled)
         const daily: Record<string, { date: string; income: number; expense: number }> = {};
+        dateRange.forEach(d => { daily[d] = { date: d, income: 0, expense: 0 }; });
+        
         txs.forEach(t => {
           const date = (t.payment_date || t.created_at || '').split('T')[0];
-          if (!date || date < startDate || date > endDate) return;
-          if (!daily[date]) daily[date] = { date, income: 0, expense: 0 };
+          if (!daily[date]) return;
 
           if (t.status === 'PAID' || t.origin_type === 'PIPELINE') {
             if (t.type === 'INCOME') daily[date].income += Number(t.amount) || 0;
             else daily[date].expense += Number(t.amount) || 0;
           }
         });
-        setChartData(Object.values(daily).sort((a, b) => a.date.localeCompare(b.date)));
+        setChartData(Object.values(daily));
 
-        // 2. Origin Data
+        // 3. Origin Data
         setOriginData([
           { name: 'Target', value: partnerData.target_sales },
           { name: 'Pluppex', value: partnerData.pluppex_sales }
         ].filter(d => d.value > 0));
 
-        // 3. Category Data
+        // 4. Category Data
         const catMap: Record<string, number> = {};
         const catNames: Record<string, { name: string }> = {};
         (categoriesRes.data || []).forEach((c: { id: string; name: string }) => {
@@ -94,17 +104,17 @@ export function DashboardTab({ startDate, endDate }: { startDate: string; endDat
           color: COLORS[idx % COLORS.length]
         })).sort((a, b) => b.value - a.value));
 
-        // 4. Turma Trend Data
+        // 5. Turma Trend Data (Filled)
         const turmaDaily: Record<string, Record<string, number>> = {};
         const turmaTotals: Record<string, number> = {};
+        dateRange.forEach(d => { turmaDaily[d] = {}; });
         
         txs.forEach(t => {
           if (t.type === 'INCOME' && (t.status === 'PAID' || t.origin_type === 'PIPELINE')) {
             const date = (t.payment_date || t.created_at || '').split('T')[0];
             const turmaName = t.turmas?.name || (t as any).turma_name || 'Sem Turma';
-            if (!date || date < startDate || date > endDate) return;
+            if (!turmaDaily[date]) return;
 
-            if (!turmaDaily[date]) turmaDaily[date] = {};
             turmaDaily[date][turmaName] = (turmaDaily[date][turmaName] || 0) + (Number(t.amount) || 0);
             turmaTotals[turmaName] = (turmaTotals[turmaName] || 0) + (Number(t.amount) || 0);
           }
@@ -117,7 +127,8 @@ export function DashboardTab({ startDate, endDate }: { startDate: string; endDat
         
         setTopTurmas(sortedTurmas);
 
-        const trend = Object.entries(turmaDaily).map(([date, values]) => {
+        const trend = dateRange.map(date => {
+          const values = turmaDaily[date] || {};
           const entry: any = { date };
           sortedTurmas.forEach(name => {
             entry[name] = values[name] || 0;
@@ -128,7 +139,7 @@ export function DashboardTab({ startDate, endDate }: { startDate: string; endDat
           if (otherTotal > 0) entry['Outras'] = otherTotal;
           
           return entry;
-        }).sort((a, b) => a.date.localeCompare(b.date));
+        });
 
         setTurmaTrendData(trend);
 

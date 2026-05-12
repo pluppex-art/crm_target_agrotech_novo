@@ -32,21 +32,29 @@ export const callService = {
     start.setHours(0, 0, 0, 0);
     const end = new Date();
     end.setHours(23, 59, 59, 999);
+    return this.getTeamRangeStats(start.toISOString(), end.toISOString());
+  },
 
+  async getTeamRangeStats(startDate: string, endDate: string): Promise<{ user_id: string; user_name: string; count: number }[]> {
     const { data: profiles, error: profErr } = await (supabase as any)
       .from('perfis')
       .select('id, name, cargos:role_id(name)')
       .eq('status', 'active');
-    if (profErr) { console.error('callService.getTeamTodayStats profiles:', profErr); return []; }
+    if (profErr) { console.error('callService.getTeamRangeStats profiles:', profErr); return []; }
 
     const sellers = (profiles || []).filter((p: any) => isVendedor(p));
+
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
 
     const { data: logs, error: logErr } = await (supabase as any)
       .from('call_logs')
       .select('user_id')
       .gte('called_at', start.toISOString())
       .lte('called_at', end.toISOString());
-    if (logErr) { console.error('callService.getTeamTodayStats logs:', logErr); }
+    if (logErr) { console.error('callService.getTeamRangeStats logs:', logErr); }
 
     const countByUser = new Map<string, number>();
     (logs || []).forEach((l: any) => {

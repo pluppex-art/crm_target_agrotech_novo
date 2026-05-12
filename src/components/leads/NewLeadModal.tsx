@@ -133,10 +133,11 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
   };
 
   const handleProductChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedProduct = products.find((product: any) => product.name === e.target.value);
+    const selectedId = e.target.value;
+    const selectedProduct = products.find((product: any) => product.id === selectedId);
     setFormData(prev => ({
       ...prev,
-      product: e.target.value,
+      product: selectedId,
       value: selectedProduct ? selectedProduct.price.toString() : prev.value,
       taxa_matricula_recebido: selectedProduct?.enrollment_fee ?? undefined,
     }));
@@ -166,8 +167,8 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
         return;
       }
       // Validação para Ganho (Curso)
-      const selectedProduct = products.find(p => p.name === formData.product);
-      const isService = (selectedProduct?.category || '').toLowerCase().startsWith('serviço') || (selectedProduct?.category || '').toLowerCase().startsWith('servico');
+      const selectedProduct = products.find(p => p.id === formData.product || p.name === formData.product);
+      const isService = (selectedProduct?.category || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').startsWith('servico');
 
       if (isGanhoStage && !isService) {
         if (!formData.pix_completed || !formData.contract_signed || !proofFile || !contractFile) {
@@ -268,8 +269,8 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
   };
 
   const isServiceProduct = useMemo(() => {
-    const product = products.find(p => p.name === formData.product);
-    return (product?.category || '').toLowerCase().startsWith('serviço') || (product?.category || '').toLowerCase().startsWith('servico');
+    const product = products.find(p => p.id === formData.product || p.name === formData.product);
+    return (product?.category || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').startsWith('servico');
   }, [formData.product, products]);
 
   if (!isOpen) return null;
@@ -415,7 +416,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                     >
                       <option value="">Selecione um produto (opcional)</option>
                       {products.map(product => (
-                        <option key={`prod-${product.id}`} value={product.name}>
+                        <option key={`prod-${product.id}`} value={product.id}>
                           {product.name}
                         </option>
                       ))}

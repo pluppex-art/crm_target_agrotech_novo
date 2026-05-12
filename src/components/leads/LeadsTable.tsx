@@ -8,6 +8,8 @@ import { Trash2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Lead } from '../../types/leads';
 import { useLeadStore } from '../../store/useLeadStore';
+import { useProductStore } from '../../store/useProductStore';
+import { financialCalculator } from '../../services/financialCalculator';
 
 const columnHelper = createColumnHelper<Lead>();
 
@@ -42,11 +44,15 @@ export function LeadsTable({ leads, totalCount, onLeadClick }: LeadsTableProps) 
     }),
     columnHelper.accessor('product', {
       header: 'Produto',
-      cell: info => (
-        <span className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded-md text-[10px] font-bold uppercase">
-          {info.getValue()}
-        </span>
-      ),
+      cell: info => {
+        const { products } = useProductStore.getState();
+        const prodObj = financialCalculator.findProduct(info.getValue() || '', products);
+        return (
+          <span className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded-md text-[10px] font-bold uppercase">
+            {prodObj?.name || info.getValue()}
+          </span>
+        );
+      },
     }),
     columnHelper.accessor('value', {
       header: 'Valor',

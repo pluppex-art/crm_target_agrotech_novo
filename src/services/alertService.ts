@@ -1,6 +1,9 @@
 import { Lead } from '../types/leads';
 import { emailService } from './emailService';
 import { useNotificationStore } from '../store/useNotificationStore';
+import { useProductStore } from '../store/useProductStore';
+import { useProfileStore } from '../store/useProfileStore';
+import { financialCalculator } from './financialCalculator';
 import { Task } from './taskService';
 
 // Inactivity alert levels
@@ -78,9 +81,16 @@ async function sendEmailAlert(userEmail: string, lead: Lead, label: string) {
           <h2 style="color: #dc2626;">⚠️ Alerta de Inatividade</h2>
           <p>O cliente <strong>${lead.name}</strong> está sem contato há <strong>${label}</strong>.</p>
           <table style="width:100%; border-collapse: collapse; margin: 16px 0;">
-            <tr><td style="padding:8px; color:#6b7280;">Produto:</td><td style="padding:8px;"><strong>${lead.product}</strong></td></tr>
+            <tr><td style="padding:8px; color:#6b7280;">Produto:</td><td style="padding:8px;"><strong>${(() => {
+              const { products } = useProductStore.getState();
+              return financialCalculator.findProduct(lead.product || '', products)?.name || lead.product;
+            })()}</strong></td></tr>
             <tr><td style="padding:8px; color:#6b7280;">Telefone:</td><td style="padding:8px;"><strong>${lead.phone}</strong></td></tr>
-            <tr><td style="padding:8px; color:#6b7280;">Responsável:</td><td style="padding:8px;"><strong>${lead.responsible || 'Não definido'}</strong></td></tr>
+            <tr><td style="padding:8px; color:#6b7280;">Responsável:</td><td style="padding:8px;"><strong>${(() => {
+              const { profiles } = useProfileStore.getState();
+              const profile = profiles.find(p => p.id === lead.responsavel_usuario_id || p.name === lead.responsible);
+              return profile?.name || lead.responsible || 'Não definido';
+            })()}</strong></td></tr>
           </table>
           <p style="color:#dc2626; font-weight:bold;">Acesse o CRM e entre em contato para não perder esta oportunidade!</p>
         </div>
@@ -168,14 +178,21 @@ export async function fireAlerts(
   userPhone?: string,
   targetUserId?: string
 ) {
-  for (const alert of alerts) {
-    const { lead, label, key, isTransfer } = alert;
+  for (const alertItem of alerts) {
+    const { lead, label, key, isTransfer } = alertItem;
+    const { products } = useProductStore.getState();
+    const { profiles } = useProfileStore.getState();
+    const prodObj = financialCalculator.findProduct(lead.product || '', products);
+    const prodName = prodObj?.name || lead.product || 'Não definido';
+    const profile = profiles.find(p => p.id === lead.responsavel_usuario_id || p.name === lead.responsible);
+    const respName = profile?.name || lead.responsible || 'Não definido';
+
     const title = isTransfer
       ? `🔄 ${lead.name} foi transferido para novo responsável`
       : `⚠️ ${lead.name} sem contato há ${label}`;
     const body = isTransfer
       ? `Lead sem contato há ${label}. Transferido para novo responsável.`
-      : `Responsável: ${lead.responsible || 'Não definido'} | Produto: ${lead.product}`;
+      : `Responsável: ${respName} | Produto: ${prodName}`;
 
     markAlertSent(lead.id, key);
 
@@ -186,7 +203,7 @@ export async function fireAlerts(
     }
 
     if (userPhone) {
-      const msg = `⚠️ *Alerta CRM*\n\nO cliente *${lead.name}* está sem contato há *${label}*.\n\nProduto: ${lead.product}\nTelefone do cliente: ${lead.phone}\n\nAcesse o CRM e entre em contato!`;
+      const msg = `⚠️ *Alerta CRM*\n\nO cliente *${lead.name}* está sem contato há *${label}*.\n\nProduto: ${prodName}\nTelefone do cliente: ${lead.phone}\n\nAcesse o CRM e entre em contato!`;
       openWhatsApp(userPhone, msg);
     }
 
@@ -199,8 +216,8 @@ export async function fireAlerts(
       meta: JSON.stringify({
         leadId: lead.id,
         phone: lead.phone,
-        product: lead.product,
-        responsible: lead.responsible || 'Não definido'
+        product: prodName,
+        responsible: respName
       })
     }, targetUserId);
   }

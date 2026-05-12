@@ -46,11 +46,19 @@ export function parseBRNumber(val: string | number | undefined | null): number {
   return isNaN(result) ? 0 : result;
 }
 
-export const isServiceProduct = (product?: Product | null): boolean => {
-  if (!product?.category) return false;
-  // Normalize to remove accents: "Serviço" -> "servico"
-  const category = product.category.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  return category.startsWith('servico');
+export const isServiceProduct = (product?: Product | null, legacyName?: string): boolean => {
+  if (product) {
+    const category = (product.category || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const name = (product.name || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (category.includes('servico') || name.includes('aplicacao')) return true;
+  }
+  
+  if (legacyName) {
+    const name = legacyName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (name.includes('aplicacao') || name.includes('servico')) return true;
+  }
+  
+  return false;
 };
 
 export const financialCalculator = {
@@ -58,13 +66,16 @@ export const financialCalculator = {
   parseBRNumber,
   isServiceProduct,
 
-  findProduct: (productName: string, products: Product[]): Product | undefined => {
-    if (!productName) return undefined;
-    const searchName = productName.toLowerCase().trim();
-    return products.find(p => {
-      const pName = p.name.toLowerCase().trim();
-      return searchName === pName || searchName.includes(pName);
-    });
+  findProduct: (productRef: string, products: Product[]): Product | undefined => {
+    if (!productRef) return undefined;
+    
+    // 1. Try exact ID match
+    const byId = products.find(p => p.id === productRef);
+    if (byId) return byId;
+
+    // 2. Fallback to Name match (legacy support)
+    const searchName = productRef.toLowerCase().trim();
+    return products.find(p => p.name.toLowerCase().trim() === searchName);
   },
 
   /** Base value minus any discount. */

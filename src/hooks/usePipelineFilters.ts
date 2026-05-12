@@ -1,7 +1,9 @@
 import { useState, useMemo, useEffect } from 'react';
 import type { Lead } from '../types/leads';
 import { useProfileStore } from '../store/useProfileStore';
+import { useProductStore } from '../store/useProductStore';
 import { getSupabaseClient } from '../lib/supabase';
+import { financialCalculator } from '../services/financialCalculator';
 
 export const usePipelineFilters = (
   leads: Lead[], 
@@ -62,23 +64,23 @@ export const usePipelineFilters = (
     return profiles.find((p: any) => p.id === authUserId)?.name ?? null;
   }, [authUserId, profiles]);
 
-  // Nomes base únicos de produto
+  // Product options: string[] (names)
+  const { products } = useProductStore();
   const productOptions = useMemo(() => {
     const seen = new Set<string>();
     return leads
       .map(l => {
-        const raw = l.product?.trim();
-        if (!raw) return null;
-        return raw.split(',')[0].trim();
+        const prodObj = financialCalculator.findProduct(l.product || '', products);
+        return prodObj?.name || l.product;
       })
       .filter((p): p is string => !!p)
       .filter(p => {
-        const key = p.toLowerCase();
+        const key = p.toLowerCase().trim();
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
       });
-  }, [leads]);
+  }, [leads, products]);
 
   // Lista de responsáveis: {id, name}[]
   const responsibles = useMemo(() => {
@@ -111,18 +113,23 @@ export const usePipelineFilters = (
   }, [isComercial, authUserId]);
 
   const filteredLeads = useMemo(() => leads.filter(lead => {
+    const prodObj = financialCalculator.findProduct(lead.product || '', products);
+    const prodName = prodObj?.name || lead.product || '';
+    const respProfile = profiles.find(p => p.id === lead.responsavel_usuario_id || p.name === lead.responsible);
+    const respName = respProfile?.name || lead.responsible || '';
+
     const matchesSearch =
       lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.product.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      prodName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (lead.phone && lead.phone.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (lead.responsible && lead.responsible.toLowerCase().includes(searchTerm.toLowerCase()));
+      respName.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesResponsible = selectedResponsible === 'all' ||
       lead.responsavel_usuario_id === selectedResponsible ||
-      (lead.responsible ?? '').trim().toLowerCase() === selectedResponsible.trim().toLowerCase();
+      respName.trim().toLowerCase() === selectedResponsible.trim().toLowerCase();
     
     const selectedProductLower = selectedProduct.trim().toLowerCase();
-    const leadProductLower = (lead.product ?? '').trim().toLowerCase();
+    const leadProductLower = prodName.trim().toLowerCase();
     
     const matchesProduct = selectedProduct === 'all' ||
       leadProductLower === selectedProductLower ||

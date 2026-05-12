@@ -87,7 +87,7 @@ export const PipelineFilters: React.FC<PipelineFiltersProps> = ({
           )}
           {selectedResponsible !== 'all' && (
             <span className="flex items-center gap-1 text-xs font-medium bg-teal-50 text-teal-700 border border-teal-100 px-2 py-0.5 rounded-full">
-              {selectedResponsible}
+              {responsibles.find(r => r.id === selectedResponsible)?.name || selectedResponsible}
               <span role="button" onClick={e => { e.stopPropagation(); onResponsibleChange('all'); }} className="cursor-pointer hover:opacity-70"><X size={11} /></span>
             </span>
           )}

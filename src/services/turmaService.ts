@@ -5,6 +5,7 @@ export type AttendanceStatus = 'matriculado' | 'confirmado' | 'indeciso' | 'canc
 export interface TurmaAttendee {
   id: string;
   lead_id?: string;
+  responsavel_usuario_id?: string | null;
   name: string;
   photo: string;
   responsible: string;
@@ -150,7 +151,7 @@ export const turmaService = {
       .insert([{
         class_id: turmaId,
         lead_id: attendee.lead_id ?? null,
-        responsavel_usuario_id: attendee.lead_id ?? turmaId,
+        responsavel_usuario_id: attendee.responsavel_usuario_id ?? null,
         status: 'ENROLLED',
         board_status: attendee.status || 'matriculado',
         name: attendee.name || '',

@@ -40,9 +40,9 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = ({
   };
 
   const { getSquadInfoForUser } = useSquadStore();
-  const responsibleProfile = profiles.find(p => p.name === formData.responsible);
+  const responsibleProfile = profiles.find(p => p.id === formData.responsavel_usuario_id);
   
-  const squadInfo = getSquadInfoForUser(responsibleProfile?.id || '', formData.responsible || '', profiles);
+  const squadInfo = getSquadInfoForUser(formData.responsavel_usuario_id || '', formData.responsible || '', profiles);
   const isPluppex = squadInfo.name === 'PLUPPEX';
   const isTarget = squadInfo.name === 'TARGET';
 
@@ -103,7 +103,7 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = ({
   const finalValue = calculateFinalValue();
   const hasDiscount = formData.discount_applied && Math.abs(finalValue - baseValue) > 0.01;
 
-  const currentProduct = products.find(p => p.name === formData.product);
+  const currentProduct = financialCalculator.findProduct(formData.product, products);
   const isServiceProduct = financialCalculator.isServiceProduct(currentProduct || null);
   const enrollmentFee = currentProduct?.enrollment_fee ?? 0;
   const totalWithFee = finalValue + enrollmentFee;
@@ -501,22 +501,22 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = ({
               <select
                 value={formData.product || ''}
                 onChange={(e) => {
-                  const selectedName = e.target.value;
-                  const selectedProduct = products.find(p => p.name === selectedName);
+                  const selectedId = e.target.value;
+                  const selectedProduct = products.find(p => p.id === selectedId);
                   updateFormField({
-                    product: selectedName,
+                    product: selectedId,
                     value: selectedProduct ? selectedProduct.price.toString() : formData.value,
                   });
                 }}
                 className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"
               >
                 <option value="">Selecione...</option>
-                {/* Garante que o produto atual do lead apareça mesmo se o nome mudou no banco */}
-                {formData.product && !products.find(p => p.name === formData.product) && (
-                  <option value={formData.product}>{formData.product} (Nome antigo)</option>
+                {/* Legacy support: if product is a name, find its object to get ID or just show the name */}
+                {formData.product && !products.find(p => p.id === formData.product) && (
+                   <option value={formData.product}>{formData.product} (Nome antigo)</option>
                 )}
                 {products.map(p => (
-                  <option key={p.id} value={p.name}>{p.name}</option>
+                  <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
               </select>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />

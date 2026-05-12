@@ -1,6 +1,5 @@
 
-import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 import { LeadInfoTab } from './tabs/LeadInfoTab';
 import { LeadHistoryTab } from './tabs/LeadHistoryTab';
@@ -16,43 +15,14 @@ import { useLeadChecklist } from '../../hooks/useLeadChecklist';
 import { useProductStore } from '../../store/useProductStore';
 import { useProfileStore } from '../../store/useProfileStore';
 import { financialCalculator } from '../../services/financialCalculator';
-import type { Lead } from '../../types/leads';
 
-import {
-  X,
-  Trophy,
-  ThumbsDown,
-  MessageSquare,
-  CheckSquare,
-  GraduationCap,
-  Upload,
-  Eye,
-  X as XIcon,
-  Loader2,
-  QrCode,
-  FileText,
-} from 'lucide-react';
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { X, Trophy, ThumbsDown } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
 import { LeadDetailsModalProps, TabType } from './types';
 import { cn } from '@/lib/utils';
 import { getSupabaseClient } from '@/lib/supabase';
 import { emailService } from '../../services/emailService';
 import { emailTemplates } from '../../services/emailTemplates';
-import { uploadLeadFile, deleteLeadFile } from '../../services/leadFilesService';
-
-// Maps Tailwind bg-* classes to hex colors for inline styling
-const STAGE_COLOR_MAP: Record<string, string> = {
-  'bg-slate-500': '#64748b', 'bg-gray-500': '#6b7280',
-  'bg-red-500': '#ef4444', 'bg-orange-500': '#f97316',
-  'bg-amber-500': '#f59e0b', 'bg-yellow-500': '#eab308',
-  'bg-lime-500': '#84cc16', 'bg-green-500': '#22c55e',
-  'bg-emerald-500': '#10b981', 'bg-teal-500': '#14b8a6',
-  'bg-cyan-500': '#06b6d4', 'bg-sky-500': '#0ea5e9',
-  'bg-blue-500': '#3b82f6', 'bg-indigo-500': '#6366f1',
-  'bg-violet-500': '#8b5cf6', 'bg-purple-500': '#a855f7',
-  'bg-fuchsia-500': '#d946ef', 'bg-pink-500': '#ec4899',
-  'bg-rose-500': '#f43f5e',
-};
 
 const TURMA_STAGES = [
   { id: 'matriculado' as const, name: 'Matriculado', color: 'bg-blue-500' },
@@ -61,15 +31,10 @@ const TURMA_STAGES = [
   { id: 'confirmado' as const, name: 'Confirmado', color: 'bg-emerald-500' }
 ];
 
-function getStageClasses(colorClass: string): { active: string; inactive: string } {
-  const baseColor = colorClass.replace('bg-', '');
-  return {
-    active: `bg-emerald-500 text-white border-emerald-500 shadow-md ring-2 ring-emerald-500/30`,
-    inactive: `border-emerald-500 text-emerald-600 hover:text-emerald-700 hover:border-emerald-600`
-  };
-}
-
-
+const STAGE_CLASSES = {
+  active: `bg-emerald-500 text-white border-emerald-500 shadow-md ring-2 ring-emerald-500/30`,
+  inactive: `border-emerald-500 text-emerald-600 hover:text-emerald-700 hover:border-emerald-600`,
+};
 
 const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType }> = ({
   isOpen,
@@ -80,7 +45,6 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
   onStageChange,
   turmaAttendee,
   onTurmaStatusChange,
-  responsibles,
   initialTab,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>(initialTab ?? 'info');
@@ -91,49 +55,6 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
   const leadTasks = useLeadTasks({ leadId: lead?.id ?? '' });
   const leadTurmas = useLeadTurmas({ leadId: lead?.id ?? '' });
   const leadChecklist = useLeadChecklist({ leadId: lead?.id ?? '', stageId: currentStageId ?? '' });
-
-  // Upload Logic
-  const [uploadingProof, setUploadingProof] = useState(false);
-  const [uploadingContract, setUploadingContract] = useState(false);
-  const proofInputRef = useRef<HTMLInputElement>(null);
-  const contractInputRef = useRef<HTMLInputElement>(null);
-
-  const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
-  const ALLOWED_EXT = '.jpg,.jpeg,.png,.pdf';
-
-  const handleFileUpload = async (
-    file: File,
-    fileType: 'payment_proof' | 'contract',
-    setLoading: (v: boolean) => void
-  ) => {
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      alert('Formato inválido. Use .JPEG, .PNG ou .PDF');
-      return;
-    }
-    setLoading(true);
-    try {
-      const url = await uploadLeadFile(lead!.id, fileType, file);
-      if (url) {
-        const field = fileType === 'payment_proof' ? 'payment_proof_url' : 'contract_url';
-        form.updateFormField({ [field]: url });
-        await form.toggleField(field, url);
-      } else {
-        alert('Falha ao enviar arquivo. Tente novamente.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDeleteFile = async (fileType: 'payment_proof' | 'contract') => {
-    const field = fileType === 'payment_proof' ? 'payment_proof_url' : 'contract_url';
-    const url = form.formData[field];
-    if (!url) return;
-    if (!confirm('Remover este arquivo?')) return;
-    await deleteLeadFile(url);
-    form.updateFormField({ [field]: null });
-    await form.toggleField(field, null);
-  };
 
   // Fetch profiles on mount if empty
   useEffect(() => {
@@ -188,12 +109,14 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
             ? new Date(associatedTurma.date.replace(/-/g, '\/')).toLocaleDateString('pt-BR')
             : 'A definir';
 
+          const productName = currentProduct?.name || form.formData.product || 'Curso';
+
           emailService.sendEmail({
             to: lead.email,
-            subject: `🎓 Matrícula Confirmada: ${form.formData.product}`,
+            subject: `🎓 Matrícula Confirmada: ${productName}`,
             html: emailTemplates.enrollmentConfirmed(
               lead.name,
-              form.formData.product || 'Curso',
+              productName,
               dateStr,
               associatedTurma?.location || 'A definir'
             )
@@ -237,7 +160,7 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
 
   const ganhoStage = pipelineStages?.find(s => {
     const n = ((s as any).title || (s as any).name || '').toLowerCase();
-    return n.includes('ganho');
+    return n.includes('ganho') || n.includes('fechado') || n.includes('aprovado');
   });
   const perdidoStage = pipelineStages?.find(s => {
     const n = ((s as any).title || (s as any).name || '').toLowerCase();
@@ -345,12 +268,13 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
           <div className="flex items-center gap-2 w-full">
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest shrink-0">Etapa:</span>
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 flex-1" style={{ scrollbarWidth: 'thin' }}>
-              {(stages || []).map(stage => {
-                const stageName = (stage as any).title || (stage as any).name;
-                const { active, inactive } = getStageClasses(stage.color);
+              {(stages || []).map((stage: any) => {
+                const stageName = stage.title || stage.name;
+                const { active, inactive } = STAGE_CLASSES
                 const isActive = currentStageId === stage.id;
-                const isGanhoBtn = !isTurmaMode && (stageName as string)?.toLowerCase().includes('ganho');
-                const isPerdidoBtn = !isTurmaMode && (stageName as string)?.toLowerCase().includes('perdido');
+                const lowName = (stageName as string)?.toLowerCase();
+                const isGanhoBtn = !isTurmaMode && (lowName.includes('ganho') || lowName.includes('fechado') || lowName.includes('aprovado'));
+                const isPerdidoBtn = !isTurmaMode && lowName.includes('perdido');
                 const isDisabled = (isGanhoBtn && !canMoveToGanho) || (!isActive && !isPerdidoBtn && checklistBlocked);
                 return (
                   <button
