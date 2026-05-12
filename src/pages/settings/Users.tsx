@@ -70,11 +70,11 @@ export function Users() {
       email: profile.email ?? '',
       phone: profile.phone ?? '',
       role_id: profile.role_id ?? '',
-      department: profile.department,
+      department: profile.department ?? 'Comercial',
       cpf: profile.cpf ?? '',
       password: '',
-      status: profile.status
-    } as unknown as typeof formData);
+      status: (profile.status as 'active' | 'inactive') ?? 'active',
+    });
     setIsModalOpen(true);
   };
 
@@ -265,7 +265,8 @@ export function Users() {
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Departamento</label>
-                  <select 
+                  <select
+                    required
                     value={formData.department}
                     onChange={(e) => setFormData({...formData, department: e.target.value})}
                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700"
