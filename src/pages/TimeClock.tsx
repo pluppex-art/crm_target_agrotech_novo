@@ -220,7 +220,7 @@ export function TimeClock() {
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <PunchButton label="Registrar Entrada" icon={punching ? Loader2 : Play} onClick={() => handlePunch('entrada')} active={activeStatus === 'off'} variant="emerald" spinning={punching} />
-                  <PunchButton label="Saída Intervalo" icon={punching ? Loader2 : Coffee} onClick={() => handlePunch('saida_intervalo')} active={activeStatus === 'working'} variant="amber" spinning={punching} />
+                  <PunchButton label="Saída Intervalo" icon={punching ? Loader2 : Coffee} onClick={() => handlePunch('saida_intervalo')} active={activeStatus === 'working' || activeStatus === 'returned'} variant="amber" spinning={punching} />
                   <PunchButton label="Retorno Intervalo" icon={punching ? Loader2 : ArrowRight} onClick={() => handlePunch('volta_intervalo')} active={activeStatus === 'break'} variant="indigo" spinning={punching} />
                   <PunchButton label="Registrar Saída" icon={punching ? Loader2 : Square} onClick={() => handlePunch('saida')} active={activeStatus === 'working' || activeStatus === 'returned'} variant="red" spinning={punching} />
                 </div>
