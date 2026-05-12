@@ -1,5 +1,5 @@
 import { Phone } from 'lucide-react';
-import { ImprovedCSSBarChart } from './ImprovedCSSBarChart';
+import { SemaphoreBarChart } from './SemaphoreBarChart';
 
 interface SellerCallData {
   user_id: string;
@@ -43,7 +43,7 @@ export function CallsSemaphore({ sellers, isAdmin, currentUserId }: CallsSemapho
           </span>
         </div>
       </div>
-      <ImprovedCSSBarChart
+      <SemaphoreBarChart
         data={chartData}
         emptyLabel="Nenhum vendedor encontrado"
         minBarWidth={72}
