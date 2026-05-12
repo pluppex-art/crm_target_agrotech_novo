@@ -25,7 +25,6 @@ import { NavLink } from 'react-router-dom';
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/', permission: 'dashboard.view' },
   { icon: Kanban, label: 'Pipeline', path: '/pipeline', permission: 'pipeline.view' },
-  { icon: Users, label: 'Leads', path: '/leads', permission: 'leads.view' },
   { icon: Clock, label: 'Horário de Ponto', path: '/ponto' },
   { icon: DollarSign, label: 'Financeiro', path: '/finance', permission: 'finance.view' },
   { icon: MessageSquare, label: 'AI Sales Chat', path: '/ai-chat', permission: 'ai-chat.view' },
