@@ -6,7 +6,9 @@ import {
 import { cn, isVendedor } from '../../lib/utils';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useProfileStore } from '../../store/useProfileStore';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 
 const settingsNav = [
   { icon: User,           label: 'Perfil',               path: '/settings/profile' },
@@ -42,34 +44,69 @@ export function SettingsLayout() {
     ? settingsNav.filter(item => item.label === 'Perfil' || item.label === 'Usuários')
     : settingsNav;
 
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
   return (
-    <div className="flex h-full overflow-hidden">
-      {/* Sub-sidebar */}
-      <aside className="w-52 flex-shrink-0 bg-white border-r border-slate-100 overflow-y-auto flex flex-col">
-        <div className="px-4 py-4 border-b border-slate-100">
-          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Configurações</p>
-        </div>
-        <nav className="flex-1 px-2 py-2 space-y-0.5">
-          {filteredNav.map(({ icon: Icon, label, path }) => (
-            <NavLink
-              key={path}
-              to={path}
-              className={({ isActive }) => cn(
-                'flex items-center gap-2.5 rounded-xl px-3 h-9 text-sm font-medium transition-all',
-                isActive
-                  ? 'bg-emerald-50 text-emerald-700'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-              )}
-            >
-              <Icon className="w-4 h-4 flex-shrink-0" />
-              <span className="truncate">{label}</span>
-            </NavLink>
-          ))}
-        </nav>
-      </aside>
+    <div className="flex h-full overflow-hidden relative">
+      {/* Sub-sidebar container */}
+      <div className="relative flex flex-shrink-0 z-20">
+        <motion.aside
+          initial={false}
+          animate={{ 
+            width: isSidebarOpen ? '13rem' : '0rem',
+            opacity: isSidebarOpen ? 1 : 0
+          }}
+          transition={{ duration: 0.3, ease: 'easeInOut' }}
+          className="flex-shrink-0 bg-white border-r border-slate-100 overflow-hidden flex flex-col h-full"
+        >
+          <div className="w-52 flex flex-col h-full">
+            <div className="px-4 py-4 border-b border-slate-100 shrink-0">
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Configurações</p>
+            </div>
+            <nav className="flex-1 px-2 py-2 space-y-0.5 overflow-y-auto custom-scrollbar">
+              {filteredNav.map(({ icon: Icon, label, path }) => (
+                <NavLink
+                  key={path}
+                  to={path}
+                  className={({ isActive }) => cn(
+                    'flex items-center gap-2.5 rounded-xl px-3 h-9 text-sm font-medium transition-all',
+                    isActive
+                      ? 'bg-emerald-50 text-emerald-700 shadow-sm border-emerald-100'
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border-transparent'
+                  )}
+                >
+                  <Icon className="w-4 h-4 flex-shrink-0" />
+                  <span className="truncate">{label}</span>
+                </NavLink>
+              ))}
+            </nav>
+          </div>
+        </motion.aside>
+
+        {/* Toggle Button */}
+        <button
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          className={cn(
+            "absolute top-4 -right-3 z-30 w-6 h-6 bg-white border border-slate-200 rounded-full flex items-center justify-center shadow-md hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-600 transition-all group",
+            !isSidebarOpen && "right-[-1.5rem] bg-emerald-500 text-white border-emerald-400 hover:bg-emerald-600"
+          )}
+          title={isSidebarOpen ? "Recolher menu" : "Expandir menu"}
+        >
+          {isSidebarOpen ? (
+            <ChevronLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
+          ) : (
+            <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+          )}
+        </button>
+      </div>
 
       {/* Content area */}
-      <div className="flex-1 overflow-y-auto bg-[#f3f6f9]">
+      <div className="flex-1 overflow-y-auto bg-[#f3f6f9] relative">
+        {!isSidebarOpen && (
+          <div className="absolute top-4 left-4 z-10 lg:hidden">
+            {/* Optional indicator for mobile if needed, but we keep the same toggle */}
+          </div>
+        )}
         <Outlet />
       </div>
     </div>

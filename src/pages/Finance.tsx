@@ -27,6 +27,7 @@ import { PartnerTab } from '../components/finance/PartnerTab';
 import { SettingsTab } from '../components/finance/SettingsTab';
 import { cn } from '../lib/utils';
 import { PeriodFilterModal } from '../components/common/PeriodFilterModal';
+import { motion, AnimatePresence } from 'framer-motion';
 
 type TabId = 'dashboard' | 'cashflow' | 'dre' | 'ote' | 'categories' | 'partner' | 'settings';
 
@@ -39,6 +40,7 @@ export function Finance() {
   const { hasPermission } = usePermissions();
   const [activeTab, setActiveTab] = useState<TabId>('dashboard');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   
   // Date States
   const today = new Date();
@@ -87,29 +89,57 @@ export function Finance() {
   ] as const;
 
   return (
-    <div className="flex h-full bg-slate-50/50">
+    <div className="flex h-full bg-slate-50/50 relative overflow-hidden">
       {/* Sidebar - Redesigned to match the more premium feel */}
-      <div className="w-64 bg-white border-r border-slate-200 flex flex-col">
-        <div className="p-6">
-          <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Centro Financeiro</h2>
-          <nav className="space-y-1">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  "w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-bold transition-all",
-                  activeTab === tab.id
-                    ? "bg-emerald-50 text-emerald-700 shadow-sm shadow-emerald-100/50 border border-emerald-100"
-                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-                )}
-              >
-                <tab.icon className={cn("w-4 h-4", activeTab === tab.id ? "text-emerald-600" : "text-slate-400")} />
-                {tab.label}
-              </button>
-            ))}
-          </nav>
-        </div>
+      <div className="relative flex flex-shrink-0 z-20 h-full">
+        <motion.div
+          initial={false}
+          animate={{ 
+            width: isSidebarOpen ? '16rem' : '0rem',
+            opacity: isSidebarOpen ? 1 : 0
+          }}
+          transition={{ duration: 0.3, ease: 'easeInOut' }}
+          className="bg-white border-r border-slate-200 flex flex-col h-full overflow-hidden"
+        >
+          <div className="w-64 flex flex-col h-full">
+            <div className="p-6">
+              <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Centro Financeiro</h2>
+              <nav className="space-y-1">
+                {tabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-bold transition-all",
+                      activeTab === tab.id
+                        ? "bg-emerald-50 text-emerald-700 shadow-sm shadow-emerald-100/50 border border-emerald-100"
+                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+                    )}
+                  >
+                    <tab.icon className={cn("w-4 h-4", activeTab === tab.id ? "text-emerald-600" : "text-slate-400")} />
+                    {tab.label}
+                  </button>
+                ))}
+              </nav>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Toggle Button */}
+        <button
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          className={cn(
+            "absolute top-6 -right-3 z-30 w-6 h-6 bg-white border border-slate-200 rounded-full flex items-center justify-center shadow-md hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-600 transition-all group",
+            !isSidebarOpen && "right-[-1.5rem] bg-emerald-500 text-white border-emerald-400 hover:bg-emerald-600"
+          )}
+          title={isSidebarOpen ? "Recolher menu" : "Expandir menu"}
+        >
+          {isSidebarOpen ? (
+            <ChevronLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
+          ) : (
+            <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+          )}
+        </button>
       </div>
 
       {/* Main content */}
