@@ -91,7 +91,18 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
         .flatMap(p => p.stages)
         .find(s => s.id === stageId)?.name || 'Etapa desconhecida';
 
+      const stageNameLower = stageName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      const isGanhoStage = stageNameLower.includes('ganho') || stageNameLower.includes('concluido');
+
       const success = await supabaseService.updateLeadStage(leadId, stageId);
+      if (success && isGanhoStage) {
+        // Se a etapa é de Ganho/Conclusão, atualiza o status para 'closed' no Supabase também
+        await supabaseService.updateLeadStatus(leadId, 'closed');
+        set((state) => ({
+          leads: state.leads.map(l => l.id === leadId ? { ...l, status: 'closed' as LeadStatus } : l)
+        }));
+      }
+
       if (!success) {
         set({ leads: previousLeads, error: 'Failed to update lead stage' });
         return false;

@@ -11,6 +11,7 @@ import { useTaskStore } from '../../store/useTaskStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { useProfileStore } from '../../store/useProfileStore';
 import { useSquadStore } from '../../store/useSquadStore';
+import { usePipelineStore } from '../../store/usePipelineStore';
 
 
 
@@ -70,6 +71,11 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
       ? `${remainingMinutes}min restantes`
       : `${remainingHours}h restantes`;
 
+  const pipelines = usePipelineStore(state => state.pipelines);
+  const stages = React.useMemo(() => pipelines.flatMap(p => p.stages), [pipelines]);
+  const columnStage = stages.find(s => s.id === columnId);
+  const columnStageName = (columnStage?.name || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
   const stageName = (lead.status ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const subStatusName = (lead.subStatus ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   
@@ -88,7 +94,15 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
     subStatusName.includes('ganho') ||
     subStatusName.includes('concluido') ||
     subStatusName.includes('matriculado') ||
-    subStatusName.includes('confirmado');
+    subStatusName.includes('confirmado') ||
+    columnStageName.includes('ganho') ||
+    columnStageName.includes('aprovado') ||
+    columnStageName.includes('fechado') ||
+    columnStageName.includes('concluido') ||
+    columnStageName.includes('matriculado') ||
+    columnStageName.includes('confirmado') ||
+    columnStageName.includes('certificado') ||
+    columnStageName.includes('pos-venda');
 
   // Also disable timer if lead has any task assigned
   const timerDisabled = isInactiveStage || hasTasks;
