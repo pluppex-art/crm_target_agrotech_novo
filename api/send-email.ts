@@ -34,12 +34,12 @@ export default async function handler(req: any, res: any) {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('MailerSend Error:', errorData);
-      return res.status(400).json({ error: 'Erro ao enviar e-mail via MailerSend.' });
+      const errorData = await response.json().catch(() => ({ status: response.status }));
+      console.error('MailerSend Error:', JSON.stringify(errorData));
+      return res.status(400).json({ error: 'Erro ao enviar e-mail via MailerSend.', details: errorData });
     }
 
-    return res.status(200).json({ success: true });
+    return res.status(200).json({ success: true, message: 'E-mail enviado com sucesso.' });
   } catch (error: any) {
     console.error('Send Email Error:', error);
     return res.status(500).json({ error: 'Erro interno ao disparar e-mail.' });

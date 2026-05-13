@@ -21,10 +21,14 @@ export const emailService = {
 
       return { success: true, data: response.data };
     } catch (error: any) {
-      console.error('Erro ao enviar e-mail via API interna:', error.response?.data || error.message);
-      return { 
-        success: false, 
-        error: error.response?.data?.error || error.message 
+      const detail = error.response?.data;
+      console.error('Erro ao enviar e-mail via API interna:', detail ?? error.message);
+      if (detail?.details) {
+        console.error('MailerSend details:', JSON.stringify(detail.details));
+      }
+      return {
+        success: false,
+        error: detail?.error || error.message
       };
     }
   }
