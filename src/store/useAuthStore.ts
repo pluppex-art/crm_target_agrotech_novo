@@ -70,11 +70,18 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ user: null, loading: false, initialized: true });
     }
 
-    supabase.auth.onAuthStateChange((event: any, session) => {
-      if (event === 'TOKEN_REFRESH_FAILED' || event === 'SIGNED_OUT') {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: any, session) => {
+      if (event === 'SIGNED_OUT') {
         set({ user: null, loading: false });
         return;
       }
+      
+      // Redirect to reset password if coming from recovery link
+      if (event === 'PASSWORD_RECOVERY') {
+        console.log('Evento de recuperação de senha detectado, redirecionando...');
+        window.location.href = '/reset-password';
+      }
+
       set({ user: session?.user ?? null, loading: false });
     });
   },
