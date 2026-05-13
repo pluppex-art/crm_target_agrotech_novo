@@ -23,7 +23,7 @@ export const transactionService = {
     // 1. Fetch from financial_transactions (V2)
     let query = supabase
       .from('financial_transactions')
-      .select('*, financial_categories(name), leads(id, name, product, responsible, responsible_id), perfis(name), turmas(name)')
+      .select('*, financial_categories(name), leads(id, name, product, responsible, responsavel_usuario_id), perfis(name), turmas(name)')
       .order('created_at', { ascending: false });
 
     if (filters) {
@@ -224,14 +224,14 @@ export const transactionService = {
     // Pagas no período (por payment_date) + Pendentes/Vencidas no período (por due_date)
     let pendingQuery: any = supabase
       .from('financial_transactions')
-      .select('*, financial_categories(name), leads(id, name, product, responsible, responsible_id), perfis(name), turmas(name)')
+      .select('*, financial_categories(name), leads(id, name, product, responsible, responsavel_usuario_id), perfis(name), turmas(name)')
       .eq('status', 'PENDING')
       .gte('due_date', startDate || '2000-01-01')
       .lte('due_date', endDate || '2099-12-31');
 
     let overdueQuery: any = supabase
       .from('financial_transactions')
-      .select('*, financial_categories(name), leads(id, name, product, responsible, responsible_id), perfis(name), turmas(name)')
+      .select('*, financial_categories(name), leads(id, name, product, responsible, responsavel_usuario_id), perfis(name), turmas(name)')
       .eq('status', 'OVERDUE')
       .gte('due_date', startDate || '2000-01-01')
       .lte('due_date', endDate || '2099-12-31');

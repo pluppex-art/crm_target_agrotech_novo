@@ -68,11 +68,10 @@ export const oteService = {
     const supabase = getSupabaseClient();
     if (!supabase) return false;
 
-    // Try responsible_id (UUID FK) first — column added in migration 006
     const { count: byId } = await (supabase as any)
       .from('lead_class_enrollments')
       .select('*', { count: 'exact', head: true })
-      .eq('responsible_id', userId);
+      .eq('responsavel_usuario_id', userId);
 
     if ((byId || 0) > 0) return true;
 
@@ -179,11 +178,11 @@ export const oteService = {
     
     // Filtra transações onde o lead associado é de responsabilidade do vendedor
     const sellerManualTxs = txs.filter((t: any) => {
-      // 1. Prioridade para responsible_id (UUID)
-      if (t.responsible_id === userId) return true;
+      // 1. Prioridade para user_id ou responsavel_usuario_id do lead (UUID)
+      const leads = Array.isArray(t.leads) ? t.leads[0] : t.leads;
+      if (t.user_id === userId || leads?.responsavel_usuario_id === userId) return true;
 
       // 2. Fallback para nome (fuzzy match)
-      const leads = Array.isArray(t.leads) ? t.leads[0] : t.leads;
       const resp = (leads?.responsible || t.responsible || '').trim().toLowerCase();
       if (!resp || !userName) return false;
 
@@ -200,14 +199,14 @@ export const oteService = {
     // Busca matrículas do período usando lce.responsible diretamente
     const { data: enrollments } = await (supabase
       .from('lead_class_enrollments') as any)
-      .select('valor_recebido, taxa_matricula_recebido, responsible, responsible_id, cost_center')
+      .select('valor_recebido, taxa_matricula_recebido, responsible, responsavel_usuario_id, cost_center')
       .neq('status', 'CANCELLED')
       .gte('enrolled_at', startDate + 'T00:00:00')
       .lte('enrolled_at', endDate + 'T23:59:59');
 
     const sellerEnrollments = (enrollments || []).filter((e: any) => {
-      // 1. Prioridade para responsible_id
-      if (e.responsible_id === userId) return true;
+      // 1. Prioridade para responsavel_usuario_id
+      if (e.responsavel_usuario_id === userId) return true;
 
       // 2. Fallback para nome
       const resp = (e.responsible || '').trim().toLowerCase();
@@ -346,7 +345,7 @@ export const oteService = {
     // Busca matrículas do período filtrando apenas CURSOS
     const { data: enrollments } = await (supabase
       .from('lead_class_enrollments') as any)
-      .select('valor_recebido, taxa_matricula_recebido, responsible, responsible_id, cost_center')
+      .select('valor_recebido, taxa_matricula_recebido, responsible, responsavel_usuario_id, cost_center')
       .neq('status', 'CANCELLED')
       .gte('enrolled_at', startDate + 'T00:00:00')
       .lte('enrolled_at', endDate + 'T23:59:59');
@@ -380,18 +379,18 @@ export const oteService = {
     };
 
     const manualRevenue = txs.reduce((sum, t) => {
-      // 1. Checa por ID
-      if (t.responsible_id && allMemberIds.includes(t.responsible_id)) return sum + (Number(t.amount) || 0);
+      // 1. Checa por ID (user_id ou responsavel_usuario_id do lead)
+      const leads = Array.isArray((t as any).leads) ? (t as any).leads[0] : (t as any).leads;
+      if ((t.user_id && allMemberIds.includes(t.user_id)) || (leads?.responsavel_usuario_id && allMemberIds.includes(leads.responsavel_usuario_id))) return sum + (Number(t.amount) || 0);
 
       // 2. Checa por Nome
-      const leads = Array.isArray((t as any).leads) ? (t as any).leads[0] : (t as any).leads;
       const resp = (leads?.responsible || (t as any).responsible || '').trim().toLowerCase();
       return matchesName(resp) ? sum + (Number(t.amount) || 0) : sum;
     }, 0);
 
     const enrollmentRevenue = (enrollments || []).reduce((sum: number, e: any) => {
       // 1. Checa por ID
-      if (e.responsible_id && allMemberIds.includes(e.responsible_id)) {
+      if (e.responsavel_usuario_id && allMemberIds.includes(e.responsavel_usuario_id)) {
         return sum + (Number(e.valor_recebido) || 0) + (Number(e.taxa_matricula_recebido) || 0);
       }
 
