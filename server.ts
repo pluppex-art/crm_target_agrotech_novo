@@ -6,6 +6,7 @@ import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 
 dotenv.config();
+dotenv.config({ path: ".env" });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -108,57 +109,53 @@ async function startServer() {
         throw new Error("Não foi possível gerar o link de recuperação.");
       }
 
-      console.log(`[DEBUG] Link gerado com sucesso. Enviando via Resend...`);
-
-      const { data: emailData, error: emailError } = await resend.emails.send({
-        from: "Target Agrotech <onboarding@resend.dev>",
-        to: email,
-        subject: "Recuperação de Senha - Target Agrotech",
-        html: `
-          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 16px;">
-            <h1 style="color: #059669; font-size: 24px; font-weight: bold; margin-bottom: 16px;">Recuperação de Senha</h1>
-            <p style="color: #475569; font-size: 16px; line-height: 24px; margin-bottom: 24px;">
-              Olá! Recebemos uma solicitação para redefinir a senha da sua conta no <b>Target Agrotech</b>.
-            </p>
-            <a href="${recoveryLink}" style="display: inline-block; background-color: #059669; color: white; font-weight: bold; padding: 12px 24px; border-radius: 12px; text-decoration: none; margin-bottom: 24px;">
-              Redefinir Minha Senha
-            </a>
-            <p style="color: #94a3b8; font-size: 14px; line-height: 20px;">
-              Se você não solicitou a alteração da senha, ignore este e-mail. O link expira em 1 hora.
-            </p>
-            <hr style="border: 0; border-top: 1px solid #f1f5f9; margin: 24px 0;">
-            <p style="color: #cbd5e1; font-size: 12px; text-align: center;">
-              CRM v1.0.4 • Target Agrotech
-            </p>
-          </div>
-        `,
-      });
-
-      if (emailError) {
-        console.error(`[DEBUG] Erro no Resend:`, emailError);
-
-        const isValidationError =
-          (emailError as any).name === "validation_error" ||
-          (emailError as any).name === "invalid_parameter" ||
-          emailError.message?.includes("testing emails");
-
-        if (isValidationError) {
-          console.warn(
-            `[DEBUG] Resend em modo Sandbox ou Erro de Validação: E-mail não enviado para ${email}.`
-          );
-          return res.json({
-            success: true,
-            message:
-              "Aviso do Resend: O e-mail não pôde ser enviado (provavelmente devido ao modo Sandbox ou e-mail inválido).",
-            debugLink: recoveryLink,
-            isSandbox: true,
-          });
-        }
-
-        throw emailError;
+      const mailersendKey = process.env.VITE_MAILERSEND_API_KEY;
+      if (!mailersendKey) {
+        throw new Error("VITE_MAILERSEND_API_KEY não encontrado.");
       }
 
-      console.log(`[DEBUG] E-mail enviado com sucesso! ID: ${emailData?.id}`);
+      console.log(`[DEBUG] Link gerado com sucesso. Enviando via MailerSend...`);
+
+      const emailResponse = await fetch('https://api.mailersend.com/v1/email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'Authorization': `Bearer ${mailersendKey}`
+        },
+        body: JSON.stringify({
+          from: {
+            email: "crm@notificacoes.targetagrotech.com.br",
+            name: "Target Agrotech"
+          },
+          to: [{ email: email }],
+          subject: 'Recuperação de Senha - Target Agrotech',
+          html: `
+            <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px;border:1px solid #e2e8f0;border-radius:16px;">
+              <h1 style="color:#059669;font-size:24px;font-weight:bold;margin-bottom:16px;">Recuperação de Senha</h1>
+              <p style="color:#475569;font-size:16px;line-height:24px;margin-bottom:24px;">
+                Olá! Recebemos uma solicitação para redefinir a senha da sua conta no <b>Target Agrotech</b>.
+              </p>
+              <a href="${recoveryLink}" style="display:inline-block;background-color:#059669;color:white;font-weight:bold;padding:12px 24px;border-radius:12px;text-decoration:none;margin-bottom:24px;">
+                Redefinir Minha Senha
+              </a>
+              <p style="color:#94a3b8;font-size:14px;line-height:20px;">
+                Se você não solicitou a alteração da senha, ignore este e-mail. O link expira em 1 hora.
+              </p>
+              <hr style="border:0;border-top:1px solid #f1f5f9;margin:24px 0;">
+              <p style="color:#cbd5e1;font-size:12px;text-align:center;">CRM v1.0.4 • Target Agrotech</p>
+            </div>
+          `
+        })
+      });
+
+      if (!emailResponse.ok) {
+        const errorData = await emailResponse.json();
+        console.error('[DEBUG] Erro no MailerSend:', errorData);
+        throw new Error("Erro ao enviar e-mail via MailerSend.");
+      }
+
+      console.log(`[DEBUG] E-mail enviado com sucesso!`);
       return res.json({
         success: true,
         debugLink: recoveryLink,
@@ -179,33 +176,36 @@ async function startServer() {
         });
       }
 
-      const resend = getResend();
-      const { data, error } = await resend.emails.send({
-        from: "Target Agrotech <onboarding@resend.dev>",
-        to,
-        subject,
-        html,
-      });
-
-      if (error) {
-        console.error(`[DEBUG] Erro no Resend (send-email):`, error);
-
-        const isValidationError =
-          (error as any).name === "validation_error" ||
-          (error as any).name === "invalid_parameter" ||
-          error.message?.includes("testing emails");
-
-        if (isValidationError) {
-          return res.json({
-            success: true,
-            message: "Aviso do Resend: E-mail não enviado (Sandbox ou Validação).",
-            isSandbox: true,
-          });
-        }
-
-        return res.status(400).json({ error });
+      const mailersendKey = process.env.VITE_MAILERSEND_API_KEY;
+      if (!mailersendKey) {
+        throw new Error("VITE_MAILERSEND_API_KEY não encontrado.");
       }
 
+      const response = await fetch('https://api.mailersend.com/v1/email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'Authorization': `Bearer ${mailersendKey}`
+        },
+        body: JSON.stringify({
+          from: {
+            email: "crm@notificacoes.targetagrotech.com.br",
+            name: "Target Agrotech"
+          },
+          to: [{ email: to }],
+          subject: subject,
+          html: html
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('[DEBUG] Erro no MailerSend (send-email):', errorData);
+        return res.status(400).json({ error: "Erro ao enviar e-mail via MailerSend." });
+      }
+
+      const data = await response.json();
       return res.json({ success: true, data });
     } catch (error: any) {
       return res.status(500).json({ error: error.message });
@@ -225,7 +225,7 @@ async function startServer() {
       }
       const supabaseAdmin = getSupabaseAdmin();
       const cleanEmail = email.trim().toLowerCase();
-      
+
       let { data, error } = await supabaseAdmin.auth.admin.createUser({
         email: cleanEmail,
         password,
@@ -235,7 +235,7 @@ async function startServer() {
 
       if (error) {
         console.warn(`[create-user] Tentativa 1 falhou para ${cleanEmail}:`, JSON.stringify(error, null, 2));
-        
+
         // Se falhou com 500, tenta sem metadata (pode ser trigger quebrando)
         if (error.status === 500 || error.code === 'unexpected_failure') {
           console.log(`[create-user] Tentando criar sem metadata para ${cleanEmail}...`);
@@ -251,10 +251,10 @@ async function startServer() {
 
       if (error) {
         console.warn(`[create-user] Criar usuário falhou definitivamente para ${cleanEmail}:`, JSON.stringify(error, null, 2));
-        
+
         // Sempre tenta buscar o usuário existente quando há qualquer erro
         const { data: listData, error: listError } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
-        
+
         if (!listError && listData?.users) {
           const existingUser = listData.users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
           if (existingUser) {
@@ -262,7 +262,7 @@ async function startServer() {
             return res.status(200).json({ id: existingUser.id });
           }
         }
-        
+
         // Se realmente não existe, retorna o erro original
         console.error("[create-user] Usuário não encontrado após busca. Erro original:", error.message);
         return res.status(400).json({ error: error.message });
