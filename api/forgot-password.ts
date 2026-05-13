@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Resend } from 'resend';
+
 
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {

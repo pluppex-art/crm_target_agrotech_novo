@@ -11,18 +11,6 @@ dotenv.config({ path: ".env" });
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Lazy initialization helpers
-let resendClient: Resend | null = null;
-
-function getResend() {
-  if (!resendClient) {
-    const key = process.env.RESEND_API_KEY;
-    if (!key) throw new Error("RESEND_API_KEY is missing");
-    resendClient = new Resend(key);
-  }
-  return resendClient;
-}
-
 let supabaseAdminClient: ReturnType<typeof createClient> | null = null;
 
 function getSupabaseAdmin() {
@@ -76,7 +64,6 @@ async function startServer() {
       }
 
       const supabaseAdmin = getSupabaseAdmin();
-      const resend = getResend();
 
       console.log(`[DEBUG] Gerando link de recuperação no Supabase...`);
 
