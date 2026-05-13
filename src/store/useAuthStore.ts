@@ -58,31 +58,23 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   initialize: async () => {
-    try {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (error) {
-        throw error;
-      }
-      set({ user: session?.user ?? null, loading: false, initialized: true });
-    } catch (err: any) {
-      console.error('Falha ao inicializar sessão Supabase:', err?.message ?? err);
-      await supabase.auth.signOut();
-      set({ user: null, loading: false, initialized: true });
-    }
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: any, session) => {
+    // Register listener BEFORE getSession so PASSWORD_RECOVERY is never missed
+    supabase.auth.onAuthStateChange((event: any, session) => {
       if (event === 'SIGNED_OUT') {
-        set({ user: null, loading: false });
+        set({ user: null, loading: false, initialized: true });
         return;
       }
-      
-      // Redirect to reset password if coming from recovery link
+
       if (event === 'PASSWORD_RECOVERY') {
-        console.log('Evento de recuperação de senha detectado, redirecionando...');
-        window.location.href = '/reset-password';
+        if (window.location.pathname !== '/reset-password') {
+          window.location.href = '/reset-password';
+          return;
+        }
+        set({ user: session?.user ?? null, loading: false, initialized: true });
+        return;
       }
 
-      set({ user: session?.user ?? null, loading: false });
+      set({ user: session?.user ?? null, loading: false, initialized: true });
     });
   },
 }));

@@ -30,6 +30,7 @@ export function ResetPassword() {
 
       if (error) throw error;
       setSuccess(true);
+      await supabase.auth.signOut();
       setTimeout(() => navigate('/login'), 3000);
     } catch (err: any) {
       setError(err.message || 'Erro ao redefinir senha.');
