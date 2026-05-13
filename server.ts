@@ -143,7 +143,7 @@ async function startServer() {
       });
 
       if (!emailResponse.ok) {
-        const errorData = await emailResponse.json();
+        const errorData = await emailResponse.json().catch(() => ({}));
         console.error('[DEBUG] Erro no MailerSend:', errorData);
         throw new Error("Erro ao enviar e-mail via MailerSend.");
       }
@@ -193,13 +193,12 @@ async function startServer() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         console.error('[DEBUG] Erro no MailerSend (send-email):', errorData);
         return res.status(400).json({ error: "Erro ao enviar e-mail via MailerSend." });
       }
 
-      const data = await response.json();
-      return res.json({ success: true, data });
+      return res.json({ success: true });
     } catch (error: any) {
       return res.status(500).json({ error: error.message });
     }
