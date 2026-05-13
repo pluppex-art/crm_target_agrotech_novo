@@ -79,7 +79,7 @@ async function startServer() {
         type: "recovery",
         email,
         options: {
-          redirectTo: `${origin}/reset-password`,
+          redirectTo: `https://crm.targetagrotech.com.br/reset-password`,
         },
       });
 

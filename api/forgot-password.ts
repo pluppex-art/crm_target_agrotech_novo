@@ -32,7 +32,7 @@ export default async function handler(req: any, res: any) {
   const { data, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
     type: 'recovery',
     email,
-    options: { redirectTo: `${origin}/reset-password` },
+    options: { redirectTo: `https://crm.targetagrotech.com.br/reset-password` },
   });
 
   if (linkError) {
