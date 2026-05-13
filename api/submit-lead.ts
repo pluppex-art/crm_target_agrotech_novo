@@ -126,6 +126,62 @@ export default async function handler(req: any, res: any) {
       .upsert({ id: 'form_leads', last_seller_name: assignedResponsible, updated_at: new Date().toISOString() });
   }
 
+  // ── Notifica vendedor responsável por e-mail ─────────────────────────────
+  if (assignedResponsible) {
+    const { data: sellerProfile } = await supabase
+      .from('perfis')
+      .select('email, name')
+      .eq('name', assignedResponsible)
+      .single();
+
+    const mailersendKey = process.env.MAILERSEND_API_KEY;
+    if (sellerProfile?.email && mailersendKey) {
+      const prodName = product?.trim() || 'N/A';
+      const html = `
+        <div style="font-family:'Segoe UI',sans-serif;background-color:#f8fafc;padding:40px 20px;color:#1e293b;line-height:1.6;">
+          <div style="max-width:600px;margin:0 auto;background-color:#ffffff;border-radius:24px;overflow:hidden;">
+            <div style="background-color:#059669;padding:32px;text-align:center;">
+              <h1 style="color:#ffffff;margin:0;font-size:24px;font-weight:800;">TARGET AGROTECH</h1>
+            </div>
+            <div style="padding:40px 32px;">
+              <div style="background-color:#ecfdf5;color:#059669;padding:12px 20px;border-radius:12px;font-size:12px;font-weight:800;text-transform:uppercase;display:inline-block;margin-bottom:16px;">🔔 NOVO LEAD CHEGOU!</div>
+              <h2 style="color:#0f172a;font-size:20px;font-weight:700;margin:0 0 16px 0;">Olá, ${sellerProfile.name || assignedResponsible}!</h2>
+              <p style="font-size:16px;color:#475569;margin-bottom:24px;">Um novo potencial cliente acaba de entrar no seu funil via formulário. Confira os detalhes abaixo:</p>
+              <div style="background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:24px;margin-bottom:24px;">
+                <table style="width:100%;border-collapse:collapse;">
+                  <tr><td style="padding-bottom:12px;color:#64748b;font-size:12px;font-weight:700;text-transform:uppercase;">Nome do Lead</td><td style="padding-bottom:12px;color:#1e293b;font-size:14px;font-weight:700;text-align:right;">${name.trim()}</td></tr>
+                  <tr><td style="padding-bottom:12px;color:#64748b;font-size:12px;font-weight:700;text-transform:uppercase;">Interesse</td><td style="padding-bottom:12px;color:#1e293b;font-size:14px;font-weight:700;text-align:right;">${prodName}</td></tr>
+                  <tr><td style="padding-bottom:0;color:#64748b;font-size:12px;font-weight:700;text-transform:uppercase;">Origem</td><td style="padding-bottom:0;color:#1e293b;font-size:14px;font-weight:700;text-align:right;">Formulário Público</td></tr>
+                </table>
+              </div>
+              <div style="margin-top:32px;text-align:center;">
+                <a href="https://crm.targetagrotech.com.br/pipeline" style="display:inline-block;background-color:#059669;color:#ffffff;padding:14px 28px;border-radius:12px;font-weight:700;text-decoration:none;">Acessar Funil e Atender</a>
+              </div>
+            </div>
+            <div style="background-color:#f1f5f9;padding:24px;text-align:center;border-top:1px solid #e2e8f0;">
+              <p style="margin:0;color:#64748b;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;">© 2026 Target Agrotech • Tecnologia e Performance</p>
+            </div>
+          </div>
+        </div>
+      `;
+
+      await fetch('https://api.mailersend.com/v1/email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'Authorization': `Bearer ${mailersendKey}`,
+        },
+        body: JSON.stringify({
+          from: { email: 'crm@notificacoes.targetagrotech.com.br', name: 'Target Agrotech' },
+          to: [{ email: sellerProfile.email }],
+          subject: `🔔 Novo Lead: ${name.trim()}`,
+          html,
+        }),
+      }).catch(err => console.error('Erro ao notificar vendedor:', err));
+    }
+  }
+
   // ── Create Note (Interesse) ──────────────────────────────────────────────
   if (notes) {
     const { error: noteError } = await supabase
