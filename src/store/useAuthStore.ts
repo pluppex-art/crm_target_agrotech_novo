@@ -58,7 +58,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   initialize: async () => {
-    // Register listener BEFORE getSession so PASSWORD_RECOVERY is never missed
+    // Register listener FIRST so PASSWORD_RECOVERY is never missed
     supabase.auth.onAuthStateChange((event: any, session) => {
       if (event === 'SIGNED_OUT') {
         set({ user: null, loading: false, initialized: true });
@@ -76,5 +76,14 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       set({ user: session?.user ?? null, loading: false, initialized: true });
     });
+
+    // Fallback: bootstrap initialized state if INITIAL_SESSION doesn't fire
+    // (can happen when there is no stored session and no URL hash/code)
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      set((state) => state.initialized ? state : { user: session?.user ?? null, loading: false, initialized: true });
+    } catch {
+      set((state) => state.initialized ? state : { user: null, loading: false, initialized: true });
+    }
   },
 }));

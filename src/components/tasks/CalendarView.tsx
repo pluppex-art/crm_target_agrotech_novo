@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Task } from '../../services/taskService';
+import { generateGoogleCalendarUrl } from '../../utils/calendarUtils';
+import { Calendar as CalendarIcon } from 'lucide-react';
 
 interface CalendarViewProps {
   tasks: Task[];
@@ -64,9 +66,8 @@ export function CalendarView({ tasks, onToggleStatus }: CalendarViewProps) {
             return (
               <div
                 key={task.id}
-                onClick={() => onToggleStatus(task.id, task.status)}
                 className={cn(
-                  "text-[10px] p-1 rounded border cursor-pointer truncate transition-all",
+                  "text-[10px] p-1 rounded border cursor-pointer transition-all",
                   task.status === 'completed'
                     ? "bg-slate-100 border-slate-200 text-slate-400 line-through"
                     : isActivity
@@ -80,13 +81,33 @@ export function CalendarView({ tasks, onToggleStatus }: CalendarViewProps) {
                 )}
                 title={`${task.title}${task.scheduled_time ? ' às ' + task.scheduled_time : ''}${task.lead_name ? ' — ' + task.lead_name : ''}`}
               >
-                {task.scheduled_time && (
-                  <span className="font-bold mr-1">{task.scheduled_time}</span>
-                )}
-                {isActivity && task.category && (
-                  <span className="font-bold mr-1">[{task.category}]</span>
-                )}
-                {task.title}
+                <div className="flex items-center gap-1 min-w-0">
+                  <div 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleStatus(task.id, task.status);
+                    }}
+                    className="flex-1 truncate"
+                  >
+                    {task.scheduled_time && (
+                      <span className="font-bold mr-1">{task.scheduled_time}</span>
+                    )}
+                    {isActivity && task.category && (
+                      <span className="font-bold mr-1">[{task.category}]</span>
+                    )}
+                    {task.title}
+                  </div>
+                  <a
+                    href={generateGoogleCalendarUrl(task)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="shrink-0 text-slate-400 hover:text-blue-600 transition-colors"
+                    title="Adicionar ao Google Calendar"
+                  >
+                    <CalendarIcon className="w-2.5 h-2.5" />
+                  </a>
+                </div>
               </div>
             );
           })}

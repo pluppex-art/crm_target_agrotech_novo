@@ -5,6 +5,7 @@ import { useProfileStore } from '../../store/useProfileStore';
 import { useNotificationStore } from '../../store/useNotificationStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { Bell } from 'lucide-react';
+import { notifyTaskReminder } from '../../services/leadNotificationService';
 
 export const TaskReminderWatcher: React.FC = () => {
   const { tasks } = useTaskStore();
@@ -66,14 +67,8 @@ export const TaskReminderWatcher: React.FC = () => {
       });
     };
 
-    const triggerNotification = (task: any, title: string, message: string, notified: Set<string>) => {
-      addNotification({
-        title,
-        message: task.description || message,
-        type: 'pending',
-        category: 'alerts',
-        link: '/tasks'
-      });
+    const triggerNotification = async (task: any, title: string, message: string, notified: Set<string>) => {
+      await notifyTaskReminder(task);
       notified.add(task.id);
       saveNotified(notified);
       const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');

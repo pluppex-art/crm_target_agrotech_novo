@@ -1,5 +1,9 @@
 import { getSupabaseClient } from '../lib/supabase';
 import { CommissionResult, CommissionRule, SemaphoreStatus, RoleType } from '../types/finance_v2';
+
+function getLeadRecord(leads: any): any {
+  return Array.isArray(leads) ? leads[0] : leads;
+}
 import { transactionService } from './transactionService';
 import { financialCalculator } from './financialCalculator';
 import { productService } from './productService';
@@ -179,7 +183,7 @@ export const oteService = {
     // Filtra transações onde o lead associado é de responsabilidade do vendedor
     const sellerManualTxs = txs.filter((t: any) => {
       // 1. Prioridade para user_id ou responsavel_usuario_id do lead (UUID)
-      const leads = Array.isArray(t.leads) ? t.leads[0] : t.leads;
+      const leads = getLeadRecord(t.leads);
       if (t.user_id === userId || leads?.responsavel_usuario_id === userId) return true;
 
       // 2. Fallback para nome (fuzzy match)
@@ -380,8 +384,10 @@ export const oteService = {
 
     const manualRevenue = txs.reduce((sum, t) => {
       // 1. Checa por ID (user_id ou responsavel_usuario_id do lead)
-      const leads = Array.isArray((t as any).leads) ? (t as any).leads[0] : (t as any).leads;
-      if ((t.user_id && allMemberIds.includes(t.user_id)) || (leads?.responsavel_usuario_id && allMemberIds.includes(leads.responsavel_usuario_id))) return sum + (Number(t.amount) || 0);
+      const leads = getLeadRecord((t as any).leads);
+      const matchesId = (t.user_id && allMemberIds.includes(t.user_id)) ||
+        (leads?.responsavel_usuario_id && allMemberIds.includes(leads.responsavel_usuario_id));
+      if (matchesId) return sum + (Number(t.amount) || 0);
 
       // 2. Checa por Nome
       const resp = (leads?.responsible || (t as any).responsible || '').trim().toLowerCase();

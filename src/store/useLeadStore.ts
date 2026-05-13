@@ -4,6 +4,7 @@ import { supabaseService } from '../services/supabaseService';
 import { getSupabaseClient } from '../lib/supabase';
 import { emailService } from '../services/emailService';
 import { emailTemplates } from '../services/emailTemplates';
+import { notifyNewLead, notifyLeadAssignment } from '../services/leadNotificationService';
 import { useProfileStore } from './useProfileStore';
 import { useTurmaStore } from './useTurmaStore';
 import { useAuthStore } from './useAuthStore';
@@ -55,20 +56,9 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
         set((state) => ({ leads: [newLead, ...state.leads], isLoading: false }));
 
         // Automated Email: Notify responsible about new lead
-        if (newLead.responsible) {
-          const seller = useProfileStore.getState().profiles.find(p => p.name === newLead.responsible);
-          if (seller && seller.email) {
-            emailService.sendEmail({
-              to: seller.email,
-              subject: `🔔 Novo Lead: ${newLead.name}`,
-              html: emailTemplates.newLeadResponsible(
-                seller.name!,
-                newLead.name,
-                newLead.product || 'Não especificado',
-                newLead.origin || 'Cadastro Manual'
-              )
-            });
-          }
+        if (newLead) {
+          const { profiles } = useProfileStore.getState();
+          notifyNewLead(newLead, profiles);
         }
 
         return newLead;
@@ -194,14 +184,8 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
 
       // 1. Assignment Email: Trigger if responsible changed
       if (leadData.responsible && leadData.responsible !== previousLeads.find(l => l.id === leadId)?.responsible) {
-        const seller = useProfileStore.getState().profiles.find(p => p.name === leadData.responsible);
-        if (seller && seller.email) {
-          emailService.sendEmail({
-            to: seller.email,
-            subject: `🚀 Novo Lead Atribuído: ${updatedLead.name}`,
-            html: emailTemplates.leadAssignment(seller.name!, updatedLead.name!, updatedLead.product || 'Produto não especificado')
-          });
-        }
+        const { profiles } = useProfileStore.getState();
+        notifyLeadAssignment(updatedLead as Lead, leadData.responsible, profiles);
       }
 
       // 2. Enrollment Email: Trigger if it's a course and we have turma info

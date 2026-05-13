@@ -4,6 +4,8 @@ import type { Lead } from '../types/leads';
 import type { UserProfile } from './profileService';
 import type { Task } from './taskService';
 import { supabase } from '@/lib/supabase';
+import { emailService } from './emailService';
+import { emailTemplates } from './emailTemplates';
 
 function findProfile(idOrName: string, profiles: UserProfile[]): UserProfile | undefined {
   if (!idOrName) return undefined;
@@ -63,6 +65,14 @@ export async function notifyNewLead(lead: Lead, profiles: UserProfile[]): Promis
     category: 'user',
     link: `/pipeline?lead=${lead.id}`,
   });
+
+  if (responsible.email) {
+    await emailService.sendEmail({
+      to: responsible.email,
+      subject: `🔔 Novo Lead: ${lead.name}`,
+      html: emailTemplates.newLeadResponsible(responsible.name || '', lead.name, prodName, lead.lead_source || 'Cadastro Manual')
+    });
+  }
 }
 
 export async function notifyLeadTransferred(
@@ -95,6 +105,14 @@ export async function notifyLeadTransferred(
       link: `/pipeline?lead=${lead.id}`,
     });
   }
+
+  if (newResponsible && newResponsible.email) {
+    await emailService.sendEmail({
+      to: newResponsible.email,
+      subject: `🔄 Lead Transferido (Inatividade): ${lead.name}`,
+      html: emailTemplates.leadTransfer48h(newResponsible.name || '', lead.name, lead.responsible || 'Vendedor Anterior', prodName)
+    });
+  }
 }
 
 export async function notifyLeadAssignment(
@@ -116,6 +134,14 @@ export async function notifyLeadAssignment(
     category: 'user',
     link: `/pipeline?lead=${lead.id}`,
   });
+
+  if (responsible.email) {
+    await emailService.sendEmail({
+      to: responsible.email,
+      subject: `🚀 Novo Lead Atribuído: ${lead.name}`,
+      html: emailTemplates.leadAssignment(responsible.name || '', lead.name, prodName)
+    });
+  }
 }
 
 const COORDINATOR_NOTIFY_KEYWORDS = ['contrato', 'ganho', 'fechado', 'aprovado', 'perdido'];
@@ -164,6 +190,26 @@ export async function notifyNewTask(task: Task, creatorId: string): Promise<void
     category: 'user',
     link: `/tasks?id=${task.id}`,
   });
+
+  // Get user profile to send email
+  const { data: profile } = await supabase
+    .from('perfis')
+    .select('email, name')
+    .eq('id', task.responsavel_usuario_id)
+    .single();
+
+  if (profile?.email) {
+    await emailService.sendEmail({
+      to: profile.email,
+      subject: `📋 Nova Tarefa Atribuída: ${task.title}`,
+      html: emailTemplates.taskAssignment(
+        profile.name || '',
+        task.title,
+        task.due_date ? new Date(task.due_date + 'T00:00:00').toLocaleDateString('pt-BR') : 'Sem data',
+        task.lead_name
+      )
+    });
+  }
 }
 
 export async function notifyTaskReminder(task: Task): Promise<void> {
@@ -176,4 +222,24 @@ export async function notifyTaskReminder(task: Task): Promise<void> {
     category: 'alerts',
     link: `/tasks?id=${task.id}`,
   });
+
+  // Get user profile to send email reminder
+  const { data: profile } = await supabase
+    .from('perfis')
+    .select('email, name')
+    .eq('id', task.responsavel_usuario_id)
+    .single();
+
+  if (profile?.email) {
+    await emailService.sendEmail({
+      to: profile.email,
+      subject: `⏰ Lembrete de Tarefa: ${task.title}`,
+      html: emailTemplates.taskAssignment(
+        profile.name || '',
+        `LEMBRETE: ${task.title}`,
+        task.due_date ? new Date(task.due_date + 'T00:00:00').toLocaleDateString('pt-BR') : 'Sem data',
+        task.lead_name
+      )
+    });
+  }
 }

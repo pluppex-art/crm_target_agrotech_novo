@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Lock, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useAuthStore } from '../store/useAuthStore';
 
 export function ResetPassword() {
   const [password, setPassword] = useState('');
@@ -11,6 +12,7 @@ export function ResetPassword() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
+  const { signOut } = useAuthStore();
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +32,7 @@ export function ResetPassword() {
 
       if (error) throw error;
       setSuccess(true);
-      await supabase.auth.signOut();
+      await signOut();
       setTimeout(() => navigate('/login'), 3000);
     } catch (err: any) {
       setError(err.message || 'Erro ao redefinir senha.');

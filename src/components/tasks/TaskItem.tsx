@@ -1,5 +1,6 @@
-import { cn } from '../../lib/utils';
-import { CheckCircle2, Clock, Trash2, Settings, Tag, User } from 'lucide-react';
+import { CheckCircle2, Clock, Trash2, Settings, Tag, User, Calendar as CalendarIcon } from 'lucide-react';
+import { generateGoogleCalendarUrl } from '../../utils/calendarUtils';
+import { cn } from '@/lib/utils';
 
 interface TaskItemProps {
   task: any;
@@ -72,8 +73,8 @@ export function TaskItem({ task, onToggleStatus, onDelete, onEdit }: TaskItemPro
             <span className={cn(
               "px-2 py-0.5 rounded text-[8px] font-bold uppercase",
               task.priority === 'high' ? "bg-red-50 text-red-600" :
-              task.priority === 'medium' ? "bg-yellow-50 text-yellow-600" :
-              "bg-blue-50 text-blue-600"
+                task.priority === 'medium' ? "bg-yellow-50 text-yellow-600" :
+                  "bg-blue-50 text-blue-600"
             )}>
               {task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Média' : 'Baixa'}
             </span>
@@ -89,8 +90,17 @@ export function TaskItem({ task, onToggleStatus, onDelete, onEdit }: TaskItemPro
             <Trash2 className="w-4 h-4" />
           </button>
         )}
+        <a
+          href={generateGoogleCalendarUrl(task)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="p-2 text-slate-300 hover:text-blue-600 transition-colors"
+          title="Adicionar ao Google Calendar"
+        >
+          <CalendarIcon className="w-4 h-4" />
+        </a>
         {onEdit && (
-          <button 
+          <button
             onClick={() => onEdit(task)}
             className="p-2 text-slate-300 hover:text-emerald-600 transition-colors"
             title="Editar Tarefa"

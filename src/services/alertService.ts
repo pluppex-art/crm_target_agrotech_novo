@@ -5,6 +5,7 @@ import { useProductStore } from '../store/useProductStore';
 import { useProfileStore } from '../store/useProfileStore';
 import { financialCalculator } from './financialCalculator';
 import { Task } from './taskService';
+import { notifyLeadTransferred } from './leadNotificationService';
 
 // Inactivity alert levels
 const INACTIVITY_LEVELS = [
@@ -198,28 +199,37 @@ export async function fireAlerts(
 
     sendOSNotification(title, body);
 
-    if (userEmail) {
-      await sendEmailAlert(userEmail, lead, label);
+    if (isTransfer) {
+      const { profiles } = useProfileStore.getState();
+      // Em caso de transferência automática, o targetUserId costuma ser o novo responsável
+      const newResp = profiles.find(p => p.id === targetUserId);
+      if (newResp) {
+        await notifyLeadTransferred(lead, newResp.id, profiles);
+      }
+    } else {
+      if (userEmail) {
+        await sendEmailAlert(userEmail, lead, label);
+      }
+
+      useNotificationStore.getState().addNotification({
+        title,
+        message: body,
+        type: 'urgent',
+        category: 'system',
+        link: `/pipeline?lead=${lead.id}`,
+        meta: JSON.stringify({
+          leadId: lead.id,
+          phone: lead.phone,
+          product: prodName,
+          responsible: respName
+        })
+      }, targetUserId);
     }
 
     if (userPhone) {
       const msg = `⚠️ *Alerta CRM*\n\nO cliente *${lead.name}* está sem contato há *${label}*.\n\nProduto: ${prodName}\nTelefone do cliente: ${lead.phone}\n\nAcesse o CRM e entre em contato!`;
       openWhatsApp(userPhone, msg);
     }
-
-    useNotificationStore.getState().addNotification({
-      title,
-      message: body,
-      type: 'urgent',
-      category: 'system',
-      link: `/pipeline?lead=${lead.id}`,
-      meta: JSON.stringify({
-        leadId: lead.id,
-        phone: lead.phone,
-        product: prodName,
-        responsible: respName
-      })
-    }, targetUserId);
   }
 }
 

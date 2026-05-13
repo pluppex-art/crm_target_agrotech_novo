@@ -88,7 +88,7 @@ export const emailTemplates = {
       Dica: Leads atendidos nos primeiros 15 minutos têm 70% mais chance de conversão.
     </p>
     <div style="margin-top: 32px; text-align: center;">
-      <a href="https://crm-target-agrotech-novo.vercel.app/pipeline" style="display: inline-block; background-color: #0f172a; color: #ffffff; padding: 14px 28px; border-radius: 12px; font-weight: 700; text-decoration: none;">
+      <a href="https://crm.targetagrotech.com.br/pipeline" style="display: inline-block; background-color: #0f172a; color: #ffffff; padding: 14px 28px; border-radius: 12px; font-weight: 700; text-decoration: none;">
         Abrir CRM e Atender
       </a>
     </div>
@@ -149,8 +149,78 @@ export const emailTemplates = {
       </table>
     </div>
     <div style="margin-top: 32px; text-align: center;">
-      <a href="https://crm-target-agrotech-novo.vercel.app/pipeline" style="display: inline-block; background-color: #059669; color: #ffffff; padding: 14px 28px; border-radius: 12px; font-weight: 700; text-decoration: none;">
+      <a href="https://crm.targetagrotech.com.br/pipeline" style="display: inline-block; background-color: #059669; color: #ffffff; padding: 14px 28px; border-radius: 12px; font-weight: 700; text-decoration: none;">
         Acessar Funil e Atender
+      </a>
+    </div>
+    </div>
+  `),
+
+  /**
+   * Template: Task Assignment (To User)
+   */
+  taskAssignment: (userName: string, taskTitle: string, dueDate: string, leadName?: string) => emailTemplates.wrapper(`
+    <div style="background-color: #f1f5f9; color: #475569; padding: 12px 20px; border-radius: 12px; font-size: 12px; font-weight: 800; text-transform: uppercase; display: inline-block; margin-bottom: 16px;">
+      📋 NOVA TAREFA ATRIBUÍDA
+    </div>
+    <h2 style="color: #0f172a; font-size: 20px; font-weight: 700; margin: 0 0 16px 0;">Olá, ${userName}!</h2>
+    <p style="font-size: 16px; color: #475569; margin-bottom: 24px;">
+      Você tem uma nova tarefa pendente no sistema. Confira os detalhes:
+    </p>
+    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; margin-bottom: 24px;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding-bottom: 12px; color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase;">Tarefa</td>
+          <td style="padding-bottom: 12px; color: #1e293b; font-size: 14px; font-weight: 700; text-align: right;">${taskTitle}</td>
+        </tr>
+        <tr>
+          <td style="padding-bottom: 12px; color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase;">Prazo</td>
+          <td style="padding-bottom: 12px; color: #1e293b; font-size: 14px; font-weight: 700; text-align: right;">${dueDate}</td>
+        </tr>
+        ${leadName ? `
+        <tr>
+          <td style="padding-bottom: 0; color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase;">Lead Relacionado</td>
+          <td style="padding-bottom: 0; color: #1e293b; font-size: 14px; font-weight: 700; text-align: right;">${leadName}</td>
+        </tr>
+        ` : ''}
+      </table>
+    </div>
+    <div style="margin-top: 32px; text-align: center;">
+      <a href="https://crm.targetagrotech.com.br/tasks" style="display: inline-block; background-color: #059669; color: #ffffff; padding: 14px 28px; border-radius: 12px; font-weight: 700; text-decoration: none;">
+        Ver Todas as Tarefas
+      </a>
+    </div>
+  `),
+
+  /**
+   * Template: Automatic Lead Transfer (48h Inactivity)
+   */
+  leadTransfer48h: (sellerName: string, leadName: string, originalSeller: string, product: string) => emailTemplates.wrapper(`
+    <div style="background-color: #fef2f2; color: #dc2626; padding: 12px 20px; border-radius: 12px; font-size: 12px; font-weight: 800; text-transform: uppercase; display: inline-block; margin-bottom: 16px;">
+      🔄 TRANSFERÊNCIA AUTOMÁTICA (48H)
+    </div>
+    <h2 style="color: #0f172a; font-size: 20px; font-weight: 700; margin: 0 0 16px 0;">Olá, ${sellerName}!</h2>
+    <p style="font-size: 16px; color: #475569; margin-bottom: 24px;">
+      Um lead acaba de ser transferido para você devido a <strong>inatividade de 48 horas</strong> do responsável anterior (${originalSeller}).
+    </p>
+    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; margin-bottom: 24px;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding-bottom: 12px; color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase;">Lead</td>
+          <td style="padding-bottom: 12px; color: #1e293b; font-size: 14px; font-weight: 700; text-align: right;">${leadName}</td>
+        </tr>
+        <tr>
+          <td style="padding-bottom: 0; color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase;">Produto</td>
+          <td style="padding-bottom: 0; color: #1e293b; font-size: 14px; font-weight: 700; text-align: right;">${product}</td>
+        </tr>
+      </table>
+    </div>
+    <p style="color: #dc2626; font-size: 14px; font-weight: 700; text-align: center; margin-top: 24px;">
+      ⚠️ Entre em contato imediatamente para reverter o desinteresse do cliente!
+    </p>
+    <div style="margin-top: 32px; text-align: center;">
+      <a href="https://crm.targetagrotech.com.br/pipeline" style="display: inline-block; background-color: #0f172a; color: #ffffff; padding: 14px 28px; border-radius: 12px; font-weight: 700; text-decoration: none;">
+        Atender Lead Agora
       </a>
     </div>
   `),
