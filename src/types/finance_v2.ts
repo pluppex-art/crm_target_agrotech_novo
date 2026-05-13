@@ -9,7 +9,16 @@ export interface FinancialCategory {
   type: TransactionType;
   dre_group: string;
   is_system: boolean;
+  centro_custo_id?: string | null;
   created_at: string;
+}
+
+export interface CentroCusto {
+  id: string;
+  nome: string;
+  descricao?: string;
+  ativo: boolean;
+  criado_em: string;
 }
 
 export interface FinancialTransaction {
@@ -30,9 +39,12 @@ export interface FinancialTransaction {
   partner_origin: PartnerOrigin;
   cancellation_reason: string | null;
   cancelled_at: string | null;
+  centro_custo_id: string | null;
   cost_center?: 'cursos' | 'servico_drone' | 'administrativo' | null;
   created_at: string;
   updated_at: string;
+  // Joins
+  centro_custos?: { nome: string };
 }
 
 export interface DreReportLine {

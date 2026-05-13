@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Phone, AlertCircle, Flame, Trash2, Loader2, Save, Percent, DollarSign, User, GraduationCap, ChevronDown, Eye, X as XIcon, ClipboardCheck, CheckSquare, QrCode, Upload, FileText, Shield } from 'lucide-react';
 import { useProfileStore } from '../../../store/useProfileStore';
 import { useSquadStore } from '../../../store/useSquadStore';
@@ -9,6 +9,8 @@ import { cn, parseBRNumber, formatCPFCNPJ } from '../../../lib/utils';
 import type { LeadInfoTabProps } from '../types';
 import { uploadLeadFile, deleteLeadFile } from '../../../services/leadFilesService';
 import { financialCalculator } from '../../../services/financialCalculator';
+import { transactionService } from '../../../services/transactionService';
+import { CentroCusto } from '../../../types/finance_v2';
 
 export const LeadInfoTab: React.FC<LeadInfoTabProps> = ({
   lead,
@@ -60,6 +62,12 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = ({
   const contractInputRef = useRef<HTMLInputElement>(null);
   const rgInputRef = useRef<HTMLInputElement>(null);
   const profileInputRef = useRef<HTMLInputElement>(null);
+  
+  const [centroCustos, setCentroCustos] = useState<CentroCusto[]>([]);
+
+  useEffect(() => {
+    transactionService.getCentroCustos().then(setCentroCustos);
+  }, []);
 
   const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
   const ALLOWED_EXT = '.jpg,.jpeg,.png,.pdf';
@@ -600,13 +608,22 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = ({
             <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Centro de Custo</label>
             <div className="relative">
               <select
-                value={formData.cost_center || 'cursos'}
-                onChange={(e) => updateFormField({ cost_center: e.target.value as any })}
+                value={formData.centro_custo_id || ''}
+                onChange={(e) => {
+                  const cc = centroCustos.find(c => c.id === e.target.value);
+                  updateFormField({ 
+                    centro_custo_id: e.target.value,
+                    cost_center: cc?.nome || formData.cost_center 
+                  });
+                  toggleField?.('centro_custo_id', e.target.value);
+                  if (cc) toggleField?.('cost_center', cc.nome);
+                }}
                 className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"
               >
-                <option value="cursos">Cursos</option>
-                <option value="servico_drone">Serviço de Drone</option>
-                <option value="administrativo">Administrativo</option>
+                <option value="">Selecione...</option>
+                {centroCustos.map(cc => (
+                  <option key={cc.id} value={cc.id}>{cc.nome}</option>
+                ))}
               </select>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
             </div>

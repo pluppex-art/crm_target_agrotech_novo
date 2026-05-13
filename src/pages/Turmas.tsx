@@ -15,6 +15,8 @@ import {
   LogIn,
   UserX,
   BadgeCheck,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { DndContext, useSensors, useSensor, PointerSensor, closestCenter } from '@dnd-kit/core';
 import {
@@ -27,6 +29,8 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useTurmaStore, Turma, TurmaAttendee, AttendanceStatus } from '../store/useTurmaStore';
 import { Loader2, Search } from 'lucide-react';
+import { useAuthStore } from '../store/useAuthStore';
+import { useProfileStore } from '../store/useProfileStore';
 
 import { UnifiedTurmaProductForm } from '../components/forms/UnifiedTurmaProductForm';
 import { LeadDetailsModal } from '../components/leads/LeadDetailsModal';
@@ -47,11 +51,14 @@ import { Filter, User, Package } from 'lucide-react';
 import { useLeadStore } from '@/store/useLeadStore';
 import { useProductStore } from '@/store/useProductStore';
 import { financialCalculator } from '@/services/financialCalculator';
+import { ProfessorView } from '../components/turmas/ProfessorView';
 
 
 
 export function Turmas() {
   const { hasPermission } = usePermissions();
+  const { user } = useAuthStore();
+  const { profiles } = useProfileStore();
   const { turmas, fetchTurmas, updateAttendeeStatus, removeTurma, removeAttendee, isLoading, subscribe } = useTurmaStore();
   const [selectedTurma, setSelectedTurma] = useState<Turma | null>(null);
   const [isNewTurmaOpen, setIsNewTurmaOpen] = useState(false);
@@ -64,6 +71,8 @@ export function Turmas() {
   const [setupRequired] = useState(false);
   const [responsibles, setResponsibles] = useState<{ id: string; name: string }[]>([]);
   const [viewMode, setViewMode] = useState<'kanban' | 'lista'>('kanban');
+  const [activeTab, setActiveTab] = useState<'gestao' | 'professor'>('gestao');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // Attendee detail modal
   const { leads, setSelectedLead, selectedLead: storeSelectedLead } = useLeadStore();
@@ -179,188 +188,238 @@ export function Turmas() {
     store.updateTurma(liveSelectedTurma.id, { status: newStatus });
   };
 
-
-
   return (
-    <div className="flex flex-col lg:flex-row h-full bg-[#f3f6f9] overflow-hidden relative">
-      {/* Left Panel — Turmas Cards */}
-      <div
-        key="left-panel"
-        className={cn(
-          'flex flex-col transition-all duration-300 h-full overflow-hidden',
-          liveSelectedTurma ? 'lg:w-[420px] lg:min-w-[420px] hidden lg:flex' : 'flex-1'
-        )}
-      >
-        {/* Header */}
-        <div className="p-4 sm:p-6 pb-4 bg-white border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <GraduationCap className="text-emerald-600 shrink-0" size={26} />
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-slate-800 leading-tight">Turmas</h1>
-              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Gerencie turmas e presenças.</p>
+    <div className="flex h-full bg-[#f3f6f9] overflow-hidden relative">
+      {/* Sub-Sidebar Navigation (Settings Style - Collapsible) */}
+      <div className="relative flex flex-shrink-0 z-20">
+        <motion.aside
+          initial={false}
+          animate={{ 
+            width: isSidebarOpen ? '13rem' : '0rem',
+            opacity: isSidebarOpen ? 1 : 0
+          }}
+          transition={{ duration: 0.3, ease: 'easeInOut' }}
+          className="flex-shrink-0 bg-white border-r border-slate-100 overflow-hidden flex flex-col h-full"
+        >
+          <div className="w-52 flex flex-col h-full">
+            <div className="px-4 py-4 border-b border-slate-100 shrink-0">
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Módulos</p>
             </div>
-          </div>
-          <button
-            onClick={() => { setEditingTurma(null); setIsNewTurmaOpen(true); }}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 font-semibold text-sm"
-          >
-            <Plus size={18} />
-            <span className="whitespace-nowrap">Nova Turma</span>
-          </button>
-        </div>
-
-        {/* Filters */}
-        <div className="px-4 sm:px-6">
-          <PageFilters
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-            searchPlaceholder="Buscar por nome, professor ou produto..."
-            onClearAll={() => {
-              setSearchTerm('');
-              setFilterStatus('all');
-              setFilterProduct('all');
-              setFilterProfessor('all');
-            }}
-            filters={[
-              {
-                id: 'status',
-                type: 'select',
-                icon: Filter,
-                placeholder: 'Todos os Status',
-                value: filterStatus,
-                onChange: setFilterStatus,
-                activeColorClass: 'bg-purple-50 text-purple-700 border-purple-100',
-                options: Object.entries(TURMA_STATUS_LABELS).map(([k, v]) => ({ value: k, label: v.label }))
-              },
-              {
-                id: 'product',
-                type: 'select',
-                icon: Package,
-                placeholder: 'Todos os Produtos',
-                value: filterProduct,
-                onChange: setFilterProduct,
-                activeColorClass: 'bg-amber-50 text-amber-700 border-amber-100',
-                options: Array.from(new Set(products.map(p => p.name))).sort().map(name => ({ value: name, label: name }))
-              },
-              {
-                id: 'professor',
-                type: 'select',
-                icon: User,
-                placeholder: 'Todos os Professores',
-                value: filterProfessor,
-                onChange: setFilterProfessor,
-                activeColorClass: 'bg-teal-50 text-teal-700 border-teal-100',
-                options: Array.from(new Set(turmas.map(t => t.professor_name).filter((p): p is string => !!p))).map(p => ({ value: p, label: p }))
-              }
-            ]}
-          />
-        </div>
-
-        {/* Cards Grid */}
-        <div className="flex-1 overflow-y-auto p-6 pt-2 grid grid-cols-1 gap-4 content-start">
-          {isLoading ? (
-            <div className="col-span-full flex flex-col items-center justify-center py-20 text-slate-400">
-              <Loader2 className="w-8 h-8 animate-spin text-emerald-600 mb-2" />
-              <p>Carregando turmas...</p>
-            </div>
-          ) : setupRequired ? (
-            <div className="col-span-full">
-              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-8 flex flex-col items-center text-center">
-                <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-4">
-                  <Package className="text-amber-600" size={32} />
-                </div>
-                <h3 className="text-lg font-bold text-amber-900 mb-2">Configuração Necessária</h3>
-                <p className="text-sm text-amber-700 max-w-md mb-6">
-                  A tabela de turmas ainda não foi criada no seu banco de dados Supabase.
-                  Para corrigir isso e ativar este módulo, siga as instruções abaixo:
-                </p>
-                <div className="bg-white border border-amber-100 rounded-xl p-4 text-left w-full max-w-lg mb-6 shadow-sm">
-                  <ol className="list-decimal list-inside space-y-3 text-xs text-slate-600">
-                    <li>Abra o arquivo <code className="bg-slate-100 px-1 py-0.5 rounded text-indigo-600 font-bold">turmas_schema.sql</code> e copie o conteúdo.</li>
-                    <li>Vá ao seu <strong>Dashboard do Supabase</strong>.</li>
-                    <li>Acesse o <strong>SQL Editor</strong> e crie uma <strong>New Query</strong>.</li>
-                    <li>Cole o código e clique em <strong>Run</strong>.</li>
-                  </ol>
-                </div>
-                <button
-                  onClick={() => fetchTurmas()}
-                  className="px-6 py-2 bg-amber-600 text-white rounded-xl font-bold text-sm hover:bg-amber-700 transition-all shadow-md"
-                >
-                  Já executei o SQL, verificar agora
-                </button>
-              </div>
-            </div>
-          ) : turmas.length === 0 ? (
-            <div className="col-span-full flex flex-col items-center justify-center py-20 text-slate-400">
-              <GraduationCap size={48} className="mb-3 opacity-30" />
-              <p className="font-medium">Nenhuma turma cadastrada</p>
-            </div>
-          ) : (
-            turmas.filter(t => {
-              // Exclude "Serviços" — services are not turmas
-              const cat = (t.category || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-              if (cat === 'servicos' || cat === 'servico') return false;
-
-              // 1. Search global (name, professor, product)
-              if (searchTerm.trim()) {
-                const q = searchTerm.toLowerCase();
-                const matchesSearch = (
-                  t.name.toLowerCase().includes(q) ||
-                  (t.professor_name || '').toLowerCase().includes(q) ||
-                  (t.category || '').toLowerCase().includes(q)
-                );
-                if (!matchesSearch) return false;
-              }
-              // 2. Status
-              if (filterStatus !== 'all' && t.status !== filterStatus) return false;
+            <nav className="flex-1 px-2 py-2 space-y-0.5 overflow-y-auto">
+              <button
+                onClick={() => setActiveTab('gestao')}
+                className={cn(
+                  'w-full flex items-center gap-2.5 rounded-xl px-3 h-9 text-sm font-medium transition-all',
+                  activeTab === 'gestao'
+                    ? 'bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-100'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border-transparent'
+                )}
+              >
+                <LayoutGrid className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate text-left">Gestão Completa</span>
+              </button>
               
-              // 3. Professor
-              if (filterProfessor !== 'all' && t.professor_name !== filterProfessor) return false;
+              <button
+                onClick={() => setActiveTab('professor')}
+                className={cn(
+                  'w-full flex items-center gap-2.5 rounded-xl px-3 h-9 text-sm font-medium transition-all',
+                  activeTab === 'professor'
+                    ? 'bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-100'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border-transparent'
+                )}
+              >
+                <Users className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate text-left">Área do Professor</span>
+              </button>
+            </nav>
+          </div>
+        </motion.aside>
 
-              return true;
-            })
-            .sort((a, b) => a.name.localeCompare(b.name))
-            .filter(t => {
-              // 3. Product (by name for visual grouping)
-              if (filterProduct !== 'all' && t.name !== filterProduct) return false;
-              return true;
-            })
-            .map(turma => (
-              <TurmaCard
-                key={turma.id}
-                turma={turma}
-                isSelected={liveSelectedTurma?.id === turma.id}
-                onSelect={(turma: Turma) => setSelectedTurma(selectedTurma?.id === turma.id ? null : turma)}
-                onEdit={(turma: Turma) => {
-                  setEditingTurma(turma);
-                  setIsNewTurmaOpen(true);
-                }}
-                onDelete={removeTurma}
-              />
-            ))
+        {/* Toggle Button */}
+        <button
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          className={cn(
+            "absolute top-4 -right-3 z-30 w-6 h-6 bg-white border border-slate-200 rounded-full flex items-center justify-center shadow-md hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-600 transition-all group",
+            !isSidebarOpen && "right-[-1.5rem] bg-emerald-500 text-white border-emerald-400 hover:bg-emerald-600"
           )}
-        </div>
+          title={isSidebarOpen ? "Recolher menu" : "Expandir menu"}
+        >
+          {isSidebarOpen ? (
+            <ChevronLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
+          ) : (
+            <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+          )}
+        </button>
       </div>
 
-      {/* Right Panel — Attendance Detail & Kanban */}
-      <AnimatePresence mode="wait">
-        {liveSelectedTurma && (
-          <TurmasRightPanel
-            liveSelectedTurma={liveSelectedTurma}
-            viewMode={viewMode}
-            setViewMode={setViewMode}
-            setSelectedTurma={setSelectedTurma}
-            handleToggleConcluida={handleToggleConcluida}
-            activeId={activeId}
-            onDragStart={onDragStart}
-            onDragEnd={onDragEnd}
-            handleAttendeeClick={handleAttendeeClick}
-            removeAttendee={removeAttendee}
-            handleCheckIn={handleCheckIn}
-            handleNoShow={handleNoShow}
-          />
+      <div className="flex-1 flex flex-col overflow-hidden relative">
+        {/* Header - Conditional for Gestão */}
+        {activeTab === 'gestao' && (
+          <div className="p-4 sm:p-6 pb-4 bg-white border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shrink-0">
+            <div className="flex items-center gap-3">
+              <GraduationCap className="text-emerald-600 shrink-0" size={26} />
+              <div>
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-800 leading-tight">Turmas</h1>
+                <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Gerencie turmas e presenças.</p>
+              </div>
+            </div>
+            <button
+              onClick={() => { setEditingTurma(null); setIsNewTurmaOpen(true); }}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 font-semibold text-sm"
+            >
+              <Plus size={18} />
+              <span className="whitespace-nowrap">Nova Turma</span>
+            </button>
+          </div>
         )}
-      </AnimatePresence>
+        {activeTab === 'gestao' ? (
+          <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+            {/* Left Panel — Turmas Cards */}
+            <div
+              key="left-panel"
+              className={cn(
+                'flex flex-col transition-all duration-300 h-full overflow-hidden',
+                liveSelectedTurma ? 'lg:w-[420px] lg:min-w-[420px] hidden lg:flex' : 'flex-1'
+              )}
+            >
+              {/* Filters */}
+              <div className="px-4 sm:px-6 mt-4">
+                <PageFilters
+                  searchTerm={searchTerm}
+                  onSearchChange={setSearchTerm}
+                  searchPlaceholder="Buscar por nome, professor ou produto..."
+                  onClearAll={() => {
+                    setSearchTerm('');
+                    setFilterStatus('all');
+                    setFilterProduct('all');
+                    setFilterProfessor('all');
+                  }}
+                  filters={[
+                    {
+                      id: 'status',
+                      type: 'select',
+                      icon: Filter,
+                      placeholder: 'Todos os Status',
+                      value: filterStatus,
+                      onChange: setFilterStatus,
+                      activeColorClass: 'bg-purple-50 text-purple-700 border-purple-100',
+                      options: Object.entries(TURMA_STATUS_LABELS).map(([k, v]) => ({ value: k, label: v.label }))
+                    },
+                    {
+                      id: 'product',
+                      type: 'select',
+                      icon: Package,
+                      placeholder: 'Todos os Produtos',
+                      value: filterProduct,
+                      onChange: setFilterProduct,
+                      activeColorClass: 'bg-amber-50 text-amber-700 border-amber-100',
+                      options: Array.from(new Set(products.map(p => p.name))).sort().map(name => ({ value: name, label: name }))
+                    },
+                    {
+                      id: 'professor',
+                      type: 'select',
+                      icon: User,
+                      placeholder: 'Todos os Professores',
+                      value: filterProfessor,
+                      onChange: setFilterProfessor,
+                      activeColorClass: 'bg-teal-50 text-teal-700 border-teal-100',
+                      options: Array.from(new Set(turmas.map(t => t.professor_name).filter((p): p is string => !!p))).map(p => ({ value: p, label: p }))
+                    }
+                  ]}
+                />
+              </div>
+
+              {/* Cards Grid */}
+              <div className="flex-1 overflow-y-auto p-6 pt-2 grid grid-cols-1 gap-4 content-start">
+                {isLoading ? (
+                  <div className="col-span-full flex flex-col items-center justify-center py-20 text-slate-400">
+                    <Loader2 className="w-8 h-8 animate-spin text-emerald-600 mb-2" />
+                    <p>Carregando turmas...</p>
+                  </div>
+                ) : turmas.length === 0 ? (
+                  <div className="col-span-full flex flex-col items-center justify-center py-20 text-slate-400">
+                    <GraduationCap size={48} className="mb-3 opacity-30" />
+                    <p className="font-medium">Nenhuma turma cadastrada</p>
+                  </div>
+                ) : (
+                  turmas.filter(t => {
+                    // Exclude "Serviços" — services are not turmas
+                    const cat = (t.category || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+                    if (cat === 'servicos' || cat === 'servico') return false;
+
+                    // 1. Search global (name, professor, product)
+                    if (searchTerm.trim()) {
+                      const q = searchTerm.toLowerCase();
+                      const matchesSearch = (
+                        t.name.toLowerCase().includes(q) ||
+                        (t.professor_name || '').toLowerCase().includes(q) ||
+                        (t.category || '').toLowerCase().includes(q)
+                      );
+                      if (!matchesSearch) return false;
+                    }
+                    // 2. Status
+                    if (filterStatus !== 'all' && t.status !== filterStatus) return false;
+
+                    // 3. Professor
+                    if (filterProfessor !== 'all' && t.professor_name !== filterProfessor) return false;
+
+                    return true;
+                  })
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .filter(t => {
+                      // 3. Product (by name for visual grouping)
+                      if (filterProduct !== 'all' && t.name !== filterProduct) return false;
+                      return true;
+                    })
+                    .map(turma => (
+                      <TurmaCard
+                        key={turma.id}
+                        turma={turma}
+                        isSelected={liveSelectedTurma?.id === turma.id}
+                        onSelect={(turma: Turma) => setSelectedTurma(selectedTurma?.id === turma.id ? null : turma)}
+                        onEdit={(turma: Turma) => {
+                          setEditingTurma(turma);
+                          setIsNewTurmaOpen(true);
+                        }}
+                        onDelete={removeTurma}
+                      />
+                    ))
+                )}
+              </div>
+            </div>
+
+            {/* Right Panel — Attendance Detail & Kanban */}
+            <AnimatePresence mode="wait">
+              {liveSelectedTurma && (
+                <TurmasRightPanel
+                  liveSelectedTurma={liveSelectedTurma}
+                  viewMode={viewMode}
+                  setViewMode={setViewMode}
+                  setSelectedTurma={setSelectedTurma}
+                  handleToggleConcluida={handleToggleConcluida}
+                  activeId={activeId}
+                  onDragStart={onDragStart}
+                  onDragEnd={onDragEnd}
+                  handleAttendeeClick={handleAttendeeClick}
+                  removeAttendee={removeAttendee}
+                  handleCheckIn={handleCheckIn}
+                  handleNoShow={handleNoShow}
+                />
+              )}
+            </AnimatePresence>
+          </div>
+        ) : (
+          <div className="flex-1 overflow-hidden">
+            <ProfessorView
+              turmas={turmas.filter(t => {
+                const cat = (t.category || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+                return cat !== 'servicos' && cat !== 'servico';
+              })}
+              currentUserProfile={profiles.find(p => p.id === user?.id)}
+            />
+          </div>
+        )}
+      </div>
 
       {/* Forms & Modals */}
       <UnifiedTurmaProductForm

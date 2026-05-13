@@ -2,6 +2,7 @@ import { useProductStore } from '../store/useProductStore';
 import { financialCalculator } from './financialCalculator';
 import type { Lead } from '../types/leads';
 import type { UserProfile } from './profileService';
+import type { Task } from './taskService';
 import { supabase } from '@/lib/supabase';
 
 function findProfile(idOrName: string, profiles: UserProfile[]): UserProfile | undefined {
@@ -19,7 +20,7 @@ function findAdminProfiles(profiles: UserProfile[]): UserProfile[] {
   );
 }
 
-async function insertNotificationForUser(
+export async function insertNotificationForUser(
   userId: string,
   notification: {
     title: string;
@@ -151,4 +152,28 @@ export async function notifyStageChange(
       link: `/pipeline?lead=${lead.id}`,
     });
   }
+}
+
+export async function notifyNewTask(task: Task, creatorId: string): Promise<void> {
+  if (!task.responsavel_usuario_id || task.responsavel_usuario_id === creatorId) return;
+
+  await insertNotificationForUser(task.responsavel_usuario_id, {
+    title: `Nova tarefa: ${task.title}`,
+    message: `Você recebeu uma nova tarefa. Prazo: ${task.due_date ? new Date(task.due_date + 'T00:00:00').toLocaleDateString('pt-BR') : 'Sem data'}${task.lead_name ? ` | Lead: ${task.lead_name}` : ''}`,
+    type: 'info',
+    category: 'user',
+    link: `/tasks?id=${task.id}`,
+  });
+}
+
+export async function notifyTaskReminder(task: Task): Promise<void> {
+  if (!task.responsavel_usuario_id || task.status === 'completed') return;
+
+  await insertNotificationForUser(task.responsavel_usuario_id, {
+    title: `Lembrete: ${task.title}`,
+    message: `Tarefa pendente para hoje ou atrasada. Prazo: ${task.due_date ? new Date(task.due_date + 'T00:00:00').toLocaleDateString('pt-BR') : 'Sem data'}`,
+    type: 'urgent',
+    category: 'alerts',
+    link: `/tasks?id=${task.id}`,
+  });
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Tag, Plus, Lock, Trash2, AlertCircle, Loader2, X, Save, Filter } from 'lucide-react';
 import { categoryService } from '../../services/categoryService';
+import { transactionService } from '../../services/transactionService';
 import { FinancialCategory } from '../../types/finance_v2';
 import { cn } from '../../lib/utils';
 
@@ -21,12 +22,25 @@ export function CategoriesTab() {
   const [filterType, setFilterType] = useState<FilterType>('ALL');
   const [showForm, setShowForm] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [formData, setFormData] = useState({ name: '', type: 'INCOME' as 'INCOME' | 'EXPENSE', dre_group: 'RECEITA_BRUTA' });
+  const [formData, setFormData] = useState({ 
+    name: '', 
+    type: 'INCOME' as 'INCOME' | 'EXPENSE', 
+    dre_group: 'RECEITA_BRUTA',
+    centro_custo_id: ''
+  });
+  const [centroCustos, setCentroCustos] = useState<any[]>([]);
 
   const load = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    try { setCategories(await categoryService.getAll()); }
+    try { 
+      const [cats, ccs] = await Promise.all([
+        categoryService.getAll(),
+        transactionService.getCentroCustos()
+      ]);
+      setCategories(cats);
+      setCentroCustos(ccs);
+    }
     catch { setError('Erro ao carregar categorias.'); }
     finally { setIsLoading(false); }
   }, []);
@@ -40,7 +54,7 @@ export function CategoriesTab() {
     setIsSaving(true);
     try {
       await categoryService.create(formData);
-      setFormData({ name: '', type: 'INCOME', dre_group: 'RECEITA_BRUTA' });
+      setFormData({ name: '', type: 'INCOME', dre_group: 'RECEITA_BRUTA', centro_custo_id: '' });
       setShowForm(false);
       await load();
     } finally { setIsSaving(false); }
@@ -67,7 +81,7 @@ export function CategoriesTab() {
       {showForm && (
         <form onSubmit={handleCreate} className="bg-white rounded-xl border border-emerald-200 shadow-sm p-5 space-y-4">
           <h3 className="font-bold text-slate-800 flex items-center gap-2"><Plus size={16} className="text-emerald-600" /> Nova Categoria Operacional</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div className="space-y-1">
               <label className="text-xs font-bold text-slate-500 uppercase">Nome</label>
               <input required value={formData.name} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))}
@@ -87,6 +101,16 @@ export function CategoriesTab() {
               <select value={formData.dre_group} onChange={e => setFormData(p => ({ ...p, dre_group: e.target.value }))}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
                 {Object.entries(DRE_GROUPS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-500 uppercase">Centro de Custo</label>
+              <select value={formData.centro_custo_id} onChange={e => setFormData(p => ({ ...p, centro_custo_id: e.target.value }))}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                <option value="">Nenhum (Geral)</option>
+                {centroCustos.map(cc => (
+                  <option key={cc.id} value={cc.id}>{cc.nome}</option>
+                ))}
               </select>
             </div>
           </div>
@@ -112,6 +136,7 @@ export function CategoriesTab() {
                 <th className="px-5 py-4 font-bold tracking-wider">Nome</th>
                 <th className="px-5 py-4 font-bold tracking-wider">Tipo</th>
                 <th className="px-5 py-4 font-bold tracking-wider">Grupo DRE</th>
+                <th className="px-5 py-4 font-bold tracking-wider text-center">Centro de Custo</th>
                 <th className="px-5 py-4 font-bold tracking-wider text-center">Sistema</th>
                 <th className="px-5 py-4 font-bold tracking-wider text-center">Ações</th>
               </tr>
@@ -131,6 +156,15 @@ export function CategoriesTab() {
                     </span>
                   </td>
                   <td className="px-5 py-3.5 text-slate-600 text-xs">{DRE_GROUPS[cat.dre_group] || cat.dre_group}</td>
+                  <td className="px-5 py-3.5 text-center">
+                    {cat.centro_custo_id ? (
+                      <span className="text-[10px] bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md font-black uppercase tracking-tighter border border-indigo-100">
+                        {centroCustos.find(c => c.id === cat.centro_custo_id)?.nome || '—'}
+                      </span>
+                    ) : (
+                      <span className="text-slate-300 text-[10px] italic font-bold">Nenhum</span>
+                    )}
+                  </td>
                   <td className="px-5 py-3.5 text-center">
                     {cat.is_system
                       ? <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 text-slate-500 rounded-full text-xs font-bold"><Lock size={11} /> Sistema</span>

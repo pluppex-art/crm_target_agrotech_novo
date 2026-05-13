@@ -104,6 +104,18 @@ export function Notifications() {
       label: 'Contrato / Ganho / Perdido',
       description: 'Notifica Coordenador e Admins quando um lead entra nessas etapas.',
     },
+    {
+      key: 'newTask' as const,
+      icon: CheckCircle2,
+      label: 'Nova Tarefa',
+      description: 'Notifica o responsável quando uma nova atividade é atribuída a ele.',
+    },
+    {
+      key: 'taskDue' as const,
+      icon: AlertTriangle,
+      label: 'Lembrete de Atividade',
+      description: 'Alertas e lembretes para tarefas que estão para vencer ou atrasadas.',
+    },
   ];
 
   if (permLoading) {

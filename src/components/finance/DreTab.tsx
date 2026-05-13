@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { TrendingUp, TrendingDown, Minus, AlertCircle, Loader2, BarChart3, RefreshCw, Wallet, PiggyBank, Target } from 'lucide-react';
 import { dreService } from '../../services/dreService';
+import { transactionService } from '../../services/transactionService';
 import { DreReport } from '../../types/finance_v2';
 import { cn, fmt } from '../../lib/utils';
 import { buildDreSummary } from '../../calculations/dreMetrics';
@@ -9,12 +10,18 @@ export function DreTab({ startDate, endDate }: { startDate: string; endDate: str
   const [report, setReport] = useState<DreReport | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [centroCustos, setCentroCustos] = useState<any[]>([]);
+  const [selectedCentroCusto, setSelectedCentroCusto] = useState('all');
 
   const loadReport = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await dreService.generateReport({ startDate, endDate });
+      const data = await dreService.generateReport({ 
+        startDate, 
+        endDate, 
+        centroCustoId: selectedCentroCusto !== 'all' ? selectedCentroCusto : undefined 
+      });
       setReport(data);
     } catch (err) {
       setError('Erro ao gerar o DRE. Verifique a conexão e tente novamente.');
@@ -22,7 +29,11 @@ export function DreTab({ startDate, endDate }: { startDate: string; endDate: str
     } finally {
       setIsLoading(false);
     }
-  }, [startDate, endDate]);
+  }, [startDate, endDate, selectedCentroCusto]);
+
+  useEffect(() => {
+    transactionService.getCentroCustos().then(setCentroCustos);
+  }, []);
 
   useEffect(() => {
     loadReport();
@@ -121,13 +132,25 @@ export function DreTab({ startDate, endDate }: { startDate: string; endDate: str
             <h2 className="text-xl font-black text-slate-800 tracking-tight">DRE Gerencial</h2>
             <p className="text-sm text-slate-500 mt-1">Fluxo detalhado de transações <span className="font-bold text-emerald-600">PAGAS</span> no período.</p>
           </div>
-          <button
-            onClick={loadReport}
-            disabled={isLoading}
-            className="p-3 hover:bg-slate-50 rounded-2xl transition-all border border-slate-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-100"
-          >
-            <RefreshCw size={20} className={cn(isLoading && 'animate-spin')} />
-          </button>
+          <div className="flex items-center gap-3">
+            <select
+              value={selectedCentroCusto}
+              onChange={(e) => setSelectedCentroCusto(e.target.value)}
+              className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all"
+            >
+              <option value="all">Todos Centros</option>
+              {centroCustos.map(cc => (
+                <option key={cc.id} value={cc.id}>{cc.nome}</option>
+              ))}
+            </select>
+            <button
+              onClick={loadReport}
+              disabled={isLoading}
+              className="p-3 hover:bg-slate-50 rounded-2xl transition-all border border-slate-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-100"
+            >
+              <RefreshCw size={20} className={cn(isLoading && 'animate-spin')} />
+            </button>
+          </div>
         </div>
 
         <div className="p-2">

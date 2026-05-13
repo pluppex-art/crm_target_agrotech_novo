@@ -6,6 +6,8 @@ export interface NotificationPrefs {
   leadInactive: boolean;
   leadAssigned: boolean;
   stageChange: boolean;
+  newTask: boolean;
+  taskDue: boolean;
   inactivityLevels: string[];
 }
 
@@ -14,6 +16,8 @@ const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
   leadInactive: true,
   leadAssigned: true,
   stageChange: true,
+  newTask: true,
+  taskDue: true,
   inactivityLevels: ['h1', 'h6', 'h24', 'h48'],
 };
 

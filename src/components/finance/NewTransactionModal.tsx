@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, DollarSign, Calendar, Tag, Save, Loader2, ArrowUpCircle, ArrowDownCircle, CheckCircle2, Clock } from 'lucide-react';
+import { X, DollarSign, Calendar, Tag, Save, Loader2, ArrowUpCircle, ArrowDownCircle, CheckCircle2, Clock, Wallet } from 'lucide-react';
 import { categoryService } from '../../services/categoryService';
 import { transactionService } from '../../services/transactionService';
 import { FinancialCategory } from '../../types/finance_v2';
@@ -21,19 +21,40 @@ export const NewTransactionModal: React.FC<NewTransactionModalProps> = ({ isOpen
     type: 'INCOME' as 'INCOME' | 'EXPENSE',
     status: 'PAID' as 'PAID' | 'PENDING',
     category_id: '',
+    centro_custo_id: '',
     date: new Date().toISOString().split('T')[0],
   });
+  const [centroCustos, setCentroCustos] = useState<any[]>([]);
 
   useEffect(() => {
     if (isOpen) {
-      categoryService.getByType(formData.type).then(cats => {
+      Promise.all([
+        categoryService.getByType(formData.type),
+        transactionService.getCentroCustos()
+      ]).then(([cats, ccs]) => {
         setCategories(cats);
+        setCentroCustos(ccs);
         if (cats.length > 0 && !cats.find(c => c.id === formData.category_id)) {
-          setFormData(prev => ({ ...prev, category_id: cats[0].id }));
+          const firstCat = cats[0];
+          setFormData(prev => ({ 
+            ...prev, 
+            category_id: firstCat.id,
+            centro_custo_id: firstCat.centro_custo_id || prev.centro_custo_id 
+          }));
         }
       });
     }
   }, [isOpen, formData.type]);
+
+  // Auto-set Centro de Custo when category changes
+  useEffect(() => {
+    if (formData.category_id) {
+      const cat = categories.find(c => c.id === formData.category_id);
+      if (cat?.centro_custo_id) {
+        setFormData(prev => ({ ...prev, centro_custo_id: cat.centro_custo_id! }));
+      }
+    }
+  }, [formData.category_id, categories]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,6 +68,7 @@ export const NewTransactionModal: React.FC<NewTransactionModalProps> = ({ isOpen
         type: formData.type,
         status: formData.status,
         category_id: formData.category_id,
+        centro_custo_id: formData.centro_custo_id || null,
         origin_type: 'MANUAL',
         payment_date: formData.status === 'PAID' ? formData.date : null,
         due_date: formData.date, // always save due date
@@ -66,6 +88,7 @@ export const NewTransactionModal: React.FC<NewTransactionModalProps> = ({ isOpen
         type: 'INCOME',
         status: 'PAID',
         category_id: '',
+        centro_custo_id: '',
         date: new Date().toISOString().split('T')[0],
       });
     } catch (error) {
@@ -201,21 +224,40 @@ export const NewTransactionModal: React.FC<NewTransactionModalProps> = ({ isOpen
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Categoria</label>
-              <div className="relative">
-                <select
-                  required
-                  value={formData.category_id}
-                  onChange={(e) => setFormData({...formData, category_id: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 appearance-none"
-                >
-                  <option value="" disabled>Selecione uma categoria</option>
-                  {categories.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-                <Tag size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Categoria</label>
+                <div className="relative">
+                  <select
+                    required
+                    value={formData.category_id}
+                    onChange={(e) => setFormData({...formData, category_id: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 appearance-none"
+                  >
+                    <option value="" disabled>Selecione</option>
+                    {categories.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                  <Tag size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Centro de Custo</label>
+                <div className="relative">
+                  <select
+                    value={formData.centro_custo_id}
+                    onChange={(e) => setFormData({...formData, centro_custo_id: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 appearance-none"
+                  >
+                    <option value="">Nenhum (Geral)</option>
+                    {centroCustos.map(cc => (
+                      <option key={cc.id} value={cc.id}>{cc.nome}</option>
+                    ))}
+                  </select>
+                  <Wallet size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                </div>
               </div>
             </div>
 

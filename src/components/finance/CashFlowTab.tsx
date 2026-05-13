@@ -56,11 +56,14 @@ export function CashFlowTab({ startDate, endDate }: { startDate: string; endDate
   const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedSquad, setSelectedSquad] = useState('all');
+  const [centroCustos, setCentroCustos] = useState<any[]>([]);
+  const [selectedCentroCusto, setSelectedCentroCusto] = useState('all');
 
   const { profiles, fetchProfiles } = useProfileStore();
 
   useEffect(() => {
     fetchProfiles();
+    transactionService.getCentroCustos().then(setCentroCustos);
   }, [fetchProfiles]);
 
 
@@ -69,8 +72,8 @@ export function CashFlowTab({ startDate, endDate }: { startDate: string; endDate
     setError(null);
     try {
       const [txData, allTxData, ganhoData] = await Promise.all([
-        transactionService.getCashFlowTransactions(startDate, endDate),
-        transactionService.getAll({ startDate, endDate }),
+        transactionService.getCashFlowTransactions(startDate, endDate, selectedCentroCusto !== 'all' ? selectedCentroCusto : undefined),
+        transactionService.getAll({ startDate, endDate, centroCustoId: selectedCentroCusto !== 'all' ? selectedCentroCusto : undefined }),
         transactionService.getGanhoLeads(startDate, endDate),
       ]);
       setTransactions(txData as TxWithLead[]);
@@ -82,7 +85,7 @@ export function CashFlowTab({ startDate, endDate }: { startDate: string; endDate
     } finally {
       setIsLoading(false);
     }
-  }, [startDate, endDate]);
+  }, [startDate, endDate, selectedCentroCusto]);
 
   const getSquadForName = useCallback((name?: string | null) => {
     if (!name) return null;
@@ -109,7 +112,7 @@ export function CashFlowTab({ startDate, endDate }: { startDate: string; endDate
   }, [transactions, ganhoLeads, products, isLoading, selectedSquad, getSquadForName]);
 
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => { loadData(); }, [loadData, selectedCentroCusto]);
 
   const handleMarkAsPaid = async (id: string) => {
     await transactionService.markAsPaid(id);
@@ -142,10 +145,7 @@ export function CashFlowTab({ startDate, endDate }: { startDate: string; endDate
   const studentsByProduct = useMemo(() => {
     const groups: Record<string, { product: string; total: number; count: number; items: TxWithLead[] }> = {};
     pipelineTxs.forEach(t => {
-      const costCenter = (t.cost_center || 'cursos').toLowerCase();
-      const groupLabel = costCenter === 'cursos' ? 'Cursos' : 
-                         costCenter === 'servico_drone' ? 'Serviço de Drone' : 
-                         'Administrativo';
+      const groupLabel = (t as any).centro_custos?.nome || t.cost_center || 'Cursos';
       
       if (!groups[groupLabel]) {
         groups[groupLabel] = { product: groupLabel, total: 0, count: 0, items: [] };
@@ -357,6 +357,12 @@ export function CashFlowTab({ startDate, endDate }: { startDate: string; endDate
                       activeColorClass: 'bg-violet-50 text-violet-700 border-violet-100',
                       options: [{ value: 'TARGET', label: 'Squad TARGET' }, { value: 'PLUPPEX', label: 'Squad PLUPPEX' }],
                     },
+                    {
+                      id: 'centro_custo', type: 'select', icon: Wallet, placeholder: 'Todos Centros',
+                      value: selectedCentroCusto, onChange: setSelectedCentroCusto,
+                      activeColorClass: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+                      options: centroCustos.map(cc => ({ value: cc.id, label: cc.nome })),
+                    },
                   ]}
 
                 />
@@ -377,7 +383,16 @@ export function CashFlowTab({ startDate, endDate }: { startDate: string; endDate
                       <tr key={t.id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="px-6 py-4">
                           <p className="font-black text-slate-800 tracking-tight">{t.description}</p>
-                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">{(t as any).financial_categories?.name || 'Sem Categoria'} • {t.origin_type}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
+                              {(t as any).financial_categories?.name || 'Sem Categoria'} • {t.origin_type}
+                            </p>
+                            {(t.cost_center === 'cursos' || (t as any).leads?.product) && (
+                              <span className="text-[9px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-md font-black uppercase tracking-tighter border border-indigo-100">
+                                {t.turmas?.name || (t as any).leads?.product || 'Curso'}
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-4 text-slate-500 whitespace-nowrap font-medium">
                           {new Date(t.status === 'PAID' ? (t.payment_date || t.created_at) : (t.due_date || t.created_at)).toLocaleDateString('pt-BR')}
@@ -439,7 +454,12 @@ function StudentRow({ tx }: { tx: TxWithLead }) {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <p className="text-sm font-black text-slate-800 truncate tracking-tight">{leadName}</p>
-          <span className="text-[10px] font-black text-slate-400 border border-slate-200 px-1.5 py-0.5 rounded-full uppercase tracking-tighter">
+          <span className={cn(
+            "text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter border",
+            tx.cost_center === 'cursos' 
+              ? "bg-indigo-50 text-indigo-700 border-indigo-100 shadow-sm shadow-indigo-50"
+              : "bg-slate-50 text-slate-500 border-slate-200"
+          )}>
             {productName}
           </span>
         </div>

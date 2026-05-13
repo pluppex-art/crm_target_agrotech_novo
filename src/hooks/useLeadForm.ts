@@ -54,6 +54,7 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
     profile_photo_url: lead.profile_photo_url || null,
     seller_origin: lead.seller_origin || 'target',
     cost_center: lead.cost_center || 'cursos',
+    centro_custo_id: lead.centro_custo_id || null,
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -94,6 +95,7 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
       profile_photo_url: lead.profile_photo_url || null,
       seller_origin: lead.seller_origin || 'target',
       cost_center: lead.cost_center || 'cursos',
+      centro_custo_id: lead.centro_custo_id || null,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lead.id]);
@@ -214,6 +216,7 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
         profile_photo_url: formData.profile_photo_url || undefined,
         seller_origin: formData.seller_origin as any,
         cost_center: formData.cost_center as any,
+        centro_custo_id: formData.centro_custo_id,
       };
 
       const { updateLead } = useLeadStore.getState();

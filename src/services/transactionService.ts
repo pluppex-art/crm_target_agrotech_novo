@@ -2,16 +2,17 @@ import { getSupabaseClient } from '../lib/supabase';
 import { FinancialTransaction, FinanceKPIs } from '../types/finance_v2';
 
 export interface TransactionFilters {
-  startDate?: string;       // filtra por created_at (legado)
-  endDate?: string;         // filtra por created_at (legado)
-  paymentDateStart?: string; // filtra por payment_date (para OTE)
-  paymentDateEnd?: string;   // filtra por payment_date (para OTE)
+  startDate?: string;
+  endDate?: string;
+  paymentDateStart?: string;
+  paymentDateEnd?: string;
   type?: 'INCOME' | 'EXPENSE';
   status?: 'PENDING' | 'PAID' | 'CANCELLED' | 'OVERDUE';
   categoryId?: string;
   userId?: string | string[];
   classId?: string;
   leadId?: string;
+  centroCustoId?: string;
 }
 
 export const transactionService = {
@@ -22,7 +23,7 @@ export const transactionService = {
     // 1. Fetch from financial_transactions (V2)
     let query = supabase
       .from('financial_transactions')
-      .select('*, financial_categories(name), leads(responsible), perfis(name), turmas(name)')
+      .select('*, financial_categories(name), leads(id, name, product, responsible, responsible_id), perfis(name), turmas(name)')
       .order('created_at', { ascending: false });
 
     if (filters) {
@@ -37,6 +38,7 @@ export const transactionService = {
         if (Array.isArray(filters.userId)) query = query.in('user_id', filters.userId);
         else query = query.eq('user_id', filters.userId);
       }
+      if (filters.centroCustoId) query = query.eq('centro_custo_id', filters.centroCustoId);
     }
     const { data: v2Data } = await query.limit(1000);
 
@@ -212,27 +214,37 @@ export const transactionService = {
   //   - Matrículas do pipeline (lead_class_enrollments) filtradas pelo período
   async getCashFlowTransactions(
     startDate?: string,
-    endDate?: string
+    endDate?: string,
+    centroCustoId?: string
   ): Promise<FinancialTransaction[]> {
     const supabase = getSupabaseClient();
     if (!supabase) return [];
 
     // 1. V2 manual transactions
     // Pagas no período (por payment_date) + Pendentes/Vencidas no período (por due_date)
+    let pendingQuery: any = supabase
+      .from('financial_transactions')
+      .select('*, financial_categories(name), leads(id, name, product, responsible, responsible_id), perfis(name), turmas(name)')
+      .eq('status', 'PENDING')
+      .gte('due_date', startDate || '2000-01-01')
+      .lte('due_date', endDate || '2099-12-31');
+
+    let overdueQuery: any = supabase
+      .from('financial_transactions')
+      .select('*, financial_categories(name), leads(id, name, product, responsible, responsible_id), perfis(name), turmas(name)')
+      .eq('status', 'OVERDUE')
+      .gte('due_date', startDate || '2000-01-01')
+      .lte('due_date', endDate || '2099-12-31');
+
+    if (centroCustoId) {
+      pendingQuery = pendingQuery.eq('centro_custo_id', centroCustoId);
+      overdueQuery = overdueQuery.eq('centro_custo_id', centroCustoId);
+    }
+
     const [paidTxs, pendingTxs, overdueTxs] = await Promise.all([
-      this.getAll({ paymentDateStart: startDate, paymentDateEnd: endDate, status: 'PAID' }),
-      supabase
-        .from('financial_transactions')
-        .select('*, financial_categories(name), leads(responsible), perfis(name), turmas(name)')
-        .eq('status', 'PENDING')
-        .gte('due_date', startDate || '2000-01-01')
-        .lte('due_date', endDate || '2099-12-31'),
-      supabase
-        .from('financial_transactions')
-        .select('*, financial_categories(name), leads(responsible), perfis(name), turmas(name)')
-        .eq('status', 'OVERDUE')
-        .gte('due_date', startDate || '2000-01-01')
-        .lte('due_date', endDate || '2099-12-31'),
+      this.getAll({ paymentDateStart: startDate, paymentDateEnd: endDate, status: 'PAID', centroCustoId }),
+      pendingQuery,
+      overdueQuery,
     ]);
 
     // Deduplicate and filter by cost_center
@@ -250,17 +262,22 @@ export const transactionService = {
 
     // 2. Pipeline enrollment transactions split by payment date
     // Taxa: filtrada por taxa_matricula_paid_at | Valor: filtrada por valor_recebido_paid_at
-    let taxaEnrollQuery = supabase
+    let taxaEnrollQuery: any = supabase
       .from('lead_class_enrollments')
-      .select('id, taxa_matricula_recebido, taxa_matricula_paid_at, enrolled_at, cost_center, leads(id, name, value, product, responsible), turmas!class_id(id, name, date)')
+      .select('id, taxa_matricula_recebido, taxa_matricula_paid_at, enrolled_at, cost_center, centro_custo_id, leads(id, name, product, responsible, responsavel_usuario_id), turmas!class_id(id, name, date)')
       .neq('status', 'CANCELLED')
       .gt('taxa_matricula_recebido', 0);
-    let valorEnrollQuery = supabase
+    let valorEnrollQuery: any = supabase
       .from('lead_class_enrollments')
-      .select('id, valor_recebido, valor_recebido_paid_at, enrolled_at, cost_center, leads(id, name, value, product, responsible), turmas!class_id(id, name, date)')
+      .select('id, valor_recebido, valor_recebido_paid_at, enrolled_at, cost_center, centro_custo_id, leads(id, name, product, responsible, responsavel_usuario_id), turmas!class_id(id, name, date)')
       .neq('status', 'CANCELLED')
       .gt('valor_recebido', 0);
 
+    if (centroCustoId) {
+      taxaEnrollQuery = taxaEnrollQuery.eq('centro_custo_id' as any, centroCustoId);
+      valorEnrollQuery = valorEnrollQuery.eq('centro_custo_id' as any, centroCustoId);
+    }
+    
     if (startDate) {
       taxaEnrollQuery = taxaEnrollQuery.gte('taxa_matricula_paid_at', startDate + 'T00:00:00');
       valorEnrollQuery = valorEnrollQuery.gte('valor_recebido_paid_at', startDate + 'T00:00:00');
@@ -421,6 +438,14 @@ export const transactionService = {
         discount_applied: fin?.discount_applied ?? false,
       };
     }).sort((a, b) => b.created_at.localeCompare(a.created_at));
+  },
+
+  // Get all active Centro de Custos
+  async getCentroCustos(): Promise<any[]> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return [];
+    const { data } = await supabase.from('centro_custos').select('*').eq('ativo', true).order('nome');
+    return data || [];
   },
 
   // Keep alias for backwards compat (used nowhere else, but safe)

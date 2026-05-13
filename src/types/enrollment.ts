@@ -46,6 +46,8 @@ export interface LeadClassEnrollment {
   payment_proof_url: string | null;
   contract_url: string | null;
   professor_proof_url: string | null;
+  centro_custo_id: string | null;
+  cost_center?: 'cursos' | 'servico_drone' | 'administrativo' | null;
 }
 
 // Enrollment com dados da turma incluídos (via join)
@@ -66,6 +68,7 @@ export interface EnrollParams {
   lead_id: string;
   class_id: string;
   responsavel_usuario_id: string;
+  centro_custo_id?: string;
   contracted_amount?: number;
   income_transaction_id?: string;
   notes?: string;

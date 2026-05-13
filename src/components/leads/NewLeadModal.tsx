@@ -12,6 +12,8 @@ import { usePipelineStore } from '../../store/usePipelineStore';
 import { supabaseService } from '../../services/supabaseService';
 import { LeadStatus, LeadSubStatus } from '../../types/leads';
 import type { Lead } from '../../types/leads';
+import { transactionService } from '../../services/transactionService';
+import { CentroCusto } from '../../types/finance_v2';
 import { cn, parseBRNumber, formatCPFCNPJ, formatPhone } from '../../lib/utils';
 import { AlertCircle, CheckSquare, ChevronDown, DollarSign, Loader2, Mail, MapPin, Percent, Phone, Save, X, User, ClipboardCheck, QrCode, Upload, FileText, Eye, GraduationCap, X as XIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -50,6 +52,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
   const [loading, setLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ phone?: string; email?: string }>({});
   const [selectedStageId, setSelectedStageId] = useState<string>(initialStageId ?? '');
+  const [centroCustos, setCentroCustos] = useState<CentroCusto[]>([]);
 
   type DiscountType = 'percent' | 'money';
 
@@ -75,7 +78,8 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
     instagram: string;
     emergency_contact: string;
     seller_origin: 'target' | 'pluppex';
-    cost_center: 'cursos' | 'servico_drone' | 'administrativo';
+    cost_center: string;
+    centro_custo_id: string;
   }>({
     name: '',
     email: '',
@@ -99,6 +103,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
     emergency_contact: '',
     seller_origin: 'target',
     cost_center: 'cursos',
+    centro_custo_id: '',
   });
 
   const [proofFile, setProofFile] = useState<File | null>(null);
@@ -157,6 +162,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
     if (isOpen) {
       fetchProducts();
       fetchProfiles();
+      transactionService.getCentroCustos().then(setCentroCustos);
       // Auto-seleciona primeira etapa se nenhuma fornecida
       const defaultStage = initialStageId ?? currentPipelineStages[0]?.id ?? '';
       setSelectedStageId(defaultStage);
@@ -266,6 +272,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
         emergency_contact: formData.emergency_contact || undefined,
         seller_origin: formData.seller_origin,
         cost_center: formData.cost_center,
+        centro_custo_id: formData.centro_custo_id || undefined,
       };
 
       const newLead = await addLead(newLeadData);
@@ -330,6 +337,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
           emergency_contact: '',
           seller_origin: 'target',
           cost_center: 'cursos',
+          centro_custo_id: '',
         });
         setProofFile(null);
         setContractFile(null);
@@ -577,13 +585,21 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
                   <div className="relative">
                     <select
                       required
-                      value={formData.cost_center}
-                      onChange={(e) => setFormData(prev => ({ ...prev, cost_center: e.target.value as any }))}
+                      value={formData.centro_custo_id || ''}
+                      onChange={(e) => {
+                        const cc = centroCustos.find(c => c.id === e.target.value);
+                        setFormData(prev => ({ 
+                          ...prev, 
+                          centro_custo_id: e.target.value,
+                          cost_center: cc?.nome || prev.cost_center 
+                        }));
+                      }}
                       className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"
                     >
-                      <option value="cursos">Cursos</option>
-                      <option value="servico_drone">Serviço de Drone</option>
-                      <option value="administrativo">Administrativo</option>
+                      <option value="">Selecione um centro de custo</option>
+                      {centroCustos.map(cc => (
+                        <option key={cc.id} value={cc.id}>{cc.nome}</option>
+                      ))}
                     </select>
                     <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
                   </div>

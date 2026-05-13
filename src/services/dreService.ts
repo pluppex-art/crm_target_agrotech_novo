@@ -12,24 +12,25 @@ export const dreService = {
     categories?.forEach(c => categoryDreMap.set(c.id, c.dre_group));
 
     // Fetch PAID transactions in period
-    const allTransactions = await transactionService.getAll({ 
+     const allTransactions = await transactionService.getAll({ 
       status: 'PAID',
       paymentDateStart: filters.startDate,
       paymentDateEnd: filters.endDate,
       type: filters.type,
-      categoryId: filters.categoryId
+      categoryId: filters.categoryId,
+      centroCustoId: filters.centroCustoId
     });
 
     // Filtro rigoroso para manter consistência com o Dashboard
     const transactions = allTransactions;
     
     // Fetch Lead Revenue from lead_class_enrollments filtered by actual payment dates
-    let valorDreQuery = supabase
+    let valorDreQuery: any = supabase
       .from('lead_class_enrollments')
       .select('valor_recebido')
       .neq('status', 'CANCELLED')
       .gt('valor_recebido', 0);
-    let taxaDreQuery = supabase
+    let taxaDreQuery: any = supabase
       .from('lead_class_enrollments')
       .select('taxa_matricula_recebido')
       .neq('status', 'CANCELLED')
@@ -42,6 +43,11 @@ export const dreService = {
     if (filters.endDate) {
       valorDreQuery = valorDreQuery.lte('valor_recebido_paid_at', filters.endDate + 'T23:59:59');
       taxaDreQuery = taxaDreQuery.lte('taxa_matricula_paid_at', filters.endDate + 'T23:59:59');
+    }
+
+    if (filters.centroCustoId) {
+      valorDreQuery = valorDreQuery.eq('centro_custo_id' as any, filters.centroCustoId);
+      taxaDreQuery = taxaDreQuery.eq('centro_custo_id' as any, filters.centroCustoId);
     }
 
     // Sem filtro de cursos: inclui todos os registros

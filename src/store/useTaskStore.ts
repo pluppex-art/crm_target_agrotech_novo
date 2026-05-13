@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import { taskService, Task } from '../services/taskService';
 import { getSupabaseClient } from '../lib/supabase';
+import { notifyNewTask } from '../services/leadNotificationService';
+import { useSettingsStore } from './useSettingsStore';
+import { useAuthStore } from './useAuthStore';
 
 interface TaskState {
   tasks: Task[];
@@ -46,6 +49,13 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       const newTask = await taskService.createTask(task);
       if (newTask) {
         set((state) => ({ tasks: [...state.tasks, newTask], loading: false }));
+        
+        // Trigger notification
+        const { notificationPrefs } = useSettingsStore.getState();
+        const { user } = useAuthStore.getState();
+        if (notificationPrefs.newTask && newTask.responsavel_usuario_id && user) {
+          notifyNewTask(newTask, user.id);
+        }
       } else {
         set({ error: 'Failed to create task', loading: false });
       }

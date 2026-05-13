@@ -1,22 +1,23 @@
 import { supabase } from '../lib/supabase';
-
-export interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  type: 'success' | 'info' | 'warning' | 'error';
-  read: boolean;
-  category: 'system' | 'user' | 'alerts';
-  created_at: string;
-  link?: string;
-  meta?: string;
-}
+import { Notification, NotificationType } from '../types/notifications';
 
 export const notificationService = {
   async addNotification(notification: Omit<Notification, 'id' | 'read' | 'created_at'>, userId?: string): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser();
     const targetUserId = userId || user?.id;
     if (!targetUserId) return;
+
+    // Anti-loop/duplicate check: don't insert same title for same user in last 12 hours
+    const since = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
+    const { data: existing } = await supabase
+      .from('notifications')
+      .select('id')
+      .eq('user_id', targetUserId)
+      .eq('title', notification.title)
+      .gte('created_at', since)
+      .limit(1);
+
+    if (existing && existing.length > 0) return;
 
     const { error } = await supabase
       .from('notifications')
@@ -47,4 +48,3 @@ export const notificationService = {
     );
   },
 };
-

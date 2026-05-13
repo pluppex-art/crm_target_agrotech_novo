@@ -64,9 +64,10 @@ export const enrollmentService = {
         status:                 'ENROLLED',
         contracted_amount:      params.contracted_amount ?? null,
         income_transaction_id:  params.income_transaction_id ?? null,
+        centro_custo_id:        params.centro_custo_id ?? null,
         notes:                  params.notes ?? null,
         created_by:             params.created_by ?? null,
-      }])
+      }] as any)
       .select()
       .single();
 
@@ -140,9 +141,10 @@ export const enrollmentService = {
         status:                 'ENROLLED',
         contracted_amount:      current.contracted_amount,
         income_transaction_id:  current.income_transaction_id ?? null,
+        centro_custo_id:        (current as any).centro_custo_id ?? null,
         notes:                  `Transferido de turma ${current.class_id}`,
         created_by:             current.created_by ?? null,
-      }])
+      }] as any)
       .select()
       .single();
 
@@ -356,7 +358,8 @@ export const enrollmentService = {
           date,
           status,
           price,
-          category
+          category,
+          category_id
         )
       `)
       .eq('lead_id', leadId)
