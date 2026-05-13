@@ -96,9 +96,9 @@ async function startServer() {
         throw new Error("Não foi possível gerar o link de recuperação.");
       }
 
-      const mailersendKey = process.env.VITE_MAILERSEND_API_KEY;
+      const mailersendKey = process.env.MAILERSEND_API_KEY;
       if (!mailersendKey) {
-        throw new Error("VITE_MAILERSEND_API_KEY não encontrado.");
+        throw new Error("MAILERSEND_API_KEY não encontrado.");
       }
 
       console.log(`[DEBUG] Link gerado com sucesso. Enviando via MailerSend...`);
@@ -163,9 +163,9 @@ async function startServer() {
         });
       }
 
-      const mailersendKey = process.env.VITE_MAILERSEND_API_KEY;
+      const mailersendKey = process.env.MAILERSEND_API_KEY;
       if (!mailersendKey) {
-        throw new Error("VITE_MAILERSEND_API_KEY não encontrado.");
+        throw new Error("MAILERSEND_API_KEY não encontrado.");
       }
 
       const response = await fetch('https://api.mailersend.com/v1/email', {

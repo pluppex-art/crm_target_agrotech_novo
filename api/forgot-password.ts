@@ -14,7 +14,7 @@ export default async function handler(req: any, res: any) {
 
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const mailersendKey = process.env.VITE_MAILERSEND_API_KEY;
+  const mailersendKey = process.env.MAILERSEND_API_KEY;
 
   if (!url || !key || !mailersendKey) {
     return res.status(500).json({ error: 'Configuração do servidor ausente.' });
