@@ -4,7 +4,7 @@ import { supabaseService } from '../services/supabaseService';
 import { getSupabaseClient } from '../lib/supabase';
 import { emailService } from '../services/emailService';
 import { emailTemplates } from '../services/emailTemplates';
-import { notifyNewLead, notifyLeadAssignment } from '../services/leadNotificationService';
+import { notifyNewLead, notifyLeadAssignment, notifyLeadManualTransfer } from '../services/leadNotificationService';
 import { useProfileStore } from './useProfileStore';
 import { useTurmaStore } from './useTurmaStore';
 import { useAuthStore } from './useAuthStore';
@@ -182,10 +182,24 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
       // Automated Emails
       const updatedLead = { ...previousLeads.find(l => l.id === leadId), ...leadData };
 
-      // 1. Assignment Email: Trigger if responsible changed
-      if (leadData.responsible && leadData.responsible !== previousLeads.find(l => l.id === leadId)?.responsible) {
+      // 1. Assignment/Transfer Email: Trigger if responsible changed
+      const prevLead = previousLeads.find(l => l.id === leadId);
+      const newResponsibleId = leadData.responsavel_usuario_id;
+      const newResponsibleName = leadData.responsible;
+      const prevResponsibleId = prevLead?.responsavel_usuario_id;
+      const prevResponsibleName = prevLead?.responsible;
+      const responsibleChanged = newResponsibleId
+        ? newResponsibleId !== prevResponsibleId
+        : (newResponsibleName && newResponsibleName !== prevResponsibleName);
+      if (responsibleChanged) {
         const { profiles } = useProfileStore.getState();
-        notifyLeadAssignment(updatedLead as Lead, leadData.responsible, profiles);
+        const toIdentifier = newResponsibleId || newResponsibleName || '';
+        const fromIdentifier = prevResponsibleId || prevResponsibleName;
+        if (fromIdentifier && toIdentifier) {
+          notifyLeadManualTransfer(updatedLead as Lead, fromIdentifier, toIdentifier, profiles);
+        } else if (toIdentifier) {
+          notifyLeadAssignment(updatedLead as Lead, toIdentifier, profiles);
+        }
       }
 
       // 2. Enrollment Email: Trigger if it's a course and we have turma info

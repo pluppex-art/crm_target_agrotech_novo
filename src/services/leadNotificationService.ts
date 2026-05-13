@@ -115,6 +115,43 @@ export async function notifyLeadTransferred(
   }
 }
 
+export async function notifyLeadManualTransfer(
+  lead: Lead,
+  fromResponsibleName: string,
+  toResponsibleName: string,
+  profiles: UserProfile[]
+): Promise<void> {
+  const toResponsible = findProfile(toResponsibleName, profiles);
+  if (!toResponsible) return;
+
+  const { products } = useProductStore.getState();
+  const prodObj = financialCalculator.findProduct(lead.product || '', products);
+  const prodName = prodObj?.name || lead.product || 'N/A';
+
+  await insertNotificationForUser(toResponsible.id, {
+    title: `Lead transferido para você: ${lead.name}`,
+    message: `${fromResponsibleName} transferiu o lead ${lead.name} para você. Produto: ${prodName}`,
+    type: 'info',
+    category: 'user',
+    link: `/pipeline?lead=${lead.id}`,
+  });
+
+  if (toResponsible.email) {
+    await emailService.sendEmail({
+      to: toResponsible.email,
+      subject: `📨 Lead Transferido: ${lead.name}`,
+      html: emailTemplates.leadTransferManual(
+        toResponsible.name || '',
+        fromResponsibleName,
+        lead.name,
+        prodName,
+        lead.phone,
+        lead.email ?? undefined
+      )
+    });
+  }
+}
+
 export async function notifyLeadAssignment(
   lead: Lead,
   newResponsibleName: string,

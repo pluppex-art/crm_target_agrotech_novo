@@ -227,6 +227,54 @@ export const emailTemplates = {
   `),
 
   /**
+   * Template: Manual Lead Transfer (User to User)
+   */
+  leadTransferManual: (toName: string, fromName: string, leadName: string, product: string, phone?: string, email?: string) => emailTemplates.wrapper(`
+    <div style="background-color: #eff6ff; color: #2563eb; padding: 12px 20px; border-radius: 12px; font-size: 12px; font-weight: 800; text-transform: uppercase; display: inline-block; margin-bottom: 16px;">
+      📨 LEAD TRANSFERIDO PARA VOCÊ
+    </div>
+    <h2 style="color: #0f172a; font-size: 20px; font-weight: 700; margin: 0 0 16px 0;">Olá, ${toName}!</h2>
+    <p style="font-size: 16px; color: #475569; margin-bottom: 24px;">
+      <strong>${fromName}</strong> transferiu um lead diretamente para você. Confira os detalhes abaixo e entre em contato o quanto antes!
+    </p>
+    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; margin-bottom: 24px;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding-bottom: 12px; color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase;">Lead</td>
+          <td style="padding-bottom: 12px; color: #1e293b; font-size: 14px; font-weight: 700; text-align: right;">${leadName}</td>
+        </tr>
+        <tr>
+          <td style="padding-bottom: 12px; color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase;">Interesse</td>
+          <td style="padding-bottom: 12px; color: #1e293b; font-size: 14px; font-weight: 700; text-align: right;">${product}</td>
+        </tr>
+        <tr>
+          <td style="padding-bottom: ${phone || email ? '12px' : '0'}; color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase;">Transferido por</td>
+          <td style="padding-bottom: ${phone || email ? '12px' : '0'}; color: #1e293b; font-size: 14px; font-weight: 700; text-align: right;">${fromName}</td>
+        </tr>
+        ${phone ? `<tr>
+          <td style="padding-bottom: ${email ? '12px' : '0'}; color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase;">Telefone</td>
+          <td style="padding-bottom: ${email ? '12px' : '0'}; color: #1e293b; font-size: 14px; font-weight: 700; text-align: right;">${phone}</td>
+        </tr>` : ''}
+        ${email ? `<tr>
+          <td style="padding-bottom: 0; color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase;">E-mail</td>
+          <td style="padding-bottom: 0; color: #1e293b; font-size: 14px; font-weight: 700; text-align: right;">${email}</td>
+        </tr>` : ''}
+      </table>
+    </div>
+    <p style="font-size: 14px; color: #64748b; font-style: italic;">
+      Dica: Leads atendidos nos primeiros 15 minutos têm 70% mais chance de conversão.
+    </p>
+    <div style="margin-top: 32px; text-align: center;">
+      ${phone ? `<a href="${emailTemplates.whatsappUrl(phone)}" style="display: inline-block; background-color: #25d366; color: #ffffff; padding: 14px 28px; border-radius: 12px; font-weight: 700; text-decoration: none; margin-bottom: 12px;">
+        💬 Falar Agora no WhatsApp
+      </a><br>` : ''}
+      <a href="https://crm.targetagrotech.com.br/pipeline" style="display: inline-block; background-color: #2563eb; color: #ffffff; padding: 14px 28px; border-radius: 12px; font-weight: 700; text-decoration: none;">
+        Abrir CRM e Atender
+      </a>
+    </div>
+  `),
+
+  /**
    * Template: Automatic Lead Transfer (48h Inactivity)
    */
   leadTransfer48h: (sellerName: string, leadName: string, originalSeller: string, product: string, phone?: string, email?: string) => emailTemplates.wrapper(`
