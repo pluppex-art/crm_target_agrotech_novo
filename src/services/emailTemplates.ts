@@ -64,10 +64,17 @@ export const emailTemplates = {
     </div>
   `),
 
+  whatsappUrl: (phone: string) => {
+    const digits = phone.replace(/\D/g, '');
+    const number = digits.length >= 12 ? digits : `55${digits}`;
+    return `https://wa.me/${number}`;
+  },
+
   /**
    * Template: Lead Transfer (To Seller)
    */
-  leadAssignment: (sellerName: string, leadName: string, product: string) => emailTemplates.wrapper(`
+
+  leadAssignment: (sellerName: string, leadName: string, product: string, phone?: string, email?: string) => emailTemplates.wrapper(`
     <h2 style="color: #0f172a; font-size: 20px; font-weight: 700; margin-bottom: 16px;">Novo Lead Atribuído! 🚀</h2>
     <p style="font-size: 16px; color: #475569; margin-bottom: 24px;">
       Olá <strong>${sellerName}</strong>, um novo lead acaba de ser transferido para sua responsabilidade.
@@ -82,12 +89,23 @@ export const emailTemplates = {
           <td style="padding-bottom: 12px; color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase;">Interesse</td>
           <td style="padding-bottom: 12px; color: #1e293b; font-size: 14px; font-weight: 700; text-align: right;">${product}</td>
         </tr>
+        ${phone ? `<tr>
+          <td style="padding-bottom: ${email ? '12px' : '0'}; color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase;">Telefone</td>
+          <td style="padding-bottom: ${email ? '12px' : '0'}; color: #1e293b; font-size: 14px; font-weight: 700; text-align: right;">${phone}</td>
+        </tr>` : ''}
+        ${email ? `<tr>
+          <td style="padding-bottom: 0; color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase;">E-mail</td>
+          <td style="padding-bottom: 0; color: #1e293b; font-size: 14px; font-weight: 700; text-align: right;">${email}</td>
+        </tr>` : ''}
       </table>
     </div>
     <p style="font-size: 14px; color: #64748b; font-style: italic;">
       Dica: Leads atendidos nos primeiros 15 minutos têm 70% mais chance de conversão.
     </p>
-    <div style="margin-top: 32px; text-align: center;">
+    <div style="margin-top: 32px; text-align: center; display: flex; flex-direction: column; gap: 12px;">
+      ${phone ? `<a href="${emailTemplates.whatsappUrl(phone)}" style="display: inline-block; background-color: #25d366; color: #ffffff; padding: 14px 28px; border-radius: 12px; font-weight: 700; text-decoration: none; margin-bottom: 12px;">
+        💬 Falar Agora no WhatsApp
+      </a><br>` : ''}
       <a href="https://crm.targetagrotech.com.br/pipeline" style="display: inline-block; background-color: #0f172a; color: #ffffff; padding: 14px 28px; border-radius: 12px; font-weight: 700; text-decoration: none;">
         Abrir CRM e Atender
       </a>
@@ -124,7 +142,7 @@ export const emailTemplates = {
   /**
    * Template: New Lead Internal Alert (To Seller/Responsible)
    */
-  newLeadResponsible: (sellerName: string, leadName: string, product: string, origin: string) => emailTemplates.wrapper(`
+  newLeadResponsible: (sellerName: string, leadName: string, product: string, origin: string, phone?: string, email?: string) => emailTemplates.wrapper(`
     <div style="background-color: #ecfdf5; color: #059669; padding: 12px 20px; border-radius: 12px; font-size: 12px; font-weight: 800; text-transform: uppercase; display: inline-block; margin-bottom: 16px;">
       🔔 NOVO LEAD CHEGOU!
     </div>
@@ -143,12 +161,23 @@ export const emailTemplates = {
           <td style="padding-bottom: 12px; color: #1e293b; font-size: 14px; font-weight: 700; text-align: right;">${product}</td>
         </tr>
         <tr>
-          <td style="padding-bottom: 0; color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase;">Origem</td>
-          <td style="padding-bottom: 0; color: #1e293b; font-size: 14px; font-weight: 700; text-align: right;">${origin}</td>
+          <td style="padding-bottom: ${phone || email ? '12px' : '0'}; color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase;">Origem</td>
+          <td style="padding-bottom: ${phone || email ? '12px' : '0'}; color: #1e293b; font-size: 14px; font-weight: 700; text-align: right;">${origin}</td>
         </tr>
+        ${phone ? `<tr>
+          <td style="padding-bottom: ${email ? '12px' : '0'}; color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase;">Telefone</td>
+          <td style="padding-bottom: ${email ? '12px' : '0'}; color: #1e293b; font-size: 14px; font-weight: 700; text-align: right;">${phone}</td>
+        </tr>` : ''}
+        ${email ? `<tr>
+          <td style="padding-bottom: 0; color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase;">E-mail</td>
+          <td style="padding-bottom: 0; color: #1e293b; font-size: 14px; font-weight: 700; text-align: right;">${email}</td>
+        </tr>` : ''}
       </table>
     </div>
     <div style="margin-top: 32px; text-align: center;">
+      ${phone ? `<a href="${emailTemplates.whatsappUrl(phone)}" style="display: inline-block; background-color: #25d366; color: #ffffff; padding: 14px 28px; border-radius: 12px; font-weight: 700; text-decoration: none; margin-bottom: 12px;">
+        💬 Falar Agora no WhatsApp
+      </a><br>` : ''}
       <a href="https://crm.targetagrotech.com.br/pipeline" style="display: inline-block; background-color: #059669; color: #ffffff; padding: 14px 28px; border-radius: 12px; font-weight: 700; text-decoration: none;">
         Acessar Funil e Atender
       </a>
@@ -159,7 +188,7 @@ export const emailTemplates = {
   /**
    * Template: Task Assignment (To User)
    */
-  taskAssignment: (userName: string, taskTitle: string, dueDate: string, leadName?: string) => emailTemplates.wrapper(`
+  taskAssignment: (userName: string, taskTitle: string, dueDate: string, leadName?: string, leadPhone?: string) => emailTemplates.wrapper(`
     <div style="background-color: #f1f5f9; color: #475569; padding: 12px 20px; border-radius: 12px; font-size: 12px; font-weight: 800; text-transform: uppercase; display: inline-block; margin-bottom: 16px;">
       📋 NOVA TAREFA ATRIBUÍDA
     </div>
@@ -177,15 +206,20 @@ export const emailTemplates = {
           <td style="padding-bottom: 12px; color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase;">Prazo</td>
           <td style="padding-bottom: 12px; color: #1e293b; font-size: 14px; font-weight: 700; text-align: right;">${dueDate}</td>
         </tr>
-        ${leadName ? `
-        <tr>
-          <td style="padding-bottom: 0; color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase;">Lead Relacionado</td>
-          <td style="padding-bottom: 0; color: #1e293b; font-size: 14px; font-weight: 700; text-align: right;">${leadName}</td>
-        </tr>
-        ` : ''}
+        ${leadName ? `<tr>
+          <td style="padding-bottom: ${leadPhone ? '12px' : '0'}; color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase;">Lead Relacionado</td>
+          <td style="padding-bottom: ${leadPhone ? '12px' : '0'}; color: #1e293b; font-size: 14px; font-weight: 700; text-align: right;">${leadName}</td>
+        </tr>` : ''}
+        ${leadPhone ? `<tr>
+          <td style="padding-bottom: 0; color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase;">Telefone</td>
+          <td style="padding-bottom: 0; color: #1e293b; font-size: 14px; font-weight: 700; text-align: right;">${leadPhone}</td>
+        </tr>` : ''}
       </table>
     </div>
     <div style="margin-top: 32px; text-align: center;">
+      ${leadPhone ? `<a href="${emailTemplates.whatsappUrl(leadPhone)}" style="display: inline-block; background-color: #25d366; color: #ffffff; padding: 14px 28px; border-radius: 12px; font-weight: 700; text-decoration: none; margin-bottom: 12px;">
+        💬 Falar Agora no WhatsApp
+      </a><br>` : ''}
       <a href="https://crm.targetagrotech.com.br/tasks" style="display: inline-block; background-color: #059669; color: #ffffff; padding: 14px 28px; border-radius: 12px; font-weight: 700; text-decoration: none;">
         Ver Todas as Tarefas
       </a>
@@ -195,7 +229,7 @@ export const emailTemplates = {
   /**
    * Template: Automatic Lead Transfer (48h Inactivity)
    */
-  leadTransfer48h: (sellerName: string, leadName: string, originalSeller: string, product: string) => emailTemplates.wrapper(`
+  leadTransfer48h: (sellerName: string, leadName: string, originalSeller: string, product: string, phone?: string, email?: string) => emailTemplates.wrapper(`
     <div style="background-color: #fef2f2; color: #dc2626; padding: 12px 20px; border-radius: 12px; font-size: 12px; font-weight: 800; text-transform: uppercase; display: inline-block; margin-bottom: 16px;">
       🔄 TRANSFERÊNCIA AUTOMÁTICA (48H)
     </div>
@@ -210,15 +244,26 @@ export const emailTemplates = {
           <td style="padding-bottom: 12px; color: #1e293b; font-size: 14px; font-weight: 700; text-align: right;">${leadName}</td>
         </tr>
         <tr>
-          <td style="padding-bottom: 0; color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase;">Produto</td>
-          <td style="padding-bottom: 0; color: #1e293b; font-size: 14px; font-weight: 700; text-align: right;">${product}</td>
+          <td style="padding-bottom: ${phone || email ? '12px' : '0'}; color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase;">Produto</td>
+          <td style="padding-bottom: ${phone || email ? '12px' : '0'}; color: #1e293b; font-size: 14px; font-weight: 700; text-align: right;">${product}</td>
         </tr>
+        ${phone ? `<tr>
+          <td style="padding-bottom: ${email ? '12px' : '0'}; color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase;">Telefone</td>
+          <td style="padding-bottom: ${email ? '12px' : '0'}; color: #1e293b; font-size: 14px; font-weight: 700; text-align: right;">${phone}</td>
+        </tr>` : ''}
+        ${email ? `<tr>
+          <td style="padding-bottom: 0; color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase;">E-mail</td>
+          <td style="padding-bottom: 0; color: #1e293b; font-size: 14px; font-weight: 700; text-align: right;">${email}</td>
+        </tr>` : ''}
       </table>
     </div>
     <p style="color: #dc2626; font-size: 14px; font-weight: 700; text-align: center; margin-top: 24px;">
       ⚠️ Entre em contato imediatamente para reverter o desinteresse do cliente!
     </p>
     <div style="margin-top: 32px; text-align: center;">
+      ${phone ? `<a href="${emailTemplates.whatsappUrl(phone)}" style="display: inline-block; background-color: #25d366; color: #ffffff; padding: 14px 28px; border-radius: 12px; font-weight: 700; text-decoration: none; margin-bottom: 12px;">
+        💬 Falar Agora no WhatsApp
+      </a><br>` : ''}
       <a href="https://crm.targetagrotech.com.br/pipeline" style="display: inline-block; background-color: #0f172a; color: #ffffff; padding: 14px 28px; border-radius: 12px; font-weight: 700; text-decoration: none;">
         Atender Lead Agora
       </a>

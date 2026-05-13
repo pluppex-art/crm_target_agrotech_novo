@@ -70,7 +70,7 @@ export async function notifyNewLead(lead: Lead, profiles: UserProfile[]): Promis
     await emailService.sendEmail({
       to: responsible.email,
       subject: `🔔 Novo Lead: ${lead.name}`,
-      html: emailTemplates.newLeadResponsible(responsible.name || '', lead.name, prodName, lead.lead_source || 'Cadastro Manual')
+      html: emailTemplates.newLeadResponsible(responsible.name || '', lead.name, prodName, lead.lead_source || 'Cadastro Manual', lead.phone, lead.email ?? undefined)
     });
   }
 }
@@ -110,7 +110,7 @@ export async function notifyLeadTransferred(
     await emailService.sendEmail({
       to: newResponsible.email,
       subject: `🔄 Lead Transferido (Inatividade): ${lead.name}`,
-      html: emailTemplates.leadTransfer48h(newResponsible.name || '', lead.name, lead.responsible || 'Vendedor Anterior', prodName)
+      html: emailTemplates.leadTransfer48h(newResponsible.name || '', lead.name, lead.responsible || 'Vendedor Anterior', prodName, lead.phone, lead.email ?? undefined)
     });
   }
 }
@@ -139,7 +139,7 @@ export async function notifyLeadAssignment(
     await emailService.sendEmail({
       to: responsible.email,
       subject: `🚀 Novo Lead Atribuído: ${lead.name}`,
-      html: emailTemplates.leadAssignment(responsible.name || '', lead.name, prodName)
+      html: emailTemplates.leadAssignment(responsible.name || '', lead.name, prodName, lead.phone, lead.email ?? undefined)
     });
   }
 }
@@ -199,6 +199,11 @@ export async function notifyNewTask(task: Task, creatorId: string): Promise<void
     .single();
 
   if (profile?.email) {
+    let leadPhone: string | undefined;
+    if (task.lead_id) {
+      const { data: leadData } = await supabase.from('leads').select('phone').eq('id', task.lead_id).single();
+      leadPhone = leadData?.phone;
+    }
     await emailService.sendEmail({
       to: profile.email,
       subject: `📋 Nova Tarefa Atribuída: ${task.title}`,
@@ -206,7 +211,8 @@ export async function notifyNewTask(task: Task, creatorId: string): Promise<void
         profile.name || '',
         task.title,
         task.due_date ? new Date(task.due_date + 'T00:00:00').toLocaleDateString('pt-BR') : 'Sem data',
-        task.lead_name
+        task.lead_name,
+        leadPhone
       )
     });
   }
@@ -231,6 +237,11 @@ export async function notifyTaskReminder(task: Task): Promise<void> {
     .single();
 
   if (profile?.email) {
+    let leadPhone: string | undefined;
+    if (task.lead_id) {
+      const { data: leadData } = await supabase.from('leads').select('phone').eq('id', task.lead_id).single();
+      leadPhone = leadData?.phone;
+    }
     await emailService.sendEmail({
       to: profile.email,
       subject: `⏰ Lembrete de Tarefa: ${task.title}`,
@@ -238,7 +249,8 @@ export async function notifyTaskReminder(task: Task): Promise<void> {
         profile.name || '',
         `LEMBRETE: ${task.title}`,
         task.due_date ? new Date(task.due_date + 'T00:00:00').toLocaleDateString('pt-BR') : 'Sem data',
-        task.lead_name
+        task.lead_name,
+        leadPhone
       )
     });
   }
