@@ -67,8 +67,8 @@ export function ForgotPassword() {
                 
                 {isSandbox ? (
                   <div className="p-4 bg-amber-100/50 rounded-2xl border border-amber-200 text-amber-800 text-xs leading-relaxed">
-                    <p className="font-bold mb-1">Aviso de Sandbox (Resend):</p>
-                    O e-mail não pôde ser enviado porque sua conta Resend está em modo de teste e só envia para <b>pluppex@gmail.com</b>.
+                    <p className="font-bold mb-1">Aviso de Sandbox:</p>
+                    O e-mail não pôde ser enviado porque o serviço está em modo de teste ou o domínio não está verificado.
                   </div>
                 ) : (
                   <p className="text-emerald-600 text-sm text-center">Se o e-mail existir e for válido, você receberá as instruções em breve.</p>
@@ -126,11 +126,9 @@ export function ForgotPassword() {
                         <Info size={14} /> Como resolver:
                       </p>
                       <ul className="text-[11px] text-slate-600 space-y-1 list-disc ml-4">
-                        <li>Verifique se o <b>SMTP Host</b> é <code>smtp.resend.com</code></li>
-                        <li>A porta deve ser <b>587</b> (TLS)</li>
-                        <li>O usuário é sempre <code>resend</code></li>
-                        <li>A senha é a sua <b>API Key</b> do Resend</li>
-                        <li>O <b>Sender Email</b> deve ser um domínio verificado no Resend</li>
+                        <li>Verifique se o domínio <b>notificacoes.targetagrotech.com.br</b> está verificado no MailerSend</li>
+                        <li>A API Key deve estar correta no arquivo .env</li>
+                        <li>O Sender Email deve ser exatamente <code>crm@notificacoes.targetagrotech.com.br</code></li>
                       </ul>
                     </div>
                   )}

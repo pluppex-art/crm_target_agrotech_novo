@@ -18,7 +18,7 @@ export const emailService = {
     try {
       const response = await axios.post('https://api.mailersend.com/v1/email', {
         from: {
-          email: "no-reply@targetagrotech.com.br", // Substituto pelo e-mail verificado no MailerSend
+          email: "crm@notificacoes.targetagrotech.com.br", // E-mail verificado no MailerSend
           name: "Target Agrotech"
         },
         to: [

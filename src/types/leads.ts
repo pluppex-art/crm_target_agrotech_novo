@@ -45,5 +45,10 @@ export interface Lead {
   seller_origin?: 'target' | 'pluppex' | null;
   cost_center?: string | null;
   centro_custo_id?: string | null;
+  // Underage support
+  is_minor?: boolean;
+  guardian_name?: string | null;
+  guardian_cpf?: string | null;
+  guardian_phone?: string | null;
 }
 

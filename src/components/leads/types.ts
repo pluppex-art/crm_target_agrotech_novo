@@ -21,7 +21,7 @@ export interface LeadDetailsModalProps {
   responsibles?: { id: string; name: string }[];
 }
 
-export type TabType = 'info' | 'history' | 'notes' | 'tasks' | 'turma' | 'checklist';
+export type TabType = 'info' | 'history' | 'notes' | 'tasks' | 'turma' | 'checklist' | 'smart_responder';
 
 export const ATTENDANCE_STATUS_LABELS: Record<AttendanceStatus, { label: string; color: string }> = {
   matriculado: { label: 'Matriculado', color: 'bg-blue-100 text-blue-700' },

@@ -55,7 +55,7 @@ export default async function handler(req: any, res: any) {
       },
       body: JSON.stringify({
         from: {
-          email: "no-reply@targetagrotech.com.br",
+          email: "crm@notificacoes.targetagrotech.com.br",
           name: "Target Agrotech"
         },
         to: [{ email: email }],

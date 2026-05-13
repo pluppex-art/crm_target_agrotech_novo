@@ -7,6 +7,7 @@ import { LeadNotesTab } from './tabs/LeadNotesTab';
 import { LeadTasksTab } from './tabs/LeadTasksTab';
 import { LeadTurmaTab } from './tabs/LeadTurmaTab';
 import { LeadChecklistTab } from './tabs/LeadChecklistTab';
+import { LeadSmartResponderTab } from './tabs/LeadSmartResponderTab';
 import { useLeadForm } from '../../hooks/useLeadForm';
 import { useLeadNotes } from '../../hooks/useLeadNotes';
 import { useLeadTasks } from '../../hooks/useLeadTasks';
@@ -16,7 +17,7 @@ import { useProductStore } from '../../store/useProductStore';
 import { useProfileStore } from '../../store/useProfileStore';
 import { financialCalculator } from '../../services/financialCalculator';
 
-import { X, Trophy, ThumbsDown } from 'lucide-react';
+import { X, Trophy, ThumbsDown, Sparkles } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
 import { LeadDetailsModalProps, TabType } from './types';
 import { cn } from '@/lib/utils';
@@ -70,10 +71,10 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
       .filter(p => {
         const roleName = p.cargos?.name?.toLowerCase() || '';
         const dept = p.department?.toLowerCase() || '';
-        
+
         return (
-          roleName.includes('consultor') || 
-          roleName.includes('vendedor') || 
+          roleName.includes('consultor') ||
+          roleName.includes('vendedor') ||
           roleName.includes('closer') ||
           roleName.includes('gerente') ||
           dept.includes('vendas') ||
@@ -320,7 +321,7 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
 
         {/* Tabs */}
         <div className="flex items-center gap-5 px-5 border-b border-slate-200 overflow-x-auto whitespace-nowrap scrollbar-thin" style={{ scrollbarWidth: 'thin' }}>
-          {(['info', 'notes', 'history', 'tasks', 'turma', 'checklist'] as TabType[]).map((tab) => (
+          {(['info', 'notes', 'history', 'tasks', 'turma', 'checklist', 'smart_responder'] as TabType[]).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -347,6 +348,12 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
                   </span>
                 </span>
               ) : tab === 'checklist' && 'Checklist'}
+              {tab === 'smart_responder' && (
+                <span className="flex items-center gap-1.5">
+                  <Sparkles size={12} className={activeTab === 'smart_responder' ? "text-emerald-500" : "text-amber-400"} />
+                  IA Resposta
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -408,8 +415,6 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
               {...leadTurmas}
               leadId={lead.id}
               leadName={lead.name}
-              valorRecebido={form.formData.valor_recebido}
-              leadValue={financialCalculator.getTotalContracted(form.formData, products)}
               formData={form.formData}
               updateFormField={form.updateFormField}
               toggleField={form.toggleField}
@@ -418,6 +423,9 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
           )}
           {activeTab === 'checklist' && (
             <LeadChecklistTab {...leadChecklist} />
+          )}
+          {activeTab === 'smart_responder' && (
+            <LeadSmartResponderTab leadId={lead.id} leadName={lead.name} />
           )}
         </div>
       </motion.div>

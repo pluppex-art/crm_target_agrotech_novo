@@ -19,5 +19,13 @@ export function useCallCounter(leadId: string) {
     setLogging(false);
   };
 
-  return { todayCount, logCall, logging };
+  const removeLastCall = async () => {
+    if (!user?.id || logging || todayCount <= 0) return;
+    setLogging(true);
+    const ok = await callService.removeLastCall(user.id, leadId);
+    if (ok) setTodayCount(c => Math.max(0, c - 1));
+    setLogging(false);
+  };
+
+  return { todayCount, logCall, removeLastCall, logging };
 }

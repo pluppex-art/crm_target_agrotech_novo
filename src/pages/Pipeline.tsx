@@ -314,7 +314,7 @@ export const Pipeline: React.FC = () => {
         status: 'matriculado',
         vendas: financialCalculator.getTotalContracted(enrollLead, products),
         seller_origin: enrollLead.seller_origin,
-        cost_center: enrollLead.cost_center,
+        cost_center: enrollLead.cost_center as any,
       });
 
       if (result) {

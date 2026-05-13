@@ -55,6 +55,10 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
     seller_origin: lead.seller_origin || 'target',
     cost_center: lead.cost_center || 'cursos',
     centro_custo_id: lead.centro_custo_id || null,
+    is_minor: lead.is_minor || false,
+    guardian_name: lead.guardian_name || '',
+    guardian_cpf: lead.guardian_cpf || '',
+    guardian_phone: lead.guardian_phone || '',
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -96,6 +100,10 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
       seller_origin: lead.seller_origin || 'target',
       cost_center: lead.cost_center || 'cursos',
       centro_custo_id: lead.centro_custo_id || null,
+      is_minor: lead.is_minor || false,
+      guardian_name: lead.guardian_name || '',
+      guardian_cpf: lead.guardian_cpf || '',
+      guardian_phone: lead.guardian_phone || '',
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lead.id]);
@@ -217,6 +225,10 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
         seller_origin: formData.seller_origin as any,
         cost_center: formData.cost_center as any,
         centro_custo_id: formData.centro_custo_id,
+        is_minor: formData.is_minor,
+        guardian_name: formData.is_minor ? formData.guardian_name : null,
+        guardian_cpf: formData.is_minor ? formData.guardian_cpf : null,
+        guardian_phone: formData.is_minor ? formData.guardian_phone : null,
       };
 
       const { updateLead } = useLeadStore.getState();

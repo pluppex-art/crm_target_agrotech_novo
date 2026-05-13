@@ -12,6 +12,34 @@ export const callService = {
     return true;
   },
 
+  async removeLastCall(userId: string, leadId: string): Promise<boolean> {
+    const { data: lastCall, error: fetchErr } = await (supabase as any)
+      .from('call_logs')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('lead_id', leadId)
+      .order('called_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (fetchErr || !lastCall) {
+      console.error('callService.removeLastCall fetch:', fetchErr);
+      return false;
+    }
+
+    const { error: delErr } = await (supabase as any)
+      .from('call_logs')
+      .delete()
+      .eq('id', lastCall.id);
+
+    if (delErr) {
+      console.error('callService.removeLastCall delete:', delErr);
+      return false;
+    }
+
+    return true;
+  },
+
   async getTodayCount(userId: string): Promise<number> {
     const start = new Date();
     start.setHours(0, 0, 0, 0);
