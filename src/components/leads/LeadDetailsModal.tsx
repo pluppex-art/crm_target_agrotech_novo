@@ -67,11 +67,24 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
   const vendedores = useMemo(() => {
     const list = profiles
       .filter(p => p.status === 'active' || !p.status)
+      .filter(p => {
+        const roleName = p.cargos?.name?.toLowerCase() || '';
+        const dept = p.department?.toLowerCase() || '';
+        
+        return (
+          roleName.includes('consultor') || 
+          roleName.includes('vendedor') || 
+          roleName.includes('closer') ||
+          roleName.includes('gerente') ||
+          dept.includes('vendas') ||
+          dept.includes('comercial')
+        );
+      })
       .filter(p => p.id && p.name)
       .map(p => ({ id: p.id, name: p.name as string }));
 
     // Always include the lead's current responsible even if not in list
-    const hasCurrentResp = list.some(v => v.name === lead?.responsible);
+    const hasCurrentResp = list.some(v => v.id === lead?.responsavel_usuario_id || v.name === lead?.responsible);
     if (lead?.responsible && !hasCurrentResp) {
       const fallbackId = lead.responsavel_usuario_id || lead.responsible;
       return [{ id: fallbackId, name: lead.responsible }, ...list];
