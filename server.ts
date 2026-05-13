@@ -67,7 +67,13 @@ async function startServer() {
 
       console.log(`[DEBUG] Gerando link de recuperação no Supabase...`);
 
-      const origin = req.headers.origin || process.env.APP_URL || "http://localhost:3000";
+      let origin = req.headers.origin || req.headers.referer || process.env.APP_URL || "http://localhost:5173";
+      console.log(`[DEBUG] Origin detectado: ${origin}`);
+      if (origin.endsWith('/')) origin = origin.slice(0, -1);
+      // Ensure we don't have double /reset-password if referer was used
+      if (origin.includes('/forgot-password')) origin = origin.split('/forgot-password')[0];
+      if (origin.includes('/login')) origin = origin.split('/login')[0];
+      console.log(`[DEBUG] Origin final para redirecionamento: ${origin}`);
 
       const { data, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
         type: "recovery",
