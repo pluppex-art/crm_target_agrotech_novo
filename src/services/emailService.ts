@@ -22,14 +22,14 @@ export const emailService = {
       return { success: true, data: response.data };
     } catch (error: any) {
       const detail = error.response?.data;
-      console.error('Erro ao enviar e-mail via API interna:', detail ?? error.message);
-      if (detail?.details) {
-        console.error('MailerSend details:', JSON.stringify(detail.details));
+      const msg = detail?.error || error.message || 'Falha desconhecida';
+      const isQuota = typeof msg === 'string' && msg.toLowerCase().includes('quota');
+      if (isQuota) {
+        console.warn('[Email] Limite diário do MailerSend atingido — e-mail não enviado.');
+      } else {
+        console.warn('[Email] Falha ao enviar notificação por e-mail:', msg, detail?.details ?? '');
       }
-      return {
-        success: false,
-        error: detail?.error || error.message
-      };
+      return { success: false, error: msg };
     }
   }
 };

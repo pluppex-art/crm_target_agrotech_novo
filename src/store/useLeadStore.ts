@@ -34,13 +34,12 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
   error: null,
 
   fetchLeads: async (pipelineId?: string, startDate?: string, endDate?: string) => {
-    if (get().isLoading) return;
-    set({ isLoading: true, error: null });
+    // Clear leads immediately when switching pipelines to prevent "ghost" leads from previous pipeline
+    set({ leads: [], isLoading: true, error: null });
     try {
       const leads = await supabaseService.getLeads(pipelineId, startDate, endDate);
       set({ leads, isLoading: false });
     } catch (err) {
-      // Preserve existing leads on error — don't blank the board
       set((state) => ({ isLoading: false, error: 'Failed to fetch leads', leads: state.leads }));
     }
   },
@@ -77,15 +76,39 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
     }));
 
     try {
-      const stageName = usePipelineStore.getState().pipelines
+      const targetStage = usePipelineStore.getState().pipelines
         .flatMap(p => p.stages)
-        .find(s => s.id === stageId)?.name || 'Etapa desconhecida';
+        .find(s => s.id === stageId);
+      
+      const stageName = targetStage?.name || 'Etapa desconhecida';
+      const targetPipelineId = usePipelineStore.getState().pipelines.find(p => p.stages.some(s => s.id === stageId))?.id;
 
       const stageNameLower = stageName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
       const isGanhoStage = stageNameLower.includes('ganho') || stageNameLower.includes('concluido');
 
-      const success = await supabaseService.updateLeadStage(leadId, stageId);
-      if (success && isGanhoStage) {
+      // Optimistic update for pipeline_id as well
+      if (targetPipelineId) {
+        set((state) => ({
+          leads: state.leads.map(lead => lead.id === leadId ? { ...lead, stage_id: stageId, pipeline_id: targetPipelineId } : lead),
+          selectedLead: state.selectedLead?.id === leadId ? { ...state.selectedLead, stage_id: stageId, pipeline_id: targetPipelineId } : state.selectedLead
+        }));
+      }
+
+      // Update both stage and pipeline in Supabase
+      const { data: updateData, error: updateError } = await getSupabaseClient()!
+        .from('leads')
+        .update({ 
+          stage_id: stageId,
+          ...(targetPipelineId ? { pipeline_id: targetPipelineId } : {})
+        })
+        .eq('id', leadId);
+
+      if (updateError) {
+        set({ leads: previousLeads, error: 'Failed to update lead stage' });
+        return false;
+      }
+
+      if (isGanhoStage) {
         // Se a etapa é de Ganho/Conclusão, atualiza o status para 'closed' no Supabase também
         await supabaseService.updateLeadStatus(leadId, 'closed');
         set((state) => ({
@@ -93,10 +116,6 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
         }));
       }
 
-      if (!success) {
-        set({ leads: previousLeads, error: 'Failed to update lead stage' });
-        return false;
-      }
 
       // Automated Email: Enrollment Confirmation for "Ganho" stages
       const targetLead = previousLeads.find(l => l.id === leadId);

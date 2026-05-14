@@ -442,7 +442,7 @@ export const turmaService = {
       .insert([{
         class_id: classId,
         lead_id: leadData.id,
-        responsavel_usuario_id: leadData.id,
+        responsavel_usuario_id: leadData.responsavel_usuario_id,
         status: 'ENROLLED',
         discount: leadData.discount || null,
         discount_applied: leadData.discount_applied || false,

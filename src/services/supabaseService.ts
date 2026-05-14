@@ -112,16 +112,16 @@ export const supabaseService = {
     if (!supabase) return null;
 
     // Strip extra fields that belong to lead_class_enrollments, not leads
-    const { 
+    const {
       stage, pipeline, subStatus, history, origin,
       discount, discount_applied, discount_type,
       pix_completed, contract_signed,
-      valor_recebido, taxa_matricula_recebido, forma_pagamento,
+      valor_recebido, valor_recebido_paid_at, taxa_matricula_recebido, forma_pagamento,
       payment_proof_url, contract_url, professor_proof_url,
       rg_photo_url, profile_photo_url,
-      ...baseLead 
+      ...baseLead
     } = lead as any;
-    
+
     const dbLead = {
       ...baseLead,
       substatus: subStatus, // Map subStatus to substatus for database
@@ -152,16 +152,16 @@ export const supabaseService = {
     if (!supabase) return false;
 
     // Strip extra fields that belong to lead_class_enrollments, not leads
-    const { 
+    const {
       stage, pipeline, subStatus, history, origin,
       discount, discount_applied, discount_type,
       pix_completed, contract_signed,
-      valor_recebido, taxa_matricula_recebido, forma_pagamento,
+      valor_recebido, valor_recebido_paid_at, taxa_matricula_recebido, forma_pagamento,
       payment_proof_url, contract_url, professor_proof_url,
       rg_photo_url, profile_photo_url,
-      ...baseLead 
+      ...baseLead
     } = lead as any;
-    
+
     const dbLead: any = {
       ...baseLead,
       substatus: subStatus, // Map subStatus to substatus for database

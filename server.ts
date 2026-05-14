@@ -193,8 +193,8 @@ async function startServer() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('[DEBUG] Erro no MailerSend (send-email):', errorData);
-        return res.status(400).json({ error: "Erro ao enviar e-mail via MailerSend." });
+        console.error('[DEBUG] Erro no MailerSend (send-email):', JSON.stringify(errorData));
+        return res.status(400).json({ error: "Erro ao enviar e-mail via MailerSend.", status: response.status, details: errorData });
       }
 
       return res.json({ success: true });

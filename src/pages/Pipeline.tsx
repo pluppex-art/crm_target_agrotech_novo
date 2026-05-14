@@ -350,11 +350,16 @@ export const Pipeline: React.FC = () => {
   }, [currentPipeline]);
 
   // Leads na etapa Ganho: segue TODOS os filtros ativos (search, product, responsible, stars)
+  const leadsInCurrentPipeline = useMemo(() => {
+    if (!currentPipelineId) return filters.filteredLeads;
+    return filters.filteredLeads.filter(l => l.pipeline_id === currentPipelineId);
+  }, [filters.filteredLeads, currentPipelineId]);
+
   const ganhoLeads = useMemo(() => {
-    return filters.filteredLeads.filter(l =>
+    return leadsInCurrentPipeline.filter(l =>
       l.stage_id && ganhoStageIds.has(l.stage_id)
     );
-  }, [filters.filteredLeads, ganhoStageIds]);
+  }, [leadsInCurrentPipeline, ganhoStageIds]);
 
   const leadToTurma = useMemo(() => {
     const mapping: Record<string, any> = {};
@@ -399,6 +404,7 @@ export const Pipeline: React.FC = () => {
         currentPipelineId={currentPipelineId ?? null}
         pipelines={pipelines}
         onPipelineChange={(id) => {
+          if (id === currentPipelineId) return;
           setCurrentPipeline(id);
           fetchLeads(id);
         }}
@@ -437,7 +443,7 @@ export const Pipeline: React.FC = () => {
 
       {viewMode === 'kanban' ? (
         <PipelineBoard
-          filteredLeads={filters.filteredLeads}
+          filteredLeads={leadsInCurrentPipeline}
           columns={filteredColumns}
           selectedStatus={filters.selectedStatus}
           minimizedColumns={minimizedColumns}
@@ -465,7 +471,7 @@ export const Pipeline: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {filters.filteredLeads.map((lead) => {
+                {leadsInCurrentPipeline.map((lead) => {
                   const stage = COLUMNS.find(c => c.id === lead.stage_id);
                   const productObj = financialCalculator.findProduct(lead.product || '', products);
                   const fee = productObj?.enrollment_fee ?? 197;
@@ -581,7 +587,7 @@ export const Pipeline: React.FC = () => {
             </table>
           </div>
           <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 text-[11px] font-bold text-slate-400 flex justify-between items-center">
-            <span>{filters.filteredLeads.length} LEADS FILTRADOS</span>
+            <span>{leadsInCurrentPipeline.length} LEADS FILTRADOS</span>
             <span className="uppercase tracking-widest">Target Agrotech CRM</span>
           </div>
         </div>

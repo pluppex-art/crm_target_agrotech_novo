@@ -131,6 +131,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
         const discount = formData.discount_applied && formData.discount ? (formData.discount_type === 'percent' ? discVal / 100 : discVal / val) : 0;
         const finalValue = val * (1 - Math.min(discount, 1));
 
+        const ganhoTimestamp = isGanhoStage ? new Date().toISOString() : undefined;
         const newLeadData = {
           ...formData,
           value: val,
@@ -138,7 +139,6 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
           subStatus: initialStatus === 'qualified' ? formData.subStatus : null,
           photo: `https://tfwclxxcgnmndcnbklkx.supabase.co/storage/v1/object/public/icones/5.png`,
           valor_recebido: isGanhoStage ? finalValue : undefined,
-          valor_recebido_paid_at: isGanhoStage ? new Date().toISOString() : undefined,
           forma_pagamento: isGanhoStage ? 'PIX' : undefined,
           motivo_perda: isPerdidoStage ? formData.motivo_perda : undefined,
           pipeline_id: pipelineId,
@@ -155,13 +155,16 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
           if (rgFile) updates.rg_photo_url = await uploadLeadFile(newLead.id, 'rg_photo', rgFile) || undefined;
           if (profileFile) updates.profile_photo_url = await uploadLeadFile(newLead.id, 'profile_photo', profileFile) || undefined;
           if (Object.keys(updates).length > 0) await updateLead(newLead.id, updates);
-          if (isGanhoStage) await turmaService.enrollLeadInTurma({ ...newLeadData, ...updates, id: newLead.id });
+          if (isGanhoStage) await turmaService.enrollLeadInTurma({ ...newLeadData, ...updates, id: newLead.id, valor_recebido_paid_at: ganhoTimestamp });
           onLeadCreated?.({ ...newLead, ...updates });
           onClose();
           setFormData({ name: '', email: '', phone: '', product: '', value: '', city: '', cnpj: '', responsible: '', responsavel_usuario_id: '', subStatus: 'qualified', discount_applied: false, discount: '', discount_type: 'percent', pix_completed: false, contract_signed: false, taxa_matricula_recebido: null, motivo_perda: '', address: '', instagram: '', emergency_contact: '', seller_origin: 'target', cost_center: 'cursos', centro_custo_id: '', is_minor: false, guardian_name: '', guardian_cpf: '', guardian_phone: '' });
           setProofFile(null); setContractFile(null); setRgFile(null); setProfileFile(null);
         } else { alert('Erro ao salvar lead. Por favor, tente novamente.'); }
-    } catch (error) { console.error('Error adding lead:', error); } finally { setLoading(false); }
+    } catch (error: any) { 
+      console.error('Error adding lead:', error); 
+      alert('Erro ao criar lead: ' + (error.message || 'Erro desconhecido no servidor'));
+    } finally { setLoading(false); }
   };
 
   const handleProductChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -187,7 +190,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
           <ModalHeader onClose={onClose} />
-          <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-8">
+          <form id="new-lead-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-8">
             <BasicInfoSection formData={formData} setFormData={setFormData} fieldErrors={fieldErrors} setFieldErrors={setFieldErrors} duplicateEmailError={duplicateEmailError} />
             <SalesInfoSection 
               formData={formData} 
@@ -205,7 +208,9 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
             />
             <DocumentationSection formData={formData} setFormData={setFormData} rgInputRef={rgInputRef} profileInputRef={profileInputRef} rgFile={rgFile} setRgFile={setRgFile} profileFile={profileFile} setProfileFile={setProfileFile} />
             <LossReasonSection isPerdidoStage={isPerdidoStage} motivo_perda={formData.motivo_perda} onChange={(val) => setFormData((prev: any) => ({ ...prev, motivo_perda: val }))} />
-            <GanhoConfirmations formData={formData} setFormData={setFormData} proofInputRef={proofInputRef} contractInputRef={contractInputRef} proofFile={proofFile} setProofFile={setProofFile} contractFile={contractFile} setContractFile={setContractFile} />
+            {isGanhoStage && !isServiceProduct && (
+              <GanhoConfirmations formData={formData} setFormData={setFormData} proofInputRef={proofInputRef} contractInputRef={contractInputRef} proofFile={proofFile} setProofFile={setProofFile} contractFile={contractFile} setContractFile={setContractFile} />
+            )}
           </form>
           <ModalFooter onClose={onClose} loading={loading} />
         </motion.div>

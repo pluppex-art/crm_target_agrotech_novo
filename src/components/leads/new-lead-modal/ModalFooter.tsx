@@ -18,6 +18,7 @@ export const ModalFooter: React.FC<ModalFooterProps> = ({ onClose, loading }) =>
       </button>
       <button
         type="submit"
+        form="new-lead-form"
         disabled={loading}
         className="px-8 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-lg shadow-emerald-200 transition-all flex items-center gap-2 disabled:opacity-50"
       >
