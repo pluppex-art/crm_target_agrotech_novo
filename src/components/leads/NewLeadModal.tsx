@@ -107,55 +107,60 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) { setFieldErrors({ email: 'E-mail inválido' }); return; }
-    if (pipelineId && !selectedStageId) { alert('Selecione a etapa'); return; }
-    setLoading(true);
-    try {
-      const dupes = await supabaseService.checkDuplicateLead({ phone: formData.phone, email: formData.email, cnpj: formData.cnpj });
-      if (dupes.phone || dupes.email || dupes.cnpj) {
-        setFieldErrors({ phone: dupes.phone ? 'Telefone duplicado' : undefined, email: dupes.email ? 'E-mail duplicado' : undefined });
-        if (dupes.cnpj) alert('CPF/CNPJ duplicado');
-        setLoading(false); return;
-      }
-      const selectedProduct = products.find(p => p.id === formData.product || p.name === formData.product);
-      const isService = (selectedProduct?.category || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').startsWith('servico');
-      if (isGanhoStage && !isService && (!formData.pix_completed || !formData.contract_signed || !proofFile || !contractFile)) {
-        alert('Dados de ganho incompletos'); setLoading(false); return;
-      }
-      const val = parseBRNumber(formData.value);
-      const discVal = parseBRNumber(formData.discount);
-      const discount = formData.discount_applied && formData.discount ? (formData.discount_type === 'percent' ? discVal / 100 : discVal / val) : 0;
-      const finalValue = val * (1 - Math.min(discount, 1));
+      if (pipelineId && !selectedStageId) { alert('Selecione a etapa'); return; }
+      if (!formData.name) { alert('Por favor, preencha o nome do cliente.'); return; }
+      if (!formData.phone) { alert('Por favor, preencha o telefone do cliente.'); return; }
+      if (!formData.responsavel_usuario_id) { alert('Por favor, selecione o responsável.'); return; }
+      if (!formData.centro_custo_id) { alert('Por favor, selecione o centro de custo.'); return; }
+      
+      setLoading(true);
+      try {
+        const dupes = await supabaseService.checkDuplicateLead({ phone: formData.phone, email: formData.email, cnpj: formData.cnpj });
+        if (dupes.phone || dupes.email || dupes.cnpj) {
+          setFieldErrors({ phone: dupes.phone ? 'Telefone duplicado' : undefined, email: dupes.email ? 'E-mail duplicado' : undefined });
+          if (dupes.cnpj) alert('CPF/CNPJ duplicado');
+          setLoading(false); return;
+        }
+        const selectedProduct = products.find(p => p.id === formData.product || p.name === formData.product);
+        const isService = (selectedProduct?.category || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').startsWith('servico');
+        if (isGanhoStage && !isService && (!formData.pix_completed || !formData.contract_signed || !proofFile || !contractFile)) {
+          alert('Dados de ganho incompletos: É necessário anexar comprovante e contrato para etapas de ganho.'); setLoading(false); return;
+        }
+        const val = parseBRNumber(formData.value);
+        const discVal = parseBRNumber(formData.discount);
+        const discount = formData.discount_applied && formData.discount ? (formData.discount_type === 'percent' ? discVal / 100 : discVal / val) : 0;
+        const finalValue = val * (1 - Math.min(discount, 1));
 
-      const newLeadData = {
-        ...formData,
-        value: val,
-        status: initialStatus as LeadStatus,
-        subStatus: initialStatus === 'qualified' ? formData.subStatus : null,
-        photo: `https://tfwclxxcgnmndcnbklkx.supabase.co/storage/v1/object/public/icones/5.png`,
-        valor_recebido: isGanhoStage ? finalValue : undefined,
-        valor_recebido_paid_at: isGanhoStage ? new Date().toISOString() : undefined,
-        forma_pagamento: isGanhoStage ? 'PIX' : undefined,
-        motivo_perda: isPerdidoStage ? formData.motivo_perda : undefined,
-        pipeline_id: pipelineId,
-        stage_id: selectedStageId || undefined,
-        origin: 'manual',
-      };
+        const newLeadData = {
+          ...formData,
+          value: val,
+          status: initialStatus as LeadStatus,
+          subStatus: initialStatus === 'qualified' ? formData.subStatus : null,
+          photo: `https://tfwclxxcgnmndcnbklkx.supabase.co/storage/v1/object/public/icones/5.png`,
+          valor_recebido: isGanhoStage ? finalValue : undefined,
+          valor_recebido_paid_at: isGanhoStage ? new Date().toISOString() : undefined,
+          forma_pagamento: isGanhoStage ? 'PIX' : undefined,
+          motivo_perda: isPerdidoStage ? formData.motivo_perda : undefined,
+          pipeline_id: pipelineId,
+          stage_id: selectedStageId || undefined,
+          origin: 'manual',
+        };
 
-      const newLead = await addLead(newLeadData);
-      if (newLead) {
-        notifyNewLead(newLead, profiles);
-        let updates: Partial<Lead> = {};
-        if (proofFile) updates.payment_proof_url = await uploadLeadFile(newLead.id, 'payment_proof', proofFile) || undefined;
-        if (contractFile) updates.contract_url = await uploadLeadFile(newLead.id, 'contract', contractFile) || undefined;
-        if (rgFile) updates.rg_photo_url = await uploadLeadFile(newLead.id, 'rg_photo', rgFile) || undefined;
-        if (profileFile) updates.profile_photo_url = await uploadLeadFile(newLead.id, 'profile_photo', profileFile) || undefined;
-        if (Object.keys(updates).length > 0) await updateLead(newLead.id, updates);
-        if (isGanhoStage) await turmaService.enrollLeadInTurma({ ...newLeadData, ...updates, id: newLead.id });
-        onLeadCreated?.({ ...newLead, ...updates });
-        onClose();
-        setFormData({ name: '', email: '', phone: '', product: '', value: '', city: '', cnpj: '', responsible: '', responsavel_usuario_id: '', subStatus: 'qualified', discount_applied: false, discount: '', discount_type: 'percent', pix_completed: false, contract_signed: false, taxa_matricula_recebido: null, motivo_perda: '', address: '', instagram: '', emergency_contact: '', seller_origin: 'target', cost_center: 'cursos', centro_custo_id: '', is_minor: false, guardian_name: '', guardian_cpf: '', guardian_phone: '' });
-        setProofFile(null); setContractFile(null); setRgFile(null); setProfileFile(null);
-      } else { alert('Erro ao salvar lead'); }
+        const newLead = await addLead(newLeadData);
+        if (newLead) {
+          // Note: notifyNewLead is already called inside useLeadStore.addLead
+          let updates: Partial<Lead> = {};
+          if (proofFile) updates.payment_proof_url = await uploadLeadFile(newLead.id, 'payment_proof', proofFile) || undefined;
+          if (contractFile) updates.contract_url = await uploadLeadFile(newLead.id, 'contract', contractFile) || undefined;
+          if (rgFile) updates.rg_photo_url = await uploadLeadFile(newLead.id, 'rg_photo', rgFile) || undefined;
+          if (profileFile) updates.profile_photo_url = await uploadLeadFile(newLead.id, 'profile_photo', profileFile) || undefined;
+          if (Object.keys(updates).length > 0) await updateLead(newLead.id, updates);
+          if (isGanhoStage) await turmaService.enrollLeadInTurma({ ...newLeadData, ...updates, id: newLead.id });
+          onLeadCreated?.({ ...newLead, ...updates });
+          onClose();
+          setFormData({ name: '', email: '', phone: '', product: '', value: '', city: '', cnpj: '', responsible: '', responsavel_usuario_id: '', subStatus: 'qualified', discount_applied: false, discount: '', discount_type: 'percent', pix_completed: false, contract_signed: false, taxa_matricula_recebido: null, motivo_perda: '', address: '', instagram: '', emergency_contact: '', seller_origin: 'target', cost_center: 'cursos', centro_custo_id: '', is_minor: false, guardian_name: '', guardian_cpf: '', guardian_phone: '' });
+          setProofFile(null); setContractFile(null); setRgFile(null); setProfileFile(null);
+        } else { alert('Erro ao salvar lead. Por favor, tente novamente.'); }
     } catch (error) { console.error('Error adding lead:', error); } finally { setLoading(false); }
   };
 

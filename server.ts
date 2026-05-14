@@ -1,7 +1,6 @@
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
-import { Resend } from "resend";
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 

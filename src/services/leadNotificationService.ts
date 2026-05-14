@@ -67,11 +67,15 @@ export async function notifyNewLead(lead: Lead, profiles: UserProfile[]): Promis
   });
 
   if (responsible.email) {
-    await emailService.sendEmail({
-      to: responsible.email,
-      subject: `🔔 Novo Lead: ${lead.name}`,
-      html: emailTemplates.newLeadResponsible(responsible.name || '', lead.name, prodName, lead.lead_source || 'Cadastro Manual', lead.phone, lead.email ?? undefined)
-    });
+    try {
+      await emailService.sendEmail({
+        to: responsible.email,
+        subject: `🔔 Novo Lead: ${lead.name}`,
+        html: emailTemplates.newLeadResponsible(responsible.name || '', lead.name, prodName, lead.lead_source || 'Cadastro Manual', lead.phone, lead.email ?? undefined)
+      });
+    } catch (err) {
+      console.warn('[Notification] Falha ao enviar e-mail de novo lead:', err);
+    }
   }
 }
 
@@ -107,11 +111,15 @@ export async function notifyLeadTransferred(
   }
 
   if (newResponsible && newResponsible.email) {
-    await emailService.sendEmail({
-      to: newResponsible.email,
-      subject: `🔄 Lead Transferido (Inatividade): ${lead.name}`,
-      html: emailTemplates.leadTransfer48h(newResponsible.name || '', lead.name, lead.responsible || 'Vendedor Anterior', prodName, lead.phone, lead.email ?? undefined)
-    });
+    try {
+      await emailService.sendEmail({
+        to: newResponsible.email,
+        subject: `🔄 Lead Transferido (Inatividade): ${lead.name}`,
+        html: emailTemplates.leadTransfer48h(newResponsible.name || '', lead.name, lead.responsible || 'Vendedor Anterior', prodName, lead.phone, lead.email ?? undefined)
+      });
+    } catch (err) {
+      console.warn('[Notification] Falha ao enviar e-mail de transferência automática:', err);
+    }
   }
 }
 
@@ -137,18 +145,22 @@ export async function notifyLeadManualTransfer(
   });
 
   if (toResponsible.email) {
-    await emailService.sendEmail({
-      to: toResponsible.email,
-      subject: `📨 Lead Transferido: ${lead.name}`,
-      html: emailTemplates.leadTransferManual(
-        toResponsible.name || '',
-        fromResponsibleName,
-        lead.name,
-        prodName,
-        lead.phone,
-        lead.email ?? undefined
-      )
-    });
+    try {
+      await emailService.sendEmail({
+        to: toResponsible.email,
+        subject: `📨 Lead Transferido: ${lead.name}`,
+        html: emailTemplates.leadTransferManual(
+          toResponsible.name || '',
+          fromResponsibleName,
+          lead.name,
+          prodName,
+          lead.phone,
+          lead.email ?? undefined
+        )
+      });
+    } catch (err) {
+      console.warn('[Notification] Falha ao enviar e-mail de transferência manual:', err);
+    }
   }
 }
 
@@ -173,11 +185,15 @@ export async function notifyLeadAssignment(
   });
 
   if (responsible.email) {
-    await emailService.sendEmail({
-      to: responsible.email,
-      subject: `🚀 Novo Lead Atribuído: ${lead.name}`,
-      html: emailTemplates.leadAssignment(responsible.name || '', lead.name, prodName, lead.phone, lead.email ?? undefined)
-    });
+    try {
+      await emailService.sendEmail({
+        to: responsible.email,
+        subject: `🚀 Novo Lead Atribuído: ${lead.name}`,
+        html: emailTemplates.leadAssignment(responsible.name || '', lead.name, prodName, lead.phone, lead.email ?? undefined)
+      });
+    } catch (err) {
+      console.warn('[Notification] Falha ao enviar e-mail de atribuição:', err);
+    }
   }
 }
 
@@ -241,17 +257,21 @@ export async function notifyNewTask(task: Task, creatorId: string): Promise<void
       const { data: leadData } = await supabase.from('leads').select('phone').eq('id', task.lead_id).single();
       leadPhone = leadData?.phone;
     }
-    await emailService.sendEmail({
-      to: profile.email,
-      subject: `📋 Nova Tarefa Atribuída: ${task.title}`,
-      html: emailTemplates.taskAssignment(
-        profile.name || '',
-        task.title,
-        task.due_date ? new Date(task.due_date + 'T00:00:00').toLocaleDateString('pt-BR') : 'Sem data',
-        task.lead_name,
-        leadPhone
-      )
-    });
+    try {
+      await emailService.sendEmail({
+        to: profile.email,
+        subject: `📋 Nova Tarefa Atribuída: ${task.title}`,
+        html: emailTemplates.taskAssignment(
+          profile.name || '',
+          task.title,
+          task.due_date ? new Date(task.due_date + 'T00:00:00').toLocaleDateString('pt-BR') : 'Sem data',
+          task.lead_name,
+          leadPhone
+        )
+      });
+    } catch (err) {
+      console.warn('[Notification] Falha ao enviar e-mail de nova tarefa:', err);
+    }
   }
 }
 
@@ -279,16 +299,20 @@ export async function notifyTaskReminder(task: Task): Promise<void> {
       const { data: leadData } = await supabase.from('leads').select('phone').eq('id', task.lead_id).single();
       leadPhone = leadData?.phone;
     }
-    await emailService.sendEmail({
-      to: profile.email,
-      subject: `⏰ Lembrete de Tarefa: ${task.title}`,
-      html: emailTemplates.taskAssignment(
-        profile.name || '',
-        `LEMBRETE: ${task.title}`,
-        task.due_date ? new Date(task.due_date + 'T00:00:00').toLocaleDateString('pt-BR') : 'Sem data',
-        task.lead_name,
-        leadPhone
-      )
-    });
+    try {
+      await emailService.sendEmail({
+        to: profile.email,
+        subject: `⏰ Lembrete de Tarefa: ${task.title}`,
+        html: emailTemplates.taskAssignment(
+          profile.name || '',
+          `LEMBRETE: ${task.title}`,
+          task.due_date ? new Date(task.due_date + 'T00:00:00').toLocaleDateString('pt-BR') : 'Sem data',
+          task.lead_name,
+          leadPhone
+        )
+      });
+    } catch (err) {
+      console.warn('[Notification] Falha ao enviar e-mail de lembrete de tarefa:', err);
+    }
   }
 }
