@@ -1,5 +1,5 @@
 import React from 'react';
-import { ClipboardCheck, CheckSquare, QrCode, Phone, Minus, Loader2, FileText, Eye, X as XIcon } from 'lucide-react';
+import { ClipboardCheck, CheckSquare, QrCode, Loader2, FileText, Eye, X as XIcon } from 'lucide-react';
 import { cn } from '../../../../lib/utils';
 
 interface ContractConfirmationsProps {
@@ -13,10 +13,6 @@ interface ContractConfirmationsProps {
   enrollmentFee: number;
   contractSigned: boolean;
   onContractSign: (v: boolean) => void;
-  logCall: () => void;
-  removeLastCall: () => void;
-  logging: boolean;
-  todayCount: number;
   proofInputRef: React.RefObject<HTMLInputElement>;
   contractInputRef: React.RefObject<HTMLInputElement>;
   uploadingProof: boolean;
@@ -39,10 +35,6 @@ export const ContractConfirmations: React.FC<ContractConfirmationsProps> = ({
   enrollmentFee,
   contractSigned,
   onContractSign,
-  logCall,
-  removeLastCall,
-  logging,
-  todayCount,
   proofInputRef,
   contractInputRef,
   uploadingProof,
@@ -133,33 +125,6 @@ export const ContractConfirmations: React.FC<ContractConfirmationsProps> = ({
             </div>
           </label>
 
-          <div className="flex items-center gap-3 pt-1">
-            <div className="flex items-center gap-1">
-              <button
-                onClick={logCall}
-                disabled={logging}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 rounded-xl text-[13px] font-bold transition-all disabled:opacity-60 shadow-sm"
-              >
-                {logging ? <Loader2 size={14} className="animate-spin" /> : <Phone size={14} />}
-                Registrar Ligação
-              </button>
-              {todayCount > 0 && (
-                <button
-                  onClick={removeLastCall}
-                  disabled={logging}
-                  className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                  title="Remover última ligação (Erro)"
-                >
-                  <Minus size={14} />
-                </button>
-              )}
-            </div>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl">
-              <Phone size={12} className="text-slate-400" />
-              <span className="text-xs font-black text-slate-700 tabular-nums">{todayCount}</span>
-              <span className="text-[10px] text-slate-400 font-medium">/dia</span>
-            </div>
-          </div>
         </div>
 
         <div className="flex flex-col gap-3">

@@ -273,18 +273,30 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
             let updatedLeads = [...state.leads];
             let updatedSelectedLead = state.selectedLead;
 
+            // Fields stored in lead_class_enrollments — never overwrite in-memory values
+            // with nulls coming from the leads table realtime event
+            const ENROLLMENT_FIELDS = new Set([
+              'pix_completed', 'contract_signed', 'payment_proof_url', 'contract_url',
+              'professor_proof_url', 'rg_photo_url', 'profile_photo_url', 'valor_recebido',
+              'taxa_matricula_recebido', 'forma_pagamento', 'discount', 'discount_applied',
+              'discount_type',
+            ]);
+
             if (eventType === 'INSERT') {
               // Add only if not already there (prevent double adding)
               if (!updatedLeads.some(l => l.id === (newRecord as Lead).id)) {
                 updatedLeads = [newRecord as Lead, ...updatedLeads];
               }
             } else if (eventType === 'UPDATE') {
+              const leadsUpdate = Object.fromEntries(
+                Object.entries(newRecord as any).filter(([k]) => !ENROLLMENT_FIELDS.has(k))
+              );
               updatedLeads = updatedLeads.map(l =>
-                l.id === (newRecord as Lead).id ? { ...l, ...newRecord } : l
+                l.id === (newRecord as Lead).id ? { ...l, ...leadsUpdate } : l
               );
               // Keep the open modal in sync
               if (state.selectedLead?.id === (newRecord as Lead).id) {
-                updatedSelectedLead = { ...state.selectedLead, ...(newRecord as Lead) };
+                updatedSelectedLead = { ...state.selectedLead, ...leadsUpdate };
               }
             } else if (eventType === 'DELETE') {
               updatedLeads = updatedLeads.filter(l => l.id !== (oldRecord as any).id);

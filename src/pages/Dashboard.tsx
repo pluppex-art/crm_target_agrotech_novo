@@ -189,8 +189,8 @@ export function Dashboard() {
   useEffect(() => { fetchInitialData(); }, [fetchInitialData]);
 
   const fetchCallStats = useCallback(async () => {
-    if (!startDate || !endDate) return;
-    const teamCalls = await callService.getTeamRangeStats(startDate, endDate);
+    // Always show today's stats for the "Calls of the Day" section
+    const teamCalls = await callService.getTeamTodayStats();
     const sellerGoals = goals.filter((g: any) => g.type === 'seller');
     const companyCallsGoal = goals.find((g: any) => g.type === 'company')?.calls_goal ?? 30;
     
@@ -198,7 +198,7 @@ export function Dashboard() {
       const sg = sellerGoals.find((g: any) => g.seller_id === s.user_id);
       return { ...s, goal: sg?.calls_goal ?? companyCallsGoal ?? 30 };
     }));
-  }, [startDate, endDate, goals]);
+  }, [goals]);
 
   useEffect(() => {
     fetchCallStats();

@@ -4,11 +4,54 @@ import { isVendedor } from '../lib/utils';
 export interface CallTrendPoint { date: string; [userId: string]: number | string; }
 
 export const callService = {
-  async logCall(userId: string, leadId: string): Promise<boolean> {
+  async getLeadTotalCount(leadId: string): Promise<number> {
+    const { count, error } = await (supabase as any)
+      .from('call_logs')
+      .select('*', { count: 'exact', head: true })
+      .eq('lead_id', leadId);
+    if (error) { console.error('callService.getLeadTotalCount:', error); return 0; }
+    return count ?? 0;
+  },
+
+  async getLeadCountByType(leadId: string, type: 'atendida' | 'nao_atendida'): Promise<number> {
+    const { count, error } = await (supabase as any)
+      .from('call_logs')
+      .select('*', { count: 'exact', head: true })
+      .eq('lead_id', leadId)
+      .eq('type', type);
+    if (error) { console.error('callService.getLeadCountByType:', error); return 0; }
+    return count ?? 0;
+  },
+
+  async logCall(userId: string, leadId: string, type: 'atendida' | 'nao_atendida' = 'atendida'): Promise<boolean> {
     const { error } = await (supabase as any)
       .from('call_logs')
-      .insert([{ user_id: userId, lead_id: leadId }]);
+      .insert([{ user_id: userId, lead_id: leadId, type }]);
     if (error) { console.error('callService.logCall:', error); return false; }
+    return true;
+  },
+
+  async removeLastCallByType(leadId: string, type: 'atendida' | 'nao_atendida'): Promise<boolean> {
+    const { data: lastCall, error: fetchErr } = await (supabase as any)
+      .from('call_logs')
+      .select('id')
+      .eq('lead_id', leadId)
+      .eq('type', type)
+      .order('called_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (fetchErr || !lastCall) {
+      if (fetchErr) console.error('callService.removeLastCallByType fetch:', fetchErr);
+      return false;
+    }
+
+    const { error: delErr } = await (supabase as any)
+      .from('call_logs')
+      .delete()
+      .eq('id', lastCall.id);
+
+    if (delErr) { console.error('callService.removeLastCallByType delete:', delErr); return false; }
     return true;
   },
 
@@ -20,10 +63,10 @@ export const callService = {
       .eq('lead_id', leadId)
       .order('called_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (fetchErr || !lastCall) {
-      console.error('callService.removeLastCall fetch:', fetchErr);
+      if (fetchErr) console.error('callService.removeLastCall fetch:', fetchErr);
       return false;
     }
 

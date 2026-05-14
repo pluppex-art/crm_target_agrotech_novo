@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useProfileStore } from '../../../store/useProfileStore';
 import { useSquadStore } from '../../../store/useSquadStore';
-import { useCallCounter } from '../../../hooks/useCallCounter';
 import { parseBRNumber } from '../../../lib/utils';
 import type { LeadInfoTabProps } from '../types';
 import { uploadLeadFile, deleteLeadFile } from '../../../services/leadFilesService';
@@ -28,8 +27,6 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = (props) => {
 
   const { profiles } = useProfileStore();
   const { getSquadInfoForUser } = useSquadStore();
-  const { todayCount, logCall, removeLastCall, logging } = useCallCounter(lead?.id ?? '');
-
   const [uploadingProof, setUploadingProof] = useState(false);
   const [uploadingContract, setUploadingContract] = useState(false);
   const [uploadingRG, setUploadingRG] = useState(false);
@@ -79,9 +76,9 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = (props) => {
 
   return (
     <div className="space-y-6">
-      <ProfileHeader formData={formData} whatsappUrl={whatsappUrl} squadInfo={squadInfo} hoverStars={hoverStars} setHoverStars={setHoverStars} handleStarClick={(stars) => updateFormField({ stars })} hasDiscount={hasDiscount} baseValue={baseValue} totalWithFee={totalWithFee} />
-      
-      <ContractConfirmations showConfirmations={showConfirmations} isServiceProduct={isServiceProduct} pixCompleted={pixCompleted} onPixComplete={onPixComplete} formData={formData} updateFormField={updateFormField} toggleField={toggleField} enrollmentFee={enrollmentFee} contractSigned={contractSigned} onContractSign={onContractSign} logCall={logCall} removeLastCall={removeLastCall} logging={logging} todayCount={todayCount} proofInputRef={proofInputRef} contractInputRef={contractInputRef} uploadingProof={uploadingProof} setUploadingProof={setUploadingProof} uploadingContract={uploadingContract} setUploadingContract={setUploadingContract} handleFileUpload={handleFileUpload} handleDeleteFile={handleDeleteFile} ALLOWED_EXT={ALLOWED_EXT} />
+      <ProfileHeader formData={formData} whatsappUrl={whatsappUrl} squadInfo={squadInfo} hoverStars={hoverStars} setHoverStars={setHoverStars} handleStarClick={(stars) => updateFormField({ stars })} hasDiscount={hasDiscount} baseValue={baseValue} totalWithFee={totalWithFee} leadId={lead.id} />
+
+      <ContractConfirmations showConfirmations={showConfirmations} isServiceProduct={isServiceProduct} pixCompleted={pixCompleted} onPixComplete={onPixComplete} formData={formData} updateFormField={updateFormField} toggleField={toggleField} enrollmentFee={enrollmentFee} contractSigned={contractSigned} onContractSign={onContractSign} proofInputRef={proofInputRef} contractInputRef={contractInputRef} uploadingProof={uploadingProof} setUploadingProof={setUploadingProof} uploadingContract={uploadingContract} setUploadingContract={setUploadingContract} handleFileUpload={handleFileUpload} handleDeleteFile={handleDeleteFile} ALLOWED_EXT={ALLOWED_EXT} />
 
       <LeadBasicFields formData={formData} updateFormField={updateFormField} fieldErrors={fieldErrors} />
 

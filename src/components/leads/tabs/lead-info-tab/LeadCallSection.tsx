@@ -1,0 +1,159 @@
+import React, { useState, useEffect } from 'react';
+import { Phone, PhoneOff, Loader2, Minus, Trash2 } from 'lucide-react';
+import { callService } from '../../../../services/callService';
+import { noteService } from '../../../../services/noteService';
+import { useAuthStore } from '../../../../store/useAuthStore';
+import { useProfileStore } from '../../../../store/useProfileStore';
+import { cn } from '../../../../lib/utils';
+
+interface LeadCallSectionProps {
+  leadId: string;
+}
+
+export const LeadCallSection: React.FC<LeadCallSectionProps> = ({ leadId }) => {
+  const { user } = useAuthStore();
+  const { profiles } = useProfileStore();
+  const [atendidas, setAtendidas] = useState(0);
+  const [naoAtendidas, setNaoAtendidas] = useState(0);
+  const [loggingType, setLoggingType] = useState<'atendida' | 'nao_atendida' | 'remove_atendida' | 'remove_nao_atendida' | null>(null);
+
+  useEffect(() => {
+    callService.getLeadCountByType(leadId, 'atendida').then(setAtendidas);
+    callService.getLeadCountByType(leadId, 'nao_atendida').then(setNaoAtendidas);
+  }, [leadId]);
+
+  const authorName = profiles.find(p => p.id === user?.id)?.name || user?.email || 'Usuário';
+  const total = atendidas + naoAtendidas;
+
+  const refreshNotes = () => {
+    window.dispatchEvent(new CustomEvent('refresh-lead-notes', { detail: { leadId } }));
+  };
+
+  const handleAdd = async (type: 'atendida' | 'nao_atendida') => {
+    if (!user?.id || loggingType) return;
+    setLoggingType(type);
+    try {
+      const nextAttempt = total + 1;
+      const icon = type === 'atendida' ? '✅' : '❌';
+      const label = type === 'atendida' ? 'Atendida' : 'Não Atendida';
+      
+      const ok = await callService.logCall(user.id, leadId, type);
+      if (!ok) return;
+
+      await noteService.createNote({
+        content: `${icon} Registro de Chamada: Tentativa nº ${nextAttempt} - ${label}`,
+        lead_id: leadId,
+        author_id: user.id,
+        author_name: authorName,
+      });
+
+      if (type === 'atendida') setAtendidas(v => v + 1);
+      else setNaoAtendidas(v => v + 1);
+      
+      refreshNotes();
+    } finally {
+      setLoggingType(null);
+    }
+  };
+
+  const handleRemove = async (type: 'atendida' | 'nao_atendida') => {
+    if (loggingType) return;
+    const current = type === 'atendida' ? atendidas : naoAtendidas;
+    if (current <= 0) return;
+
+    if (!confirm(`Tem certeza que deseja apagar o último registro de ligação "${type === 'atendida' ? 'Atendida' : 'Não Atendida'}"?`)) return;
+
+    // Optimistic update immediately
+    if (type === 'atendida') setAtendidas(v => Math.max(0, v - 1));
+    else setNaoAtendidas(v => Math.max(0, v - 1));
+
+    setLoggingType(type === 'atendida' ? 'remove_atendida' : 'remove_nao_atendida');
+    try {
+      const [callOk] = await Promise.all([
+        callService.removeLastCallByType(leadId, type),
+        noteService.deleteLastCallNote(leadId, type),
+      ]);
+
+      if (!callOk) {
+        // Revert if call_log deletion failed
+        if (type === 'atendida') setAtendidas(v => v + 1);
+        else setNaoAtendidas(v => v + 1);
+        alert('Não foi possível apagar no banco de dados. Verifique se você aplicou as regras de permissão (SQL) no Supabase.');
+      } else {
+        refreshNotes();
+      }
+    } finally {
+      setLoggingType(null);
+    }
+  };
+
+  const isLoading = (key: typeof loggingType) => loggingType === key;
+
+  return (
+    <div className="flex flex-col items-center gap-2 shrink-0">
+      <div className="flex flex-col items-center">
+        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tentativas</span>
+        <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-100 rounded-full border border-slate-200">
+          <Phone size={10} className="text-slate-500" />
+          <span className="text-xs font-black text-slate-700 tabular-nums">{total}</span>
+        </div>
+      </div>
+
+      <div className="flex gap-4">
+        {/* Atendida */}
+        <div className="relative group">
+          <button
+            onClick={() => handleAdd('atendida')}
+            disabled={!!loggingType}
+            className={cn(
+              "flex flex-col items-center justify-center gap-1 w-16 h-16 rounded-xl border-2 transition-all shadow-sm",
+              "bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-100 hover:border-emerald-300 hover:scale-105 active:scale-95",
+              loggingType && "opacity-50 cursor-not-allowed"
+            )}
+          >
+            {isLoading('atendida') ? <Loader2 size={18} className="animate-spin" /> : <Phone size={20} />}
+            <span className="text-[9px] font-black uppercase tracking-tighter">{atendidas} Atend.</span>
+          </button>
+          
+          {atendidas > 0 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); handleRemove('atendida'); }}
+              disabled={!!loggingType}
+              className="absolute -top-1.5 -left-1.5 w-6 h-6 bg-white border-2 border-red-100 text-red-400 hover:text-red-600 hover:border-red-200 rounded-full flex items-center justify-center shadow-md transition-all hover:scale-110 active:scale-90"
+              title="Apagar último registro"
+            >
+              {isLoading('remove_atendida') ? <Loader2 size={10} className="animate-spin" /> : <Trash2 size={12} />}
+            </button>
+          )}
+        </div>
+
+        {/* Não Atendida */}
+        <div className="relative group">
+          <button
+            onClick={() => handleAdd('nao_atendida')}
+            disabled={!!loggingType}
+            className={cn(
+              "flex flex-col items-center justify-center gap-1 w-16 h-16 rounded-xl border-2 transition-all shadow-sm",
+              "bg-red-50 border-red-200 text-red-500 hover:bg-red-100 hover:border-red-300 hover:scale-105 active:scale-95",
+              loggingType && "opacity-50 cursor-not-allowed"
+            )}
+          >
+            {isLoading('nao_atendida') ? <Loader2 size={18} className="animate-spin" /> : <PhoneOff size={20} />}
+            <span className="text-[9px] font-black uppercase tracking-tighter">{naoAtendidas} N/Atend.</span>
+          </button>
+
+          {naoAtendidas > 0 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); handleRemove('nao_atendida'); }}
+              disabled={!!loggingType}
+              className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-white border-2 border-red-100 text-red-400 hover:text-red-600 hover:border-red-200 rounded-full flex items-center justify-center shadow-md transition-all hover:scale-110 active:scale-90"
+              title="Apagar último registro"
+            >
+              {isLoading('remove_nao_atendida') ? <Loader2 size={10} className="animate-spin" /> : <Trash2 size={12} />}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};

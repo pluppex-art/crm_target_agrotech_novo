@@ -1,6 +1,7 @@
 import React from 'react';
 import { Phone, Flame } from 'lucide-react';
 import { cn } from '../../../../lib/utils';
+import { LeadCallSection } from './LeadCallSection';
 
 interface ProfileHeaderProps {
   formData: any;
@@ -12,6 +13,7 @@ interface ProfileHeaderProps {
   hasDiscount: boolean;
   baseValue: number;
   totalWithFee: number;
+  leadId: string;
 }
 
 export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
@@ -23,7 +25,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   handleStarClick,
   hasDiscount,
   baseValue,
-  totalWithFee
+  totalWithFee,
+  leadId,
 }) => {
   return (
     <div className="flex items-center gap-4 pb-5 border-b border-slate-100">
@@ -99,6 +102,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           <span className="text-xs text-slate-400">· {formData.cnpj || 'Sem CPF/CNPJ'}</span>
         </div>
       </div>
+
+      <LeadCallSection leadId={leadId} />
     </div>
   );
 };

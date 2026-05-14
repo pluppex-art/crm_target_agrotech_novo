@@ -70,5 +70,32 @@ export const noteService = {
     }
 
     return true;
-  }
+  },
+
+  async deleteLastCallNote(leadId: string, type: 'atendida' | 'nao_atendida'): Promise<boolean> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return false;
+
+    const label = type === 'atendida' ? 'Atendida' : 'Não Atendida';
+    const pattern = `%Tentativa nº % - ${label}%`;
+
+    const { data, error: fetchErr } = await supabase
+      .from('notes')
+      .select('id')
+      .eq('lead_id', leadId)
+      .like('content', pattern)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (fetchErr || !data) return false;
+
+    const { error: delErr } = await supabase
+      .from('notes')
+      .delete()
+      .eq('id', (data as any).id);
+
+    if (delErr) { console.error('deleteLastCallNote:', delErr); return false; }
+    return true;
+  },
 };

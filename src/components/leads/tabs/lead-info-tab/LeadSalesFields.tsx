@@ -139,8 +139,9 @@ export const LeadSalesFields: React.FC<LeadSalesFieldsProps> = ({
               value={formData.centro_custo_id || ''}
               onChange={(e) => {
                 const cc = centroCustos.find(c => c.id === e.target.value);
-                updateFormField({ centro_custo_id: e.target.value, cost_center: cc?.nome || formData.cost_center });
-                toggleField?.('centro_custo_id', e.target.value);
+                const ccId = e.target.value || null;
+                updateFormField({ centro_custo_id: ccId, cost_center: cc?.nome || formData.cost_center });
+                toggleField?.('centro_custo_id', ccId);
                 if (cc) toggleField?.('cost_center', cc.nome);
               }}
               className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"

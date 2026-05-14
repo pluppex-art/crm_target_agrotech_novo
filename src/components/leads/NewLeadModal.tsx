@@ -112,7 +112,6 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
       if (!formData.name) { alert('Por favor, preencha o nome do cliente.'); return; }
       if (!formData.phone) { alert('Por favor, preencha o telefone do cliente.'); return; }
       if (!formData.responsavel_usuario_id) { alert('Por favor, selecione o responsável.'); return; }
-      if (!formData.centro_custo_id) { alert('Por favor, selecione o centro de custo.'); return; }
       
       setLoading(true);
       try {

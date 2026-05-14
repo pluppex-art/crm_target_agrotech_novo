@@ -290,6 +290,7 @@ async function startServer() {
           value: Number(value) || 0,
           substatus: 'qualified',
           photo: `https://ui-avatars.com/api/?name=${encodeURIComponent(name.trim())}&background=059669&color=fff&size=128`,
+          seller_origin: 'target',
           cost_center: 'cursos'
         }])
         .select()

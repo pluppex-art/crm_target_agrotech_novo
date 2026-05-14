@@ -19,6 +19,15 @@ export const useLeadNotes = ({ leadId }: UseLeadNotesProps) => {
     if (leadId) {
       loadNotes();
     }
+
+    const handleRefresh = (e: any) => {
+      if (e.detail?.leadId === leadId) {
+        loadNotes();
+      }
+    };
+
+    window.addEventListener('refresh-lead-notes', handleRefresh);
+    return () => window.removeEventListener('refresh-lead-notes', handleRefresh);
   }, [leadId]);
 
   const loadNotes = async () => {

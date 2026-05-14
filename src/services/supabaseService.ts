@@ -164,20 +164,33 @@ export const supabaseService = {
 
     const dbLead: any = {
       ...baseLead,
-      substatus: subStatus, // Map subStatus to substatus for database
+      substatus: subStatus,
     };
     if (origin) {
       dbLead.lead_source = origin;
     }
 
-    const { error } = await supabase
-      .from('leads')
-      .update(dbLead)
-      .eq('id', leadId);
+    // Remove undefined values so PostgREST doesn't receive an empty body.
+    // Also convert empty strings to null for UUID columns (PostgREST rejects '' for uuid type).
+    const UUID_FIELDS = new Set(['responsavel_usuario_id', 'centro_custo_id', 'pipeline_id', 'stage_id', 'company_id']);
+    const cleanDbLead = Object.fromEntries(
+      Object.entries(dbLead)
+        .filter(([, v]) => v !== undefined)
+        .map(([k, v]) => [k, UUID_FIELDS.has(k) && v === '' ? null : v])
+    );
 
-    if (error) {
-      console.error('Error updating lead:', error);
-      return false;
+    if (Object.keys(cleanDbLead).length > 0) {
+      console.log('[supabaseService.updateLead] PATCH payload:', JSON.stringify(cleanDbLead));
+      const { error } = await supabase
+        .from('leads')
+        .update(cleanDbLead)
+        .eq('id', leadId);
+
+      if (error) {
+        console.error('[supabaseService.updateLead] Error:', error.code, error.message, error.details, error.hint);
+        console.error('[supabaseService.updateLead] Payload that failed:', JSON.stringify(cleanDbLead));
+        return false;
+      }
     }
 
     // Se houver campos financeiros, atualiza a matrícula (lead_class_enrollments) mais recente
