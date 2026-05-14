@@ -20,8 +20,10 @@ interface ContractConfirmationsProps {
   proofInputRef: React.RefObject<HTMLInputElement>;
   contractInputRef: React.RefObject<HTMLInputElement>;
   uploadingProof: boolean;
+  setUploadingProof: (v: boolean) => void;
   uploadingContract: boolean;
-  handleFileUpload: (file: File, type: any, setLoading: any) => void;
+  setUploadingContract: (v: boolean) => void;
+  handleFileUpload: (file: File, type: any, setLoading: (v: boolean) => void) => void;
   handleDeleteFile: (type: any) => void;
   ALLOWED_EXT: string;
 }
@@ -44,7 +46,9 @@ export const ContractConfirmations: React.FC<ContractConfirmationsProps> = ({
   proofInputRef,
   contractInputRef,
   uploadingProof,
+  setUploadingProof,
   uploadingContract,
+  setUploadingContract,
   handleFileUpload,
   handleDeleteFile,
   ALLOWED_EXT
@@ -167,7 +171,7 @@ export const ContractConfirmations: React.FC<ContractConfirmationsProps> = ({
               className="hidden"
               onChange={e => {
                 const f = e.target.files?.[0];
-                if (f) handleFileUpload(f, 'payment_proof', uploadingProof);
+                if (f) handleFileUpload(f, 'payment_proof', setUploadingProof);
                 e.target.value = '';
               }}
             />
@@ -198,7 +202,7 @@ export const ContractConfirmations: React.FC<ContractConfirmationsProps> = ({
               className="hidden"
               onChange={e => {
                 const f = e.target.files?.[0];
-                if (f) handleFileUpload(f, 'contract', uploadingContract);
+                if (f) handleFileUpload(f, 'contract', setUploadingContract);
                 e.target.value = '';
               }}
             />

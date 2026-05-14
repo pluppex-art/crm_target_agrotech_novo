@@ -81,13 +81,13 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = (props) => {
     <div className="space-y-6">
       <ProfileHeader formData={formData} whatsappUrl={whatsappUrl} squadInfo={squadInfo} hoverStars={hoverStars} setHoverStars={setHoverStars} handleStarClick={(stars) => updateFormField({ stars })} hasDiscount={hasDiscount} baseValue={baseValue} totalWithFee={totalWithFee} />
       
-      <ContractConfirmations showConfirmations={showConfirmations} isServiceProduct={isServiceProduct} pixCompleted={pixCompleted} onPixComplete={onPixComplete} formData={formData} updateFormField={updateFormField} toggleField={toggleField} enrollmentFee={enrollmentFee} contractSigned={contractSigned} onContractSign={onContractSign} logCall={logCall} removeLastCall={removeLastCall} logging={logging} todayCount={todayCount} proofInputRef={proofInputRef} contractInputRef={contractInputRef} uploadingProof={uploadingProof} uploadingContract={uploadingContract} handleFileUpload={handleFileUpload} handleDeleteFile={handleDeleteFile} ALLOWED_EXT={ALLOWED_EXT} />
+      <ContractConfirmations showConfirmations={showConfirmations} isServiceProduct={isServiceProduct} pixCompleted={pixCompleted} onPixComplete={onPixComplete} formData={formData} updateFormField={updateFormField} toggleField={toggleField} enrollmentFee={enrollmentFee} contractSigned={contractSigned} onContractSign={onContractSign} logCall={logCall} removeLastCall={removeLastCall} logging={logging} todayCount={todayCount} proofInputRef={proofInputRef} contractInputRef={contractInputRef} uploadingProof={uploadingProof} setUploadingProof={setUploadingProof} uploadingContract={uploadingContract} setUploadingContract={setUploadingContract} handleFileUpload={handleFileUpload} handleDeleteFile={handleDeleteFile} ALLOWED_EXT={ALLOWED_EXT} />
 
       <LeadBasicFields formData={formData} updateFormField={updateFormField} fieldErrors={fieldErrors} />
 
       <LeadSalesFields formData={formData} updateFormField={updateFormField} toggleField={toggleField} responsibles={responsibles} getSquadInfoForUser={getSquadInfoForUser} profiles={profiles} products={products} centroCustos={centroCustos} currentProduct={currentProduct} />
 
-      <LeadDocumentationFields formData={formData} updateFormField={updateFormField} rgInputRef={rgInputRef} profileInputRef={profileInputRef} uploadingRG={uploadingRG} uploadingProfile={uploadingProfile} handleFileUpload={handleFileUpload} handleDeleteFile={handleDeleteFile} ALLOWED_EXT={ALLOWED_EXT} />
+      <LeadDocumentationFields formData={formData} updateFormField={updateFormField} rgInputRef={rgInputRef} profileInputRef={profileInputRef} uploadingRG={uploadingRG} setUploadingRG={setUploadingRG} uploadingProfile={uploadingProfile} setUploadingProfile={setUploadingProfile} handleFileUpload={handleFileUpload} handleDeleteFile={handleDeleteFile} ALLOWED_EXT={ALLOWED_EXT} />
 
       <DiscountSection formData={formData} updateFormField={updateFormField} toggleField={toggleField} lead={lead} />
 

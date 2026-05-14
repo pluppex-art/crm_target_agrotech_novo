@@ -8,8 +8,10 @@ interface LeadDocumentationFieldsProps {
   rgInputRef: React.RefObject<HTMLInputElement>;
   profileInputRef: React.RefObject<HTMLInputElement>;
   uploadingRG: boolean;
+  setUploadingRG: (v: boolean) => void;
   uploadingProfile: boolean;
-  handleFileUpload: (file: File, type: any, setLoading: any) => void;
+  setUploadingProfile: (v: boolean) => void;
+  handleFileUpload: (file: File, type: any, setLoading: (v: boolean) => void) => void;
   handleDeleteFile: (type: any) => void;
   ALLOWED_EXT: string;
 }
@@ -20,7 +22,9 @@ export const LeadDocumentationFields: React.FC<LeadDocumentationFieldsProps> = (
   rgInputRef,
   profileInputRef,
   uploadingRG,
+  setUploadingRG,
   uploadingProfile,
+  setUploadingProfile,
   handleFileUpload,
   handleDeleteFile,
   ALLOWED_EXT
@@ -76,7 +80,7 @@ export const LeadDocumentationFields: React.FC<LeadDocumentationFieldsProps> = (
                 className="hidden"
                 onChange={e => {
                   const f = e.target.files?.[0];
-                  if (f) handleFileUpload(f, 'rg_photo', uploadingRG);
+                  if (f) handleFileUpload(f, 'rg_photo', setUploadingRG);
                   e.target.value = '';
                 }}
               />
@@ -110,7 +114,7 @@ export const LeadDocumentationFields: React.FC<LeadDocumentationFieldsProps> = (
                 className="hidden"
                 onChange={e => {
                   const f = e.target.files?.[0];
-                  if (f) handleFileUpload(f, 'profile_photo', uploadingProfile);
+                  if (f) handleFileUpload(f, 'profile_photo', setUploadingProfile);
                   e.target.value = '';
                 }}
               />

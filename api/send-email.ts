@@ -11,7 +11,7 @@ export default async function handler(req: any, res: any) {
 
   const mailersendKey = process.env.MAILERSEND_API_KEY;
   if (!mailersendKey) {
-    return res.status(500).json({ error: 'Configuração do servidor ausente.' });
+    return res.status(500).json({ error: 'MAILERSEND_API_KEY não configurada no servidor.' });
   }
 
   try {
@@ -34,12 +34,18 @@ export default async function handler(req: any, res: any) {
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ status: response.status }));
-      console.error('MailerSend Error:', JSON.stringify(errorData));
-      return res.status(400).json({ error: 'Erro ao enviar e-mail via MailerSend.', details: errorData });
+      const rawText = await response.text();
+      let errorData: any;
+      try { errorData = JSON.parse(rawText); } catch { errorData = rawText; }
+      console.error(`MailerSend ${response.status}:`, JSON.stringify(errorData));
+      return res.status(400).json({
+        error: 'Erro ao enviar e-mail via MailerSend.',
+        status: response.status,
+        details: errorData,
+      });
     }
 
-    return res.status(200).json({ success: true, message: 'E-mail enviado com sucesso.' });
+    return res.status(200).json({ success: true });
   } catch (error: any) {
     console.error('Send Email Error:', error);
     return res.status(500).json({ error: 'Erro interno ao disparar e-mail.' });
