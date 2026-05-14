@@ -326,7 +326,7 @@ async function startServer() {
               <a href="https://crm.targetagrotech.com.br/pipeline" style="display:inline-block;padding:10px 20px;background:#059669;color:white;text-decoration:none;border-radius:5px;">Ver no CRM</a>
             </div>
           `;
-          await fetch('https://api.mailersend.com/v1/email', {
+          const emailRes = await fetch('https://api.mailersend.com/v1/email', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${mailersendKey}` },
             body: JSON.stringify({
@@ -335,7 +335,14 @@ async function startServer() {
               subject: `🔔 Novo Lead: ${name.trim()}`,
               html
             })
-          }).catch(e => console.error('Email error:', e));
+          });
+
+          if (!emailRes.ok) {
+            const errorData = await emailRes.json().catch(() => ({}));
+            console.error('[MailerSend Error] Falha ao enviar notificação:', JSON.stringify(errorData));
+          } else {
+            console.log(`[MailerSend] Notificação enviada para ${sellerProfile.email}`);
+          }
         }
       }
 
