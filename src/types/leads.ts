@@ -34,6 +34,8 @@ export interface Lead {
   last_contact_at?: string | null;
   city?: string | null;
   forma_pagamento?: string | null;
+  taxa_matricula_paid_at?: string | null;
+  valor_recebido_paid_at?: string | null;
   motivo_perda?: string | null;
   cnpj?: string | null;
   // Document fields

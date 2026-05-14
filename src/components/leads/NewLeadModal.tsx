@@ -52,6 +52,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
     responsible: '', responsavel_usuario_id: '', subStatus: 'qualified',
     discount_applied: false, discount: '', discount_type: 'percent',
     pix_completed: false, contract_signed: false, taxa_matricula_recebido: null,
+    taxa_matricula_paid_at: null, valor_recebido_paid_at: null,
     motivo_perda: '', address: '', instagram: '', emergency_contact: '',
     seller_origin: 'target', cost_center: 'cursos', centro_custo_id: '',
     is_minor: false, guardian_name: '', guardian_cpf: '', guardian_phone: '',

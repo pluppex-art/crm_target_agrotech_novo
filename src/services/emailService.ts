@@ -21,14 +21,14 @@ export const emailService = {
 
       return { success: true, data: response.data };
     } catch (error: any) {
+      const status = error.response?.status;
       const detail = error.response?.data;
-      const msg = detail?.error || error.message || 'Falha desconhecida';
-      const isQuota = typeof msg === 'string' && msg.toLowerCase().includes('quota');
-      if (isQuota) {
-        console.warn('[Email] Limite diário do MailerSend atingido — e-mail não enviado.');
-      } else {
-        console.warn('[Email] Falha ao enviar notificação por e-mail:', msg, detail?.details ?? '');
+      if (status === 429 || detail?.error === 'quota_exceeded') {
+        console.warn('[Email] Cota diária do MailerSend atingida — e-mail não enviado.');
+        return { success: false, error: 'quota_exceeded' };
       }
+      const msg = detail?.error || error.message || 'Falha desconhecida';
+      console.warn('[Email] Falha ao enviar notificação por e-mail:', msg, detail?.details ?? '');
       return { success: false, error: msg };
     }
   }

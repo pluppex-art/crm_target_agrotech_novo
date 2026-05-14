@@ -42,6 +42,8 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
     valor_recebido: lead.valor_recebido ?? null,
     forma_pagamento: lead.forma_pagamento || '',
     taxa_matricula_recebido: lead.taxa_matricula_recebido ?? null,
+    taxa_matricula_paid_at: lead.taxa_matricula_paid_at || null,
+    valor_recebido_paid_at: lead.valor_recebido_paid_at || null,
     motivo_perda: lead.motivo_perda || '',
     // Attachments
     payment_proof_url: lead.payment_proof_url ?? null,
@@ -87,6 +89,8 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
       valor_recebido: lead.valor_recebido ?? null,
       forma_pagamento: lead.forma_pagamento || '',
       taxa_matricula_recebido: lead.taxa_matricula_recebido ?? null,
+      taxa_matricula_paid_at: lead.taxa_matricula_paid_at || null,
+      valor_recebido_paid_at: lead.valor_recebido_paid_at || null,
       motivo_perda: lead.motivo_perda || '',
       // Attachments
       payment_proof_url: lead.payment_proof_url ?? null,
@@ -216,6 +220,10 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
         valor_recebido: formData.valor_recebido ?? undefined,
         forma_pagamento: formData.forma_pagamento || undefined,
         taxa_matricula_recebido: formData.taxa_matricula_recebido ?? undefined,
+        taxa_matricula_paid_at: formData.taxa_matricula_paid_at || undefined,
+        valor_recebido_paid_at: formData.valor_recebido_paid_at || undefined,
+        payment_proof_url: formData.payment_proof_url || undefined,
+        contract_url: formData.contract_url || undefined,
         professor_proof_url: formData.professor_proof_url ?? undefined,
         address: formData.address || undefined,
         instagram: formData.instagram || undefined,

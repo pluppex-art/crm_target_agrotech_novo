@@ -193,8 +193,12 @@ async function startServer() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('[DEBUG] Erro no MailerSend (send-email):', JSON.stringify(errorData));
-        return res.status(400).json({ error: "Erro ao enviar e-mail via MailerSend.", status: response.status, details: errorData });
+        if (response.status === 429) {
+          console.warn('[MailerSend] Cota diária atingida — e-mail não enviado.');
+          return res.status(429).json({ error: 'quota_exceeded', message: errorData.message ?? 'Daily quota exceeded' });
+        }
+        console.error('[MailerSend] Erro ao enviar e-mail:', JSON.stringify(errorData));
+        return res.status(400).json({ error: 'Erro ao enviar e-mail via MailerSend.', details: errorData });
       }
 
       return res.json({ success: true });
