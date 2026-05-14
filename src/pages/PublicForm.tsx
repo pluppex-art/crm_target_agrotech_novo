@@ -200,7 +200,7 @@ export function PublicForm() {
     setSubmitting(true);
     setError(null);
     try {
-      const productValue = data.product ? (productPrices[data.product] ?? 0) : 0;
+      const productValue = data.interest ? (productPrices[data.interest] ?? 0) : 0;
       const notes = data.interest ? `Interesse principal: ${data.interest}` : '';
 
       const resp = await fetch('/api/submit-lead', {

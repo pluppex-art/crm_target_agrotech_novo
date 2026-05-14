@@ -207,6 +207,150 @@ async function startServer() {
     }
   });
 
+  app.post("/api/submit-lead", async (req, res) => {
+    const { name, email, phone, city, product, value, interest, notes: extraNotes } = req.body ?? {};
+
+    if (!name || !email || !phone) {
+      return res.status(400).json({ error: 'Campos obrigatórios: Nome, E-mail e Telefone.' });
+    }
+
+    try {
+      const supabase = getSupabaseAdmin() as any;
+      const PIPELINE_ID = '31f2fdbb-7b19-4973-8f70-7bb629697f11';
+      const STAGE_ID = '36f5f922-ac1d-4742-a2b5-43a9af25b37d';
+
+      // 1. Round Robin
+      const { data: vendedorCargos } = await supabase
+        .from('cargos')
+        .select('id')
+        .or('name.ilike.%vendedor%,name.ilike.%consultor%');
+
+      const vendedorCargoIds = (vendedorCargos || []).map((c: any) => c.id);
+
+      const { data: sellers } = await supabase
+        .from('perfis')
+        .select('name, phone')
+        .eq('department', 'Comercial')
+        .or('status.eq.active,status.is.null')
+        .neq('in_round_robin', false)
+        .in('role_id', vendedorCargoIds.length > 0 ? vendedorCargoIds : ['']);
+
+      const validSellers = (sellers || []).sort((a: any, b: any) =>
+        a.name.trim().localeCompare(b.name.trim(), 'pt-BR', { sensitivity: 'base' })
+      );
+
+      let assignedResponsible = null;
+      let assignedPhone = null;
+
+      if (validSellers.length > 0) {
+        const { data: rrState } = await supabase
+          .from('round_robin_state')
+          .select('last_seller_name')
+          .eq('id', 'form_leads')
+          .single();
+
+        let lastResp: string | null = rrState?.last_seller_name?.trim() ?? null;
+
+        if (!lastResp) {
+          const { data: lastLead } = await supabase
+            .from('leads')
+            .select('responsible')
+            .in('responsible', validSellers.map((s: any) => s.name))
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          lastResp = lastLead?.responsible?.trim() ?? null;
+        }
+
+        const lastIndex = lastResp ? validSellers.findIndex((s: any) => s.name.trim() === lastResp) : -1;
+        const nextIndex = (lastIndex + 1) % validSellers.length;
+        assignedResponsible = validSellers[nextIndex].name;
+        assignedPhone = validSellers[nextIndex].phone;
+      }
+
+      // 2. Insert Lead
+      const notesContent = [
+        interest ? `Área de Interesse: ${interest}` : null,
+        extraNotes ? `Notas: ${extraNotes}` : null
+      ].filter(Boolean).join('\n');
+
+      const { data: leadData, error: leadError } = await supabase
+        .from('leads')
+        .insert([{
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          phone: phone.trim(),
+          city: city?.trim() ?? null,
+          product: product?.trim() ?? null,
+          pipeline_id: PIPELINE_ID,
+          stage_id: STAGE_ID,
+          status: 'new',
+          responsible: assignedResponsible,
+          stars: 1,
+          value: Number(value) || 0,
+          substatus: 'qualified',
+          photo: `https://ui-avatars.com/api/?name=${encodeURIComponent(name.trim())}&background=059669&color=fff&size=128`,
+          cost_center: 'cursos'
+        }])
+        .select()
+        .single();
+
+      if (leadError) throw leadError;
+
+      // 3. Update RR State
+      if (assignedResponsible) {
+        await supabase
+          .from('round_robin_state')
+          .upsert({ id: 'form_leads', last_seller_name: assignedResponsible, updated_at: new Date().toISOString() });
+      }
+
+      // 4. Email Notification
+      const mailersendKey = process.env.MAILERSEND_API_KEY;
+      if (assignedResponsible && mailersendKey) {
+        const { data: sellerProfile } = await supabase
+          .from('perfis')
+          .select('email, name')
+          .eq('name', assignedResponsible)
+          .maybeSingle();
+
+        if (sellerProfile?.email) {
+          const html = `
+            <div style="font-family:sans-serif;padding:20px;border:1px solid #eee;border-radius:10px;">
+              <h2 style="color:#059669;">🔔 NOVO LEAD CHEGOU!</h2>
+              <p>Olá <b>${sellerProfile.name}</b>, um novo lead acabou de entrar no seu funil:</p>
+              <ul>
+                <li><b>Nome:</b> ${name.trim()}</li>
+                <li><b>Produto:</b> ${product || 'Interesse Geral'}</li>
+                <li><b>Origem:</b> Formulário Público</li>
+              </ul>
+              <a href="https://crm.targetagrotech.com.br/pipeline" style="display:inline-block;padding:10px 20px;background:#059669;color:white;text-decoration:none;border-radius:5px;">Ver no CRM</a>
+            </div>
+          `;
+          await fetch('https://api.mailersend.com/v1/email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${mailersendKey}` },
+            body: JSON.stringify({
+              from: { email: 'crm@notificacoes.targetagrotech.com.br', name: 'Target Agrotech' },
+              to: [{ email: sellerProfile.email }],
+              subject: `🔔 Novo Lead: ${name.trim()}`,
+              html
+            })
+          }).catch(e => console.error('Email error:', e));
+        }
+      }
+
+      // 5. Create Note
+      if (notesContent && leadData) {
+        await supabase.from('notes').insert([{ content: notesContent, lead_id: leadData.id, author_name: 'Sistema' }]);
+      }
+
+      return res.json({ success: true, id: leadData?.id, responsibleName: assignedResponsible, responsiblePhone: assignedPhone });
+    } catch (err: any) {
+      console.error('Submit lead error:', err);
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
   app.get("/api/leads", (req, res) => {
     res.json({ message: "Leads API ready" });
   });
