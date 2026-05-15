@@ -7,6 +7,7 @@ import { useProfileStore } from '../store/useProfileStore';
 import { useTurmaStore } from '../store/useTurmaStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { usePipelineStore } from '../store/usePipelineStore';
+import { useSquadStore } from '../store/useSquadStore';
 import { goalService } from '../services/goalService';
 import { isVendedor } from '../lib/utils';
 
@@ -110,6 +111,7 @@ export function Dashboard() {
   const { fetchTurmas } = useTurmaStore();
   const { user: currentUser } = useAuthStore();
   const { fetchPipelines } = usePipelineStore();
+  const { fetchSquads, getSquadInfoForUser } = useSquadStore();
 
   const [goals, setGoals] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -171,6 +173,7 @@ export function Dashboard() {
     fetchProfiles();
     fetchTurmas();
     fetchPipelines();
+    fetchSquads();
     const goalsData = await goalService.getGoals();
     setGoals(goalsData);
   }, [fetchLeads, fetchTransactions, fetchProfiles, fetchTurmas, fetchPipelines]);
@@ -396,13 +399,17 @@ export function Dashboard() {
                 <HorizontalBar
                   key={s.label}
                   label={s.label}
+                  squad={(() => {
+                    const p = profiles.find(pr => (pr.name || '').trim() === s.label.trim());
+                    return getSquadInfoForUser(p?.id || '', s.label, profiles);
+                  })()}
                   value={s.value}
                   received={s.count}
                   max={s.leads_goal}
                   percentage={s.percentage}
                   rank={i}
                   count={s.count}
-                  color={i === 0 ? 'bg-emerald-500' : i === 1 ? 'bg-blue-400' : i === 2 ? 'bg-amber-400' : i === 3 ? 'bg-rose-400' : 'bg-slate-300'}
+                  color={i === 0 ? 'bg-emerald-500' : i === 1 ? 'bg-blue-500' : i === 2 ? 'bg-amber-500' : i === 3 ? 'bg-violet-500' : 'bg-slate-400'}
                 />
               ))}
 
@@ -410,12 +417,29 @@ export function Dashboard() {
                 <div className="pt-4 mt-6 border-t border-slate-100">
                   <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Outros Ganhos</h4>
                   <div className="space-y-2">
-                    {salesMetrics.otherSellersRanking.map(s => (
-                      <div key={s.label} className="flex items-center justify-between text-sm">
-                        <span className="text-slate-600 font-medium">{s.label}</span>
-                        <span className="text-slate-500 bg-slate-50 px-2.5 py-1 rounded-md border border-slate-100">{s.count} {s.count === 1 ? 'ganho' : 'ganhos'}</span>
-                      </div>
-                    ))}
+                    {salesMetrics.otherSellersRanking.map(s => {
+                      const sq = (() => {
+                        const p = profiles.find(pr => (pr.name || '').trim() === s.label.trim());
+                        return getSquadInfoForUser(p?.id || '', s.label, profiles);
+                      })();
+                      return (
+                        <div key={s.label} className="flex items-center justify-between text-sm py-1.5 border-b border-slate-50 last:border-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-700 font-bold">{s.label}</span>
+                            <span 
+                              className="text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider"
+                              style={{ 
+                                backgroundColor: sq.name.toUpperCase() === 'PLUPPEX' ? '#f5f3ff' : '#f0fdf4',
+                                color: sq.name.toUpperCase() === 'PLUPPEX' ? '#7c3aed' : '#16a34a'
+                              }}
+                            >
+                              {sq.name}
+                            </span>
+                          </div>
+                          <span className="text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100 text-[10px] font-bold">{s.count} {s.count === 1 ? 'ganho' : 'ganhos'}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}

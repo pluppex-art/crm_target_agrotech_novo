@@ -5,13 +5,14 @@ interface HorizontalBarProps {
   value: number;
   received: number;
   max: number;
-  percentage: number; // pre-computed fallback when max=0
+  percentage: number;
   color: string;
   rank: number;
   count?: number;
+  squad?: { name: string; color: string };
 }
 
-export function HorizontalBar({ label, received, max, percentage: precomputedPct, color, rank, count }: HorizontalBarProps) {
+export function HorizontalBar({ label, received, max, percentage: precomputedPct, color, rank, count, squad }: HorizontalBarProps) {
   const pct = (max > 0 && received > 0) ? Math.min((received / max) * 100, 100) : precomputedPct;
   const barWidth = pct > 0 ? Math.max(pct, 6) : 0;
   const medal = rank === 0 ? '🥇' : rank === 1 ? '🥈' : rank === 2 ? '🥉' : `${rank + 1}º`;
@@ -19,10 +20,23 @@ export function HorizontalBar({ label, received, max, percentage: precomputedPct
 
   return (
     <div className="group">
-      <div className="flex items-center justify-between mb-1">
+      <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-2 min-w-0 flex-1 mr-2">
-          <span className="text-sm shrink-0">{medal}</span>
-          <span className="text-sm font-semibold text-slate-700 truncate">{label}</span>
+          <span className="text-sm shrink-0 font-bold text-slate-400 w-6">{medal}</span>
+          <div className="flex items-center gap-2 truncate">
+            <span className="text-sm font-bold text-slate-800 truncate">{label}</span>
+            {squad && (
+              <span 
+                className="text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider shrink-0"
+                style={{ 
+                  backgroundColor: squad.name.toUpperCase() === 'PLUPPEX' ? '#f5f3ff' : '#f0fdf4',
+                  color: squad.name.toUpperCase() === 'PLUPPEX' ? '#7c3aed' : '#16a34a'
+                }}
+              >
+                {squad.name}
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {count !== undefined && (
