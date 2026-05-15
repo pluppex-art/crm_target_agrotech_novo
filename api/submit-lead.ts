@@ -150,6 +150,8 @@ export default async function handler(req: any, res: any) {
               <div style="background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:24px;margin-bottom:24px;">
                 <table style="width:100%;border-collapse:collapse;">
                   <tr><td style="padding-bottom:12px;color:#64748b;font-size:12px;font-weight:700;text-transform:uppercase;">Nome do Lead</td><td style="padding-bottom:12px;color:#1e293b;font-size:14px;font-weight:700;text-align:right;">${name.trim()}</td></tr>
+                  <tr><td style="padding-bottom:12px;color:#64748b;font-size:12px;font-weight:700;text-transform:uppercase;">Telefone</td><td style="padding-bottom:12px;color:#1e293b;font-size:14px;font-weight:700;text-align:right;">${phone.trim()}</td></tr>
+                  <tr><td style="padding-bottom:12px;color:#64748b;font-size:12px;font-weight:700;text-transform:uppercase;">E-mail</td><td style="padding-bottom:12px;color:#1e293b;font-size:14px;font-weight:700;text-align:right;">${email.trim().toLowerCase()}</td></tr>
                   <tr><td style="padding-bottom:12px;color:#64748b;font-size:12px;font-weight:700;text-transform:uppercase;">Interesse</td><td style="padding-bottom:12px;color:#1e293b;font-size:14px;font-weight:700;text-align:right;">${prodName}</td></tr>
                   <tr><td style="padding-bottom:0;color:#64748b;font-size:12px;font-weight:700;text-transform:uppercase;">Origem</td><td style="padding-bottom:0;color:#1e293b;font-size:14px;font-weight:700;text-align:right;">Formulário Público</td></tr>
                 </table>
