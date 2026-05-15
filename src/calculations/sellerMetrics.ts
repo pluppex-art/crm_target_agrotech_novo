@@ -112,33 +112,44 @@ export function calcSalesByResponsible(
     // 1. Data da Venda (Contagem)
     const winDate = isClosed ? (l.won_at || l.created_at) : l.created_at;
     const cWinDate = new Date(winDate);
+    // Normalize to local date by adding offset if needed or just comparing YYYY-MM-DD
     const inWinRange = (!start || cWinDate >= start) && (!end || cWinDate <= end);
 
-    if (inWinRange && isClosed) {
+    const stageName = l.stage_id ? 
+      pipelines.flatMap(p => p.stages).find(s => s.id === l.stage_id)?.name || '' : 
+      l.status || '';
+
+    // Para o Ranking (count), usamos APENAS o status 'Ganho' para evitar inflar com turmas de meses anteriores
+    const isStrictlyWon = l.status === 'Ganho' || stageName.toLowerCase().includes('ganho');
+    if (isStrictlyWon && inWinRange) {
       result[lowerKey].count += 1;
-      // Meta (Valor esperado) segue a data da venda
       result[lowerKey].value += getLeadEffectiveValue(l as any);
     }
 
     // 2. Receita Fatiada (Semáforo)
+    const tInfo = leadToTurma[l.id];
+    const attendee = tInfo?.attendee;
+    const feeVal = Number(attendee?.taxa_matricula_recebido || l.taxa_matricula_recebido || 0);
+    const feePaidAt = attendee?.taxa_matricula_paid_at || l.taxa_matricula_paid_at;
+
     // A) Taxa de Matrícula: Mês do pagamento (ou mês da venda se não houver data da taxa)
-    if (l.taxa_matricula_recebido) {
-      const tDate = l.taxa_matricula_paid_at ? new Date(l.taxa_matricula_paid_at) : cWinDate;
+    if (feeVal > 0) {
+      const tDate = feePaidAt ? new Date(feePaidAt) : cWinDate;
       if ((!start || tDate >= start) && (!end || tDate <= end)) {
-        result[lowerKey].received += Number(l.taxa_matricula_recebido);
+        result[lowerKey].received += feeVal;
       }
     }
 
     // B) Valor Restante: Mês da Conclusão ou da Turma
     if (isClosed) {
-      const totalPaid = financialCalculator.getPaidAmount(l as any, products);
-      const feePaid = Number(l.taxa_matricula_recebido || 0);
-      const remaining = Math.max(0, totalPaid - feePaid);
+      const valorRecebido = Number(attendee?.valor_recebido || l.valor_recebido || 0);
+      const remaining = valorRecebido;
 
       if (remaining > 0) {
         // Prioridade: Data da Turma -> Data do Ganho -> Data de Criação
-        const tInfo = leadToTurma[l.id];
-        const conclusionDate = tInfo?.date ? new Date(tInfo.date) : (winDate ? new Date(winDate) : cWinDate);
+        // Add time to avoid UTC-3 shift to previous day
+        const conclusionDateStr = tInfo?.date ? `${tInfo.date}T12:00:00` : (winDate || l.created_at);
+        const conclusionDate = new Date(conclusionDateStr);
 
         if ((!start || conclusionDate >= start) && (!end || conclusionDate <= end)) {
           result[lowerKey].received += remaining;

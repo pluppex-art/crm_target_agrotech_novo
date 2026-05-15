@@ -133,12 +133,17 @@ export function useSalesMetrics({
         const wDate = l.won_at ? new Date(l.won_at) : null;
         const tDate = l.taxa_matricula_paid_at ? new Date(l.taxa_matricula_paid_at) : null;
 
+        // B) Valor Restante (Turma)
+        const tInfo = leadToTurma[l.id];
+        const conclusionDateStr = tInfo?.date ? `${tInfo.date}T12:00:00` : (l.won_at || l.created_at);
+        const conclusionDate = new Date(conclusionDateStr);
+
         const inCreatedRange = (!s || cDate >= s) && (!e || cDate <= e);
         const inWonRange = wDate && (!s || wDate >= s) && (!e || wDate <= e);
         const inTaxaRange = tDate && (!s || tDate >= s) && (!e || tDate <= e);
+        const inTurmaRange = conclusionDate && (!s || conclusionDate >= s) && (!e || conclusionDate <= e);
 
-        // O lead entra no filtro se qualquer evento relevante (criação, taxa ou ganho) caiu no período
-        return inCreatedRange || inWonRange || inTaxaRange;
+        return inCreatedRange || inWonRange || inTaxaRange || inTurmaRange;
       });
     }
     if (searchTerm) {
@@ -177,31 +182,33 @@ export function useSalesMetrics({
       const inWonRange = wDate && (!s || wDate >= s) && (!e || wDate <= e);
 
       // 1. Contagem e Valor de Venda (Expectativa)
-      if (isWon && inWonRange) {
+      // Para o Ranking, usamos APENAS o status 'Ganho' para evitar inflar com turmas de meses anteriores
+      const isStrictlyWon = l.status === 'Ganho' || stageName.toLowerCase().includes('ganho');
+      if (isStrictlyWon && inWonRange) {
         closed.push(l);
         salesValue += getLeadEffectiveValue(l as any);
       }
 
       // 2. Receita Real (Fatiada)
+      const tInfo = leadToTurma[l.id];
+      const attendee = tInfo?.attendee;
+      const feeVal = Number(attendee?.taxa_matricula_recebido || l.taxa_matricula_recebido || 0);
+      const feePaidAt = attendee?.taxa_matricula_paid_at || l.taxa_matricula_paid_at;
+
       // A) Taxa
-      if (l.taxa_matricula_recebido) {
-        const tDate = l.taxa_matricula_paid_at ? new Date(l.taxa_matricula_paid_at) : (wDate || cDate);
+      if (feeVal > 0) {
+        const tDate = feePaidAt ? new Date(feePaidAt) : (wDate || cDate);
         if ((!s || tDate >= s) && (!e || tDate <= e)) {
-          receivedValue += Number(l.taxa_matricula_recebido);
+          receivedValue += feeVal;
         }
       }
 
-      // B) Valor Restante: Mês da Conclusão ou da Turma
+      // B) Turma
       if (isWon) {
-        const totalPaid = financialCalculator.getPaidAmount(l as any, products);
-        const feePaid = Number(l.taxa_matricula_recebido || 0);
-        const remaining = Math.max(0, totalPaid - feePaid);
-
+        const remaining = Number(attendee?.valor_recebido || l.valor_recebido || 0);
         if (remaining > 0) {
-          // Prioridade: Data da Turma -> Data do Ganho -> Data de Criação
-          const tInfo = leadToTurma[l.id];
-          const conclusionDate = tInfo?.date ? new Date(tInfo.date) : (wDate || cDate);
-          
+          const conclusionDateStr = tInfo?.date ? `${tInfo.date}T12:00:00` : (l.won_at || l.created_at);
+          const conclusionDate = new Date(conclusionDateStr);
           if ((!s || conclusionDate >= s) && (!e || conclusionDate <= e)) {
             receivedValue += remaining;
           }
@@ -214,7 +221,7 @@ export function useSalesMetrics({
       totalReceivedValue: receivedValue,
       closedLeadsFiltered: closed
     };
-  }, [filteredLeads, stageMap, startDate, endDate, products]);
+  }, [filteredLeads, stageMap, startDate, endDate, products, leadToTurma]);
 
   const closedLeadsCount = closedLeadsFiltered.length;
   const conversionRate = calcConversionRate(closedLeadsCount, filteredLeads.length);

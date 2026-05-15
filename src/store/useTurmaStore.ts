@@ -137,6 +137,8 @@ export const useTurmaStore = create<TurmaState>((set, get) => ({
                 name: e.name ?? '', photo: e.photo ?? `https://i.pravatar.cc/150?u=${e.id}`,
                 responsible: e.responsible ?? '', status: e.board_status ?? 'matriculado',
                 vendas: Number(e.vendas) || 0, valor_recebido: e.valor_recebido ?? null,
+                taxa_matricula_recebido: e.taxa_matricula_recebido ?? null,
+                taxa_matricula_paid_at: e.taxa_matricula_paid_at ?? null,
                 forma_pagamento: e.forma_pagamento ?? null,
               };
               return { ...t, attendees: [...t.attendees, attendee] };
@@ -152,6 +154,8 @@ export const useTurmaStore = create<TurmaState>((set, get) => ({
                   status: e.board_status ?? a.status,
                   vendas: Number(e.vendas) || a.vendas,
                   valor_recebido: e.valor_recebido ?? a.valor_recebido,
+                  taxa_matricula_recebido: e.taxa_matricula_recebido ?? a.taxa_matricula_recebido,
+                  taxa_matricula_paid_at: e.taxa_matricula_paid_at ?? a.taxa_matricula_paid_at,
                   forma_pagamento: e.forma_pagamento ?? a.forma_pagamento,
                 } : a),
               };

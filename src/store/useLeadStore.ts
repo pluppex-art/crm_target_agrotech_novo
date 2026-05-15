@@ -99,7 +99,8 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
         .from('leads')
         .update({ 
           stage_id: stageId,
-          ...(targetPipelineId ? { pipeline_id: targetPipelineId } : {})
+          ...(targetPipelineId ? { pipeline_id: targetPipelineId } : {}),
+          ...(isGanhoStage ? { won_at: new Date().toISOString() } : {})
         })
         .eq('id', leadId);
 
