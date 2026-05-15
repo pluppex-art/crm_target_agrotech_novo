@@ -38,7 +38,10 @@ export const usePipelineAlerts = (leads: Lead[], tasks: Task[] = []) => {
     // Notify admins/coordinators only the first time a lead crosses the transfer threshold
     const sentAlerts = getSentAlerts();
     for (const lead of toTransfer) {
-      if (!sentAlerts[lead.id]?.h48) {
+      // Use a session-level global to prevent same-tab race conditions
+      const sessionKey = `transfer_notified_${lead.id}`;
+      if (!(window as any)[sessionKey] && !sentAlerts[lead.id]?.h48) {
+        (window as any)[sessionKey] = true;
         notifyLeadTransferred(lead, lead.responsible || '', profiles);
       }
     }

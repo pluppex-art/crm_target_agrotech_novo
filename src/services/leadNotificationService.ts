@@ -126,6 +126,8 @@ export async function notifyLeadTransferred(
     });
   }
 
+  /* 
+  E-mail desativado temporariamente para evitar spam no Resend
   if (newResponsible && newResponsible.email) {
     try {
       await emailService.sendEmail({
@@ -137,6 +139,7 @@ export async function notifyLeadTransferred(
       console.warn('[Notification] Falha ao enviar e-mail de transferência automática:', err);
     }
   }
+  */
 }
 
 export async function notifyLeadManualTransfer(
