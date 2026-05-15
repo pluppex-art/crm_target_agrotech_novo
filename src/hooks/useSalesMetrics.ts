@@ -220,12 +220,46 @@ export function useSalesMetrics({
   const pipelineStages = useMemo(() => {
     const pipeline = pipelines[0];
     if (pipeline?.stages?.length) {
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      
       const countMap: Record<string, number> = {};
       const firstStageId = pipeline.stages[0]?.id;
-      filteredLeads.forEach((l: any) => {
-        const id = l.stage_id || firstStageId;
-        if (id) countMap[id] = (countMap[id] || 0) + 1;
+
+      // Determine which stages are "Results" stages
+      const isResultStage = (name: string) => {
+        const n = name.toLowerCase();
+        return n.includes('ganho') || n.includes('concluido') || n.includes('concluída');
+      };
+
+      // Process all leads for operational stages, but filter by month for result stages
+      leads.forEach((l: any) => {
+        // Apply basic filters (product, responsible, etc.) but ignore date for operational stages
+        if (filterProduct !== 'all' && l.product !== filterProduct) return;
+        if (filterResponsible !== 'all' && l.responsible !== filterResponsible) return;
+        if (currentSellerName && l.responsible !== currentSellerName) return;
+        if (searchTerm) {
+          const q = searchTerm.toLowerCase();
+          const match = l.name?.toLowerCase().includes(q) || l.product?.toLowerCase().includes(q) || l.responsible?.toLowerCase().includes(q);
+          if (!match) return;
+        }
+
+        const stage = pipeline.stages.find((s: any) => s.id === l.stage_id);
+        const stageName = stage?.name || '';
+        
+        if (isResultStage(stageName)) {
+          // For result stages, only count if it happened this month
+          const date = new Date(l.updated_at || l.created_at);
+          if (date >= startOfMonth) {
+            countMap[l.stage_id] = (countMap[l.stage_id] || 0) + 1;
+          }
+        } else {
+          // For operational stages, count everything currently there
+          const id = l.stage_id || firstStageId;
+          if (id) countMap[id] = (countMap[id] || 0) + 1;
+        }
       });
+
       return [...pipeline.stages]
         .sort((a, b) => a.position - b.position)
         .filter(s => !EXCLUDED_STAGES.has(s.name))

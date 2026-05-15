@@ -1,5 +1,4 @@
 import { supabase } from '../lib/supabase';
-import { isVendedor } from '../lib/utils';
 
 export interface CallTrendPoint { date: string; [userId: string]: number | string; }
 
@@ -106,37 +105,50 @@ export const callService = {
     return this.getTeamRangeStats(start.toISOString(), end.toISOString());
   },
 
-  async getTeamRangeStats(startDate: string, endDate: string): Promise<{ user_id: string; user_name: string; count: number }[]> {
-    const { data: profiles, error: profErr } = await (supabase as any)
-      .from('perfis')
-      .select('id, name, cargos:role_id(name)')
-      .eq('status', 'active');
+  async getTeamRangeStats(startDate: string, endDate: string): Promise<{ user_id: string; user_name: string; count: number; atendidas: number; nao_atendidas: number; isVendedor: boolean }[]> {
+    const [{ data: profiles, error: profErr }, { data: cargosData }] = await Promise.all([
+      (supabase as any).from('perfis').select('id, name, role_id').eq('status', 'active'),
+      (supabase as any).from('cargos').select('id, name'),
+    ]);
     if (profErr) { console.error('callService.getTeamRangeStats profiles:', profErr); return []; }
 
-    const sellers = (profiles || []).filter((p: any) => isVendedor(p));
+    const cargoMap = new Map<string, string>(
+      (cargosData || []).map((c: any) => [c.id, (c.name || '').toLowerCase().trim()])
+    );
 
-    const start = new Date(startDate);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999);
+    const allUsers = profiles || [];
+
+    // Use local-friendly date range to ensure we catch all calls in the user's day
+    const start = new Date(startDate + 'T00:00:00');
+    const end = new Date(endDate + 'T23:59:59');
 
     const { data: logs, error: logErr } = await (supabase as any)
       .from('call_logs')
-      .select('user_id')
+      .select('user_id, type')
       .gte('called_at', start.toISOString())
       .lte('called_at', end.toISOString());
     if (logErr) { console.error('callService.getTeamRangeStats logs:', logErr); }
 
-    const countByUser = new Map<string, number>();
+    const countByUser = new Map<string, { total: number; atendidas: number; nao_atendidas: number }>();
     (logs || []).forEach((l: any) => {
-      countByUser.set(l.user_id, (countByUser.get(l.user_id) ?? 0) + 1);
+      const stats = countByUser.get(l.user_id) || { total: 0, atendidas: 0, nao_atendidas: 0 };
+      stats.total++;
+      if (l.type === 'atendida') stats.atendidas++;
+      else if (l.type === 'nao_atendida') stats.nao_atendidas++;
+      countByUser.set(l.user_id, stats);
     });
 
-    return sellers.map((p: any) => ({
-      user_id: p.id,
-      user_name: p.name || 'Usuário',
-      count: countByUser.get(p.id) ?? 0,
-    }));
+    return allUsers.map((p: any) => {
+      const stats = countByUser.get(p.id) || { total: 0, atendidas: 0, nao_atendidas: 0 };
+      return {
+        user_id: p.id,
+        user_name: p.name || 'Usuário',
+        count: stats.total,
+        atendidas: stats.atendidas,
+        nao_atendidas: stats.nao_atendidas,
+        isVendedor: (cargoMap.get(p.role_id) || '').includes('vendedor'),
+      };
+    });
   },
 
   async getTeamCallsTrend(days = 7): Promise<{ sellers: { id: string; name: string }[]; points: CallTrendPoint[] }> {
@@ -151,8 +163,7 @@ export const callService = {
       .select('id, name, cargos:role_id(name)')
       .eq('status', 'active');
 
-    const sellerProfiles = (profiles || []).filter((p: any) => isVendedor(p));
-    const sellers: { id: string; name: string }[] = sellerProfiles.map((p: any) => ({
+    const sellers: { id: string; name: string }[] = (profiles || []).map((p: any) => ({
       id: p.id,
       name: p.name || 'Usuário',
     }));

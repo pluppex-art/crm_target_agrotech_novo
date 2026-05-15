@@ -21,7 +21,6 @@ import { GoalVsIncomeChart } from '../components/dashboard/GoalVsIncomeChart';
 import { ImprovedCSSBarChart } from '../components/dashboard/ImprovedCSSBarChart';
 import { SellerSemaphore } from '../components/dashboard/SellerSemaphore';
 import { CallsSemaphore } from '../components/dashboard/CallsSemaphore';
-import { callService } from '../services/callService';
 
 type OccupancyItem = { name: string; pct: number; level: 'red' | 'yellow' | 'green'; alunos: number; capacity: number; color: string; category: string };
 
@@ -113,7 +112,6 @@ export function Dashboard() {
   const { fetchPipelines } = usePipelineStore();
 
   const [goals, setGoals] = useState<any[]>([]);
-  const [callStats, setCallStats] = useState<{ user_id: string; user_name: string; count: number; goal: number }[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStage, setFilterStage] = useState('all');
   const [filterProduct, setFilterProduct] = useState('all');
@@ -173,36 +171,12 @@ export function Dashboard() {
     fetchProfiles();
     fetchTurmas();
     fetchPipelines();
-    const [goalsData, teamCalls] = await Promise.all([
-      goalService.getGoals(),
-      callService.getTeamTodayStats(),
-    ]);
+    const goalsData = await goalService.getGoals();
     setGoals(goalsData);
-    const sellerGoals = goalsData.filter((g: any) => g.type === 'seller');
-    const companyCallsGoal = goalsData.find((g: any) => g.type === 'company')?.calls_goal ?? 30;
-    setCallStats(teamCalls.map(s => {
-      const sg = sellerGoals.find((g: any) => g.seller_id === s.user_id);
-      return { ...s, goal: sg?.calls_goal ?? companyCallsGoal ?? 30 };
-    }));
   }, [fetchLeads, fetchTransactions, fetchProfiles, fetchTurmas, fetchPipelines]);
 
   useEffect(() => { fetchInitialData(); }, [fetchInitialData]);
 
-  const fetchCallStats = useCallback(async () => {
-    // Always show today's stats for the "Calls of the Day" section
-    const teamCalls = await callService.getTeamTodayStats();
-    const sellerGoals = goals.filter((g: any) => g.type === 'seller');
-    const companyCallsGoal = goals.find((g: any) => g.type === 'company')?.calls_goal ?? 30;
-    
-    setCallStats(teamCalls.map(s => {
-      const sg = sellerGoals.find((g: any) => g.seller_id === s.user_id);
-      return { ...s, goal: sg?.calls_goal ?? companyCallsGoal ?? 30 };
-    }));
-  }, [goals]);
-
-  useEffect(() => {
-    fetchCallStats();
-  }, [fetchCallStats]);
 
   useEffect(() => {
     const unsubLeads = subscribeToLeads();
@@ -514,7 +488,7 @@ export function Dashboard() {
       {/* Ligações Diárias — Comercial */}
       <div className="mb-6">
         <CallsSemaphore
-          sellers={callStats}
+          goals={goals}
           isAdmin={hasPermission('admin.all')}
           currentUserId={currentUser?.id ?? null}
         />
