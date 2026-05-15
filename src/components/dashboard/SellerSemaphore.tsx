@@ -29,7 +29,8 @@ export function SellerSemaphore({ data, currentSellerName, isAdmin, companyReven
 
   const activeSeller = useMemo(() => {
     if (selectedSellerName !== 'Total da Empresa') {
-      return visibleData.find((s) => s.label === selectedSellerName) || visibleData[0];
+      const search = selectedSellerName.trim().toLowerCase();
+      return visibleData.find((s) => s.label.trim().toLowerCase() === search);
     }
     
     // Calculate totals for the company

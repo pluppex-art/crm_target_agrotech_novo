@@ -189,7 +189,7 @@ export function Dashboard() {
   const currentSellerName = useMemo(() => {
     if (!currentUser) return null;
     const sellerProfile = profiles.find(p => p.id === currentUser.id);
-    return sellerProfile?.name || null;
+    return sellerProfile?.name ? sellerProfile.name.trim() : null;
   }, [profiles, currentUser]);
 
   const salesMetrics = useSalesMetrics({
