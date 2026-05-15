@@ -124,9 +124,15 @@ export const usePipelineFilters = (
       (lead.phone && lead.phone.toLowerCase().includes(searchTerm.toLowerCase())) ||
       respName.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesResponsible = selectedResponsible === 'all' ||
-      lead.responsavel_usuario_id === selectedResponsible ||
-      respName.trim().toLowerCase() === selectedResponsible.trim().toLowerCase();
+    let matchesResponsible = true;
+    if (isComercial && authUserId) {
+      matchesResponsible = lead.responsavel_usuario_id === authUserId || 
+                           respName.trim().toLowerCase() === myProfileName?.trim().toLowerCase();
+    } else {
+      matchesResponsible = selectedResponsible === 'all' ||
+        lead.responsavel_usuario_id === selectedResponsible ||
+        respName.trim().toLowerCase() === selectedResponsible.trim().toLowerCase();
+    }
     
     const selectedProductLower = selectedProduct.trim().toLowerCase();
     const leadProductLower = prodName.trim().toLowerCase();
