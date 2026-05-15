@@ -9,8 +9,11 @@ import { emailTemplates } from './emailTemplates';
 
 function findProfile(idOrName: string, profiles: UserProfile[]): UserProfile | undefined {
   if (!idOrName) return undefined;
-  const lower = idOrName.toLowerCase();
-  return profiles.find(p => p.id === idOrName || p.name?.toLowerCase() === lower);
+  const target = idOrName.trim().toLowerCase();
+  return profiles.find(p => 
+    p.id === idOrName.trim() || 
+    (p.name || '').trim().toLowerCase() === target
+  );
 }
 
 function findAdminProfiles(profiles: UserProfile[]): UserProfile[] {
@@ -100,7 +103,7 @@ export async function notifyLeadTransferred(
   }
 
   const admins = findAdminProfiles(profiles);
-  const displayName = newResponsible?.name || newResponsibleName;
+  const displayName = newResponsible?.name || (newResponsibleName.length > 20 ? 'Novo Responsável' : newResponsibleName);
 
   for (const admin of admins) {
     await insertNotificationForUser(admin.id, {

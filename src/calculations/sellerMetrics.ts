@@ -121,8 +121,8 @@ export function calcSalesByResponsible(
       pipelines.flatMap(p => p.stages).find(s => s.id === l.stage_id)?.name || '' : 
       l.status || '';
 
-    // Para o Ranking (count), usamos APENAS o status 'Ganho' para evitar inflar com turmas de meses anteriores
-    const isStrictlyWon = l.status === 'Ganho' || stageName.toLowerCase().includes('ganho');
+    // Para o Ranking (count), usamos APENAS a etapa 'Ganho' do Pipeline
+    const isStrictlyWon = stageName.trim().toLowerCase() === 'ganho';
     if (isStrictlyWon && inWinRange) {
       result[lowerKey].count += 1;
       result[lowerKey].value += getLeadEffectiveValue(l as any);

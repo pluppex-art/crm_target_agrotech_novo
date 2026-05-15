@@ -182,8 +182,8 @@ export function useSalesMetrics({
       const inWonRange = wDate && (!s || wDate >= s) && (!e || wDate <= e);
 
       // 1. Contagem e Valor de Venda (Expectativa)
-      // Para o Ranking, usamos APENAS o status 'Ganho' para evitar inflar com turmas de meses anteriores
-      const isStrictlyWon = l.status === 'Ganho' || stageName.toLowerCase().includes('ganho');
+      // Para o Ranking, usamos APENAS a etapa 'Ganho' do Pipeline
+      const isStrictlyWon = stageName.trim().toLowerCase() === 'ganho';
       if (isStrictlyWon && inWonRange) {
         closed.push(l);
         salesValue += getLeadEffectiveValue(l as any);

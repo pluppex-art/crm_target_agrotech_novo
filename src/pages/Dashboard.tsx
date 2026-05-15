@@ -188,7 +188,7 @@ export function Dashboard() {
 
   const currentSellerName = useMemo(() => {
     if (!currentUser) return null;
-    const sellerProfile = profiles.find(p => isVendedor(p) && p.name === currentUser.user_metadata?.name);
+    const sellerProfile = profiles.find(p => p.id === currentUser.id);
     return sellerProfile?.name || null;
   }, [profiles, currentUser]);
 
