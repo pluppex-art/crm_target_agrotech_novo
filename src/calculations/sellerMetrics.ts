@@ -121,9 +121,13 @@ export function calcSalesByResponsible(
       pipelines.flatMap(p => p.stages).find(s => s.id === l.stage_id)?.name || '' : 
       l.status || '';
 
-    // Para o Ranking (count), usamos APENAS a etapa 'Ganho' do Pipeline
-    const isStrictlyWon = stageName.trim().toLowerCase() === 'ganho';
-    if (isStrictlyWon && inWinRange) {
+    const isStrictlyWon = (l: any) => {
+      if (!l.won_at) return false;
+      const wDate = new Date(l.won_at);
+      return (!start || wDate >= start) && (!end || wDate <= end);
+    };
+
+    if (isStrictlyWon(l)) {
       result[lowerKey].count += 1;
       result[lowerKey].value += getLeadEffectiveValue(l as any);
     }
