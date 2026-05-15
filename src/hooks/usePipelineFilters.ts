@@ -126,12 +126,14 @@ export const usePipelineFilters = (
     
     let matchesResponsible = true;
     if (isComercial && authUserId) {
+      const myName = myProfileName?.trim().toLowerCase();
       matchesResponsible = lead.responsavel_usuario_id === authUserId || 
-                           respName.trim().toLowerCase() === myProfileName?.trim().toLowerCase();
+                           (respName.trim().toLowerCase() === myName && !!myName);
     } else {
+      const search = selectedResponsible.trim().toLowerCase();
       matchesResponsible = selectedResponsible === 'all' ||
         lead.responsavel_usuario_id === selectedResponsible ||
-        respName.trim().toLowerCase() === selectedResponsible.trim().toLowerCase();
+        respName.trim().toLowerCase() === search;
     }
     
     const selectedProductLower = selectedProduct.trim().toLowerCase();

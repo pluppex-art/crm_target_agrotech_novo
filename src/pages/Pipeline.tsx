@@ -72,9 +72,19 @@ export const Pipeline: React.FC = () => {
     if (!authUser?.id || profiles.length === 0) return false;
     const myProfile = profiles.find((p: any) => p.id === authUser.id);
     if (!myProfile) return false;
-    const isAdminRole = myProfile.cargos?.permissions?.includes('admin.all');
-    if (isAdminRole) return false;
-    return myProfile.department?.toLowerCase() === 'comercial';
+
+    const permissions = myProfile.cargos?.permissions || [];
+    const isAdmin = permissions.includes('admin.all');
+    if (isAdmin) return false;
+
+    const dept = (myProfile.department || '').toLowerCase().trim();
+    const cargo = (myProfile.cargos?.name || '').toLowerCase().trim();
+
+    const isVendedorRole = cargo.includes('vendedor');
+    const isComercialDept = dept === 'comercial';
+    
+    // Se for do departamento Comercial ou tiver cargo de Vendedor, visão restrita (só vê os próprios leads)
+    return isVendedorRole || isComercialDept;
   }, [authUser?.id, profiles]);
 
 
