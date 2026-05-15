@@ -143,8 +143,8 @@ export function calcActiveLeads(
       if (!l.name?.toLowerCase().includes(q) && !l.product?.toLowerCase().includes(q) && !l.responsible?.toLowerCase().includes(q)) return false;
     }
     if (filterProduct && filterProduct !== 'all' && l.product !== filterProduct) return false;
-    if (filterResponsible && filterResponsible !== 'all' && l.responsible !== filterResponsible) return false;
-    if (currentSellerName && l.responsible !== currentSellerName) return false;
+    if (filterResponsible && filterResponsible !== 'all' && (l.responsible || '').trim().toLowerCase() !== filterResponsible.trim().toLowerCase()) return false;
+    if (currentSellerName && (l.responsible || '').trim().toLowerCase() !== currentSellerName.trim().toLowerCase()) return false;
 
     const stageName = l.stage_id ? stageMap.get(l.stage_id) : l.status;
     if (!stageName) return true;

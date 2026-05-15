@@ -152,7 +152,7 @@ export function useSalesMetrics({
     }
     if (filterStage !== 'all') result = result.filter(l => l.stage_id === filterStage);
     if (filterProduct !== 'all') result = result.filter(l => l.product === filterProduct);
-    if (filterResponsible !== 'all') result = result.filter(l => l.responsible === filterResponsible);
+    if (filterResponsible !== 'all') result = result.filter(l => (l.responsible || '').trim() === filterResponsible.trim());
 
     // IMPORTANTE: Para o Dashboard Geral, não filtramos por vendedor logado nos cartões de topo,
     // permitindo ver o total da empresa. 
