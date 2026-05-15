@@ -10,5 +10,4 @@ export interface Notification {
   read: boolean;
   link?: string;
   category: 'user' | 'system' | 'alerts';
-  meta?: string;
 }

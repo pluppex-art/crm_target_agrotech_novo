@@ -230,13 +230,7 @@ export async function fireAlerts(
         message: body,
         type: 'urgent',
         category: 'system',
-        link: `/pipeline?lead=${lead.id}`,
-        meta: JSON.stringify({
-          leadId: lead.id,
-          phone: lead.phone,
-          product: prodName,
-          responsible: respName
-        })
+        link: `/pipeline?lead=${lead.id}`
       }, targetUserId);
     }
 
