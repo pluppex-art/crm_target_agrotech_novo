@@ -26,7 +26,7 @@ export interface SalesMetrics {
   totalGanhos: number;
   myGanhos: number;
   teamGanhos: number;
-  totalPago: number;
+  totalReceivedValue: number;
   totalPendente: number;
   leadsCount: number;
   closedLeadsCount: number;
@@ -127,20 +127,18 @@ export function useSalesMetrics({
 
       result = result.filter(l => {
         const stageName = l.stage_id ? stageMap.get(l.stage_id) : '';
-        const isWon = stageNameToStatus(stageName || l.status || '') === 'closed' ||
-                     (l.stage_id && pipelines.some(p => p.stages.some(s => s.id === l.stage_id && stageNameToStatus(s.name) === 'closed')));
-        
-        // Regra de Ouro: Para o ranking e ganhos, usamos EXCLUSIVAMENTE o campo won_at.
-        // Se o lead está ganho mas não tem won_at, ele não aparece no mês atual (evita inflar 79 leads).
-        if (isWon) {
-          const winDate = l.won_at || l.created_at;
-          const d = new Date(winDate);
-          return (!s || d >= s) && (!e || d <= e);
-        }
+        const isWon = stageNameToStatus(stageName || l.status || '') === 'closed';
 
-        // Para leads não-ganhos, usamos a data de criação normal.
-        const d = new Date(l.created_at);
-        return (!s || d >= s) && (!e || d <= e);
+        const cDate = new Date(l.created_at);
+        const wDate = l.won_at ? new Date(l.won_at) : null;
+        const tDate = l.taxa_matricula_paid_at ? new Date(l.taxa_matricula_paid_at) : null;
+
+        const inCreatedRange = (!s || cDate >= s) && (!e || cDate <= e);
+        const inWonRange = wDate && (!s || wDate >= s) && (!e || wDate <= e);
+        const inTaxaRange = tDate && (!s || tDate >= s) && (!e || tDate <= e);
+
+        // O lead entra no filtro se qualquer evento relevante (criação, taxa ou ganho) caiu no período
+        return inCreatedRange || inWonRange || inTaxaRange;
       });
     }
     if (searchTerm) {
@@ -150,25 +148,76 @@ export function useSalesMetrics({
     if (filterStage !== 'all') result = result.filter(l => l.stage_id === filterStage);
     if (filterProduct !== 'all') result = result.filter(l => l.product === filterProduct);
     if (filterResponsible !== 'all') result = result.filter(l => l.responsible === filterResponsible);
-    
+
     // IMPORTANTE: Para o Dashboard Geral, não filtramos por vendedor logado nos cartões de topo,
     // permitindo ver o total da empresa. 
     // Se o usuário selecionou um vendedor no FILTRO, aí sim filtramos.
     if (filterResponsible === 'all' && currentSellerName && false) { // Desativado para mostrar total empresa
-       // result = result.filter(l => l.responsible === currentSellerName);
+      // result = result.filter(l => l.responsible === currentSellerName);
     }
 
     return result;
   }, [leads, searchTerm, filterStage, filterProduct, filterResponsible, startDate, endDate, currentSellerName, stageMap, leadToTurma]);
 
-  const closedLeadsFiltered = useMemo(
-    () => calcClosedLeads(filteredLeads, stageMap),
-    [filteredLeads, stageMap],
-  );
+  const { totalSalesValue, totalReceivedValue, closedLeadsFiltered } = useMemo(() => {
+    let salesValue = 0;
+    let receivedValue = 0;
+    const closed: any[] = [];
+
+    const s = startDate ? new Date(startDate) : null;
+    const e = endDate ? new Date(endDate) : null;
+    if (e) e.setHours(23, 59, 59, 999);
+
+    filteredLeads.forEach(l => {
+      const stageName = l.stage_id ? stageMap.get(l.stage_id) : '';
+      const isWon = stageNameToStatus(stageName || l.status || '') === 'closed';
+
+      const cDate = new Date(l.created_at);
+      const wDate = l.won_at ? new Date(l.won_at) : null;
+      const inWonRange = wDate && (!s || wDate >= s) && (!e || wDate <= e);
+
+      // 1. Contagem e Valor de Venda (Expectativa)
+      if (isWon && inWonRange) {
+        closed.push(l);
+        salesValue += getLeadEffectiveValue(l as any);
+      }
+
+      // 2. Receita Real (Fatiada)
+      // A) Taxa
+      if (l.taxa_matricula_recebido) {
+        const tDate = l.taxa_matricula_paid_at ? new Date(l.taxa_matricula_paid_at) : (wDate || cDate);
+        if ((!s || tDate >= s) && (!e || tDate <= e)) {
+          receivedValue += Number(l.taxa_matricula_recebido);
+        }
+      }
+
+      // B) Valor Restante: Mês da Conclusão ou da Turma
+      if (isWon) {
+        const totalPaid = financialCalculator.getPaidAmount(l as any, products);
+        const feePaid = Number(l.taxa_matricula_recebido || 0);
+        const remaining = Math.max(0, totalPaid - feePaid);
+
+        if (remaining > 0) {
+          // Prioridade: Data da Turma -> Data do Ganho -> Data de Criação
+          const tInfo = leadToTurma[l.id];
+          const conclusionDate = tInfo?.date ? new Date(tInfo.date) : (wDate || cDate);
+          
+          if ((!s || conclusionDate >= s) && (!e || conclusionDate <= e)) {
+            receivedValue += remaining;
+          }
+        }
+      }
+    });
+
+    return {
+      totalSalesValue: salesValue,
+      totalReceivedValue: receivedValue,
+      closedLeadsFiltered: closed
+    };
+  }, [filteredLeads, stageMap, startDate, endDate, products]);
 
   const closedLeadsCount = closedLeadsFiltered.length;
   const conversionRate = calcConversionRate(closedLeadsCount, filteredLeads.length);
-  const totalSalesValue = calcTotalSalesValue(closedLeadsFiltered);
 
   const averageSalesCycle = useMemo(
     () => calcAverageSalesCycle(closedLeadsFiltered),
@@ -362,7 +411,7 @@ export function useSalesMetrics({
     closedLeadsCount, conversionRate, averageSalesCycle, inactiveLeadsCount,
     totalSalesValue, occupancyData, vendedorProfiles,
     allSellersRanking, otherSellersRanking, sellerSemaphoreData,
-    totalPago, totalPendente,
+    totalReceivedValue, totalPendente,
     pipelineStages, funnelStagesWithRates, monthlySales, trendData,
     totalConversionRate, attendeeStages,
     availableProducts, availableResponsibles, activeLeadsCount,

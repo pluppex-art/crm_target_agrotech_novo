@@ -106,20 +106,43 @@ export function calcSalesByResponsible(
       result[lowerKey] = { label: rawKey, value: 0, received: 0, count: 0 };
     }
 
-    // A data da venda agora é baseada estritamente no novo campo won_at.
-    // Se o lead está fechado e tem won_at, usamos essa data.
-    // Caso contrário, usamos a data de criação.
     const isClosed = stageNameToStatus(l.status ?? '') === 'closed' ||
-      (l.stage_id && pipelines.some(p => p.stages.some(s => s.id === l.stage_id && stageNameToStatus(s.name) === 'closed')));
+                    (l.stage_id && pipelines.some(p => p.stages.some(s => s.id === l.stage_id && stageNameToStatus(s.name) === 'closed')));
+    
+    // 1. Data da Venda (Contagem)
+    const winDate = isClosed ? (l.won_at || l.created_at) : l.created_at;
+    const cWinDate = new Date(winDate);
+    const inWinRange = (!start || cWinDate >= start) && (!end || cWinDate <= end);
 
-    const leadDate = isClosed ? (l.won_at ? l.won_at : (l.updated_at || l.created_at)) : l.created_at;
-    const cDate = new Date(leadDate);
+    if (inWinRange && isClosed) {
+      result[lowerKey].count += 1;
+      // Meta (Valor esperado) segue a data da venda
+      result[lowerKey].value += getLeadEffectiveValue(l as any);
+    }
 
-    if ((!start || cDate >= start) && (!end || cDate <= end)) {
-      if (isClosed) {
-        result[lowerKey].count += 1;
-        result[lowerKey].value += getLeadEffectiveValue(l as any);
-        result[lowerKey].received += financialCalculator.getPaidAmount(l as any, products);
+    // 2. Receita Fatiada (Semáforo)
+    // A) Taxa de Matrícula: Mês do pagamento (ou mês da venda se não houver data da taxa)
+    if (l.taxa_matricula_recebido) {
+      const tDate = l.taxa_matricula_paid_at ? new Date(l.taxa_matricula_paid_at) : cWinDate;
+      if ((!start || tDate >= start) && (!end || tDate <= end)) {
+        result[lowerKey].received += Number(l.taxa_matricula_recebido);
+      }
+    }
+
+    // B) Valor Restante: Mês da Conclusão ou da Turma
+    if (isClosed) {
+      const totalPaid = financialCalculator.getPaidAmount(l as any, products);
+      const feePaid = Number(l.taxa_matricula_recebido || 0);
+      const remaining = Math.max(0, totalPaid - feePaid);
+
+      if (remaining > 0) {
+        // Prioridade: Data da Turma -> Data do Ganho -> Data de Criação
+        const tInfo = leadToTurma[l.id];
+        const conclusionDate = tInfo?.date ? new Date(tInfo.date) : (winDate ? new Date(winDate) : cWinDate);
+
+        if ((!start || conclusionDate >= start) && (!end || conclusionDate <= end)) {
+          result[lowerKey].received += remaining;
+        }
       }
     }
   });
