@@ -1,4 +1,4 @@
-export type LeadStatus = 'new' | 'qualified' | 'proposal' | 'closed';
+export type LeadStatus = 'new' | 'qualified' | 'proposal' | 'closed' | 'lost' | 'archived'; // Updated status list
 
 export type LeadSubStatus = string | null;
 
@@ -20,6 +20,7 @@ export interface Lead {
   discount_type?: 'percent' | 'money';
   discount_applied?: boolean;
   product: string | null;
+  won_at?: string | null;
   created_at: string;
   updated_at?: string | null;
   lead_source?: string | null;

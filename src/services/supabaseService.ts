@@ -35,7 +35,7 @@ export const supabaseService = {
       const enrollments = lead.lead_class_enrollments || [];
       // Pegar o enrollment mais recente ou ativo
       const activeEnrollment = enrollments.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
-      
+
       return {
         ...lead,
         discount: activeEnrollment?.discount || '',
@@ -221,7 +221,7 @@ export const supabaseService = {
         financialUpdates.taxa_matricula_paid_at = null;
       }
     }
-    
+
     if (valor_recebido !== undefined) {
       financialUpdates.valor_recebido = valor_recebido;
       // Mesma lógica para o valor principal
@@ -236,7 +236,7 @@ export const supabaseService = {
     if (payment_proof_url !== undefined) financialUpdates.payment_proof_url = payment_proof_url;
     if (contract_url !== undefined) financialUpdates.contract_url = contract_url;
     if (professor_proof_url !== undefined) financialUpdates.professor_proof_url = professor_proof_url;
-    
+
     // Remover campos que não existem na tabela no Supabase para evitar erro 400
     // if (rg_photo_url !== undefined) financialUpdates.rg_photo_url = rg_photo_url;
     // if (profile_photo_url !== undefined) financialUpdates.profile_photo_url = profile_photo_url;
@@ -313,7 +313,7 @@ export const supabaseService = {
         .select('id')
         // Using a pattern match or exact match depending on how phone is stored
         .or(`phone.ilike.%${normalizedPhone}%,phone.eq.${params.phone}`);
-      
+
       if (params.excludeId) {
         query = query.neq('id', params.excludeId);
       }
@@ -329,7 +329,7 @@ export const supabaseService = {
         .from('leads')
         .select('id')
         .ilike('email', params.email.trim());
-      
+
       if (params.excludeId) {
         query = query.neq('id', params.excludeId);
       }
@@ -347,7 +347,7 @@ export const supabaseService = {
           .from('leads')
           .select('id')
           .or(`cpf.ilike.%${normalizedCpf}%,cpf.eq.${params.cpf}`);
-        
+
         if (params.excludeId) {
           query = query.neq('id', params.excludeId);
         }
@@ -366,7 +366,7 @@ export const supabaseService = {
           .from('leads')
           .select('id')
           .or(`cnpj.ilike.%${normalizedCnpj}%,cnpj.eq.${params.cnpj}`);
-        
+
         if (params.excludeId) {
           query = query.neq('id', params.excludeId);
         }

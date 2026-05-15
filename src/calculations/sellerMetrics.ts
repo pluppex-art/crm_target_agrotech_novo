@@ -110,9 +110,9 @@ export function calcSalesByResponsible(
     // Se o lead está fechado e tem won_at, usamos essa data.
     // Caso contrário, usamos a data de criação.
     const isClosed = stageNameToStatus(l.status ?? '') === 'closed' ||
-                    (l.stage_id && pipelines.some(p => p.stages.some(s => s.id === l.stage_id && stageNameToStatus(s.name) === 'closed')));
-    
-    const leadDate = (isClosed && l.won_at) ? l.won_at : l.created_at;
+      (l.stage_id && pipelines.some(p => p.stages.some(s => s.id === l.stage_id && stageNameToStatus(s.name) === 'closed')));
+
+    const leadDate = isClosed ? (l.won_at ? l.won_at : (l.updated_at || l.created_at)) : l.created_at;
     const cDate = new Date(leadDate);
 
     if ((!start || cDate >= start) && (!end || cDate <= end)) {

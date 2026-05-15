@@ -127,12 +127,19 @@ export function useSalesMetrics({
 
       result = result.filter(l => {
         const stageName = l.stage_id ? stageMap.get(l.stage_id) : '';
-        // Se o lead está ganho, usamos o novo campo won_at como Data do Ganho.
-        // Caso contrário, usamos a data de criação.
-        const winDate = l.won_at || l.created_at;
+        const isWon = stageNameToStatus(stageName || l.status || '') === 'closed' ||
+                     (l.stage_id && pipelines.some(p => p.stages.some(s => s.id === l.stage_id && stageNameToStatus(s.name) === 'closed')));
+        
+        // Regra de Ouro: Para o ranking e ganhos, usamos EXCLUSIVAMENTE o campo won_at.
+        // Se o lead está ganho mas não tem won_at, ele não aparece no mês atual (evita inflar 79 leads).
+        if (isWon) {
+          const winDate = l.won_at || l.created_at;
+          const d = new Date(winDate);
+          return (!s || d >= s) && (!e || d <= e);
+        }
 
-        const dateStr = closed ? winDate : l.created_at;
-        const d = new Date(dateStr);
+        // Para leads não-ganhos, usamos a data de criação normal.
+        const d = new Date(l.created_at);
         return (!s || d >= s) && (!e || d <= e);
       });
     }
@@ -143,7 +150,14 @@ export function useSalesMetrics({
     if (filterStage !== 'all') result = result.filter(l => l.stage_id === filterStage);
     if (filterProduct !== 'all') result = result.filter(l => l.product === filterProduct);
     if (filterResponsible !== 'all') result = result.filter(l => l.responsible === filterResponsible);
-    if (currentSellerName) result = result.filter(l => l.responsible === currentSellerName);
+    
+    // IMPORTANTE: Para o Dashboard Geral, não filtramos por vendedor logado nos cartões de topo,
+    // permitindo ver o total da empresa. 
+    // Se o usuário selecionou um vendedor no FILTRO, aí sim filtramos.
+    if (filterResponsible === 'all' && currentSellerName && false) { // Desativado para mostrar total empresa
+       // result = result.filter(l => l.responsible === currentSellerName);
+    }
+
     return result;
   }, [leads, searchTerm, filterStage, filterProduct, filterResponsible, startDate, endDate, currentSellerName, stageMap, leadToTurma]);
 

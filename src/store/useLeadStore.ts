@@ -109,11 +109,23 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
       }
 
       if (isGanhoStage) {
-        // Se a etapa é de Ganho/Conclusão, atualiza o status para 'closed' no Supabase também
-        await supabaseService.updateLeadStatus(leadId, 'closed');
+        // Se a etapa é de Ganho/Conclusão, atualiza o status para 'closed' e grava a data do ganho
+        const won_at = new Date().toISOString();
+        await supabaseService.updateLead(leadId, { status: 'closed', won_at } as any);
         set((state) => ({
-          leads: state.leads.map(l => l.id === leadId ? { ...l, status: 'closed' as LeadStatus } : l)
+          leads: state.leads.map(l => l.id === leadId ? { ...l, status: 'closed' as LeadStatus, won_at } as Lead : l),
+          selectedLead: state.selectedLead?.id === leadId ? { ...state.selectedLead, status: 'closed' as LeadStatus, won_at } as Lead : state.selectedLead
         }));
+      } else {
+        // Se saiu de uma etapa de ganho, limpamos o won_at
+        const currentLead = previousLeads.find(l => l.id === leadId);
+        if (currentLead?.status && String(currentLead.status) === 'closed') {
+          await supabaseService.updateLead(leadId, { status: 'proposal', won_at: null } as any);
+          set((state) => ({
+            leads: state.leads.map(l => l.id === leadId ? { ...l, status: 'proposal' as LeadStatus, won_at: null } as Lead : l),
+            selectedLead: state.selectedLead?.id === leadId ? { ...state.selectedLead, status: 'proposal' as LeadStatus, won_at: null } as Lead : state.selectedLead
+          }));
+        }
       }
 
 
@@ -185,13 +197,23 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
   updateLead: async (leadId, leadData) => {
     // Optimistic update
     const previousLeads = get().leads;
+    const finalLeadData = { ...leadData };
+    
+    // Se o status está sendo alterado para ganho ou saindo de ganho
+    const newStatus = (finalLeadData as any).status;
+    if (String(newStatus) === 'closed') {
+      (finalLeadData as any).won_at = new Date().toISOString();
+    } else if (newStatus && String(newStatus) !== 'closed') {
+      (finalLeadData as any).won_at = null;
+    }
+
     set((state) => ({
-      leads: state.leads.map(lead => lead.id === leadId ? { ...lead, ...leadData } : lead),
-      selectedLead: state.selectedLead?.id === leadId ? { ...state.selectedLead, ...leadData } : state.selectedLead
+      leads: state.leads.map(lead => lead.id === leadId ? { ...lead, ...finalLeadData } as Lead : lead),
+      selectedLead: state.selectedLead?.id === leadId ? { ...state.selectedLead, ...finalLeadData } as Lead : state.selectedLead
     }));
 
     try {
-      const success = await supabaseService.updateLead(leadId, leadData);
+      const success = await supabaseService.updateLead(leadId, finalLeadData);
       if (!success) {
         // Revert on failure
         set({ leads: previousLeads, error: 'Failed to update lead in Supabase' });

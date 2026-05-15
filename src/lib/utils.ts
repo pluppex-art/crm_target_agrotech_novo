@@ -19,6 +19,9 @@ export function stageNameToStatus(stageName: string): LeadStatus {
     n.includes('ganho') ||
     n.includes('aprovado') ||
     n.includes('fechado') ||
+    n.includes('vendido') ||
+    n.includes('matriculado') ||
+    n.includes('faturado') ||
     n.includes('conclu')
   ) return 'closed';
   if (
