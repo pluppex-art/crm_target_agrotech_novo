@@ -204,7 +204,7 @@ export async function fireAlerts(
       // Em caso de transferência automática, o targetUserId costuma ser o novo responsável
       const newResp = profiles.find(p => p.id === targetUserId);
       if (newResp) {
-        await notifyLeadTransferred(lead, newResp.id, profiles);
+        await notifyLeadTransferred(lead, newResp.name || newResp.id, profiles);
       }
     } else {
       if (userEmail) {
