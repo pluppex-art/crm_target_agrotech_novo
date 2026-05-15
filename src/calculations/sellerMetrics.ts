@@ -19,6 +19,7 @@ interface Lead {
   updated_at?: string;
   status?: string;
   stage_id?: string;
+  won_at?: string | null;
   value?: string | number;
   discount?: string | number;
   discount_applied?: boolean;
@@ -72,6 +73,7 @@ export function calcSalesByResponsible(
   leads: Lead[],
   pipelines: Pipeline[],
   products: Product[],
+  leadToTurma: Record<string, any> = {},
   startDate?: string,
   endDate?: string,
   filterProduct?: string,
@@ -80,7 +82,7 @@ export function calcSalesByResponsible(
   const result: Record<string, { label: string; value: number; received: number; count: number }> = {};
 
   const start = startDate ? new Date(startDate) : null;
-  const end   = endDate   ? new Date(endDate)   : null;
+  const end = endDate ? new Date(endDate) : null;
   if (end) end.setHours(23, 59, 59, 999);
 
   const globalTargetSeller = (currentSellerName || '').trim().toLowerCase();
@@ -94,7 +96,7 @@ export function calcSalesByResponsible(
 
     if (!l.responsible) return;
 
-    const rawKey   = l.responsible.trim();
+    const rawKey = l.responsible.trim();
     const lowerKey = rawKey.toLowerCase();
 
     if (filterProduct && filterProduct !== 'all' && l.product !== filterProduct) return;
@@ -104,18 +106,19 @@ export function calcSalesByResponsible(
       result[lowerKey] = { label: rawKey, value: 0, received: 0, count: 0 };
     }
 
-    const cDate = new Date(l.created_at);
+    // A data da venda agora é baseada estritamente no novo campo won_at.
+    // Se o lead está fechado e tem won_at, usamos essa data.
+    // Caso contrário, usamos a data de criação.
+    const isClosed = stageNameToStatus(l.status ?? '') === 'closed' ||
+                    (l.stage_id && pipelines.some(p => p.stages.some(s => s.id === l.stage_id && stageNameToStatus(s.name) === 'closed')));
+    
+    const leadDate = (isClosed && l.won_at) ? l.won_at : l.created_at;
+    const cDate = new Date(leadDate);
 
     if ((!start || cDate >= start) && (!end || cDate <= end)) {
-      const isClosed =
-        stageNameToStatus(l.status ?? '') === 'closed' ||
-        (l.stage_id && pipelines[0]?.stages.find(
-          (s) => s.id === l.stage_id && stageNameToStatus(s.name) === 'closed',
-        ));
-
       if (isClosed) {
-        result[lowerKey].count    += 1;
-        result[lowerKey].value    += getLeadEffectiveValue(l as any);
+        result[lowerKey].count += 1;
+        result[lowerKey].value += getLeadEffectiveValue(l as any);
         result[lowerKey].received += financialCalculator.getPaidAmount(l as any, products);
       }
     }
@@ -135,13 +138,13 @@ export function calcAllSellersRanking(
 ): SellerRankingItem[] {
   const byName: Record<string, SellerRankingItem & { profileId?: string }> = {};
 
-  const individualGoalIds   = new Set(goals.filter(g => g.type === 'seller').map(g => g.seller_id).filter(Boolean));
+  const individualGoalIds = new Set(goals.filter(g => g.type === 'seller').map(g => g.seller_id).filter(Boolean));
   const individualGoalNames = new Set(goals.filter(g => g.type === 'seller').map(g => g.seller_name?.trim()).filter(Boolean));
 
   const sellerGoalMap = goals.reduce<Record<string, { leads_goal: number; revenue_goal: number }>>((acc, g) => {
     const data = { leads_goal: g.leads_goal || 0, revenue_goal: g.revenue_goal || 0 };
     if (g.seller_name) acc[g.seller_name.trim()] = data;
-    if (g.seller_id)   acc[g.seller_id.trim()]   = data;
+    if (g.seller_id) acc[g.seller_id.trim()] = data;
     return acc;
   }, {});
 
@@ -150,9 +153,9 @@ export function calcAllSellersRanking(
     const trimmedLabel = s.label.trim();
     if (!trimmedLabel) return;
 
-    const profile           = profiles.find(p => p.name?.trim() === trimmedLabel);
+    const profile = profiles.find(p => p.name?.trim().toLowerCase() === trimmedLabel.toLowerCase());
     const isOfficialVendedor = profile ? isVendedor(profile) : false;
-    const hasIndividualGoal  = individualGoalNames.has(trimmedLabel) || (profile && individualGoalIds.has(profile.id));
+    const hasIndividualGoal = individualGoalNames.has(trimmedLabel) || (profile && individualGoalIds.has(profile.id));
 
     if (isOfficialVendedor || hasIndividualGoal) {
       byName[trimmedLabel] = {
@@ -173,9 +176,9 @@ export function calcAllSellersRanking(
   // 3. Percentuais e metas
   const maxCount = Math.max(...Object.values(byName).map(s => s.count), 1);
   Object.values(byName).forEach((s: any) => {
-    const goal     = sellerGoalMap[s.label.trim()] || (s.profileId ? sellerGoalMap[s.profileId] : null);
-    s.leads_goal   = goal?.leads_goal ?? 0;
-    s.percentage   = goal && goal.leads_goal > 0 ? Math.round((s.count / goal.leads_goal) * 100) : 0;
+    const goal = sellerGoalMap[s.label.trim()] || (s.profileId ? sellerGoalMap[s.profileId] : null);
+    s.leads_goal = goal?.leads_goal ?? 0;
+    s.percentage = goal && goal.leads_goal > 0 ? Math.round((s.count / goal.leads_goal) * 100) : 0;
     if (s.percentage === 0 && s.count > 0) s.percentage = Math.round((s.count / maxCount) * 100);
   });
 
@@ -193,12 +196,12 @@ export function calcSellerSemaphore(
   const sellerGoalMap = goals.reduce<Record<string, { leads_goal: number; revenue_goal: number }>>((acc, g) => {
     const data = { leads_goal: g.leads_goal || 0, revenue_goal: g.revenue_goal || 0 };
     if (g.seller_name) acc[g.seller_name.trim()] = data;
-    if (g.seller_id)   acc[g.seller_id.trim()]   = data;
+    if (g.seller_id) acc[g.seller_id.trim()] = data;
     return acc;
   }, {});
 
   return [...allSellersRanking, ...otherSellersRanking].map((s: any) => {
-    const goal    = sellerGoalMap[s.label.trim()];
+    const goal = sellerGoalMap[s.label.trim()];
     const revGoal = goal?.revenue_goal ?? 0;
 
     let pct = 0;
@@ -213,13 +216,13 @@ export function calcSellerSemaphore(
     let barColor: string;
 
     if (pct < 50) {
-      color = 'red';   colorClass = 'bg-red-50 text-red-700 border-red-200';       barColor = '#ef4444';
+      color = 'red'; colorClass = 'bg-red-50 text-red-700 border-red-200'; barColor = '#ef4444';
     } else if (pct < 70) {
       color = 'yellow'; colorClass = 'bg-amber-50 text-amber-700 border-amber-200'; barColor = '#f59e0b';
     } else if (pct <= 100) {
-      color = 'green';  colorClass = 'bg-emerald-50 text-emerald-700 border-emerald-200'; barColor = '#10b981';
+      color = 'green'; colorClass = 'bg-emerald-50 text-emerald-700 border-emerald-200'; barColor = '#10b981';
     } else {
-      color = 'gold';   colorClass = 'bg-yellow-50 text-yellow-700 border-yellow-200';   barColor = '#fbbf24';
+      color = 'gold'; colorClass = 'bg-yellow-50 text-yellow-700 border-yellow-200'; barColor = '#fbbf24';
     }
 
     return { ...s, pct, color, colorClass, barColor, revenue_goal: revGoal };

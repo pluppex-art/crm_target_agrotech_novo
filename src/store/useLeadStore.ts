@@ -314,8 +314,56 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
         console.log(`Realtime Leads Status (${channelId}):`, status);
       });
 
+    // 2. Subscribe to lead_class_enrollments
+    const enrollChannelId = `realtime:enrollments-${Math.random().toString(36).substring(7)}`;
+    const enrollChannel = supabase
+      .channel(enrollChannelId)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'lead_class_enrollments' },
+        (payload) => {
+          const { eventType, new: newRecord, old: oldRecord } = payload;
+          if (eventType === 'DELETE') return;
+
+          const enrollment = newRecord as any;
+          const leadId = enrollment.lead_id;
+          if (!leadId) return;
+
+          set((state) => {
+            const updatedLeads = state.leads.map(l => {
+              if (l.id !== leadId) return l;
+              return {
+                ...l,
+                pix_completed: enrollment.pix_completed ?? l.pix_completed,
+                contract_signed: enrollment.contract_signed ?? l.contract_signed,
+                payment_proof_url: enrollment.payment_proof_url ?? l.payment_proof_url,
+                contract_url: enrollment.contract_url ?? l.contract_url,
+                professor_proof_url: enrollment.professor_proof_url ?? l.professor_proof_url,
+                valor_recebido: enrollment.valor_recebido ?? l.valor_recebido,
+                taxa_matricula_recebido: enrollment.taxa_matricula_recebido ?? l.taxa_matricula_recebido,
+                forma_pagamento: enrollment.forma_pagamento ?? l.forma_pagamento,
+                discount: enrollment.discount ?? l.discount,
+                discount_applied: enrollment.discount_applied ?? l.discount_applied,
+                discount_type: enrollment.discount_type ?? l.discount_type,
+                rg_photo_url: enrollment.rg_photo_url ?? l.rg_photo_url,
+                profile_photo_url: enrollment.profile_photo_url ?? l.profile_photo_url,
+                cost_center: enrollment.cost_center ?? l.cost_center,
+              };
+            });
+
+            const updatedSelectedLead = state.selectedLead?.id === leadId
+              ? updatedLeads.find(l => l.id === leadId) || null
+              : state.selectedLead;
+
+            return { leads: updatedLeads, selectedLead: updatedSelectedLead };
+          });
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(channel);
+      supabase.removeChannel(enrollChannel);
     };
   },
 }));

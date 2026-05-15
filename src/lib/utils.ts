@@ -42,7 +42,7 @@ export function stageNameToStatus(stageName: string): LeadStatus {
 export function parseBRNumber(val: string | number | undefined | null): number {
   if (val === undefined || val === null) return 0;
   if (typeof val === 'number') return isNaN(val) ? 0 : val;
-  
+
   let clean = val.toString().trim();
   if (!clean) return 0;
 
@@ -53,12 +53,12 @@ export function parseBRNumber(val: string | number | undefined | null): number {
   if (clean.includes(',') && clean.includes('.')) {
     return parseFloat(clean.replace(/\./g, '').replace(',', '.')) || 0;
   }
-  
+
   // Case: 1234,56 -> 1234.56
   if (clean.includes(',')) {
     return parseFloat(clean.replace(',', '.')) || 0;
   }
-  
+
   // Case: 1.234 -> 1234 (Dot as thousands separator)
   // Regra common: if exactly 3 digits after dot, it's likely thousands.
   if (clean.includes('.')) {
@@ -67,7 +67,7 @@ export function parseBRNumber(val: string | number | undefined | null): number {
       return parseFloat(clean.replace(/\./g, '')) || 0;
     }
   }
-  
+
   // Standard parseFloat for anything else (handles 1234.56)
   const result = parseFloat(clean);
   return isNaN(result) ? 0 : result;
@@ -81,7 +81,7 @@ export function getLeadEffectiveValue(lead: {
 }): number {
   const baseValue = parseBRNumber(lead.value);
   if (!lead.discount_applied) return baseValue;
-  
+
   const discountAmount = parseBRNumber(lead.discount);
   if (discountAmount <= 0) return baseValue;
 
@@ -92,7 +92,7 @@ export function getLeadEffectiveValue(lead: {
     // default: percent
     total = baseValue * (1 - discountAmount / 100);
   }
-  
+
   return Math.max(0, Math.round(total * 100) / 100);
 }
 
@@ -172,19 +172,19 @@ export function formatRelativeTime(date: string | Date): string {
   const now = new Date();
   const d = new Date(date);
   const diffInSeconds = Math.floor((now.getTime() - d.getTime()) / 1000);
-  
+
   if (diffInSeconds < 5) return 'agora mesmo';
   if (diffInSeconds < 60) return `há ${diffInSeconds} segundos`;
-  
+
   const minutes = Math.floor(diffInSeconds / 60);
   if (minutes < 60) return `há ${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}`;
-  
+
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `há ${hours} ${hours === 1 ? 'hora' : 'horas'}`;
-  
+
   const days = Math.floor(hours / 24);
   if (days < 7) return `há ${days} ${days === 1 ? 'dia' : 'dias'}`;
-  
+
   return d.toLocaleDateString('pt-BR');
 }
 
@@ -218,10 +218,10 @@ export function isVendedor(profile: { cargos?: { name?: string } | null; role?: 
   const cargoName = profile.cargos?.name?.toLowerCase().trim() || '';
   const role = profile.role?.toLowerCase().trim() || '';
   const cargo = profile.cargo?.toLowerCase().trim() || '';
-  
+
   return cargoName.includes('vendedor') || cargoName.includes('vendedora') ||
-         role.includes('vendedor') || role.includes('vendedora') ||
-         cargo.includes('vendedor') || cargo.includes('vendedora');
+    role.includes('vendedor') || role.includes('vendedora') ||
+    cargo.includes('vendedor') || cargo.includes('vendedora');
 }
 
 /**
@@ -244,8 +244,8 @@ export function getSellerIncome(
     })
     .reduce((sum, t) => {
       return sum + t.attendees
-        .filter((a: any) => 
-          a.status !== 'cancelado' && 
+        .filter((a: any) =>
+          a.status !== 'cancelado' &&
           (!sellerName || a.responsible?.trim() === sellerName.trim()) &&
           a.valor_recebido != null
         )
@@ -273,39 +273,39 @@ export function getOccupancyData(turmas: Turma[]): Array<{
   return turmas
     .filter(t => t.status !== 'concluida' && t.status !== 'cancelada')
     .map((t, i) => {
-    const activeStatuses: AttendanceStatus[] = ['matriculado', 'confirmado'];
-    const active = t.attendees.filter(a => activeStatuses.includes(a.status)).length;
-    const cap = t.meta ?? 0;
-    const pct = cap > 0 ? Math.min((active / cap) * 100, 100) : 0;
+      const activeStatuses: AttendanceStatus[] = ['matriculado', 'confirmado'];
+      const active = t.attendees.filter(a => activeStatuses.includes(a.status)).length;
+      const cap = t.meta ?? 0;
+      const pct = cap > 0 ? Math.min((active / cap) * 100, 100) : 0;
 
-    // Color based on absolute student count: 0-10 red, 11-19 yellow, 20+ green
-    let level: 'red' | 'yellow' | 'green';
-    if (active >= 20) level = 'green';
-    else if (active >= 11) level = 'yellow';
-    else level = 'red';
+      // Color based on absolute student count: 0-10 red, 11-19 yellow, 20+ green
+      let level: 'red' | 'yellow' | 'green';
+      if (active >= 20) level = 'green';
+      else if (active >= 11) level = 'yellow';
+      else level = 'red';
 
-    // Color per turma (rainbow-ish)
-    const hue = (i * 360 / turmas.length) % 360;
-    const color = `hsl(${hue}, 70%, 50%)`;
+      // Color per turma (rainbow-ish)
+      const hue = (i * 360 / turmas.length) % 360;
+      const color = `hsl(${hue}, 70%, 50%)`;
 
-    const nameLower = t.name.toLowerCase();
-    const nameText = nameLower.replace(/^[^a-z]*/i, ''); // strip leading emojis/spaces
-    const effectiveCategory =
-      nameText.startsWith('drone') ? 'Drone' :
-      nameText.startsWith('ia') ? 'Inseminação Artificial' :
-      t.category;
-    return { name: t.name, pct, level, alunos: active, capacity: cap, color, category: effectiveCategory };
-  }).sort((a, b) => b.pct - a.pct); // Top occupancy first
+      const nameLower = t.name.toLowerCase();
+      const nameText = nameLower.replace(/^[^a-z]*/i, ''); // strip leading emojis/spaces
+      const effectiveCategory =
+        nameText.startsWith('drone') ? 'Drone' :
+          nameText.startsWith('ia') ? 'Inseminação Artificial' :
+            t.category;
+      return { name: t.name, pct, level, alunos: active, capacity: cap, color, category: effectiveCategory };
+    }).sort((a, b) => b.pct - a.pct); // Top occupancy first
 }
 
 /**
  * Compute funnel rates from stage counts.
  */
 export function computeFunnelRates(
-  stages: Array<{id: string; label: string; value: number; color: string}>
-): Array<{id: string; label: string; value: number; rate_from_prev?: number; color: string}> {
+  stages: Array<{ id: string; label: string; value: number; color: string }>
+): Array<{ id: string; label: string; value: number; rate_from_prev?: number; color: string }> {
   return stages.map((stage, i) => {
-    const prevCount = i > 0 ? stages[i-1].value : 0;
+    const prevCount = i > 0 ? stages[i - 1].value : 0;
     const rate = prevCount > 0 ? Math.round((stage.value / prevCount) * 100) : 0;
     return { ...stage, rate_from_prev: rate };
   });
@@ -319,13 +319,13 @@ export function projectedRevenue(
   monthlyLeadsAvg: number,
   avgTicket: number,
   projectionMonths: number = 3
-): Array<{label: string; value: number}> {
+): Array<{ label: string; value: number }> {
   const projectedLeads = monthlyLeadsAvg * projectionMonths;
   const projectedRevenue = funnelConversionRate / 100 * projectedLeads * avgTicket;
-  
+
   // Monthly breakdown
-  return Array.from({length: projectionMonths}, (_, i) => ({
-    label: ['Jan', 'Fev', 'Mar'][i] || `M${i+1}`,
+  return Array.from({ length: projectionMonths }, (_, i) => ({
+    label: ['Jan', 'Fev', 'Mar'][i] || `M${i + 1}`,
     value: (projectedRevenue / projectionMonths)
   }));
 }

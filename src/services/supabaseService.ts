@@ -179,6 +179,17 @@ export const supabaseService = {
         .map(([k, v]) => [k, UUID_FIELDS.has(k) && v === '' ? null : v])
     );
 
+    // ─── won_at management ──────────────────────────────────────────────────
+    // Se o lead está sendo marcado como "Ganho", gravamos a data exata.
+    // Se está saindo de "Ganho", limpamos a data.
+    const newStatus = (lead as any).status;
+    if (newStatus === 'closed') {
+      (cleanDbLead as any).won_at = new Date().toISOString();
+    } else if (newStatus && newStatus !== 'closed') {
+      (cleanDbLead as any).won_at = null;
+    }
+    // ──────────────────────────────────────────────────────────────────────────
+
     if (Object.keys(cleanDbLead).length > 0) {
       console.log('[supabaseService.updateLead] PATCH payload:', JSON.stringify(cleanDbLead));
       const { error } = await supabase
@@ -195,22 +206,44 @@ export const supabaseService = {
 
     // Se houver campos financeiros, atualiza a matrícula (lead_class_enrollments) mais recente
     const financialUpdates: any = {};
-    if (lead.cost_center !== undefined) financialUpdates.cost_center = lead.cost_center;
     if (discount !== undefined) financialUpdates.discount = discount;
     if (discount_applied !== undefined) financialUpdates.discount_applied = discount_applied;
     if (discount_type !== undefined) financialUpdates.discount_type = discount_type;
     if (pix_completed !== undefined) financialUpdates.pix_completed = pix_completed;
     if (contract_signed !== undefined) financialUpdates.contract_signed = contract_signed;
-    if (valor_recebido !== undefined) financialUpdates.valor_recebido = valor_recebido;
-    if (taxa_matricula_recebido !== undefined) financialUpdates.taxa_matricula_recebido = taxa_matricula_recebido;
+
+    if (taxa_matricula_recebido !== undefined) {
+      financialUpdates.taxa_matricula_recebido = taxa_matricula_recebido;
+      // Adicionar data de pagamento automaticamente se houver valor, para evitar violação de constraint chk_lce_taxa_matricula_paid_at
+      if (taxa_matricula_recebido !== null) {
+        financialUpdates.taxa_matricula_paid_at = new Date().toISOString();
+      } else {
+        financialUpdates.taxa_matricula_paid_at = null;
+      }
+    }
+    
+    if (valor_recebido !== undefined) {
+      financialUpdates.valor_recebido = valor_recebido;
+      // Mesma lógica para o valor principal
+      if (valor_recebido !== null) {
+        financialUpdates.valor_recebido_paid_at = new Date().toISOString();
+      } else {
+        financialUpdates.valor_recebido_paid_at = null;
+      }
+    }
+
     if (forma_pagamento !== undefined) financialUpdates.forma_pagamento = forma_pagamento;
     if (payment_proof_url !== undefined) financialUpdates.payment_proof_url = payment_proof_url;
     if (contract_url !== undefined) financialUpdates.contract_url = contract_url;
     if (professor_proof_url !== undefined) financialUpdates.professor_proof_url = professor_proof_url;
-    if (rg_photo_url !== undefined) financialUpdates.rg_photo_url = rg_photo_url;
-    if (profile_photo_url !== undefined) financialUpdates.profile_photo_url = profile_photo_url;
+    
+    // Remover campos que não existem na tabela no Supabase para evitar erro 400
+    // if (rg_photo_url !== undefined) financialUpdates.rg_photo_url = rg_photo_url;
+    // if (profile_photo_url !== undefined) financialUpdates.profile_photo_url = profile_photo_url;
+    // if (lead.cost_center !== undefined) financialUpdates.cost_center = lead.cost_center;
 
     if (Object.keys(financialUpdates).length > 0) {
+      console.log('[supabaseService.updateLead] Financial updates:', JSON.stringify(financialUpdates));
       // 1. Achar a matrícula mais recente
       const { data: enrollments } = await supabase
         .from('lead_class_enrollments')
@@ -220,11 +253,40 @@ export const supabaseService = {
         .limit(1);
 
       if (enrollments && enrollments.length > 0) {
-        // 2. Atualizar
-        await supabase
+        // 2. Atualizar existente
+        const { error: enrollError } = await supabase
           .from('lead_class_enrollments')
           .update(financialUpdates)
           .eq('id', enrollments[0].id);
+        if (enrollError) console.error('[supabaseService.updateLead] Update Error:', enrollError.message);
+      } else {
+        // 3. Criar nova se não existir (para leads que ainda não tinham matrícula)
+        const currentLeadProduct = lead.product || baseLead.product;
+        if (currentLeadProduct) {
+          // Tentar achar a turma correta pelo nome do produto
+          const { data: turmas } = await supabase
+            .from('turmas')
+            .select('id')
+            .eq('name', currentLeadProduct)
+            .neq('status', 'cancelada')
+            .order('date', { ascending: false })
+            .limit(1);
+
+          if (turmas && turmas.length > 0) {
+            await supabase
+              .from('lead_class_enrollments')
+              .insert([{
+                ...financialUpdates,
+                lead_id: leadId,
+                class_id: turmas[0].id,
+                responsavel_usuario_id: baseLead.responsavel_usuario_id || null,
+                responsible: baseLead.responsible || null,
+                name: baseLead.name || '',
+                status: 'ENROLLED',
+                board_status: 'matriculado'
+              }]);
+          }
+        }
       }
     }
 

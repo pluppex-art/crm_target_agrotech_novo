@@ -49,9 +49,13 @@ function isClosedLead(lead: Lead, stageMap: Map<string, string>): boolean {
   return false;
 }
 
-/** Retorna o Map de id→name para o primeiro pipeline. */
+/** Retorna o Map de id→name para todos os pipelines. */
 export function buildStageMap(pipelines: Pipeline[]): Map<string, string> {
-  return new Map(pipelines[0]?.stages?.map(s => [s.id, s.name]) || []);
+  const map = new Map<string, string>();
+  pipelines.forEach(p => {
+    p.stages?.forEach(s => map.set(s.id, s.name));
+  });
+  return map;
 }
 
 /** Leads fechados dentro dos filteredLeads. */

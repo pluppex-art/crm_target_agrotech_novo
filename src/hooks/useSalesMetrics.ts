@@ -81,11 +81,11 @@ export function useSalesMetrics({
   filterProduct = 'all',
   filterResponsible = 'all',
 }: UseSalesMetricsProps): SalesMetrics {
-  const { leads }    = useLeadStore();
-  const { turmas }   = useTurmaStore();
+  const { leads } = useLeadStore();
+  const { turmas } = useTurmaStore();
   const { profiles } = useProfileStore();
-  const { pipelines }= usePipelineStore();
-  const { tasks }    = useTaskStore();
+  const { pipelines } = usePipelineStore();
+  const { tasks } = useTaskStore();
   const { products } = useProductStore();
 
   const vendedorProfiles = useMemo(() => profiles.filter(isVendedor), [profiles]);
@@ -103,33 +103,58 @@ export function useSalesMetrics({
     return Array.from(seen).sort().map(r => ({ value: r, label: r }));
   }, [leads]);
 
+  // ─── Lead to Turma mapping ──────────────────────────────────────────────────
+  const leadToTurma = useMemo(() => {
+    const mapping: Record<string, any> = {};
+    turmas.forEach(t => {
+      t.attendees.forEach(a => {
+        if (a.lead_id) mapping[a.lead_id] = { ...t, attendee: a };
+      });
+    });
+    return mapping;
+  }, [turmas]);
+
+  // ─── Lead metrics (leadMetrics.ts) ─────────────────────────────────────────
+  const stageMap = useMemo(() => buildStageMap(pipelines), [pipelines]);
+
   // ─── Filtered leads (date + search + stage + product + responsible) ─────────
   const filteredLeads = useMemo(() => {
     let result = leads as any[];
-    if (startDate) { const s = new Date(startDate); result = result.filter(l => new Date(l.created_at) >= s); }
-    if (endDate)   { const e = new Date(endDate); e.setHours(23,59,59,999); result = result.filter(l => new Date(l.created_at) <= e); }
+    if (startDate || endDate) {
+      const s = startDate ? new Date(startDate) : null;
+      const e = endDate ? new Date(endDate) : null;
+      if (e) e.setHours(23, 59, 59, 999);
+
+      result = result.filter(l => {
+        const stageName = l.stage_id ? stageMap.get(l.stage_id) : '';
+        // Se o lead está ganho, usamos o novo campo won_at como Data do Ganho.
+        // Caso contrário, usamos a data de criação.
+        const winDate = l.won_at || l.created_at;
+
+        const dateStr = closed ? winDate : l.created_at;
+        const d = new Date(dateStr);
+        return (!s || d >= s) && (!e || d <= e);
+      });
+    }
     if (searchTerm) {
       const q = searchTerm.toLowerCase();
       result = result.filter(l => l.name?.toLowerCase().includes(q) || l.product?.toLowerCase().includes(q) || l.responsible?.toLowerCase().includes(q));
     }
-    if (filterStage       !== 'all') result = result.filter(l => l.stage_id === filterStage);
-    if (filterProduct     !== 'all') result = result.filter(l => l.product === filterProduct);
+    if (filterStage !== 'all') result = result.filter(l => l.stage_id === filterStage);
+    if (filterProduct !== 'all') result = result.filter(l => l.product === filterProduct);
     if (filterResponsible !== 'all') result = result.filter(l => l.responsible === filterResponsible);
-    if (currentSellerName)           result = result.filter(l => l.responsible === currentSellerName);
+    if (currentSellerName) result = result.filter(l => l.responsible === currentSellerName);
     return result;
-  }, [leads, searchTerm, filterStage, filterProduct, filterResponsible, startDate, endDate, currentSellerName]);
-
-  // ─── Lead metrics (leadMetrics.ts) ─────────────────────────────────────────
-  const stageMap = useMemo(() => buildStageMap(pipelines), [pipelines]);
+  }, [leads, searchTerm, filterStage, filterProduct, filterResponsible, startDate, endDate, currentSellerName, stageMap, leadToTurma]);
 
   const closedLeadsFiltered = useMemo(
     () => calcClosedLeads(filteredLeads, stageMap),
     [filteredLeads, stageMap],
   );
 
-  const closedLeadsCount  = closedLeadsFiltered.length;
-  const conversionRate    = calcConversionRate(closedLeadsCount, filteredLeads.length);
-  const totalSalesValue   = calcTotalSalesValue(closedLeadsFiltered);
+  const closedLeadsCount = closedLeadsFiltered.length;
+  const conversionRate = calcConversionRate(closedLeadsCount, filteredLeads.length);
+  const totalSalesValue = calcTotalSalesValue(closedLeadsFiltered);
 
   const averageSalesCycle = useMemo(
     () => calcAverageSalesCycle(closedLeadsFiltered),
@@ -148,17 +173,6 @@ export function useSalesMetrics({
 
   const totalConversionRate = activeLeadsCount > 0 ? (closedLeadsCount / activeLeadsCount) * 100 : 0;
 
-  // ─── Lead to Turma mapping ──────────────────────────────────────────────────
-  const leadToTurma = useMemo(() => {
-    const mapping: Record<string, any> = {};
-    turmas.forEach(t => {
-      t.attendees.forEach(a => {
-        if (a.lead_id) mapping[a.lead_id] = { ...t, attendee: a };
-      });
-    });
-    return mapping;
-  }, [turmas]);
-
   // ─── Financial totals ───────────────────────────────────────────────────────
   const { pago: totalPago, pendente: totalPendente } = useMemo(
     () => calcPipelinePayments(
@@ -172,8 +186,8 @@ export function useSalesMetrics({
   );
 
   const totalGanhos = totalPago;
-  const myGanhos    = totalGanhos;
-  const teamGanhos  = 0;
+  const myGanhos = totalGanhos;
+  const teamGanhos = 0;
 
   // ─── Turma metrics (turmaMetrics.ts) ───────────────────────────────────────
   const occupancyData = useMemo(() => getOccupancyData(turmas), [turmas]);
@@ -185,8 +199,8 @@ export function useSalesMetrics({
 
   // ─── Seller metrics (sellerMetrics.ts) ─────────────────────────────────────
   const salesByResponsible = useMemo(
-    () => calcSalesByResponsible(leads as any[], pipelines as any[], products, startDate, endDate, filterProduct, currentSellerName),
-    [leads, pipelines, products, startDate, endDate, filterProduct, currentSellerName],
+    () => calcSalesByResponsible(leads as any[], pipelines as any[], products, leadToTurma, startDate, endDate, filterProduct, currentSellerName),
+    [leads, pipelines, products, leadToTurma, startDate, endDate, filterProduct, currentSellerName],
   );
 
   const allSellersRanking = useMemo(
@@ -195,7 +209,7 @@ export function useSalesMetrics({
   );
 
   const otherSellersRanking = useMemo(() => {
-    const individualGoalIds   = new Set(goals.filter(g => g.type === 'seller').map(g => g.seller_id).filter(Boolean));
+    const individualGoalIds = new Set(goals.filter(g => g.type === 'seller').map(g => g.seller_id).filter(Boolean));
     const individualGoalNames = new Set(goals.filter(g => g.type === 'seller').map(g => g.seller_name?.trim()).filter(Boolean));
     return salesByResponsible
       .filter(s => {
@@ -222,7 +236,7 @@ export function useSalesMetrics({
     if (pipeline?.stages?.length) {
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      
+
       const countMap: Record<string, number> = {};
       const firstStageId = pipeline.stages[0]?.id;
 
@@ -246,7 +260,7 @@ export function useSalesMetrics({
 
         const stage = pipeline.stages.find((s: any) => s.id === l.stage_id);
         const stageName = stage?.name || '';
-        
+
         if (isResultStage(stageName)) {
           // For result stages, only count if it happened this month
           const date = new Date(l.updated_at || l.created_at);
@@ -266,10 +280,10 @@ export function useSalesMetrics({
         .map(s => ({ id: s.id, label: s.name, value: countMap[s.id] || 0, color: s.color }));
     }
     return [
-      { id: 'new',       label: 'Novo',       value: filteredLeads.filter((l: any) => stageNameToStatus(l.status) === 'new').length,       color: 'hsl(210, 80%, 55%)' },
+      { id: 'new', label: 'Novo', value: filteredLeads.filter((l: any) => stageNameToStatus(l.status) === 'new').length, color: 'hsl(210, 80%, 55%)' },
       { id: 'qualified', label: 'Qualificado', value: filteredLeads.filter((l: any) => stageNameToStatus(l.status) === 'qualified').length, color: 'hsl(142, 71%, 45%)' },
-      { id: 'proposal',  label: 'Proposta',    value: filteredLeads.filter((l: any) => stageNameToStatus(l.status) === 'proposal').length,  color: 'hsl(262, 80%, 55%)' },
-      { id: 'closed',    label: 'Fechado',     value: closedLeadsCount,                                                                      color: 'hsl(16, 85%, 55%)'  },
+      { id: 'proposal', label: 'Proposta', value: filteredLeads.filter((l: any) => stageNameToStatus(l.status) === 'proposal').length, color: 'hsl(262, 80%, 55%)' },
+      { id: 'closed', label: 'Fechado', value: closedLeadsCount, color: 'hsl(16, 85%, 55%)' },
     ];
   }, [pipelines, filteredLeads, closedLeadsCount]);
 
@@ -284,12 +298,12 @@ export function useSalesMetrics({
       });
     }
     const start = startDate ? new Date(startDate + 'T00:00:00') : new Date(new Date().setMonth(new Date().getMonth() - 6));
-    const end   = endDate   ? new Date(endDate   + 'T00:00:00') : new Date();
+    const end = endDate ? new Date(endDate + 'T00:00:00') : new Date();
     const diffDays = Math.ceil(Math.abs(end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
     if (diffDays <= 60) {
       return Array.from({ length: diffDays + 1 }, (_, i) => {
         const d = new Date(start); d.setDate(d.getDate() + i);
-        return { type: 'day', day: d.getDate(), month: d.getMonth(), year: d.getFullYear(), label: `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`, key: `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}` };
+        return { type: 'day', day: d.getDate(), month: d.getMonth(), year: d.getFullYear(), label: `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`, key: `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}` };
       });
     }
     const months = []; let d = new Date(start); d.setDate(1); const endMonth = new Date(end); endMonth.setDate(1);
@@ -324,9 +338,9 @@ export function useSalesMetrics({
   }, [filteredLeads, pipelines, dateIntervals]);
 
   const avgMonthlyLeads = monthlySales.reduce((sum, m) => sum + m.value, 0) / monthlySales.length || leads.length / 6;
-  const avgTicket       = totalSalesValue / closedLeadsCount || 1000;
-  const predictiveData  = useMemo(() => projectedRevenue(conversionRate, avgMonthlyLeads, avgTicket), [conversionRate, avgMonthlyLeads, avgTicket]);
-  const trendData       = useMemo(() => [...monthlySales.slice(-3), ...predictiveData], [monthlySales, predictiveData]);
+  const avgTicket = totalSalesValue / closedLeadsCount || 1000;
+  const predictiveData = useMemo(() => projectedRevenue(conversionRate, avgMonthlyLeads, avgTicket), [conversionRate, avgMonthlyLeads, avgTicket]);
+  const trendData = useMemo(() => [...monthlySales.slice(-3), ...predictiveData], [monthlySales, predictiveData]);
 
   return {
     totalGanhos, myGanhos, teamGanhos,
