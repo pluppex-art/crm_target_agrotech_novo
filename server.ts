@@ -101,26 +101,22 @@ async function startServer() {
         throw new Error("Não foi possível gerar o link de recuperação.");
       }
 
-      const mailersendKey = process.env.MAILERSEND_API_KEY;
-      if (!mailersendKey) {
-        throw new Error("MAILERSEND_API_KEY não encontrado.");
+      const resendKey = process.env.RESEND_API_KEY;
+      if (!resendKey) {
+        throw new Error("RESEND_API_KEY não encontrado.");
       }
 
-      console.log(`[DEBUG] Link gerado com sucesso. Enviando via MailerSend...`);
+      console.log(`[DEBUG] Link gerado com sucesso. Enviando via Resend...`);
 
-      const emailResponse = await fetch('https://api.mailersend.com/v1/email', {
+      const emailResponse = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-          'Authorization': `Bearer ${mailersendKey}`
+          'Authorization': `Bearer ${resendKey}`
         },
         body: JSON.stringify({
-          from: {
-            email: "crm@notificacoes.targetagrotech.com.br",
-            name: "Target Agrotech"
-          },
-          to: [{ email: email }],
+          from: "Target Agrotech <crm@notificacoes.targetagrotech.com.br>",
+          to: [email],
           subject: 'Recuperação de Senha - Target Agrotech',
           html: `
             <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px;border:1px solid #e2e8f0;border-radius:16px;">
@@ -143,8 +139,8 @@ async function startServer() {
 
       if (!emailResponse.ok) {
         const errorData = await emailResponse.json().catch(() => ({}));
-        console.error('[DEBUG] Erro no MailerSend:', errorData);
-        throw new Error("Erro ao enviar e-mail via MailerSend.");
+        console.error('[DEBUG] Erro no Resend:', errorData);
+        throw new Error("Erro ao enviar e-mail via Resend.");
       }
 
       console.log(`[DEBUG] E-mail enviado com sucesso!`);
@@ -168,24 +164,20 @@ async function startServer() {
         });
       }
 
-      const mailersendKey = process.env.MAILERSEND_API_KEY;
-      if (!mailersendKey) {
-        throw new Error("MAILERSEND_API_KEY não encontrado.");
+      const resendKey = process.env.RESEND_API_KEY;
+      if (!resendKey) {
+        throw new Error("RESEND_API_KEY não encontrado.");
       }
 
-      const response = await fetch('https://api.mailersend.com/v1/email', {
+      const response = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-          'Authorization': `Bearer ${mailersendKey}`
+          'Authorization': `Bearer ${resendKey}`
         },
         body: JSON.stringify({
-          from: {
-            email: "crm@notificacoes.targetagrotech.com.br",
-            name: "Target Agrotech"
-          },
-          to: [{ email: to }],
+          from: "Target Agrotech <crm@notificacoes.targetagrotech.com.br>",
+          to: [to],
           subject: subject,
           html: html
         })
@@ -194,11 +186,11 @@ async function startServer() {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         if (response.status === 429) {
-          console.warn('[MailerSend] Cota diária atingida — e-mail não enviado.');
-          return res.status(429).json({ error: 'quota_exceeded', message: errorData.message ?? 'Daily quota exceeded' });
+          console.warn('[Resend] Cota atingida — e-mail não enviado.');
+          return res.status(429).json({ error: 'quota_exceeded', message: errorData.message ?? 'Quota exceeded' });
         }
-        console.error('[MailerSend] Erro ao enviar e-mail:', JSON.stringify(errorData));
-        return res.status(400).json({ error: 'Erro ao enviar e-mail via MailerSend.', details: errorData });
+        console.error('[Resend] Erro ao enviar e-mail:', JSON.stringify(errorData));
+        return res.status(400).json({ error: 'Erro ao enviar e-mail via Resend.', details: errorData });
       }
 
       return res.json({ success: true });
@@ -306,8 +298,8 @@ async function startServer() {
       }
 
       // 4. Email Notification
-      const mailersendKey = process.env.MAILERSEND_API_KEY;
-      if (assignedResponsible && mailersendKey) {
+      const resendKey = process.env.RESEND_API_KEY;
+      if (assignedResponsible && resendKey) {
         const { data: sellerProfile } = await supabase
           .from('perfis')
           .select('email, name')
@@ -327,12 +319,15 @@ async function startServer() {
               <a href="https://crm.targetagrotech.com.br/pipeline" style="display:inline-block;padding:10px 20px;background:#059669;color:white;text-decoration:none;border-radius:5px;">Ver no CRM</a>
             </div>
           `;
-          const emailRes = await fetch('https://api.mailersend.com/v1/email', {
+          const emailRes = await fetch('https://api.resend.com/emails', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${mailersendKey}` },
+            headers: { 
+              'Content-Type': 'application/json', 
+              'Authorization': `Bearer ${resendKey}` 
+            },
             body: JSON.stringify({
-              from: { email: 'crm@notificacoes.targetagrotech.com.br', name: 'Target Agrotech' },
-              to: [{ email: sellerProfile.email }],
+              from: "Target Agrotech <crm@notificacoes.targetagrotech.com.br>",
+              to: [sellerProfile.email],
               subject: `🔔 Novo Lead: ${name.trim()}`,
               html
             })
@@ -340,9 +335,9 @@ async function startServer() {
 
           if (!emailRes.ok) {
             const errorData = await emailRes.json().catch(() => ({}));
-            console.error('[MailerSend Error] Falha ao enviar notificação:', JSON.stringify(errorData));
+            console.error('[Resend Error] Falha ao enviar notificação:', JSON.stringify(errorData));
           } else {
-            console.log(`[MailerSend] Notificação enviada para ${sellerProfile.email}`);
+            console.log(`[Resend] Notificação enviada para ${sellerProfile.email}`);
           }
         }
       }

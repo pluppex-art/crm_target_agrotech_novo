@@ -100,10 +100,12 @@ export async function notifyLeadTransferred(
   }
 
   const admins = findAdminProfiles(profiles);
+  const displayName = newResponsible?.name || newResponsibleName;
+
   for (const admin of admins) {
     await insertNotificationForUser(admin.id, {
       title: `Lead transferido: ${lead.name}`,
-      message: `Inativo por 48h. Transferido de ${lead.responsible || 'N/A'} para ${newResponsibleName}. Produto: ${lead.product || 'N/A'}`,
+      message: `Inativo por 48h. Transferido de ${lead.responsible || 'N/A'} para ${displayName}. Produto: ${lead.product || 'N/A'}`,
       type: 'urgent',
       category: 'system',
       link: `/pipeline?lead=${lead.id}`,
@@ -129,8 +131,12 @@ export async function notifyLeadManualTransfer(
   toResponsibleName: string,
   profiles: UserProfile[]
 ): Promise<void> {
+  const fromResponsible = findProfile(fromResponsibleName, profiles);
   const toResponsible = findProfile(toResponsibleName, profiles);
   if (!toResponsible) return;
+
+  const displayFromName = fromResponsible?.name || fromResponsibleName;
+  const displayToName = toResponsible?.name || toResponsibleName;
 
   const { products } = useProductStore.getState();
   const prodObj = financialCalculator.findProduct(lead.product || '', products);
@@ -138,7 +144,7 @@ export async function notifyLeadManualTransfer(
 
   await insertNotificationForUser(toResponsible.id, {
     title: `Lead transferido para você: ${lead.name}`,
-    message: `${fromResponsibleName} transferiu o lead ${lead.name} para você. Produto: ${prodName}`,
+    message: `${displayFromName} transferiu o lead ${lead.name} para você. Produto: ${prodName}`,
     type: 'info',
     category: 'user',
     link: `/pipeline?lead=${lead.id}`,

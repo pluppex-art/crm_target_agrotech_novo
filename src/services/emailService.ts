@@ -24,11 +24,11 @@ export const emailService = {
       const status = error.response?.status;
       const detail = error.response?.data;
       if (status === 429 || detail?.error === 'quota_exceeded') {
-        console.warn('[Email] Cota diária do MailerSend atingida — e-mail não enviado.');
+        console.warn('[Email] Cota atingida no Resend — e-mail não enviado.');
         return { success: false, error: 'quota_exceeded' };
       }
       const msg = detail?.error || error.message || 'Falha desconhecida';
-      console.warn('[Email] Falha ao enviar notificação por e-mail:', msg, detail?.details ?? '');
+      console.warn('[Email] Falha ao enviar notificação via Resend:', msg, detail?.details ?? '');
       return { success: false, error: msg };
     }
   }
