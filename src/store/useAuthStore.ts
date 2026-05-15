@@ -45,11 +45,11 @@ export const useAuthStore = create<AuthState>((set) => ({
       }
       
       if (data.isSandbox) {
-        console.warn('MailerSend em modo Sandbox: E-mail não enviado para este destinatário.');
+        console.warn('Resend em modo Sandbox: E-mail não enviado para este destinatário.');
         return { error: null, debugLink: data.debugLink, message: data.message, isSandbox: true };
       }
       
-      console.log('E-mail de recuperação enviado com sucesso via MailerSend');
+      console.log('E-mail de recuperação enviado com sucesso via Resend');
       return { error: null, debugLink: data.debugLink };
     } catch (err: any) {
       console.error('Erro na chamada de resetPassword:', err);

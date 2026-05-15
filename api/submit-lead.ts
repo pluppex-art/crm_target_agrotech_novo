@@ -134,8 +134,8 @@ export default async function handler(req: any, res: any) {
       .eq('name', assignedResponsible)
       .single();
 
-    const mailersendKey = process.env.MAILERSEND_API_KEY;
-    if (sellerProfile?.email && mailersendKey) {
+    const resendKey = process.env.RESEND_API_KEY;
+    if (sellerProfile?.email && resendKey) {
       const prodName = product?.trim() || 'N/A';
       const html = `
         <div style="font-family:'Segoe UI',sans-serif;background-color:#f8fafc;padding:40px 20px;color:#1e293b;line-height:1.6;">
@@ -165,20 +165,19 @@ export default async function handler(req: any, res: any) {
         </div>
       `;
 
-      await fetch('https://api.mailersend.com/v1/email', {
+      await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-          'Authorization': `Bearer ${mailersendKey}`,
+          'Authorization': `Bearer ${resendKey}`,
         },
         body: JSON.stringify({
-          from: { email: 'crm@notificacoes.targetagrotech.com.br', name: 'Target Agrotech' },
-          to: [{ email: sellerProfile.email }],
+          from: 'Target Agrotech <crm@notificacoes.targetagrotech.com.br>',
+          to: [sellerProfile.email],
           subject: `🔔 Novo Lead: ${name.trim()}`,
           html,
         }),
-      }).catch(err => console.error('Erro ao notificar vendedor:', err));
+      }).catch(err => console.error('Erro ao notificar vendedor via Resend:', err));
     }
   }
 

@@ -9,37 +9,31 @@ export default async function handler(req: any, res: any) {
     return res.status(400).json({ error: 'Campos obrigatórios: to, subject, html.' });
   }
 
-  const mailersendKey = process.env.MAILERSEND_API_KEY;
-  if (!mailersendKey) {
-    return res.status(500).json({ error: 'MAILERSEND_API_KEY não configurada no servidor.' });
+  const resendKey = process.env.RESEND_API_KEY;
+  if (!resendKey) {
+    return res.status(500).json({ error: 'RESEND_API_KEY não configurada no servidor.' });
   }
 
   try {
-    const response = await fetch('https://api.mailersend.com/v1/email', {
+    const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-        'Authorization': `Bearer ${mailersendKey}`,
+        'Authorization': `Bearer ${resendKey}`,
       },
       body: JSON.stringify({
-        from: {
-          email: 'crm@notificacoes.targetagrotech.com.br',
-          name: 'Target Agrotech',
-        },
-        to: [{ email: to }],
+        from: 'Target Agrotech <crm@notificacoes.targetagrotech.com.br>',
+        to: [to],
         subject,
         html,
       }),
     });
 
     if (!response.ok) {
-      const rawText = await response.text();
-      let errorData: any;
-      try { errorData = JSON.parse(rawText); } catch { errorData = rawText; }
-      console.error(`MailerSend ${response.status}:`, JSON.stringify(errorData));
+      const errorData = await response.json();
+      console.error(`Resend API Error ${response.status}:`, JSON.stringify(errorData));
       return res.status(400).json({
-        error: 'Erro ao enviar e-mail via MailerSend.',
+        error: 'Erro ao enviar e-mail via Resend.',
         status: response.status,
         details: errorData,
       });

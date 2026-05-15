@@ -126,7 +126,7 @@ export function ForgotPassword() {
                         <Info size={14} /> Como resolver:
                       </p>
                       <ul className="text-[11px] text-slate-600 space-y-1 list-disc ml-4">
-                        <li>Verifique se o domínio <b>notificacoes.targetagrotech.com.br</b> está verificado no MailerSend</li>
+                        <li>Verifique se o domínio <b>notificacoes.targetagrotech.com.br</b> está verificado no Resend</li>
                         <li>A API Key deve estar correta no arquivo .env</li>
                         <li>O Sender Email deve ser exatamente <code>crm@notificacoes.targetagrotech.com.br</code></li>
                       </ul>

@@ -14,9 +14,9 @@ export default async function handler(req: any, res: any) {
 
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const mailersendKey = process.env.MAILERSEND_API_KEY;
+  const resendKey = process.env.RESEND_API_KEY;
 
-  if (!url || !key || !mailersendKey) {
+  if (!url || !key || !resendKey) {
     return res.status(500).json({ error: 'Configuração do servidor ausente.' });
   }
 
@@ -47,21 +47,17 @@ export default async function handler(req: any, res: any) {
     return res.status(500).json({ error: 'Não foi possível gerar o link de recuperação.' });
   }
 
-  // Use MailerSend API directly via fetch
+  // Use Resend API via fetch
   try {
-    const response = await fetch('https://api.mailersend.com/v1/email', {
+    const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-        'Authorization': `Bearer ${mailersendKey}`
+        'Authorization': `Bearer ${resendKey}`
       },
       body: JSON.stringify({
-        from: {
-          email: "crm@notificacoes.targetagrotech.com.br",
-          name: "Target Agrotech"
-        },
-        to: [{ email: email }],
+        from: "Target Agrotech <crm@notificacoes.targetagrotech.com.br>",
+        to: [email],
         subject: 'Recuperação de Senha - Target Agrotech',
         html: `
           <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px;border:1px solid #e2e8f0;border-radius:16px;">
@@ -84,8 +80,8 @@ export default async function handler(req: any, res: any) {
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('MailerSend Error:', errorData);
-      return res.status(400).json({ error: 'Erro ao enviar e-mail via MailerSend.' });
+      console.error('Resend Error:', errorData);
+      return res.status(400).json({ error: 'Erro ao enviar e-mail via Resend.' });
     }
 
     return res.status(200).json({ success: true, debugLink: recoveryLink });
