@@ -21,20 +21,11 @@ interface SellerSemaphoreProps {
 }
 
 export function SellerSemaphore({ data, currentSellerName, isAdmin, companyRevenueGoal }: SellerSemaphoreProps) {
-  const visibleData = isAdmin
-    ? data
-    : data.filter((s) => {
-        if (!currentSellerName) return false;
-        return s.label.trim().toLowerCase() === currentSellerName.trim().toLowerCase();
-      });
+  const visibleData = data;
 
   const [selectedSellerName, setSelectedSellerName] = useState<string>('Total da Empresa');
 
   const activeSeller = useMemo(() => {
-    if (!isAdmin) {
-      return visibleData[0] || data[0];
-    }
-    
     if (selectedSellerName !== 'Total da Empresa') {
       return visibleData.find((s) => s.label === selectedSellerName) || visibleData[0];
     }
@@ -133,27 +124,21 @@ export function SellerSemaphore({ data, currentSellerName, isAdmin, companyReven
           </div>
           <h3 className="font-bold text-slate-800">Semáforo dos Vendedores</h3>
         </div>
-        {isAdmin ? (
-          <div className="relative">
-            <select
-              value={selectedSellerName}
-              onChange={(e) => setSelectedSellerName(e.target.value)}
-              className="appearance-none text-xs font-semibold border border-slate-200 rounded-lg pl-3 pr-7 py-1.5 bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-200 cursor-pointer hover:bg-slate-100 transition-colors"
-            >
-              <option value="Total da Empresa">Total da Empresa</option>
-              {visibleData.map((seller) => (
-                <option key={seller.label} value={seller.label}>
-                  {seller.label}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
-          </div>
-        ) : (
-          visibleData.length === 1 && (
-            <span className="text-xs font-medium text-slate-400">Seu progresso</span>
-          )
-        )}
+        <div className="relative">
+          <select
+            value={selectedSellerName}
+            onChange={(e) => setSelectedSellerName(e.target.value)}
+            className="appearance-none text-xs font-semibold border border-slate-200 rounded-lg pl-3 pr-7 py-1.5 bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-200 cursor-pointer hover:bg-slate-100 transition-colors"
+          >
+            <option value="Total da Empresa">Total da Empresa</option>
+            {visibleData.map((seller) => (
+              <option key={seller.label} value={seller.label}>
+                {seller.label}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+        </div>
       </div>
 
       {/* Seller name display */}

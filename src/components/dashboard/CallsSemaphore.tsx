@@ -137,8 +137,8 @@ export function CallsSemaphore({ goals, isAdmin, currentUserId }: CallsSemaphore
     if (customStart && customEnd) { setPeriod('custom'); setShowCustom(false); }
   };
 
-  const base = isAdmin ? sellers : sellers.filter(s => s.user_id === currentUserId);
-  const visible = (isAdmin && !showAll) ? base.filter(s => s.isVendedor !== false) : base;
+  const base = sellers;
+  const visible = !showAll ? base.filter(s => s.isVendedor !== false) : base;
 
   const workdays = getPeriodWorkdays(period, customStart, customEnd);
   const maxGoal = Math.max(...visible.map(s => s.goal * workdays), 1);
@@ -154,19 +154,17 @@ export function CallsSemaphore({ goals, isAdmin, currentUserId }: CallsSemaphore
             {loading && <Loader2 className="w-3.5 h-3.5 text-slate-400 animate-spin" />}
           </div>
           <div className="flex items-center gap-2">
-            {isAdmin && (
-              <button
-                onClick={() => setShowAll(v => !v)}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-bold transition-colors ${
-                  showAll
-                    ? 'bg-violet-50 border-violet-200 text-violet-600'
-                    : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100'
-                }`}
-              >
-                <Users className="w-3.5 h-3.5" />
-                {showAll ? 'Todos' : 'Vendedores'}
-              </button>
-            )}
+            <button
+              onClick={() => setShowAll(v => !v)}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-bold transition-colors ${
+                showAll
+                  ? 'bg-violet-50 border-violet-200 text-violet-600'
+                  : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" />
+              {showAll ? 'Todos' : 'Vendedores'}
+            </button>
             <div className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 rounded-lg border border-blue-100">
               <Phone className="w-3.5 h-3.5 text-blue-500" />
               <span className="text-[11px] font-bold text-blue-600">
