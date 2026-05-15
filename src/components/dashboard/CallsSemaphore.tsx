@@ -247,9 +247,9 @@ export function CallsSemaphore({ goals, isAdmin, currentUserId }: CallsSemaphore
         </div>
       ) : (
         <div className="w-full overflow-x-auto custom-scrollbar pb-2">
-          <div
+            <div
             className="flex items-end justify-around gap-4 min-w-full px-2"
-            style={{ height: CHART_HEIGHT + 56 }}
+            style={{ height: CHART_HEIGHT + 72 }}
           >
             {visible.map((s) => {
               const periodGoal = s.goal * workdays;
@@ -267,9 +267,12 @@ export function CallsSemaphore({ goals, isAdmin, currentUserId }: CallsSemaphore
                   className="flex flex-col items-center justify-end h-full group"
                   style={{ minWidth: 72, flex: '1 1 0' }}
                 >
-                  <div className="mb-2 opacity-80 group-hover:opacity-100">
-                    <span className="text-[10px] font-black text-slate-600 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-100 shadow-sm whitespace-nowrap">
+                  <div className="mb-2 flex flex-col items-center gap-1 opacity-80 group-hover:opacity-100">
+                    <span className="text-[10px] font-black text-slate-700 bg-white px-2 py-0.5 rounded-full border border-slate-200 shadow-sm whitespace-nowrap">
                       {s.atendidas}/{periodGoal}
+                    </span>
+                    <span className="text-[9px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100 shadow-sm whitespace-nowrap">
+                      {s.count} LIGAÇÕES
                     </span>
                   </div>
 
