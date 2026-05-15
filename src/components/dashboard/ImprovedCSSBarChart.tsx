@@ -10,7 +10,6 @@ interface BarItem {
 interface ImprovedCSSBarChartProps {
   data: BarItem[];
   color?: string;
-  gradient?: boolean;
   showValues?: boolean;
   emptyLabel?: string;
   minBarWidth?: number;
@@ -23,7 +22,7 @@ export function ImprovedCSSBarChart({
   showValues = true,
   emptyLabel = 'Sem dados ainda',
   minBarWidth = 0,
-  chartHeight = 180,
+  chartHeight = 220,
 }: ImprovedCSSBarChartProps) {
   const max = Math.max(...data.map(d => d.value), 1);
   const hasData = data.length > 0;
@@ -31,11 +30,11 @@ export function ImprovedCSSBarChart({
   if (!hasData) {
     return (
       <div
-        className="flex flex-col items-center justify-center text-slate-300 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50"
+        className="flex flex-col items-center justify-center text-slate-300 rounded-3xl border-2 border-dashed border-slate-200 bg-slate-50/50"
         style={{ height: chartHeight + 40 }}
       >
-        <BarChart2 className="w-10 h-10 mb-2 opacity-40" />
-        <p className="text-sm font-semibold text-slate-400">{emptyLabel}</p>
+        <BarChart2 className="w-12 h-12 mb-3 opacity-20" />
+        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">{emptyLabel}</p>
       </div>
     );
   }
@@ -50,51 +49,59 @@ export function ImprovedCSSBarChart({
   const colWidth = (): React.CSSProperties =>
     minBarWidth > 0
       ? { width: minBarWidth, flexShrink: 0 }
-      : { flex: '1 1 0', minWidth: 36 };
+      : { flex: '1 1 0', minWidth: 48 };
 
   return (
-    <div className="w-full overflow-x-auto">
+    <div className="w-full overflow-x-auto pb-2 scrollbar-hide">
       <div style={{ minWidth: totalMinWidth }}>
-        {/* Bars + inline labels */}
-        <div className="flex items-end gap-2 px-1" style={{ height: chartHeight }}>
+        <div className="flex items-end gap-3 px-4" style={{ height: chartHeight }}>
           {data.map((d, i) => {
-            const barHeightPx = max > 0
-              ? Math.max((d.value / max) * chartHeight * 0.78, d.value > 0 ? 6 : 0)
-              : 0;
+            const barHeightPct = max > 0 ? (d.value / max) * 100 : 0;
+            const barHeightPx = Math.max((barHeightPct * (chartHeight - 40)) / 100, d.value > 0 ? 8 : 0);
             const barColor = d.color ?? color;
-            const LABEL_W = 12;
-            const labelMaxH = chartHeight - 20;
+            const LABEL_W = 16;
+            const labelMaxH = chartHeight - 40;
 
             return (
               <div
                 key={`col-${i}`}
-                style={{ ...colWidth(), height: chartHeight, position: 'relative', overflow: 'hidden' }}
-                className="flex flex-col items-end justify-end pb-1 gap-0.5 group"
+                style={{ ...colWidth(), height: chartHeight, position: 'relative' }}
+                className="flex flex-col items-center justify-end group pt-6"
               >
-                {/* Value number above bar */}
+                {/* Value tooltip-like number above bar */}
                 {showValues && (
-                  <span className="text-[11px] font-bold text-slate-700 leading-none mb-0.5 shrink-0">
+                  <div className="absolute top-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-slate-800 text-white text-[10px] font-black px-2 py-1 rounded-md mb-1 z-20 pointer-events-none whitespace-nowrap shadow-lg">
                     {d.sublabel ?? fmt(d.value)}
-                  </span>
+                  </div>
+                )}
+                
+                {showValues && (
+                   <span className="text-[10px] font-black text-slate-500 mb-2 tabular-nums">
+                     {d.sublabel ?? fmt(d.value)}
+                   </span>
                 )}
 
-                {/* Bar — offset right to leave room for label */}
+                {/* Bar */}
                 <div
-                  className="rounded-t-xl transition-all duration-700 group-hover:brightness-110 shrink-0"
+                  className="rounded-t-2xl transition-all duration-700 ease-out relative overflow-hidden group-hover:brightness-110"
                   style={{
                     width: `calc(100% - ${LABEL_W}px)`,
                     height: barHeightPx,
                     backgroundColor: barColor,
-                    boxShadow: barHeightPx > 0 ? `0 -2px 8px ${barColor}44` : 'none',
+                    boxShadow: barHeightPx > 0 ? `0 10px 25px -5px ${barColor}66` : 'none',
                   }}
-                />
+                >
+                   {/* Gradient highlight */}
+                   <div className="absolute inset-0 bg-gradient-to-tr from-black/20 via-transparent to-white/20" />
+                   <div className="absolute top-0 inset-x-0 h-[2px] bg-white/20" />
+                </div>
 
-                {/* Label — always visible, absolute at left strip */}
+                {/* Label — Vertical */}
                 <div
                   style={{
                     position: 'absolute',
-                    bottom: 4,
-                    left: 0,
+                    bottom: 12,
+                    left: 2,
                     width: LABEL_W,
                     height: labelMaxH,
                     overflow: 'hidden',
@@ -109,11 +116,14 @@ export function ImprovedCSSBarChart({
                       writingMode: 'vertical-rl' as const,
                       transform: 'rotate(180deg)',
                       whiteSpace: 'nowrap',
-                      fontSize: 9,
-                      fontWeight: 500,
+                      fontSize: 10,
+                      fontWeight: 800,
                       lineHeight: 1,
-                      color: '#475569',
+                      color: '#94a3b8',
+                      letterSpacing: '-0.02em',
+                      textTransform: 'uppercase',
                     }}
+                    className="group-hover:text-slate-600 transition-colors duration-300"
                   >
                     {d.label}
                   </span>
@@ -123,8 +133,8 @@ export function ImprovedCSSBarChart({
           })}
         </div>
 
-        {/* Baseline */}
-        <div className="border-t-2 border-slate-200" />
+        {/* Improved Baseline */}
+        <div className="mx-2 h-[2px] bg-gradient-to-r from-transparent via-slate-200 to-transparent rounded-full mt-1" />
       </div>
     </div>
   );

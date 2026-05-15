@@ -142,7 +142,7 @@ export function CallsSemaphore({ goals, isAdmin, currentUserId }: CallsSemaphore
 
   const workdays = getPeriodWorkdays(period, customStart, customEnd);
   const maxGoal = Math.max(...visible.map(s => s.goal * workdays), 1);
-  const maxCount = Math.max(...visible.map(s => s.count), maxGoal, 1);
+  const maxCount = Math.max(...visible.map(s => s.atendidas), maxGoal, 1);
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col">
@@ -253,12 +253,12 @@ export function CallsSemaphore({ goals, isAdmin, currentUserId }: CallsSemaphore
           >
             {visible.map((s) => {
               const periodGoal = s.goal * workdays;
-              const totalPct = (s.count / maxCount) * 100;
-              const barH = Math.max(totalPct * 0.85, s.count > 0 ? 4 : 0);
+              const atendPctTotal = (s.atendidas / maxCount) * 100;
+              const barH = Math.max(atendPctTotal * 0.85, s.count > 0 ? 4 : 0);
               const atendPct = s.count > 0 ? (s.atendidas / s.count) * 100 : 0;
               const naoAtendPct = s.count > 0 ? (s.nao_atendidas / s.count) * 100 : 0;
               const goalLineH = (periodGoal / maxCount) * 100 * 0.85;
-              const color = semaphoreColor(s.count, periodGoal);
+              const color = semaphoreColor(s.atendidas, periodGoal);
               const firstName = s.user_name.split(' ')[0];
 
               return (
@@ -269,7 +269,7 @@ export function CallsSemaphore({ goals, isAdmin, currentUserId }: CallsSemaphore
                 >
                   <div className="mb-2 opacity-80 group-hover:opacity-100">
                     <span className="text-[10px] font-black text-slate-600 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-100 shadow-sm whitespace-nowrap">
-                      {s.count}/{periodGoal}
+                      {s.atendidas}/{periodGoal}
                     </span>
                   </div>
 

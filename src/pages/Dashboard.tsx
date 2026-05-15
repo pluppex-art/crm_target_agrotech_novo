@@ -513,7 +513,7 @@ export function Dashboard() {
       <div className="mb-6">
         <CallsSemaphore
           goals={goals}
-          isAdmin={hasPermission('admin.all')}
+          isAdmin={hasPermission('admin.all') || hasPermission('dashboard.view')}
           currentUserId={currentUser?.id ?? null}
         />
       </div>
