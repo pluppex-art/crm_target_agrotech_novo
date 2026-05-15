@@ -50,7 +50,7 @@ export const TaskReminderWatcher: React.FC = () => {
           const [hours, minutes] = task.scheduled_time.split(':').map(Number);
           const taskMinutes = hours * 60 + minutes;
 
-          if (currentMinutes >= taskMinutes && currentMinutes < taskMinutes + 5) {
+          if (currentMinutes >= taskMinutes - 5 && currentMinutes < taskMinutes) {
             triggerNotification(task, notified);
             shouldPlaySound = true;
             return;

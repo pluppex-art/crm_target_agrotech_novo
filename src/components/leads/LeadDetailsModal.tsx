@@ -127,27 +127,7 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
         if (!form.formData.pix_completed) form.toggleField('pix_completed', true);
         if (!form.formData.contract_signed) form.toggleField('contract_signed', true);
 
-        // Automated Email: Enrollment Confirmation
-        if (lead.email) {
-          // Find associated turma for details
-          const associatedTurma = leadTurmas.leadTurmas[0]?.turma;
-          const dateStr = associatedTurma?.date
-            ? new Date(associatedTurma.date.replace(/-/g, '\/')).toLocaleDateString('pt-BR')
-            : 'A definir';
-
-          const productName = currentProduct?.name || form.formData.product || 'Curso';
-
-          emailService.sendEmail({
-            to: lead.email,
-            subject: `🎓 Matrícula Confirmada: ${productName}`,
-            html: emailTemplates.enrollmentConfirmed(
-              lead.name,
-              productName,
-              dateStr,
-              associatedTurma?.location || 'A definir'
-            )
-          });
-        }
+        // Enrollment Confirmation email disabled
       }
       onStageChange?.(stageId);
     }

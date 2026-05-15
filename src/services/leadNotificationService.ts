@@ -53,8 +53,21 @@ export async function insertNotificationForUser(
   if (error) console.warn('Erro ao inserir notificação:', error);
 }
 
+async function resolveProfileEmail(idOrName: string, profiles: UserProfile[]): Promise<{ id: string; name: string; email: string } | null> {
+  const cached = findProfile(idOrName, profiles);
+  if (cached?.email) return { id: cached.id, name: cached.name || '', email: cached.email };
+
+  // Fallback: fetch directly from DB (handles race conditions and missing cache)
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrName.trim());
+  const { data } = isUuid
+    ? await supabase.from('perfis').select('id, name, email').eq('id', idOrName.trim()).single()
+    : await supabase.from('perfis').select('id, name, email').ilike('name', idOrName.trim()).single();
+  if (data?.email) return { id: data.id, name: data.name || '', email: data.email };
+  return null;
+}
+
 export async function notifyNewLead(lead: Lead, profiles: UserProfile[]): Promise<void> {
-  const responsible = findProfile(lead.responsavel_usuario_id || lead.responsible || '', profiles);
+  const responsible = await resolveProfileEmail(lead.responsavel_usuario_id || lead.responsible || '', profiles);
   if (!responsible) return;
 
   const { products } = useProductStore.getState();
@@ -69,16 +82,14 @@ export async function notifyNewLead(lead: Lead, profiles: UserProfile[]): Promis
     link: `/pipeline?lead=${lead.id}`,
   });
 
-  if (responsible.email) {
-    try {
-      await emailService.sendEmail({
-        to: responsible.email,
-        subject: `🔔 Novo Lead: ${lead.name}`,
-        html: emailTemplates.newLeadResponsible(responsible.name || '', lead.name, prodName, lead.lead_source || 'Cadastro Manual', lead.phone, lead.email ?? undefined)
-      });
-    } catch (err) {
-      console.warn('[Notification] Falha ao enviar e-mail de novo lead:', err);
-    }
+  try {
+    await emailService.sendEmail({
+      to: responsible.email,
+      subject: `🔔 Novo Lead: ${lead.name}`,
+      html: emailTemplates.newLeadResponsible(responsible.name, lead.name, prodName, lead.lead_source || 'Cadastro Manual', lead.phone, lead.email ?? undefined)
+    });
+  } catch (err) {
+    console.warn('[Notification] Falha ao enviar e-mail de novo lead:', err);
   }
 }
 
@@ -135,11 +146,10 @@ export async function notifyLeadManualTransfer(
   profiles: UserProfile[]
 ): Promise<void> {
   const fromResponsible = findProfile(fromResponsibleName, profiles);
-  const toResponsible = findProfile(toResponsibleName, profiles);
+  const toResponsible = await resolveProfileEmail(toResponsibleName, profiles);
   if (!toResponsible) return;
 
   const displayFromName = fromResponsible?.name || fromResponsibleName;
-  const displayToName = toResponsible?.name || toResponsibleName;
 
   const { products } = useProductStore.getState();
   const prodObj = financialCalculator.findProduct(lead.product || '', products);
@@ -153,23 +163,21 @@ export async function notifyLeadManualTransfer(
     link: `/pipeline?lead=${lead.id}`,
   });
 
-  if (toResponsible.email) {
-    try {
-      await emailService.sendEmail({
-        to: toResponsible.email,
-        subject: `📨 Lead Transferido: ${lead.name}`,
-        html: emailTemplates.leadTransferManual(
-          toResponsible.name || '',
-          fromResponsibleName,
-          lead.name,
-          prodName,
-          lead.phone,
-          lead.email ?? undefined
-        )
-      });
-    } catch (err) {
-      console.warn('[Notification] Falha ao enviar e-mail de transferência manual:', err);
-    }
+  try {
+    await emailService.sendEmail({
+      to: toResponsible.email,
+      subject: `📨 Lead Transferido: ${lead.name}`,
+      html: emailTemplates.leadTransferManual(
+        toResponsible.name,
+        displayFromName,
+        lead.name,
+        prodName,
+        lead.phone,
+        lead.email ?? undefined
+      )
+    });
+  } catch (err) {
+    console.warn('[Notification] Falha ao enviar e-mail de transferência manual:', err);
   }
 }
 
