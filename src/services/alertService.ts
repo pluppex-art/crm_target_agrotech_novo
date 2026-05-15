@@ -74,29 +74,43 @@ export function openWhatsApp(phone: string, message: string) {
 
 async function sendEmailAlert(userEmail: string, lead: Lead, label: string) {
   try {
+    const { products } = useProductStore.getState();
+    const prodName = financialCalculator.findProduct(lead.product || '', products)?.name || lead.product || 'N/A';
+    
+    /* 
+    ENVIO CONGELADO TEMPORARIAMENTE
     await emailService.sendEmail({
       to: userEmail,
       subject: `⚠️ Alerta CRM: Cliente "${lead.name}" sem contato há ${label}`,
       html: `
-        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #dc2626;">⚠️ Alerta de Inatividade</h2>
-          <p>O cliente <strong>${lead.name}</strong> está sem contato há <strong>${label}</strong>.</p>
-          <table style="width:100%; border-collapse: collapse; margin: 16px 0;">
-            <tr><td style="padding:8px; color:#6b7280;">Produto:</td><td style="padding:8px;"><strong>${(() => {
-              const { products } = useProductStore.getState();
-              return financialCalculator.findProduct(lead.product || '', products)?.name || lead.product;
-            })()}</strong></td></tr>
-            <tr><td style="padding:8px; color:#6b7280;">Telefone:</td><td style="padding:8px;"><strong>${lead.phone}</strong></td></tr>
-            <tr><td style="padding:8px; color:#6b7280;">Responsável:</td><td style="padding:8px;"><strong>${(() => {
-              const { profiles } = useProfileStore.getState();
-              const profile = profiles.find(p => p.id === lead.responsavel_usuario_id || p.name === lead.responsible);
-              return profile?.name || lead.responsible || 'Não definido';
-            })()}</strong></td></tr>
-          </table>
-          <p style="color:#dc2626; font-weight:bold;">Acesse o CRM e entre em contato para não perder esta oportunidade!</p>
+        <div style="font-family:'Segoe UI',sans-serif;background-color:#f8fafc;padding:40px 20px;color:#1e293b;line-height:1.6;">
+          <div style="max-width:600px;margin:0 auto;background-color:#ffffff;border-radius:24px;overflow:hidden;border:1px solid #e2e8f0;">
+            <div style="background-color:#059669;padding:32px;text-align:center;">
+              <h1 style="color:#ffffff;margin:0;font-size:24px;font-weight:800;">TARGET AGROTECH</h1>
+            </div>
+            <div style="padding:40px 32px;">
+              <div style="background-color:#fef2f2;color:#dc2626;padding:12px 20px;border-radius:12px;font-size:12px;font-weight:800;text-transform:uppercase;display:inline-block;margin-bottom:16px;">⚠️ ALERTA DE INATIVIDADE</div>
+              <h2 style="color:#0f172a;font-size:20px;font-weight:700;margin:0 0 16px 0;">Atenção!</h2>
+              <p style="font-size:16px;color:#475569;margin-bottom:24px;">O cliente <b>${lead.name}</b> está aguardando retorno há <b>${label}</b>. Não deixe essa oportunidade esfriar!</p>
+              <div style="background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:24px;margin-bottom:24px;">
+                <table style="width:100%;border-collapse:collapse;">
+                  <tr><td style="padding-bottom:12px;color:#64748b;font-size:12px;font-weight:700;text-transform:uppercase;">Produto</td><td style="padding-bottom:12px;color:#1e293b;font-size:14px;font-weight:700;text-align:right;">${prodName}</td></tr>
+                  <tr><td style="padding-bottom:12px;color:#64748b;font-size:12px;font-weight:700;text-transform:uppercase;">Telefone</td><td style="padding-bottom:12px;color:#1e293b;font-size:14px;font-weight:700;text-align:right;">${lead.phone}</td></tr>
+                  <tr><td style="padding-bottom:0;color:#64748b;font-size:12px;font-weight:700;text-transform:uppercase;">Status Atual</td><td style="padding-bottom:0;color:#dc2626;font-size:14px;font-weight:700;text-align:right;">Inativo há ${label}</td></tr>
+                </table>
+              </div>
+              <div style="margin-top:32px;text-align:center;">
+                <a href="https://crm.targetagrotech.com.br/pipeline?lead=${lead.id}" style="display:inline-block;background-color:#059669;color:#ffffff;padding:14px 28px;border-radius:12px;font-weight:700;text-decoration:none;">Acessar Lead Agora</a>
+              </div>
+            </div>
+            <div style="background-color:#f1f5f9;padding:24px;text-align:center;border-top:1px solid #e2e8f0;">
+              <p style="margin:0;color:#64748b;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;">© 2026 Target Agrotech • Tecnologia e Performance</p>
+            </div>
+          </div>
         </div>
       `,
     });
+    */
   } catch (err) {
     console.warn('Falha ao enviar e-mail de alerta:', err);
   }
