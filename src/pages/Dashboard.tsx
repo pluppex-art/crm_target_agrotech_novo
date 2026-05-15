@@ -193,7 +193,7 @@ export function Dashboard() {
   }, [profiles, currentUser]);
 
   const salesMetrics = useSalesMetrics({
-    currentSellerName: null, // Always compute global context for the dashboard cards
+    currentSellerName, // Filter by logged in seller if not admin
     startDate, endDate, goals,
     searchTerm, filterStage, filterProduct, filterResponsible,
   });
