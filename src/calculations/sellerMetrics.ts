@@ -96,11 +96,13 @@ export function calcSalesByResponsible(
 
     if (!l.responsible) return;
 
-    const rawKey = l.responsible.trim();
+    const rawKey = (l.responsible || '').trim();
     const lowerKey = rawKey.toLowerCase();
 
     if (filterProduct && filterProduct !== 'all' && l.product !== filterProduct) return;
-    if (globalTargetSeller && lowerKey !== globalTargetSeller) return;
+    
+    // Use trimmed comparison for target seller
+    if (globalTargetSeller && lowerKey !== globalTargetSeller.trim().toLowerCase()) return;
 
     if (!result[lowerKey]) {
       result[lowerKey] = { label: rawKey, value: 0, received: 0, count: 0 };
