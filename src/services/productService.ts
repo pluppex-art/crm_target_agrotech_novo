@@ -16,6 +16,7 @@ export interface Product {
   date?: string | null;
   time?: string | null;
   location?: string | null;
+  status?: string | null;
 }
 
 export const productService = {
@@ -25,7 +26,7 @@ export const productService = {
 
     const { data, error } = await supabase
       .from('turmas')
-      .select('id, created_at, name, description, price, enrollment_fee, category, image_url, student_goal, professor_name, professor_email, date, time, location')
+      .select('id, created_at, name, description, price, enrollment_fee, category, image_url, student_goal, professor_name, professor_email, date, time, location, status')
       .order('name', { ascending: true });
 
     if (error) {
@@ -48,6 +49,7 @@ export const productService = {
       date: row.date,
       time: row.time,
       location: row.location,
+      status: row.status,
     })) as Product[];
   },
 
@@ -59,7 +61,7 @@ export const productService = {
     const { data, error } = await supabase
       .from('turmas')
       .insert([{ name, description, price, enrollment_fee, category, image_url, student_goal, professor_name, professor_email, date, time, location, status: 'agendada' }])
-      .select('id, created_at, name, description, price, enrollment_fee, category, image_url, student_goal, professor_name, professor_email, date, time, location')
+      .select('id, created_at, name, description, price, enrollment_fee, category, image_url, student_goal, professor_name, professor_email, date, time, location, status')
       .single();
 
     if (error) {

@@ -68,6 +68,14 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
   const profileInputRef = useRef<HTMLInputElement>(null);
 
   const currentPipelineStages = useMemo(() => pipelines.find(p => p.id === pipelineId)?.stages ?? [], [pipelines, pipelineId]);
+  const filteredProducts = useMemo(() => {
+    return products.filter(p => {
+      // Always include the currently selected product
+      if (p.id === formData.product || p.name === formData.product) return true;
+      // Exclude concluded or canceled
+      return p.status !== 'concluida' && p.status !== 'cancelada';
+    });
+  }, [products, formData.product]);
   const vendedores = useMemo(() => profiles.filter(p => p.status === 'active' || !p.status), [profiles]);
   const selectedStage = useMemo(() => currentPipelineStages.find((s: any) => s.id === selectedStageId), [currentPipelineStages, selectedStageId]);
   const isGanhoStage = useMemo(() => {
@@ -195,7 +203,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
             <SalesInfoSection 
               formData={formData} 
               setFormData={setFormData} 
-              products={products} 
+              products={filteredProducts} 
               responsibles={vendedores} 
               profiles={profiles}
               getSquadInfoForUser={getSquadInfoForUser}

@@ -92,6 +92,18 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
     }
     return list;
   }, [profiles, lead?.responsible, lead?.responsavel_usuario_id]);
+
+  const filteredProducts = useMemo(() => {
+    return products.filter(p => {
+      // Always include the lead's current product or the currently selected product in the form
+      if (p.id === lead.product || p.name === lead.product) return true;
+      if (p.id === form.formData.product || p.name === form.formData.product) return true;
+      
+      // Exclude concluded or canceled
+      return p.status !== 'concluida' && p.status !== 'cancelada';
+    });
+  }, [products, lead.product, form.formData.product]);
+
   const isTurmaMode = !!turmaAttendee;
   const stages = isTurmaMode ? TURMA_STAGES : pipelineStages;
   const currentStageData = stages?.find(s => s.id === currentStageId);
@@ -365,7 +377,7 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
               <LeadInfoTab
                 lead={lead}
                 formData={form.formData}
-                products={products}
+                products={filteredProducts}
                 fieldErrors={form.fieldErrors}
                 whatsappUrl={form.whatsappUrl}
                 calculateFinalValue={form.calculateFinalValue}
@@ -418,7 +430,7 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
               formData={form.formData}
               updateFormField={form.updateFormField}
               toggleField={form.toggleField}
-              products={products}
+              products={filteredProducts}
             />
           )}
           {activeTab === 'checklist' && (

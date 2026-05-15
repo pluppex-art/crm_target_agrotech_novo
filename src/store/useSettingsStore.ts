@@ -8,6 +8,7 @@ export interface NotificationPrefs {
   stageChange: boolean;
   newTask: boolean;
   taskDue: boolean;
+  enableSound: boolean;
   inactivityLevels: string[];
 }
 
@@ -18,6 +19,7 @@ const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
   stageChange: true,
   newTask: true,
   taskDue: true,
+  enableSound: true,
   inactivityLevels: ['h1', 'h6', 'h24', 'h48'],
 };
 
