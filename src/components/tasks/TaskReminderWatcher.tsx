@@ -1,17 +1,14 @@
 import React, { useEffect, useRef } from 'react';
 import { useTaskStore } from '../../store/useTaskStore';
 import { useAuthStore } from '../../store/useAuthStore';
-import { useProfileStore } from '../../store/useProfileStore';
-import { useNotificationStore } from '../../store/useNotificationStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
-import { Bell } from 'lucide-react';
-import { notifyTaskReminder } from '../../services/leadNotificationService';
 
+// DB notifications and emails are handled server-side by the Supabase Edge Function
+// "task-reminders", which runs every minute via pg_cron — even when the app is closed.
+// This component only plays a sound alert when the user has the app open.
 export const TaskReminderWatcher: React.FC = () => {
   const { tasks } = useTaskStore();
   const { user } = useAuthStore();
-  const { profiles } = useProfileStore();
-  const { addNotification } = useNotificationStore();
   const { notificationPrefs, fetchSettings } = useSettingsStore();
   const lastSoundTime = useRef(0);
 
@@ -20,71 +17,48 @@ export const TaskReminderWatcher: React.FC = () => {
   }, [fetchSettings]);
 
   useEffect(() => {
-    if (!user || !notificationPrefs.taskDue) return;
+    if (!user || !notificationPrefs.taskDue || !notificationPrefs.enableSound) return;
 
-    const getStorageKey = () => `crm_notified_tasks_${user.id}_${new Date().toLocaleDateString('en-CA')}`;
-    const getNotified = () => {
-      try { return new Set<string>(JSON.parse(localStorage.getItem(getStorageKey()) || '[]')); }
-      catch { return new Set<string>(); }
-    };
-    const saveNotified = (ids: Set<string>) => {
-      localStorage.setItem(getStorageKey(), JSON.stringify(Array.from(ids)));
-    };
-
-    const checkReminders = () => {
-      const notified = getNotified();
+    const checkAndPlaySound = () => {
       const now = new Date();
       const currentMinutes = now.getHours() * 60 + now.getMinutes();
-      const todayStr = now.toLocaleDateString('en-CA'); 
-      let shouldPlaySound = false;
+      const todayStr = now.toLocaleDateString('en-CA');
+      let shouldPlay = false;
 
-      tasks.forEach(task => {
-        if (task.status !== 'pending' || task.responsavel_usuario_id !== user.id) return;
-        if (!task.due_date) return;
-        if (notified.has(task.id)) return;
+      for (const task of tasks) {
+        if (task.status !== 'pending' || task.responsavel_usuario_id !== user.id) continue;
+        if (!task.due_date) continue;
 
         const isToday = task.due_date === todayStr;
         const isOverdue = task.due_date < todayStr;
 
         if (isToday && task.scheduled_time) {
-          const [hours, minutes] = task.scheduled_time.split(':').map(Number);
-          const taskMinutes = hours * 60 + minutes;
-
+          const [h, m] = task.scheduled_time.split(':').map(Number);
+          const taskMinutes = h * 60 + m;
           if (currentMinutes >= taskMinutes - 5 && currentMinutes < taskMinutes) {
-            triggerNotification(task, notified);
-            shouldPlaySound = true;
-            return;
+            shouldPlay = true;
+            break;
           }
+        } else if (isOverdue || (isToday && !task.scheduled_time)) {
+          shouldPlay = true;
+          break;
         }
+      }
 
-        if (isOverdue || (isToday && !task.scheduled_time)) {
-          triggerNotification(task, notified);
-          shouldPlaySound = true;
-        }
-      });
-
-      if (shouldPlaySound && notificationPrefs.enableSound) {
+      if (shouldPlay) {
         const nowMs = Date.now();
-        // Debounce sound to play at most once every 5 seconds
         if (nowMs - lastSoundTime.current > 5000) {
-          const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3'); // Notification chime
-          audio.play().catch(e => console.log('Audio play failed:', e));
+          const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
+          audio.play().catch(() => {});
           lastSoundTime.current = nowMs;
         }
       }
     };
 
-    const triggerNotification = async (task: any, notified: Set<string>) => {
-      await notifyTaskReminder(task);
-      notified.add(task.id);
-      saveNotified(notified);
-    };
-
-    const interval = setInterval(checkReminders, 30000);
-    checkReminders(); 
-
+    const interval = setInterval(checkAndPlaySound, 30000);
+    checkAndPlaySound();
     return () => clearInterval(interval);
-  }, [tasks, user, profiles, addNotification, notificationPrefs.taskDue, notificationPrefs.enableSound]);
+  }, [tasks, user, notificationPrefs.taskDue, notificationPrefs.enableSound]);
 
   return null;
 };

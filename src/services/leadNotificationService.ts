@@ -16,14 +16,6 @@ function findProfile(idOrName: string, profiles: UserProfile[]): UserProfile | u
   );
 }
 
-function findAdminProfiles(profiles: UserProfile[]): UserProfile[] {
-  return profiles.filter(p =>
-    p.status === 'active' &&
-    (p.cargos?.permissions?.includes('admin.all') ||
-      p.cargos?.name?.toLowerCase().includes('coordenador') ||
-      p.cargos?.name?.toLowerCase().includes('admin'))
-  );
-}
 
 export async function insertNotificationForUser(
   userId: string,
@@ -113,20 +105,7 @@ export async function notifyLeadTransferred(
     });
   }
 
-  const admins = findAdminProfiles(profiles);
-  const displayName = newResponsible?.name || (newResponsibleName.length > 20 ? 'Novo Responsável' : newResponsibleName);
-
-  for (const admin of admins) {
-    await insertNotificationForUser(admin.id, {
-      title: `Lead transferido: ${lead.name}`,
-      message: `Inativo por 48h. Transferido de ${lead.responsible || 'N/A'} para ${displayName}. Produto: ${lead.product || 'N/A'}`,
-      type: 'urgent',
-      category: 'system',
-      link: `/pipeline?lead=${lead.id}`,
-    });
-  }
-
-  /* 
+  /*
   E-mail desativado temporariamente para evitar spam no Resend
   if (newResponsible && newResponsible.email) {
     try {
@@ -217,41 +196,13 @@ export async function notifyLeadAssignment(
   }
 }
 
-const COORDINATOR_NOTIFY_KEYWORDS = ['contrato', 'ganho', 'fechado', 'aprovado', 'perdido'];
-
-function resolveStageType(stageLower: string): 'success' | 'urgent' | 'info' {
-  if (stageLower.includes('ganho') || stageLower.includes('aprovado') || stageLower.includes('fechado')) return 'success';
-  if (stageLower.includes('perdido')) return 'urgent';
-  return 'info';
-}
-
+// Stage change notifications to admins/coordinators are disabled.
+// Only the responsible person should receive notifications.
 export async function notifyStageChange(
-  lead: Lead,
-  stageName: string,
-  profiles: UserProfile[]
-): Promise<void> {
-  const stageLower = stageName.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-  const shouldNotify = COORDINATOR_NOTIFY_KEYWORDS.some(kw => stageLower.includes(kw));
-  if (!shouldNotify) return;
-
-  const { products } = useProductStore.getState();
-  const prodObj = financialCalculator.findProduct(lead.product || '', products);
-  const prodName = prodObj?.name || lead.product || 'N/A';
-  const respProfile = findProfile(lead.responsavel_usuario_id || lead.responsible || '', profiles);
-  const respName = respProfile?.name || lead.responsible || 'N/A';
-
-  const type = resolveStageType(stageLower);
-  const admins = findAdminProfiles(profiles);
-  for (const admin of admins) {
-    await insertNotificationForUser(admin.id, {
-      title: `Lead em "${stageName}": ${lead.name}`,
-      message: `Responsável: ${respName} | Produto: ${prodName} | Tel: ${lead.phone}`,
-      type,
-      category: 'system',
-      link: `/pipeline?lead=${lead.id}`,
-    });
-  }
-}
+  _lead: Lead,
+  _stageName: string,
+  _profiles: UserProfile[]
+): Promise<void> {}
 
 export async function notifyNewTask(task: Task, creatorId: string): Promise<void> {
   if (!task.responsavel_usuario_id || task.responsavel_usuario_id === creatorId) return;

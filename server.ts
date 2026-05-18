@@ -211,27 +211,28 @@ async function startServer() {
       const PIPELINE_ID = '31f2fdbb-7b19-4973-8f70-7bb629697f11';
       const STAGE_ID = '36f5f922-ac1d-4742-a2b5-43a9af25b37d';
 
-      // 1. Round Robin
+      // 1. Round Robin — cargo vendedor/closer + departamento Comercial
       const { data: vendedorCargos } = await supabase
         .from('cargos')
         .select('id')
-        .or('name.ilike.%vendedor%,name.ilike.%consultor%');
+        .or('name.ilike.%vendedor%,name.ilike.%closer%');
 
       const vendedorCargoIds = (vendedorCargos || []).map((c: any) => c.id);
 
       const { data: sellers } = await supabase
         .from('perfis')
-        .select('name, phone')
-        .eq('department', 'Comercial')
+        .select('id, name, phone')
         .or('status.eq.active,status.is.null')
         .neq('in_round_robin', false)
-        .in('role_id', vendedorCargoIds.length > 0 ? vendedorCargoIds : ['']);
+        .in('role_id', vendedorCargoIds.length > 0 ? vendedorCargoIds : [''])
+        .ilike('department', 'comercial');
 
       const validSellers = (sellers || []).sort((a: any, b: any) =>
         a.name.trim().localeCompare(b.name.trim(), 'pt-BR', { sensitivity: 'base' })
       );
 
       let assignedResponsible = null;
+      let assignedUserId: string | null = null;
       let assignedPhone = null;
 
       if (validSellers.length > 0) {
@@ -257,6 +258,7 @@ async function startServer() {
         const lastIndex = lastResp ? validSellers.findIndex((s: any) => s.name.trim() === lastResp) : -1;
         const nextIndex = (lastIndex + 1) % validSellers.length;
         assignedResponsible = validSellers[nextIndex].name;
+        assignedUserId = validSellers[nextIndex].id ?? null;
         assignedPhone = validSellers[nextIndex].phone;
       }
 
@@ -278,6 +280,7 @@ async function startServer() {
           stage_id: STAGE_ID,
           status: 'new',
           responsible: assignedResponsible,
+          responsavel_usuario_id: assignedUserId,
           stars: 1,
           value: Number(value) || 0,
           substatus: 'qualified',
@@ -297,7 +300,28 @@ async function startServer() {
           .upsert({ id: 'form_leads', last_seller_name: assignedResponsible, updated_at: new Date().toISOString() });
       }
 
-      // 4. Email Notification
+      // 4. In-app notification for the assigned seller
+      if (assignedUserId && leadData) {
+        const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const notifTitle = `Novo lead: ${name.trim()}`;
+        const { data: existing } = await supabase
+          .from('notifications').select('id')
+          .eq('user_id', assignedUserId).eq('title', notifTitle)
+          .gte('created_at', since24h).limit(1);
+        if (!existing || existing.length === 0) {
+          await supabase.from('notifications').insert([{
+            user_id: assignedUserId,
+            read: false,
+            title: notifTitle,
+            message: `Novo lead do formulário. Produto: ${product || 'Interesse Geral'} | Tel: ${phone.trim()}`,
+            type: 'info',
+            category: 'user',
+            link: `/pipeline?lead=${leadData.id}`,
+          }]);
+        }
+      }
+
+      // 5. Email Notification
       const resendKey = process.env.RESEND_API_KEY;
       if (assignedResponsible && resendKey) {
         const { data: sellerProfile } = await supabase
@@ -342,7 +366,7 @@ async function startServer() {
         }
       }
 
-      // 5. Create Note
+      // 6. Create Note
       if (notesContent && leadData) {
         await supabase.from('notes').insert([{ content: notesContent, lead_id: leadData.id, author_name: 'Sistema' }]);
       }
