@@ -17,7 +17,7 @@ function SellerGoalsList({ sellers, sellerGoals, savingSeller, savedSeller, upda
   if (sellers.length === 0) {
     return (
       <p className="text-sm text-slate-400 text-center py-8">
-        Nenhum usuário com cargo de vendedor cadastrado.
+        Nenhum usuário com cargo de closer cadastrado.
       </p>
     );
   }
@@ -180,7 +180,7 @@ export function ManageGoals() {
 
   const handleSaveSeller = async (profile: UserProfile) => {
     const id = profile.id;
-    const name = profile.name || profile.email || 'Vendedor';
+    const name = profile.name || profile.email || 'Closer';
     setSavingSeller(id);
     const g = sellerGoals[id] || { revenue: '', leads: '', calls: '' };
     const result = await goalService.upsertSellerGoal(id, name, parseBR(g.revenue), Number(g.leads) || 0, Number(g.calls) || 0);
@@ -210,10 +210,10 @@ export function ManageGoals() {
   }
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-800">Metas</h1>
-        <p className="text-sm text-slate-500">Defina metas de receita, leads fechados e ligações diárias para a empresa e para cada vendedor.</p>
+    <div className="space-y-6 max-w-4xl mx-auto">
+      <div>
+        <p className="text-sm text-slate-700 font-semibold">Metas Comerciais</p>
+        <p className="text-xs text-slate-500 mt-0.5">Defina metas de receita, leads fechados e ligações diárias para a empresa e para cada closer.</p>
       </div>
 
       {/* Company goals */}
@@ -267,13 +267,13 @@ export function ManageGoals() {
             <User className="w-5 h-5 text-blue-600" />
           </div>
           <div>
-            <h2 className="font-bold text-slate-800">Metas por Vendedor</h2>
+            <h2 className="font-bold text-slate-800">Metas por Closer</h2>
             <p className="text-xs text-slate-400">Metas individuais mensais por colaborador</p>
           </div>
         </div>
 
         <SellerGoalsList
-          sellers={profiles.filter(p => p.cargos?.name?.toLowerCase().includes('vend'))}
+          sellers={profiles.filter(p => p.cargos?.name?.toLowerCase().includes('closer'))}
           sellerGoals={sellerGoals}
           savingSeller={savingSeller}
           savedSeller={savedSeller}

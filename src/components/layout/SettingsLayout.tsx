@@ -1,7 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import {
   User, Bell, Lock, Globe, Shield, UserPlus, Tag, Activity,
-  Target, ClipboardList, Settings as SettingsIcon, RefreshCcw
+  Target, ClipboardList, Settings as SettingsIcon, RefreshCcw, Users2
 } from 'lucide-react';
 import { cn, isVendedor } from '../../lib/utils';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -13,7 +13,6 @@ import { ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen } from 'lucide
 const settingsNav = [
   { icon: User,           label: 'Perfil',               path: '/settings/profile' },
   { icon: UserPlus,       label: 'Usuários',             path: '/settings/users' },
-  { icon: Target,         label: 'Metas',                path: '/settings/goals' },
   { icon: ClipboardList,  label: 'Checklists',           path: '/settings/checklists' },
   { icon: Bell,           label: 'Notificações',         path: '/settings/notifications' },
   { icon: Lock,           label: 'Segurança',            path: '/settings/security' },
@@ -24,6 +23,7 @@ const settingsNav = [
   { icon: Tag,            label: 'Categorias',           path: '/settings/categories' },
   { icon: Activity,       label: 'Atividades',           path: '/settings/activity-categories' },
   { icon: RefreshCcw,    label: 'Rodízio de Leads',     path: '/settings/rotation' },
+  { icon: Users2,        label: 'Squads',               path: '/settings/squads' },
 ];
 
 export function SettingsLayout() {

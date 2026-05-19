@@ -211,56 +211,67 @@ async function startServer() {
       const PIPELINE_ID = '31f2fdbb-7b19-4973-8f70-7bb629697f11';
       const STAGE_ID = '36f5f922-ac1d-4742-a2b5-43a9af25b37d';
 
-      // 1. Round Robin — cargo vendedor/closer + departamento Comercial
-      const { data: vendedorCargos } = await supabase
+      // 1. Round Robin — cargo closer/vendedor
+      const { data: vendedorCargos, error: cargosErr } = await supabase
         .from('cargos')
         .select('id')
         .or('name.ilike.%vendedor%,name.ilike.%closer%');
 
+      if (cargosErr) console.error('[submit-lead] Erro ao buscar cargos:', cargosErr.message);
+
       const vendedorCargoIds = (vendedorCargos || []).map((c: any) => c.id);
 
-      const { data: sellers } = await supabase
+      const { data: sellers, error: sellersErr } = await supabase
         .from('perfis')
-        .select('id, name, phone')
-        .or('status.eq.active,status.is.null')
-        .neq('in_round_robin', false)
-        .in('role_id', vendedorCargoIds.length > 0 ? vendedorCargoIds : [''])
-        .ilike('department', 'comercial');
+        .select('id, name, phone, department')
+        .eq('status', 'active')
+        .or('in_round_robin.eq.true,in_round_robin.is.null')
+        .in('role_id', vendedorCargoIds.length > 0 ? vendedorCargoIds : ['__none__']);
+
+      if (sellersErr) console.error('[submit-lead] Erro ao buscar sellers:', sellersErr.message);
+      console.log('[submit-lead] Sellers encontrados:', (sellers || []).length,
+        sellers?.map((s: any) => `${s.name} (${s.department}) [${s.id}]`));
 
       const validSellers = (sellers || []).sort((a: any, b: any) =>
         a.name.trim().localeCompare(b.name.trim(), 'pt-BR', { sensitivity: 'base' })
       );
 
-      let assignedResponsible = null;
-      let assignedUserId: string | null = null;
-      let assignedPhone = null;
-
-      if (validSellers.length > 0) {
-        const { data: rrState } = await supabase
-          .from('round_robin_state')
-          .select('last_seller_name')
-          .eq('id', 'form_leads')
-          .single();
-
-        let lastResp: string | null = rrState?.last_seller_name?.trim() ?? null;
-
-        if (!lastResp) {
-          const { data: lastLead } = await supabase
-            .from('leads')
-            .select('responsible')
-            .in('responsible', validSellers.map((s: any) => s.name))
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          lastResp = lastLead?.responsible?.trim() ?? null;
-        }
-
-        const lastIndex = lastResp ? validSellers.findIndex((s: any) => s.name.trim() === lastResp) : -1;
-        const nextIndex = (lastIndex + 1) % validSellers.length;
-        assignedResponsible = validSellers[nextIndex].name;
-        assignedUserId = validSellers[nextIndex].id ?? null;
-        assignedPhone = validSellers[nextIndex].phone;
+      if (validSellers.length === 0) {
+        return res.status(500).json({ error: 'Nenhum consultor disponível para atribuição. Verifique os cadastros.' });
       }
+
+      // Round Robin por ID
+      const { data: rrState } = await supabase
+        .from('round_robin_state')
+        .select('last_seller_id')
+        .eq('id', 'form_leads')
+        .single();
+
+      let lastSellerId: string | null = rrState?.last_seller_id ?? null;
+
+      // Fallback: buscar último lead atribuído por ID
+      if (!lastSellerId) {
+        const { data: lastLead } = await supabase
+          .from('leads')
+          .select('responsavel_usuario_id')
+          .in('responsavel_usuario_id', validSellers.map((s: any) => s.id))
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        lastSellerId = lastLead?.responsavel_usuario_id ?? null;
+      }
+
+      const lastIndex = lastSellerId
+        ? validSellers.findIndex((s: any) => s.id === lastSellerId)
+        : -1;
+      const nextIndex = (lastIndex + 1) % validSellers.length;
+      const assignedSeller = validSellers[nextIndex];
+
+      console.log(`[submit-lead] Atribuindo a: ${assignedSeller.name} (${assignedSeller.department}) [${assignedSeller.id}]`);
+
+      const assignedResponsible = assignedSeller.name;
+      const assignedUserId: string = assignedSeller.id;
+      const assignedPhone = assignedSeller.phone;
 
       // 2. Insert Lead
       const notesContent = [
@@ -268,37 +279,42 @@ async function startServer() {
         extraNotes ? `Notas: ${extraNotes}` : null
       ].filter(Boolean).join('\n');
 
+      const leadPayload: Record<string, any> = {
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        phone: phone.trim(),
+        city: city?.trim() ?? null,
+        product: product?.trim() ?? null,
+        pipeline_id: PIPELINE_ID,
+        stage_id: STAGE_ID,
+        status: 'new',
+        responsible: assignedResponsible,
+        responsavel_usuario_id: assignedUserId,
+        stars: 1,
+        value: Number(value) || 0,
+        substatus: 'qualified',
+        photo: `https://ui-avatars.com/api/?name=${encodeURIComponent(name.trim())}&background=059669&color=fff&size=128`,
+        seller_origin: 'target',
+        cost_center: 'cursos'
+      };
+
       const { data: leadData, error: leadError } = await supabase
         .from('leads')
-        .insert([{
-          name: name.trim(),
-          email: email.trim().toLowerCase(),
-          phone: phone.trim(),
-          city: city?.trim() ?? null,
-          product: product?.trim() ?? null,
-          pipeline_id: PIPELINE_ID,
-          stage_id: STAGE_ID,
-          status: 'new',
-          responsible: assignedResponsible,
-          responsavel_usuario_id: assignedUserId,
-          stars: 1,
-          value: Number(value) || 0,
-          substatus: 'qualified',
-          photo: `https://ui-avatars.com/api/?name=${encodeURIComponent(name.trim())}&background=059669&color=fff&size=128`,
-          seller_origin: 'target',
-          cost_center: 'cursos'
-        }])
+        .insert([leadPayload])
         .select()
         .single();
 
       if (leadError) throw leadError;
 
-      // 3. Update RR State
-      if (assignedResponsible) {
-        await supabase
-          .from('round_robin_state')
-          .upsert({ id: 'form_leads', last_seller_name: assignedResponsible, updated_at: new Date().toISOString() });
-      }
+      // 3. Update RR State por ID
+      await supabase
+        .from('round_robin_state')
+        .upsert({
+          id: 'form_leads',
+          last_seller_id: assignedUserId,
+          last_seller_name: assignedResponsible,
+          updated_at: new Date().toISOString()
+        });
 
       // 4. In-app notification for the assigned seller
       if (assignedUserId && leadData) {

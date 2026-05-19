@@ -16,7 +16,6 @@ import { ManageStageChecklists } from './pages/settings/ManageStageChecklists';
 import { ManageCargos } from './pages/settings/ManageCargos';
 import { ManageCategories } from './pages/settings/ManageCategories';
 import { ManageActivityCategories } from './pages/settings/ManageActivityCategories';
-import { ManageGoals } from './pages/settings/ManageGoals';
 import { Finance } from './pages/Finance';
 import { AIChat } from './pages/AIChat';
 import { Contracts } from './pages/Contracts';
@@ -30,6 +29,7 @@ import { ResetPassword } from './pages/ResetPassword';
 import { PublicForm } from './pages/PublicForm';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { LeadRotationSettings } from './pages/settings/LeadRotationSettings';
+import { ManageSquads } from './pages/settings/ManageSquads';
 import { useAuthStore } from './store/useAuthStore';
 import { supabase } from './lib/supabase';
 import { ChangePasswordModal } from './components/auth/ChangePasswordModal';
@@ -115,7 +115,6 @@ export default function App() {
             <Route index element={<Navigate to="/settings/profile" replace />} />
             <Route path="profile" element={<Profile />} />
             <Route path="users" element={<Users />} />
-            <Route path="goals" element={<ManageGoals />} />
             <Route path="checklists" element={<ManageStageChecklists />} />
             <Route path="turmas" element={<Navigate to="/products" replace />} />
             <Route path="notifications" element={<Notifications />} />
@@ -127,6 +126,7 @@ export default function App() {
             <Route path="categories" element={<ManageCategories />} />
             <Route path="activity-categories" element={<ManageActivityCategories />} />
             <Route path="rotation" element={<LeadRotationSettings />} />
+            <Route path="squads" element={<ManageSquads />} />
           </Route>
   <Route path="/analytics" element={<Dashboard />} /> {/* Placeholder */}
         </Route>
