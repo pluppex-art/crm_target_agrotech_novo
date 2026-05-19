@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { TrafficCone, Target, TrendingUp, ChevronDown, User, Share2 } from 'lucide-react';
+import { TrafficCone, Target, TrendingUp, ChevronDown, User, Share2, Maximize2, Minimize2 } from 'lucide-react';
 import { smartShareImage } from '../../lib/shareUtils';
 import { fmt } from '../../lib/utils';
 
@@ -19,34 +19,58 @@ interface SellerSemaphoreProps {
   currentSellerName?: string | null;
   isAdmin: boolean;
   companyRevenueGoal?: number;
+  profiles?: any[];
+  getSquadInfoForUser?: (userId: string, userName: string, profilesList: any[]) => { name: string; color: string };
 }
 
-export function SellerSemaphore({ data, currentSellerName, isAdmin, companyRevenueGoal }: SellerSemaphoreProps) {
-  const visibleData = data;
+const STATUS_CONFIG = {
+  red:    { text: 'text-red-600',     border: 'border-red-200',     bg: 'bg-red-50',     dot: 'bg-red-400',     bar: '#ef4444', label: 'Crítico' },
+  yellow: { text: 'text-amber-600',   border: 'border-amber-200',   bg: 'bg-amber-50',   dot: 'bg-amber-400',   bar: '#f59e0b', label: 'Em Risco' },
+  green:  { text: 'text-emerald-600', border: 'border-emerald-200', bg: 'bg-emerald-50', dot: 'bg-emerald-400', bar: '#10b981', label: 'No Alvo' },
+  gold:   { text: 'text-yellow-600',  border: 'border-yellow-200',  bg: 'bg-yellow-50',  dot: 'bg-yellow-400',  bar: '#eab308', label: 'Superou!' },
+};
 
-  const [selectedSellerName, setSelectedSellerName] = useState<string>(
-    !isAdmin && currentSellerName ? currentSellerName : 'Total da Empresa'
-  );
+export function SellerSemaphore({ data, currentSellerName, isAdmin, companyRevenueGoal, profiles, getSquadInfoForUser }: SellerSemaphoreProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
-  const activeSeller = useMemo(() => {
-    if (selectedSellerName !== 'Total da Empresa') {
-      const search = selectedSellerName.trim().toLowerCase();
-      return visibleData.find((s) => s.label.trim().toLowerCase() === search);
+  React.useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement && document.fullscreenElement === containerRef.current);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const handleToggleFullscreen = async () => {
+    if (!containerRef.current) return;
+    try {
+      if (!document.fullscreenElement) {
+        await containerRef.current.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch (err) {
+      console.error("Erro ao alternar tela cheia:", err);
     }
-    
-    // Calculate totals for the company
-    const totalReceived = visibleData.reduce((acc, curr) => acc + curr.received, 0);
-    const totalValue = visibleData.reduce((acc, curr) => acc + curr.value, 0);
-    const totalCount = visibleData.reduce((acc, curr) => acc + curr.count, 0);
-    const goal = companyRevenueGoal || 1; // Prevent division by zero
-    const pct = Math.min((totalReceived / goal) * 100, 100);
-    
-    let color: 'red' | 'yellow' | 'green' | 'gold' = 'red';
-    let barColor = '#ef4444';
-    if (pct >= 100) { color = 'gold'; barColor = '#eab308'; }
-    else if (pct >= 70) { color = 'green'; barColor = '#10b981'; }
-    else if (pct >= 50) { color = 'yellow'; barColor = '#f59e0b'; }
+  };
 
+  const handleShare = async () => {
+    if (!containerRef.current) return;
+    await smartShareImage(containerRef.current, `semaforo_vendedores_${new Date().toISOString().split('T')[0]}.png`);
+  };
+
+  // Build company-level total row
+  const companyRow = useMemo(() => {
+    const totalReceived = data.reduce((acc, c) => acc + c.received, 0);
+    const totalValue    = data.reduce((acc, c) => acc + c.value, 0);
+    const totalCount    = data.reduce((acc, c) => acc + c.count, 0);
+    const goal = companyRevenueGoal || 1;
+    const pct  = Math.min((totalReceived / goal) * 100, 100);
+    let color: keyof typeof STATUS_CONFIG = 'red';
+    if (pct >= 100) color = 'gold';
+    else if (pct >= 70) color = 'green';
+    else if (pct >= 50) color = 'yellow';
     return {
       label: 'Total da Empresa',
       value: totalValue,
@@ -56,64 +80,21 @@ export function SellerSemaphore({ data, currentSellerName, isAdmin, companyReven
       revenue_goal: companyRevenueGoal || 0,
       pct: Math.round(pct),
       color,
-      colorClass: `bg-${color}-500`,
-      barColor
+      colorClass: '',
+      barColor: STATUS_CONFIG[color].bar,
     };
-  }, [isAdmin, visibleData, data, companyRevenueGoal, selectedSellerName]);
+  }, [data, companyRevenueGoal]);
 
-  const containerRef = useRef<HTMLDivElement>(null);
+  // Rows to render: company summary + individual sellers
+  const rows = useMemo(() => [companyRow, ...data], [companyRow, data]);
+  const maxGoal = Math.max(...rows.map(r => r.revenue_goal), 1);
 
-  const handleShareSemaphore = async () => {
-    if (!containerRef.current) return;
-    await smartShareImage(containerRef.current, `semaforo_vendedores_${new Date().toISOString().split('T')[0]}.png`);
-  };
-
-  const statusLabels: Record<string, string> = {
-    red: 'Crítico (Abaixo 50%)',
-    yellow: 'Em Risco (50-69%)',
-    green: 'No Alvo (>= 70%)',
-    gold: 'Superou a Meta! (>= 100%)',
-  };
-
-  const statusConfig: Record<string, { text: string; border: string; bg: string; dot: string }> = {
-    red: { text: 'text-red-600', border: 'border-red-200', bg: 'bg-red-50', dot: 'bg-red-400' },
-    yellow: { text: 'text-amber-600', border: 'border-amber-200', bg: 'bg-amber-50', dot: 'bg-amber-400' },
-    green: { text: 'text-emerald-600', border: 'border-emerald-200', bg: 'bg-emerald-50', dot: 'bg-emerald-400' },
-    gold: { text: 'text-yellow-600', border: 'border-yellow-200', bg: 'bg-yellow-50', dot: 'bg-yellow-400' },
-  };
-
-  // Gauge math — 180° semicircle
-  const radius = 86;
-  const centerX = 100;
-  const centerY = 100;
-  const pctValue = Math.min(activeSeller.pct, 100);
-  const angle = Math.PI * (1 - pctValue / 100);
-  const endX = centerX + radius * Math.cos(angle);
-  const endY = centerY - radius * Math.sin(angle);
-
-  const bgArc = `M 14 100 A ${radius} ${radius} 0 0 1 186 100`;
-  const fillArc = `M 14 100 A ${radius} ${radius} 0 0 1 ${endX} ${endY}`;
-
-  // Ticks for gauge
-  const ticks = useMemo(() => {
-    const t = [];
-    for (let i = 0; i <= 10; i++) {
-      const a = Math.PI * (1 - i / 10);
-      const x1 = centerX + (radius - 14) * Math.cos(a);
-      const y1 = centerY - (radius - 14) * Math.sin(a);
-      const x2 = centerX + (radius - 4) * Math.cos(a);
-      const y2 = centerY - (radius - 4) * Math.sin(a);
-      t.push({ x1, y1, x2, y2 });
-    }
-    return t;
-  }, []);
-
-  if (visibleData.length === 0) {
+  if (data.length === 0) {
     return (
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
         <div className="flex items-center gap-2 mb-4">
           <TrafficCone className="w-5 h-5 text-slate-400" />
-          <h3 className="font-bold text-slate-800">Semáforo dos Vendedores</h3>
+          <h3 className="font-bold text-slate-800">Semáforo de Receita</h3>
         </div>
         <div className="flex flex-col items-center justify-center py-10 text-slate-300">
           <Target className="w-10 h-10 mb-2 opacity-30" />
@@ -123,165 +104,134 @@ export function SellerSemaphore({ data, currentSellerName, isAdmin, companyReven
     );
   }
 
-  const cfg = statusConfig[activeSeller.color];
-
   return (
-    <div ref={containerRef} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 relative">
+    <div 
+      ref={containerRef} 
+      className={`bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col relative transition-all duration-300 ${
+        isFullscreen ? 'p-12 flex flex-col justify-center min-h-screen overflow-y-auto' : ''
+      }`}
+    >
+      {isFullscreen && (
+        <style>{`
+          :fullscreen {
+            background-color: #ffffff !important;
+          }
+        `}</style>
+      )}
+
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 bg-slate-50 rounded-lg">
-            <TrafficCone className="w-4 h-4 text-slate-600" />
-          </div>
-          <h3 className="font-bold text-slate-800">Semáforo dos Vendedores</h3>
-        </div>
+      <div className="flex items-center justify-between mb-5">
+        <h3 className={`font-bold text-slate-800 ${isFullscreen ? 'text-2xl' : ''}`}>Semáforo de Receita</h3>
         <div className="flex items-center gap-2">
           <button
-            onClick={handleShareSemaphore}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors text-[11px] font-bold border border-emerald-100"
+            onClick={handleToggleFullscreen}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 text-slate-700 rounded-lg hover:bg-slate-100 transition-colors text-xs font-bold border border-slate-200 shadow-sm"
+            title={isFullscreen ? "Sair do modo TV" : "Colocar semáforo em tela cheia na TV"}
+          >
+            {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+            {isFullscreen ? 'Sair da TV' : 'Tela Cheia (TV)'}
+          </button>
+          <button
+            onClick={handleShare}
+            className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors text-xs font-semibold border border-emerald-100 shadow-sm"
             title="Baixar imagem para compartilhar no WhatsApp"
           >
             <Share2 className="w-3.5 h-3.5" />
             Compartilhar
           </button>
-          {isAdmin && (
-            <div className="relative">
-              <select
-                value={selectedSellerName}
-                onChange={(e) => setSelectedSellerName(e.target.value)}
-                className="appearance-none text-xs font-semibold border border-slate-200 rounded-lg pl-3 pr-7 py-1.5 bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-200 cursor-pointer hover:bg-slate-100 transition-colors"
-              >
-                <option value="Total da Empresa">Total da Empresa</option>
-                {visibleData.map((seller) => (
-                  <option key={seller.label} value={seller.label}>
-                    {seller.label}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Seller name display */}
-      <div className="flex items-center justify-center gap-2 mb-4">
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${cfg.bg} border ${cfg.border}`}>
-          <User className={`w-4 h-4 ${cfg.text}`} />
-        </div>
-        <span className="text-sm font-semibold text-slate-700">{activeSeller.label}</span>
-      </div>
-
-      {/* Gauge Chart */}
-      <div className="flex flex-col items-center">
-        <div className="relative w-full max-w-[260px]">
-          <svg viewBox="0 0 200 124" className="w-full drop-shadow-sm">
-            {/* Background arc */}
-            <path
-              d={bgArc}
-              fill="none"
-              stroke="#f1f5f9"
-              strokeWidth="18"
-              strokeLinecap="round"
-            />
-            {/* Ticks */}
-            {ticks.map((tick, i) => (
-              <line
-                key={i}
-                x1={tick.x1}
-                y1={tick.y1}
-                x2={tick.x2}
-                y2={tick.y2}
-                stroke={i % 5 === 0 ? '#cbd5e1' : '#e2e8f0'}
-                strokeWidth={i % 5 === 0 ? 2 : 1}
-                strokeLinecap="round"
-              />
-            ))}
-            {/* Fill arc with animation */}
-            <path
-              d={fillArc}
-              fill="none"
-              stroke={activeSeller.barColor}
-              strokeWidth="18"
-              strokeLinecap="round"
-              className="transition-all duration-1000 ease-out"
-              style={{ filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.08))' }}
-            />
-            {/* Center percentage */}
-            <text
-              x="100"
-              y="76"
-              textAnchor="middle"
-              className="fill-slate-800"
-              style={{ fontSize: '32px', fontWeight: '800', fontFamily: 'system-ui, sans-serif' }}
-            >
-              {activeSeller.pct}%
-            </text>
-            <text
-              x="100"
-              y="94"
-              textAnchor="middle"
-              className="fill-slate-400"
-              style={{ fontSize: '10px', fontWeight: '600', fontFamily: 'system-ui, sans-serif', letterSpacing: '0.08em' }}
-            >
-              META ALCANÇADA
-            </text>
-          </svg>
-        </div>
-
-        {/* Details Cards */}
-        <div className="w-full mt-6 bg-slate-50 border border-slate-100 rounded-xl overflow-hidden">
-          <div className="flex divide-x divide-slate-200">
-            <div className="flex-1 py-3.5 px-3 text-center">
-              <div className="flex items-center justify-center gap-1.5 mb-1.5">
-                <Target className="w-3.5 h-3.5 text-slate-400" />
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  Meta (R$)
-                </p>
-              </div>
-              <p className="text-sm font-bold text-slate-700">
-                R$ {fmt(activeSeller.revenue_goal)}
-              </p>
-            </div>
-            <div className="flex-1 py-3.5 px-3 text-center">
-              <div className="flex items-center justify-center gap-1.5 mb-1.5">
-                <TrendingUp className="w-3.5 h-3.5 text-slate-400" />
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  Recebido (R$)
-                </p>
-              </div>
-              <p className="text-sm font-bold text-slate-700">
-                R$ {fmt(activeSeller.received)}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Status badge */}
-        <div className="mt-4">
-          <span
-            className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border ${cfg.text} ${cfg.border} ${cfg.bg}`}
-          >
-            <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-            {statusLabels[activeSeller.color]}
-          </span>
-        </div>
-      </div>
-
-      {/* Footer Legend */}
-      <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-center gap-5 flex-wrap">
-        {[
-          { label: 'Abaixo da Meta', dot: 'bg-red-400' },
-          { label: 'Em Progresso', dot: 'bg-amber-400' },
-          { label: 'Meta Atingida', dot: 'bg-emerald-400' },
-        ].map((item) => (
-          <div key={item.label} className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400">
-            <span className={`w-2 h-2 rounded-full ${item.dot}`} />
-            <span>{item.label}</span>
+      {/* Legend */}
+      <div className="flex items-center gap-4 mb-5 flex-wrap">
+        {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
+          <div key={key} className="flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
+            <span className={`w-2 h-2 rounded-full ${cfg.dot}`} />
+            {cfg.label}
           </div>
         ))}
+      </div>
+
+      {/* Rows */}
+      <div className="space-y-4 flex-1">
+        {rows.map((s, i) => {
+          const cfg = STATUS_CONFIG[s.color as keyof typeof STATUS_CONFIG];
+          const isCompany = i === 0;
+          const barPct = maxGoal > 0 ? (s.received / maxGoal) * 100 : 0;
+
+          return (
+            <div key={s.label} className={`${isCompany ? 'pb-4 mb-1 border-b border-slate-100' : ''}`}>
+              {/* Name row */}
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-2 min-w-0">
+                  {isCompany ? (
+                    <div className="w-6 h-6 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 flex-shrink-0">
+                      <TrendingUp className="w-3.5 h-3.5" />
+                    </div>
+                  ) : (
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center font-black text-[10px] text-white flex-shrink-0`} style={{ backgroundColor: cfg.bar }}>
+                      {i}
+                    </div>
+                  )}
+                  <span className={`text-sm font-bold truncate ${isCompany ? 'text-slate-800' : 'text-slate-700'}`} title={s.label}>
+                    {s.label}
+                  </span>
+                  
+                  {/* Squad badge - single line */}
+                  {!isCompany && (() => {
+                    const p = profiles?.find(pr => (pr.name || '').trim() === s.label.trim());
+                    const sq = p && getSquadInfoForUser ? getSquadInfoForUser(p.id, s.label, profiles) : null;
+                    if (!sq || sq.name === '—') return null;
+                    return (
+                      <span
+                        className="text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider shrink-0"
+                        style={{
+                          backgroundColor: sq.name.toUpperCase() === 'PLUPPEX' ? '#f5f3ff' : '#f0fdf4',
+                          color: sq.name.toUpperCase() === 'PLUPPEX' ? '#7c3aed' : '#16a34a'
+                        }}
+                      >
+                        {sq.name}
+                      </span>
+                    );
+                  })()}
+
+                  <span className={`inline-flex items-center gap-1 text-[9px] font-black px-1.5 py-0.5 rounded-full border flex-shrink-0 ${cfg.text} ${cfg.border} ${cfg.bg}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                    {s.pct}%
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 flex-shrink-0 ml-2">
+                  <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">
+                    R$ {fmt(s.received)} / R$ {fmt(s.revenue_goal)}
+                  </span>
+                  <span className="text-[10px] font-bold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100 whitespace-nowrap">
+                    {s.count} {s.count === 1 ? 'ganho' : 'ganhos'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Bar */}
+              <div className="relative h-3 bg-slate-100 rounded-full overflow-hidden">
+                <div
+                  className="absolute left-0 top-0 h-full rounded-full transition-all duration-700 ease-out"
+                  style={{
+                    width: `${Math.min(barPct, 100)}%`,
+                    background: `linear-gradient(90deg, ${cfg.bar}cc, ${cfg.bar})`,
+                    boxShadow: `0 2px 8px ${cfg.bar}44`,
+                  }}
+                />
+                {/* Goal marker at 100% of this seller's goal */}
+                {s.revenue_goal > 0 && maxGoal > 0 && (
+                  <div
+                    className="absolute top-0 h-full w-0.5 bg-slate-400/40"
+                    style={{ left: `${(s.revenue_goal / maxGoal) * 100}%` }}
+                  />
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
-

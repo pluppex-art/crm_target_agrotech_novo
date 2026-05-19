@@ -192,7 +192,7 @@ export const compensationProfileService = {
     return data || [];
   },
 
-  async createSquad(name: string, color?: string, logo_url?: string): Promise<{ success: boolean; error?: string }> {
+  async createSquad(name: string, color?: string, logo_url?: string, manager_id?: string | null): Promise<{ success: boolean; error?: string }> {
     const supabase = getSupabaseClient();
     if (!supabase) return { success: false, error: 'Supabase client not initialized' };
     
@@ -206,6 +206,7 @@ export const compensationProfileService = {
         active: true,
         color,
         logo_url,
+        manager_id: manager_id || null,
         created_by: user?.id,
         updated_by: user?.id
       }]);

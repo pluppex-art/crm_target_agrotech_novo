@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
-import { Loader2, ShieldAlert, Users, Filter, Search, ChevronDown, ChevronUp, X, Calendar, GitBranch, Package, User, Clock, AlertCircle, CheckCircle2, Share2 } from 'lucide-react';
+import { Loader2, ShieldAlert, Users, Filter, Search, ChevronDown, ChevronUp, X, Calendar, GitBranch, Package, User, Clock, AlertCircle, CheckCircle2, Share2, Maximize2, Minimize2 } from 'lucide-react';
 import { smartShareImage } from '../lib/shareUtils';
 import { usePermissions } from '../hooks/usePermissions';
 import { useLeadStore } from '../store/useLeadStore';
@@ -23,6 +23,17 @@ import { GoalVsIncomeChart } from '../components/dashboard/GoalVsIncomeChart';
 import { ImprovedCSSBarChart } from '../components/dashboard/ImprovedCSSBarChart';
 import { SellerSemaphore } from '../components/dashboard/SellerSemaphore';
 import { CallsSemaphore } from '../components/dashboard/CallsSemaphore';
+import { PodiumChart } from '../components/dashboard/PodiumChart';
+import {
+  unlockAudio,
+  playSaleRegistered,
+  playRankUp,
+  playRankDown,
+  playFirstPlaceJingle,
+  playTargetAchieved
+} from '../utils/audioEffects';
+import { NewLeaderOverlay, GoalReachedOverlay } from '../components/dashboard/CelebrationOverlays';
+
 
 type OccupancyItem = { name: string; pct: number; level: 'red' | 'yellow' | 'green'; alunos: number; capacity: number; color: string; category: string };
 
@@ -115,6 +126,32 @@ export function Dashboard() {
   const { fetchSquads, getSquadInfoForUser } = useSquadStore();
 
   const rankingRef = useRef<HTMLDivElement>(null);
+
+  const [newLeader, setNewLeader] = useState<{ name: string; squad?: string } | null>(null);
+  const [goalReached, setGoalReached] = useState<{ name: string; value: number; squad?: string } | null>(null);
+  const [isAudioEnabled, setIsAudioEnabled] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const handleToggleFullscreen = async () => {
+    if (!rankingRef.current) return;
+    try {
+      if (!document.fullscreenElement) {
+        await rankingRef.current.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch (err) {
+      console.error("Erro ao alternar tela cheia:", err);
+    }
+  };
 
   const handleShareRanking = async () => {
     if (!rankingRef.current) return;
@@ -218,6 +255,62 @@ export function Dashboard() {
   const companyGoal = goals.find(g => g.type === 'company');
   const totalLeadsGoal = companyGoal?.leads_goal ?? 0;
 
+  const prevRankingRef = useRef<Record<string, { count: number; rank: number; percentage: number }>>({});
+
+  useEffect(() => {
+    if (!salesMetrics.allSellersRanking || salesMetrics.allSellersRanking.length === 0) return;
+
+    // Build current ranking lookup
+    const currentRanking: Record<string, { count: number; rank: number; percentage: number }> = {};
+    salesMetrics.allSellersRanking.forEach((s, idx) => {
+      currentRanking[s.label] = {
+        count: s.count,
+        rank: idx,
+        percentage: s.percentage,
+      };
+    });
+
+    const isFirstRun = Object.keys(prevRankingRef.current).length === 0;
+
+    if (!isFirstRun && isAudioEnabled) {
+      salesMetrics.allSellersRanking.forEach((s, idx) => {
+        const prev = prevRankingRef.current[s.label];
+        if (prev) {
+          // Check if sales count increased
+          if (s.count > prev.count) {
+            // Check if they reached the 1st place!
+            if (idx === 0 && prev.rank !== 0) {
+              const p = profiles.find(pr => (pr.name || '').trim() === s.label.trim());
+              const sq = getSquadInfoForUser(p?.id || '', s.label, profiles);
+              
+              setNewLeader({ name: s.label, squad: sq.name !== '—' ? sq.name : undefined });
+              playFirstPlaceJingle();
+            }
+            // Check if they hit their sales goal (percentage reached 100%)
+            else if (s.percentage >= 100 && prev.percentage < 100) {
+              const p = profiles.find(pr => (pr.name || '').trim() === s.label.trim());
+              const sq = getSquadInfoForUser(p?.id || '', s.label, profiles);
+
+              setGoalReached({ name: s.label, value: s.value, squad: sq.name !== '—' ? sq.name : undefined });
+              playTargetAchieved();
+            }
+            // Check if they moved up in rank
+            else if (idx < prev.rank) {
+              playRankUp();
+            }
+            // Standard sale registered
+            else {
+              playSaleRegistered();
+            }
+          }
+        }
+      });
+    }
+
+    prevRankingRef.current = currentRanking;
+  }, [salesMetrics.allSellersRanking, isAudioEnabled, profiles, getSquadInfoForUser]);
+
+
   if (permissionsLoading) return null;
 
   if (!hasPermission('dashboard.view') && !hasPermission('admin.all')) {
@@ -243,7 +336,22 @@ export function Dashboard() {
           <h1 className="text-2xl font-bold text-slate-800">Dashboard de Vendas</h1>
           <p className="text-sm text-slate-500 mt-0.5">Performance comercial e pipeline.</p>
         </div>
-        {isLoading && <Loader2 className="w-5 h-5 text-emerald-600 animate-spin" />}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              unlockAudio();
+              setIsAudioEnabled((prev) => !prev);
+            }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all shadow-sm ${
+              isAudioEnabled
+                ? 'bg-emerald-500 text-white border-emerald-400 hover:bg-emerald-600'
+                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            <span>{isAudioEnabled ? '🔊 Som Ativado' : '🔇 Ativar Som'}</span>
+          </button>
+          {isLoading && <Loader2 className="w-5 h-5 text-emerald-600 animate-spin" />}
+        </div>
       </div>
 
       {/* Unified Filters */}
@@ -391,90 +499,144 @@ export function Dashboard() {
         <MetricCard label="Sem Atividade (>2 dias)" value={String(salesMetrics.inactiveLeadsCount)} icon={AlertCircle} color="bg-amber-50 text-amber-600" />
       </div>
 
-      {/* ── Ranking + Semáforo + Taxa de Ocupação ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Ranking de Vendedores */}
-        <div ref={rankingRef} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col relative">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="font-bold text-slate-800">Ranking de Vendedores</h3>
-            <button
-              onClick={handleShareRanking}
-              className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors text-xs font-semibold"
-              title="Baixar imagem para compartilhar no WhatsApp"
-            >
-              <Share2 className="w-3.5 h-3.5" />
-              Compartilhar
-            </button>
-          </div>
-          {salesMetrics.allSellersRanking.length === 0 ? (
-            <div className="flex flex-col items-center justify-center flex-1 py-10 text-slate-300">
-              <Users className="w-10 h-10 mb-2 opacity-30" />
-              <p className="text-xs font-medium">Sem vendedores cadastrados</p>
+      {/* ── Linha 1: Ranking (full width) + Pódio ── */}
+      <div 
+        ref={rankingRef} 
+        className={`bg-white rounded-2xl border border-slate-100 shadow-sm p-6 relative mb-6 transition-all duration-300 ${
+          isFullscreen 
+            ? 'p-12 flex flex-col justify-center min-h-screen overflow-y-auto' 
+            : ''
+        }`}
+      >
+        {isFullscreen && (
+          <style>{`
+            :fullscreen {
+              background-color: #ffffff !important;
+            }
+          `}</style>
+        )}
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Ranking list */}
+          <div className="flex-[1.2] min-w-0">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className={`font-bold text-slate-800 ${isFullscreen ? 'text-2xl' : ''}`}>Ranking de Vendedores</h3>
             </div>
-          ) : (
-            <div className="space-y-5 flex-1">
-              {salesMetrics.allSellersRanking.slice(0, 7).map((s, i) => (
-                <HorizontalBar
-                  key={s.label}
-                  label={s.label}
-                  squad={(() => {
-                    const p = profiles.find(pr => (pr.name || '').trim() === s.label.trim());
-                    return getSquadInfoForUser(p?.id || '', s.label, profiles);
-                  })()}
-                  value={s.value}
-                  received={s.count}
-                  max={s.leads_goal}
-                  percentage={s.percentage}
-                  rank={i}
-                  count={s.count}
-                  color={i === 0 ? 'bg-emerald-500' : i === 1 ? 'bg-blue-500' : i === 2 ? 'bg-amber-500' : i === 3 ? 'bg-violet-500' : 'bg-slate-400'}
-                />
-              ))}
+            {salesMetrics.allSellersRanking.length === 0 ? (
+              <div className="flex flex-col items-center justify-center flex-1 py-10 text-slate-300">
+                <Users className="w-10 h-10 mb-2 opacity-30" />
+                <p className="text-xs font-medium">Sem vendedores cadastrados</p>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                {salesMetrics.allSellersRanking.slice(0, 7).map((s, i) => (
+                  <HorizontalBar
+                    key={s.label}
+                    label={s.label}
+                    squad={(() => {
+                      const p = profiles.find(pr => (pr.name || '').trim() === s.label.trim());
+                      return getSquadInfoForUser(p?.id || '', s.label, profiles);
+                    })()}
+                    value={s.value}
+                    received={s.count}
+                    max={s.leads_goal}
+                    percentage={s.percentage}
+                    rank={i}
+                    count={s.count}
+                    color={i === 0 ? 'bg-emerald-500' : i === 1 ? 'bg-blue-500' : i === 2 ? 'bg-amber-500' : i === 3 ? 'bg-violet-500' : 'bg-slate-400'}
+                  />
+                ))}
+              </div>
+            )}
 
-              {salesMetrics.otherSellersRanking.length > 0 && (
-                <div className="pt-4 mt-6 border-t border-slate-100">
-                  <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Outros Ganhos</h4>
-                  <div className="space-y-2">
-                    {salesMetrics.otherSellersRanking.map(s => {
-                      const sq = (() => {
-                        const p = profiles.find(pr => (pr.name || '').trim() === s.label.trim());
-                        return getSquadInfoForUser(p?.id || '', s.label, profiles);
-                      })();
-                      return (
-                        <div key={s.label} className="flex items-center justify-between text-sm py-1.5 border-b border-slate-50 last:border-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-slate-700 font-bold">{s.label}</span>
-                            <span
-                              className="text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider"
-                              style={{
-                                backgroundColor: sq.name.toUpperCase() === 'PLUPPEX' ? '#f5f3ff' : '#f0fdf4',
-                                color: sq.name.toUpperCase() === 'PLUPPEX' ? '#7c3aed' : '#16a34a'
-                              }}
-                            >
-                              {sq.name}
-                            </span>
-                          </div>
-                          <span className="text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100 text-[10px] font-bold">{s.count} {s.count === 1 ? 'ganho' : 'ganhos'}</span>
+            {salesMetrics.otherSellersRanking.length > 0 && (
+              <div className="pt-4 mt-6 border-t border-slate-100">
+                <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Outros Ganhos</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  {salesMetrics.otherSellersRanking.map(s => {
+                    const sq = (() => {
+                      const p = profiles.find(pr => (pr.name || '').trim() === s.label.trim());
+                      return getSquadInfoForUser(p?.id || '', s.label, profiles);
+                    })();
+                    return (
+                      <div key={s.label} className="flex items-center justify-between text-sm py-1.5 border-b border-slate-50 last:border-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-700 font-bold">{s.label}</span>
+                          <span
+                            className="text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider"
+                            style={{
+                              backgroundColor: sq.name.toUpperCase() === 'PLUPPEX' ? '#f5f3ff' : '#f0fdf4',
+                              color: sq.name.toUpperCase() === 'PLUPPEX' ? '#7c3aed' : '#16a34a'
+                            }}
+                          >
+                            {sq.name}
+                          </span>
                         </div>
-                      );
-                    })}
-                  </div>
+                        <span className="text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100 text-[10px] font-bold">{s.count} {s.count === 1 ? 'ganho' : 'ganhos'}</span>
+                      </div>
+                    );
+                  })}
                 </div>
-              )}
+              </div>
+            )}
+          </div>
+
+          {/* Pódio */}
+          {salesMetrics.allSellersRanking.length >= 1 && (
+            <div className="flex-1 lg:border-l lg:border-slate-100 lg:pl-8 flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-5">
+                <h3 className={`font-bold text-slate-800 ${isFullscreen ? 'text-2xl' : ''}`}>Podio de Vencedores</h3>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleToggleFullscreen}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 text-slate-700 rounded-lg hover:bg-slate-100 transition-colors text-xs font-bold border border-slate-200 shadow-sm"
+                    title={isFullscreen ? "Sair do modo TV" : "Colocar ranking em tela cheia na TV"}
+                  >
+                    {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+                    {isFullscreen ? 'Sair da TV' : 'Tela Cheia (TV)'}
+                  </button>
+                  <button
+                    onClick={handleShareRanking}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors text-xs font-bold border border-emerald-100 shadow-sm"
+                    title="Baixar imagem para compartilhar no WhatsApp"
+                  >
+                    <Share2 className="w-3.5 h-3.5" />
+                    Compartilhar
+                  </button>
+                </div>
+              </div>
+              <PodiumChart
+                top3={salesMetrics.allSellersRanking.slice(0, 3).map((s) => {
+                  const p = profiles.find(pr => (pr.name || '').trim() === s.label.trim());
+                  const sq = getSquadInfoForUser(p?.id || '', s.label, profiles);
+                  return { label: s.label, count: s.count, squadName: sq.name !== '—' ? sq.name : undefined };
+                })}
+              />
             </div>
           )}
         </div>
+      </div>
 
-        {/* Semáforo de Vendedores */}
+      {/* ── Linha 2: Semáforo + Ligações ── */}
+      {/* ── Linha 2: Semáforo de Receita (Full Width) ── */}
+      <div className="mb-6">
         <SellerSemaphore
           data={salesMetrics.sellerSemaphoreData}
           currentSellerName={currentSellerName}
           isAdmin={hasPermission('admin.all')}
           companyRevenueGoal={companyGoal?.revenue_goal || 0}
+          profiles={profiles}
+          getSquadInfoForUser={getSquadInfoForUser}
         />
       </div>
 
-      {/* ── Linha 2: Funil + Turmas ── */}
+      {/* ── Linha 3: Ligações Diárias (Full Width) ── */}
+      <div className="mb-6">
+        <CallsSemaphore
+          goals={goals}
+          isAdmin={hasPermission('admin.all') || hasPermission('dashboard.view')}
+          currentUserId={currentUser?.id ?? null}
+        />
+      </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Funil de Conversão */}
         <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8 flex flex-col overflow-hidden w-full relative">
@@ -527,21 +689,30 @@ export function Dashboard() {
         <OccupancyCard occupancyData={salesMetrics.occupancyData} />
       </div>
 
-      {/* Ligações Diárias — Comercial */}
-      <div className="mb-6">
-        <CallsSemaphore
-          goals={goals}
-          isAdmin={hasPermission('admin.all') || hasPermission('dashboard.view')}
-          currentUserId={currentUser?.id ?? null}
-        />
-      </div>
-
       {/* Trends + Meta */}
       <TrendsSection
         sales={salesMetrics}
         totalAchieved={salesMetrics.closedLeadsCount}
         totalGoal={totalLeadsGoal}
       />
+
+      {/* Real-time Gamified Celebration Overlays */}
+      {newLeader && (
+        <NewLeaderOverlay
+          sellerName={newLeader.name}
+          squadName={newLeader.squad}
+          onClose={() => setNewLeader(null)}
+        />
+      )}
+
+      {goalReached && (
+        <GoalReachedOverlay
+          sellerName={goalReached.name}
+          squadName={goalReached.squad}
+          value={goalReached.value}
+          onClose={() => setGoalReached(null)}
+        />
+      )}
     </div>
   );
 }

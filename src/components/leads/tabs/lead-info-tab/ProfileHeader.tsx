@@ -14,6 +14,8 @@ interface ProfileHeaderProps {
   baseValue: number;
   totalWithFee: number;
   leadId: string;
+  isCallInProgress?: boolean;
+  setIsCallInProgress?: (v: boolean) => void;
 }
 
 export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
@@ -27,6 +29,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   baseValue,
   totalWithFee,
   leadId,
+  isCallInProgress,
+  setIsCallInProgress,
 }) => {
   return (
     <div className="flex items-center gap-4 pb-5 border-b border-slate-100">
@@ -38,20 +42,9 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       <div className="flex-1 min-w-0 space-y-1">
         <div className="flex items-center gap-2">
           <h3 className="text-base font-bold text-slate-800 truncate">{formData.name}</h3>
-          {whatsappUrl && (
-            <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="p-1.5 bg-green-50 border border-green-200 rounded-lg text-green-600 hover:bg-green-100 transition-colors shrink-0"
-              title="Abrir WhatsApp"
-            >
-              <Phone size={13} />
-            </a>
-          )}
           {squadInfo && (
             <span
-              className="text-[9px] font-black px-2 py-0.5 rounded-full border uppercase tracking-tighter"
+              className="text-[9px] font-black px-2 py-0.5 rounded-full border uppercase tracking-tighter shrink-0"
               style={{
                 backgroundColor: `${squadInfo.color}10`,
                 color: squadInfo.color,
@@ -60,6 +53,20 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             >
               SQUAD {squadInfo.name}
             </span>
+          )}
+          {whatsappUrl && (
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noreferrer"
+              onClick={() => {
+                setIsCallInProgress?.(true);
+              }}
+              className="w-9 h-9 bg-green-50 border border-green-200 rounded-xl text-green-600 hover:bg-green-100 active:scale-95 hover:scale-110 transition-all shrink-0 flex items-center justify-center shadow-sm"
+              title="Iniciar Chamada (WhatsApp)"
+            >
+              <Phone size={16} className="stroke-[2.5]" />
+            </a>
           )}
         </div>
 
@@ -103,7 +110,11 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </div>
       </div>
 
-      <LeadCallSection leadId={leadId} />
+      <LeadCallSection 
+        leadId={leadId} 
+        isCallInProgress={isCallInProgress}
+        setIsCallInProgress={setIsCallInProgress}
+      />
     </div>
   );
 };

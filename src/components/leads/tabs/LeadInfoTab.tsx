@@ -23,6 +23,7 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = (props) => {
     hoverStars, setHoverStars, updateFormField, toggleField, handleSave,
     isSaving, onDelete, onCancel, showConfirmations, responsibles,
     pixCompleted, contractSigned, onPixComplete, onContractSign, onPaymentProofUploaded,
+    isCallInProgress, setIsCallInProgress,
   } = props;
 
   const { profiles } = useProfileStore();
@@ -76,7 +77,20 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = (props) => {
 
   return (
     <div className="space-y-6">
-      <ProfileHeader formData={formData} whatsappUrl={whatsappUrl} squadInfo={squadInfo} hoverStars={hoverStars} setHoverStars={setHoverStars} handleStarClick={(stars) => updateFormField({ stars })} hasDiscount={hasDiscount} baseValue={baseValue} totalWithFee={totalWithFee} leadId={lead.id} />
+      <ProfileHeader 
+        formData={formData} 
+        whatsappUrl={whatsappUrl} 
+        squadInfo={squadInfo} 
+        hoverStars={hoverStars} 
+        setHoverStars={setHoverStars} 
+        handleStarClick={(stars) => updateFormField({ stars })} 
+        hasDiscount={hasDiscount} 
+        baseValue={baseValue} 
+        totalWithFee={totalWithFee} 
+        leadId={lead.id} 
+        isCallInProgress={isCallInProgress}
+        setIsCallInProgress={setIsCallInProgress}
+      />
 
       <ContractConfirmations showConfirmations={showConfirmations} isServiceProduct={isServiceProduct} pixCompleted={pixCompleted} onPixComplete={onPixComplete} formData={formData} updateFormField={updateFormField} toggleField={toggleField} enrollmentFee={enrollmentFee} contractSigned={contractSigned} onContractSign={onContractSign} proofInputRef={proofInputRef} contractInputRef={contractInputRef} uploadingProof={uploadingProof} setUploadingProof={setUploadingProof} uploadingContract={uploadingContract} setUploadingContract={setUploadingContract} handleFileUpload={handleFileUpload} handleDeleteFile={handleDeleteFile} ALLOWED_EXT={ALLOWED_EXT} />
 

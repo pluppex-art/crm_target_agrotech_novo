@@ -8,9 +8,11 @@ import { cn } from '../../../../lib/utils';
 
 interface LeadCallSectionProps {
   leadId: string;
+  isCallInProgress?: boolean;
+  setIsCallInProgress?: (v: boolean) => void;
 }
 
-export const LeadCallSection: React.FC<LeadCallSectionProps> = ({ leadId }) => {
+export const LeadCallSection: React.FC<LeadCallSectionProps> = ({ leadId, isCallInProgress, setIsCallInProgress }) => {
   const { user } = useAuthStore();
   const { profiles } = useProfileStore();
   const [atendidas, setAtendidas] = useState(0);
@@ -18,8 +20,15 @@ export const LeadCallSection: React.FC<LeadCallSectionProps> = ({ leadId }) => {
   const [loggingType, setLoggingType] = useState<'atendida' | 'nao_atendida' | 'remove_atendida' | 'remove_nao_atendida' | null>(null);
 
   useEffect(() => {
-    callService.getLeadCountByType(leadId, 'atendida').then(setAtendidas);
-    callService.getLeadCountByType(leadId, 'nao_atendida').then(setNaoAtendidas);
+    const fetchCounts = () => {
+      callService.getLeadCountByType(leadId, 'atendida').then(setAtendidas);
+      callService.getLeadCountByType(leadId, 'nao_atendida').then(setNaoAtendidas);
+    };
+    fetchCounts();
+    window.addEventListener('refresh-lead-calls', fetchCounts);
+    return () => {
+      window.removeEventListener('refresh-lead-calls', fetchCounts);
+    };
   }, [leadId]);
 
   const authorName = profiles.find(p => p.id === user?.id)?.name || user?.email || 'Usuário';
@@ -50,6 +59,7 @@ export const LeadCallSection: React.FC<LeadCallSectionProps> = ({ leadId }) => {
       if (type === 'atendida') setAtendidas(v => v + 1);
       else setNaoAtendidas(v => v + 1);
       
+      setIsCallInProgress?.(false);
       refreshNotes();
     } finally {
       setLoggingType(null);
@@ -99,27 +109,28 @@ export const LeadCallSection: React.FC<LeadCallSectionProps> = ({ leadId }) => {
         </div>
       </div>
 
-      <div className="flex gap-4">
+      <div className="flex gap-3">
         {/* Atendida */}
         <div className="relative group">
           <button
             onClick={() => handleAdd('atendida')}
             disabled={!!loggingType}
             className={cn(
-              "flex flex-col items-center justify-center gap-1 w-16 h-16 rounded-xl border-2 transition-all shadow-sm",
-              "bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-100 hover:border-emerald-300 hover:scale-105 active:scale-95",
-              loggingType && "opacity-50 cursor-not-allowed"
+              "flex flex-col items-center justify-center gap-1.5 w-24 h-24 rounded-2xl border-2 transition-all shadow-sm",
+              "bg-emerald-50/50 border-emerald-200 text-emerald-600 hover:bg-emerald-100 hover:border-emerald-300 hover:scale-105 active:scale-95",
+              loggingType && "opacity-50 cursor-not-allowed",
+              isCallInProgress && "animate-pulse border-emerald-400 ring-4 ring-emerald-500/25 shadow-md shadow-emerald-100"
             )}
           >
-            {isLoading('atendida') ? <Loader2 size={18} className="animate-spin" /> : <Phone size={20} />}
-            <span className="text-[9px] font-black uppercase tracking-tighter">{atendidas} Atend.</span>
+            {isLoading('atendida') ? <Loader2 size={24} className="animate-spin" /> : <Phone size={26} className="stroke-[2.5]" />}
+            <span className="text-[10px] font-black uppercase tracking-wider">{atendidas} Atend.</span>
           </button>
           
           {atendidas > 0 && (
             <button
               onClick={(e) => { e.stopPropagation(); handleRemove('atendida'); }}
               disabled={!!loggingType}
-              className="absolute -top-1.5 -left-1.5 w-6 h-6 bg-white border-2 border-red-100 text-red-400 hover:text-red-600 hover:border-red-200 rounded-full flex items-center justify-center shadow-md transition-all hover:scale-110 active:scale-90"
+              className="absolute -top-1.5 -left-1.5 w-6.5 h-6.5 bg-white border-2 border-red-100 text-red-400 hover:text-red-600 hover:border-red-200 rounded-full flex items-center justify-center shadow-md transition-all hover:scale-110 active:scale-90"
               title="Apagar último registro"
             >
               {isLoading('remove_atendida') ? <Loader2 size={10} className="animate-spin" /> : <Trash2 size={12} />}
@@ -133,20 +144,21 @@ export const LeadCallSection: React.FC<LeadCallSectionProps> = ({ leadId }) => {
             onClick={() => handleAdd('nao_atendida')}
             disabled={!!loggingType}
             className={cn(
-              "flex flex-col items-center justify-center gap-1 w-16 h-16 rounded-xl border-2 transition-all shadow-sm",
-              "bg-red-50 border-red-200 text-red-500 hover:bg-red-100 hover:border-red-300 hover:scale-105 active:scale-95",
-              loggingType && "opacity-50 cursor-not-allowed"
+              "flex flex-col items-center justify-center gap-1.5 w-24 h-24 rounded-2xl border-2 transition-all shadow-sm",
+              "bg-red-50/50 border-red-200 text-red-500 hover:bg-red-100 hover:border-red-300 hover:scale-105 active:scale-95",
+              loggingType && "opacity-50 cursor-not-allowed",
+              isCallInProgress && "animate-pulse border-red-400 ring-4 ring-red-500/25 shadow-md shadow-red-100"
             )}
           >
-            {isLoading('nao_atendida') ? <Loader2 size={18} className="animate-spin" /> : <PhoneOff size={20} />}
-            <span className="text-[9px] font-black uppercase tracking-tighter">{naoAtendidas} N/Atend.</span>
+            {isLoading('nao_atendida') ? <Loader2 size={24} className="animate-spin" /> : <PhoneOff size={26} className="stroke-[2.5]" />}
+            <span className="text-[10px] font-black uppercase tracking-wider">{naoAtendidas} N/Atend.</span>
           </button>
 
           {naoAtendidas > 0 && (
             <button
               onClick={(e) => { e.stopPropagation(); handleRemove('nao_atendida'); }}
               disabled={!!loggingType}
-              className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-white border-2 border-red-100 text-red-400 hover:text-red-600 hover:border-red-200 rounded-full flex items-center justify-center shadow-md transition-all hover:scale-110 active:scale-90"
+              className="absolute -top-1.5 -right-1.5 w-6.5 h-6.5 bg-white border-2 border-red-100 text-red-400 hover:text-red-600 hover:border-red-200 rounded-full flex items-center justify-center shadow-md transition-all hover:scale-110 active:scale-90"
               title="Apagar último registro"
             >
               {isLoading('remove_nao_atendida') ? <Loader2 size={10} className="animate-spin" /> : <Trash2 size={12} />}

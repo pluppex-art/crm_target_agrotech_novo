@@ -17,13 +17,16 @@ import { useProductStore } from '../../store/useProductStore';
 import { useProfileStore } from '../../store/useProfileStore';
 import { financialCalculator } from '../../services/financialCalculator';
 
-import { X, Trophy, ThumbsDown, Sparkles } from 'lucide-react';
+import { X, Trophy, ThumbsDown, Sparkles, Phone, PhoneOff, Loader2 } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
 import { LeadDetailsModalProps, TabType } from './types';
 import { cn } from '@/lib/utils';
 import { getSupabaseClient } from '@/lib/supabase';
 import { emailService } from '../../services/emailService';
 import { emailTemplates } from '../../services/emailTemplates';
+import { callService } from '../../services/callService';
+import { noteService } from '../../services/noteService';
+import { useAuthStore } from '../../store/useAuthStore';
 
 const TURMA_STAGES = [
   { id: 'matriculado' as const, name: 'Matriculado', color: 'bg-blue-500' },
@@ -49,7 +52,55 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
   initialTab,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>(initialTab ?? 'info');
-  const form = useLeadForm({ lead, onClose });
+  const [isCallInProgress, setIsCallInProgress] = useState(false);
+  const [showLockWarning, setShowLockWarning] = useState(false);
+  const [isLoggingCall, setIsLoggingCall] = useState<string | null>(null);
+
+  const { user } = useAuthStore();
+
+  const handleClose = () => {
+    if (isCallInProgress) {
+      setShowLockWarning(true);
+      return;
+    }
+    onClose();
+  };
+
+  const handleLogCallDirect = async (type: 'atendida' | 'nao_atendida') => {
+    if (!user?.id || isLoggingCall) return;
+    setIsLoggingCall(type);
+    try {
+      const atendidasCount = await callService.getLeadCountByType(lead.id, 'atendida');
+      const naoAtendidasCount = await callService.getLeadCountByType(lead.id, 'nao_atendida');
+      const currentTotal = atendidasCount + naoAtendidasCount;
+      const nextAttempt = currentTotal + 1;
+      const icon = type === 'atendida' ? '✅' : '❌';
+      const label = type === 'atendida' ? 'Atendida' : 'Não Atendida';
+      
+      const ok = await callService.logCall(user.id, lead.id, type);
+      if (!ok) return;
+
+      const authorName = profiles.find(p => p.id === user?.id)?.name || user?.email || 'Usuário';
+      await noteService.createNote({
+        content: `${icon} Registro de Chamada: Tentativa nº ${nextAttempt} - ${label}`,
+        lead_id: lead.id,
+        author_id: user.id,
+        author_name: authorName,
+      });
+
+      window.dispatchEvent(new CustomEvent('refresh-lead-notes', { detail: { leadId: lead.id } }));
+      window.dispatchEvent(new CustomEvent('refresh-lead-calls', { detail: { leadId: lead.id } }));
+      
+      setIsCallInProgress(false);
+      setShowLockWarning(false);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoggingCall(null);
+    }
+  };
+
+  const form = useLeadForm({ lead, onClose: handleClose });
   const { products } = useProductStore();
   const { profiles, fetchProfiles } = useProfileStore();
   const leadNotes = useLeadNotes({ leadId: lead?.id ?? '' });
@@ -183,7 +234,7 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
       alert('Erro ao excluir lead');
       return;
     }
-    onClose();
+    handleClose();
   };
 
   if (!isOpen || !lead) return null;
@@ -196,7 +247,7 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        onClick={onClose}
+        onClick={handleClose}
         className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]"
       />
       <motion.div
@@ -263,7 +314,7 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
               )}
             </div>
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 rounded-full transition-colors"
             >
               <X size={18} />
@@ -368,7 +419,9 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
                 handleSave={form.handleSave}
                 isSaving={form.isSaving}
                 onDelete={handleDelete}
-                onCancel={onClose}
+                onCancel={handleClose}
+                isCallInProgress={isCallInProgress}
+                setIsCallInProgress={setIsCallInProgress}
                 currentStageName={currentStageName}
                 showConfirmations={showConfirmations}
                 responsibles={vendedores}
@@ -421,6 +474,68 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
           )}
         </div>
       </motion.div>
+
+      {showLockWarning && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-[4px]">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-white shadow-2xl rounded-3xl w-full max-w-sm p-6 space-y-6 text-center border border-slate-100 relative"
+          >
+            <button
+              onClick={() => setShowLockWarning(false)}
+              className="absolute top-4 right-4 p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 rounded-full transition-colors"
+            >
+              <X size={16} />
+            </button>
+
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center shadow-sm">
+                <Phone size={22} className="stroke-[2.5]" />
+              </div>
+              <h3 className="text-lg font-black text-slate-800 tracking-tight">📞 Registrar Chamada</h3>
+              <p className="text-xs font-semibold text-slate-500 max-w-[260px] mx-auto leading-relaxed">
+                Você iniciou um contato por WhatsApp com <span className="font-extrabold text-slate-700">{lead.name}</span>. Como foi o retorno da ligação?
+              </p>
+            </div>
+
+            <div className="flex justify-center gap-4 pt-2">
+              {/* Atendida */}
+              <button
+                onClick={() => handleLogCallDirect('atendida')}
+                disabled={!!isLoggingCall}
+                className={cn(
+                  "flex flex-col items-center justify-center gap-1.5 w-24 h-24 rounded-2xl border-2 transition-all shadow-sm",
+                  "bg-emerald-50/50 border-emerald-200 text-emerald-600 hover:bg-emerald-100 hover:border-emerald-300 hover:scale-105 active:scale-95",
+                  isLoggingCall && "opacity-50 cursor-not-allowed"
+                )}
+              >
+                {isLoggingCall === 'atendida' ? <Loader2 size={24} className="animate-spin" /> : <Phone size={26} className="stroke-[2.5]" />}
+                <span className="text-[10px] font-black uppercase tracking-wider">Atendida</span>
+              </button>
+
+              {/* Não Atendida */}
+              <button
+                onClick={() => handleLogCallDirect('nao_atendida')}
+                disabled={!!isLoggingCall}
+                className={cn(
+                  "flex flex-col items-center justify-center gap-1.5 w-24 h-24 rounded-2xl border-2 transition-all shadow-sm",
+                  "bg-red-50/50 border-red-200 text-red-500 hover:bg-red-100 hover:border-red-300 hover:scale-105 active:scale-95",
+                  isLoggingCall && "opacity-50 cursor-not-allowed"
+                )}
+              >
+                {isLoggingCall === 'nao_atendida' ? <Loader2 size={24} className="animate-spin" /> : <PhoneOff size={26} className="stroke-[2.5]" />}
+                <span className="text-[10px] font-black uppercase tracking-wider">N/Atend.</span>
+              </button>
+            </div>
+            
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest pt-2 border-t border-slate-100">
+              Registro Obrigatório
+            </p>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };

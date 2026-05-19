@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Phone, BarChart2, Users, Loader2, Calendar, Share2 } from 'lucide-react';
+import { Phone, BarChart2, Users, Loader2, Calendar, Share2, Maximize2, Minimize2 } from 'lucide-react';
 import { smartShareImage } from '../../lib/shareUtils';
 import { callService } from '../../services/callService';
 
@@ -100,8 +100,30 @@ export function CallsSemaphore({ goals, isAdmin, currentUserId }: CallsSemaphore
   const [showAll, setShowAll] = useState(false);
   const [rawData, setRawData] = useState<Omit<SellerCallData, 'goal'>[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement && document.fullscreenElement === containerRef.current);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const handleToggleFullscreen = async () => {
+    if (!containerRef.current) return;
+    try {
+      if (!document.fullscreenElement) {
+        await containerRef.current.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch (err) {
+      console.error("Erro ao alternar tela cheia:", err);
+    }
+  };
 
   const handleShareCalls = async () => {
     if (!containerRef.current) return;
@@ -153,18 +175,39 @@ export function CallsSemaphore({ goals, isAdmin, currentUserId }: CallsSemaphore
   const maxCount = Math.max(...visible.map(s => s.atendidas), maxGoal, 1);
 
   return (
-    <div ref={containerRef} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col relative">
+    <div 
+      ref={containerRef} 
+      className={`bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col relative transition-all duration-300 ${
+        isFullscreen ? 'p-12 flex flex-col justify-center min-h-screen overflow-y-auto' : ''
+      }`}
+    >
+      {isFullscreen && (
+        <style>{`
+          :fullscreen {
+            background-color: #ffffff !important;
+          }
+        `}</style>
+      )}
+
       {/* Header */}
       <div className="flex flex-col gap-3 mb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h3 className="font-bold text-slate-800">Ligações — Vendedores</h3>
+            <h3 className={`font-bold text-slate-800 ${isFullscreen ? 'text-2xl' : ''}`}>Ligações — Vendedores</h3>
             {loading && <Loader2 className="w-3.5 h-3.5 text-slate-400 animate-spin" />}
           </div>
           <div className="flex items-center gap-2">
             <button
+              onClick={handleToggleFullscreen}
+              className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 text-slate-700 rounded-lg hover:bg-slate-100 transition-colors text-[11px] font-bold border border-slate-200 shadow-sm"
+              title={isFullscreen ? "Sair do modo TV" : "Colocar ligações em tela cheia na TV"}
+            >
+              {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+              {isFullscreen ? 'Sair da TV' : 'Tela Cheia (TV)'}
+            </button>
+            <button
               onClick={handleShareCalls}
-              className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors text-[11px] font-bold border border-emerald-100"
+              className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors text-[11px] font-bold border border-emerald-100 shadow-sm"
               title="Baixar imagem para compartilhar no WhatsApp"
             >
               <Share2 className="w-3.5 h-3.5" />

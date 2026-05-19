@@ -7,7 +7,7 @@ import { cn } from '../../../lib/utils';
 
 type Squad = { id: string; name: string; manager_id: string | null; active: boolean; color?: string; logo_url?: string };
 
-const EMPTY_FORM = { name: '', color: '#6366f1', logo_url: '' };
+const EMPTY_FORM = { name: '', color: '#6366f1', logo_url: '', manager_id: null as string | null };
 
 const PRESET_COLORS = [
   '#6366f1', // Indigo
@@ -29,6 +29,10 @@ export function SquadsSection() {
   const [members, setMembers] = useState<{ user_id: string; user_name?: string }[]>([]);
   const [isMembersLoading, setIsMembersLoading] = useState(false);
 
+  // Add states for adding custom members/managers in the Members sidebar
+  const [selectedUserToAdd, setSelectedUserToAdd] = useState('');
+  const [selectedRoleToAdd, setSelectedRoleToAdd] = useState<'membro' | 'gestor'>('membro');
+
   // Modal state: null = closed, 'create' = new, squad id = edit
   const [modalMode, setModalMode] = useState<null | 'create' | string>(null);
   const [modalForm, setModalForm] = useState(EMPTY_FORM);
@@ -49,7 +53,7 @@ export function SquadsSection() {
   useEffect(() => { load(); }, [load]);
 
   const openCreate = () => { setModalForm(EMPTY_FORM); setModalMode('create'); };
-  const openEdit = (s: Squad) => { setModalForm({ name: s.name, color: s.color || '#6366f1', logo_url: s.logo_url || '' }); setModalMode(s.id); };
+  const openEdit = (s: Squad) => { setModalForm({ name: s.name, color: s.color || '#6366f1', logo_url: s.logo_url || '', manager_id: s.manager_id || null }); setModalMode(s.id); };
   const closeModal = () => setModalMode(null);
 
   const handleFileUpload = async (file: File) => {
@@ -74,7 +78,7 @@ export function SquadsSection() {
     setIsSaving(true);
     try {
       if (modalMode === 'create') {
-        await compensationProfileService.createSquad(modalForm.name, modalForm.color, modalForm.logo_url);
+        await compensationProfileService.createSquad(modalForm.name, modalForm.color, modalForm.logo_url, modalForm.manager_id);
       } else if (modalMode) {
         await compensationProfileService.updateSquad(modalMode, modalForm);
       }
@@ -133,10 +137,11 @@ export function SquadsSection() {
                 <div
                   key={s.id}
                   onClick={() => loadMembers(s.id)}
-                  className={cn(
-                    'p-4 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors',
-                    selectedSquadId === s.id && 'bg-indigo-50 border-l-4 border-indigo-500'
-                  )}
+                  className="p-4 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-all border-l-4"
+                  style={{
+                    backgroundColor: selectedSquadId === s.id ? `${s.color || '#6366f1'}0a` : 'transparent',
+                    borderColor: selectedSquadId === s.id ? (s.color || '#6366f1') : 'transparent',
+                  }}
                 >
                   <div className="flex items-center gap-3">
                     <div
@@ -173,41 +178,138 @@ export function SquadsSection() {
         <div className="bg-white rounded-xl border p-4 space-y-4">
           <h3 className="text-sm font-bold text-slate-700">Membros</h3>
           {selectedSquadId ? (
-            isMembersLoading ? (
-              <div className="flex justify-center py-10"><Loader2 className="animate-spin text-indigo-500" /></div>
-            ) : (
-              <div className="space-y-2">
-                {members.length === 0 && (
-                  <p className="text-xs text-slate-400 text-center py-4">Nenhum membro ainda.</p>
-                )}
-                {members.map(m => (
-                  <div key={m.user_id} className="flex items-center justify-between px-3 py-2 bg-slate-50 rounded-lg">
-                    <span className="text-sm font-medium text-slate-700">{m.user_name}</span>
+            (() => {
+              const currentSquad = squads.find(s => s.id === selectedSquadId);
+              const otherMembers = members.filter(m => m.user_id !== currentSquad?.manager_id);
+              const hasNoPeople = !currentSquad?.manager_id && otherMembers.length === 0;
+
+              return isMembersLoading ? (
+                <div className="flex justify-center py-10"><Loader2 className="animate-spin text-indigo-500" /></div>
+              ) : (
+                <div className="space-y-3">
+                  {hasNoPeople && (
+                    <p className="text-xs text-slate-400 text-center py-4">Nenhum membro ainda.</p>
+                  )}
+
+                  {/* Render Manager (Gestor) at the top of the list */}
+                  {currentSquad?.manager_id && (() => {
+                    const managerProfile = users.find(u => u.id === currentSquad.manager_id);
+                    if (!managerProfile) return null;
+                    return (
+                      <div 
+                        className="flex items-center justify-between px-3 py-2 border rounded-lg shadow-sm transition-all duration-300"
+                        style={{
+                          backgroundColor: `${currentSquad?.color || '#6366f1'}0a`,
+                          borderColor: `${currentSquad?.color || '#6366f1'}25`,
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-slate-900">{managerProfile.full_name || managerProfile.name}</span>
+                          <span 
+                            className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full text-white shadow-sm transition-all duration-300"
+                            style={{ backgroundColor: currentSquad?.color || '#6366f1' }}
+                          >
+                            Gestor
+                          </span>
+                        </div>
+                        <button
+                          onClick={async () => {
+                            if (confirm(`Remover gestor do squad "${currentSquad.name}"?`)) {
+                              await compensationProfileService.updateSquad(selectedSquadId, { manager_id: null });
+                              await load();
+                            }
+                          }}
+                          className="text-slate-405 hover:text-rose-500 transition-colors"
+                          title="Remover gestor"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Render other squad members */}
+                  {otherMembers.map(m => (
+                    <div key={m.user_id} className="flex items-center justify-between px-3 py-2 bg-slate-50 border border-slate-100 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-slate-700">{m.user_name}</span>
+                        <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.25 rounded-md bg-slate-200 text-slate-550">Membro</span>
+                      </div>
+                      <button
+                        onClick={async () => { await compensationProfileService.removeMemberFromSquad(selectedSquadId, m.user_id); loadMembers(selectedSquadId); }}
+                        className="text-slate-350 hover:text-rose-500 transition-colors"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+
+                  {/* Combined combobox form to add a user as Membro or Gestor */}
+                  <div className="pt-3 border-t border-slate-100 space-y-2.5">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Usuário</label>
+                        <select
+                          value={selectedUserToAdd}
+                          onChange={e => setSelectedUserToAdd(e.target.value)}
+                          className="w-full p-2 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none font-medium text-slate-700"
+                        >
+                          <option value="">Adicionar...</option>
+                          {users
+                            .filter(u => u.id !== currentSquad?.manager_id && !members.some(m => m.user_id === u.id))
+                            .map(u => (
+                              <option key={u.id} value={u.id}>{u.full_name || u.name}</option>
+                            ))
+                          }
+                        </select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Função</label>
+                        <select
+                          value={selectedRoleToAdd}
+                          onChange={e => setSelectedRoleToAdd(e.target.value as 'membro' | 'gestor')}
+                          className="w-full p-2 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none font-medium text-slate-700"
+                        >
+                          <option value="membro">Membro</option>
+                          <option value="gestor">Gestor</option>
+                        </select>
+                      </div>
+                    </div>
+
                     <button
-                      onClick={async () => { await compensationProfileService.removeMemberFromSquad(selectedSquadId, m.user_id); loadMembers(selectedSquadId); }}
-                      className="text-slate-300 hover:text-rose-500 transition-colors"
+                      type="button"
+                      onClick={async () => {
+                        if (!selectedUserToAdd) return;
+                        setIsMembersLoading(true);
+                        try {
+                          if (selectedRoleToAdd === 'gestor') {
+                            await compensationProfileService.updateSquad(selectedSquadId, { manager_id: selectedUserToAdd });
+                          } else {
+                            await compensationProfileService.addMemberToSquad(selectedSquadId, selectedUserToAdd);
+                          }
+                          setSelectedUserToAdd('');
+                          setSelectedRoleToAdd('membro');
+                          await load();
+                          await loadMembers(selectedSquadId);
+                        } finally {
+                          setIsMembersLoading(false);
+                        }
+                      }}
+                      disabled={!selectedUserToAdd || isMembersLoading}
+                      className="w-full py-2.5 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all disabled:opacity-40 flex items-center justify-center gap-1.5 shadow-md duration-300"
+                      style={{
+                        backgroundColor: currentSquad?.color || '#6366f1',
+                        opacity: !selectedUserToAdd ? 0.45 : 1,
+                        boxShadow: `0 4px 12px ${(currentSquad?.color || '#6366f1')}20`,
+                      }}
                     >
-                      <X size={14} />
+                      Adicionar à Equipe
                     </button>
                   </div>
-                ))}
-                <select
-                  onChange={async (e) => {
-                    if (e.target.value) {
-                      await compensationProfileService.addMemberToSquad(selectedSquadId, e.target.value);
-                      loadMembers(selectedSquadId);
-                      e.target.value = '';
-                    }
-                  }}
-                  className="w-full p-2 border border-slate-200 rounded-lg text-sm mt-2 bg-slate-50 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
-                >
-                  <option value="">+ Adicionar membro</option>
-                  {users.filter(u => !members.some(m => m.user_id === u.id)).map(u => (
-                    <option key={u.id} value={u.id}>{u.full_name || u.name}</option>
-                  ))}
-                </select>
-              </div>
-            )
+                </div>
+              );
+            })()
           ) : (
             <p className="text-xs text-slate-400 text-center py-10">Selecione um squad ao lado.</p>
           )}
@@ -275,6 +377,20 @@ export function SquadsSection() {
                     </div>
                   </div>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Gestor do Squad</label>
+                <select
+                  value={modalForm.manager_id || ''}
+                  onChange={e => setModalForm(v => ({ ...v, manager_id: e.target.value || null }))}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all text-slate-700 font-medium"
+                >
+                  <option value="">Sem gestor definido</option>
+                  {users.map(u => (
+                    <option key={u.id} value={u.id}>{u.full_name || u.name}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="space-y-3">

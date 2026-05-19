@@ -11,6 +11,10 @@ export const TaskReminderWatcher: React.FC = () => {
   const { user } = useAuthStore();
   const { notificationPrefs, fetchSettings } = useSettingsStore();
   const lastSoundTime = useRef(0);
+  
+  // Track task IDs that have already been alerted or were already present on load
+  const alertedTasksRef = useRef<Set<string>>(new Set());
+  const isFirstLoadRef = useRef(true);
 
   useEffect(() => {
     fetchSettings();
@@ -24,6 +28,7 @@ export const TaskReminderWatcher: React.FC = () => {
       const currentMinutes = now.getHours() * 60 + now.getMinutes();
       const todayStr = now.toLocaleDateString('en-CA');
       let shouldPlay = false;
+      const currentMatchingTaskIds: string[] = [];
 
       for (const task of tasks) {
         if (task.status !== 'pending' || task.responsavel_usuario_id !== user.id) continue;
@@ -32,16 +37,35 @@ export const TaskReminderWatcher: React.FC = () => {
         const isToday = task.due_date === todayStr;
         const isOverdue = task.due_date < todayStr;
 
+        let taskAlerts = false;
+
         if (isToday && task.scheduled_time) {
           const [h, m] = task.scheduled_time.split(':').map(Number);
           const taskMinutes = h * 60 + m;
           if (currentMinutes >= taskMinutes - 5 && currentMinutes < taskMinutes) {
-            shouldPlay = true;
-            break;
+            taskAlerts = true;
           }
         } else if (isOverdue || (isToday && !task.scheduled_time)) {
+          taskAlerts = true;
+        }
+
+        if (taskAlerts) {
+          currentMatchingTaskIds.push(task.id);
+        }
+      }
+
+      // On first load, we register all pre-existing active reminders to avoid sound pollution
+      if (isFirstLoadRef.current) {
+        currentMatchingTaskIds.forEach(id => alertedTasksRef.current.add(id));
+        isFirstLoadRef.current = false;
+        return;
+      }
+
+      // Check if any matching task has not been alerted yet
+      for (const id of currentMatchingTaskIds) {
+        if (!alertedTasksRef.current.has(id)) {
           shouldPlay = true;
-          break;
+          alertedTasksRef.current.add(id);
         }
       }
 

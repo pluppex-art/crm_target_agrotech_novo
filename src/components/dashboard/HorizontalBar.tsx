@@ -6,17 +6,33 @@ interface HorizontalBarProps {
   received: number;
   max: number;
   percentage: number;
-  color: string;
+  color?: string; // Kept for backwards compatibility but we override with beautiful gradients
   rank: number;
   count?: number;
   squad?: { name: string; color: string };
 }
 
-export function HorizontalBar({ label, received, max, percentage: precomputedPct, color, rank, count, squad }: HorizontalBarProps) {
+const getGradient = (rank: number) => {
+  switch (rank) {
+    case 0:
+      return 'bg-gradient-to-r from-emerald-500 via-emerald-400 to-teal-300';
+    case 1:
+      return 'bg-gradient-to-r from-blue-600 via-blue-500 to-sky-400';
+    case 2:
+      return 'bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-300';
+    case 3:
+      return 'bg-gradient-to-r from-violet-600 via-violet-500 to-fuchsia-400';
+    default:
+      return 'bg-gradient-to-r from-slate-500 via-slate-400 to-slate-300';
+  }
+};
+
+export function HorizontalBar({ label, received, max, percentage: precomputedPct, rank, count, squad }: HorizontalBarProps) {
   const pct = (max > 0 && received > 0) ? Math.min((received / max) * 100, 100) : precomputedPct;
   const barWidth = pct > 0 ? Math.max(pct, 6) : 0;
   const medal = rank === 0 ? '🥇' : rank === 1 ? '🥈' : rank === 2 ? '🥉' : `${rank + 1}º`;
   const percentage = Math.round(pct);
+  const barColor = getGradient(rank);
 
   return (
     <div className="group">
@@ -48,11 +64,11 @@ export function HorizontalBar({ label, received, max, percentage: precomputedPct
         </div>
       </div>
 
-<div className="relative h-5 bg-gradient-to-r from-slate-100 to-slate-200 rounded-2xl shadow-inner overflow-hidden group-hover:shadow-md transition-all duration-300">
+      <div className="relative h-5 bg-gradient-to-r from-slate-100 to-slate-200 rounded-2xl shadow-inner overflow-hidden group-hover:shadow-md transition-all duration-300">
         {barWidth > 0 ? (
           <>
             <div
-              className={cn('h-full rounded-2xl shadow-lg relative overflow-hidden transition-all duration-1000 ease-out group-hover:shadow-xl', color)}
+              className={cn('h-full rounded-2xl shadow-lg relative overflow-hidden transition-all duration-1000 ease-out group-hover:shadow-xl', barColor)}
               style={{ width: `${barWidth}%` }}
             >
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent transform skew-x-12" />
