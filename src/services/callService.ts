@@ -146,7 +146,7 @@ export const callService = {
         count: stats.total,
         atendidas: stats.atendidas,
         nao_atendidas: stats.nao_atendidas,
-        isVendedor: (cargoMap.get(p.role_id) || '').includes('vendedor'),
+        isVendedor: ['vendedor', 'vendedora', 'closer'].some(k => (cargoMap.get(p.role_id) || '').includes(k)),
       };
     });
   },
