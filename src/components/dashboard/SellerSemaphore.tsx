@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
-import { TrafficCone, Target, TrendingUp, ChevronDown, User } from 'lucide-react';
+import React, { useState, useMemo, useRef } from 'react';
+import { TrafficCone, Target, TrendingUp, ChevronDown, User, Share2 } from 'lucide-react';
+import * as htmlToImage from 'html-to-image';
 import { fmt } from '../../lib/utils';
 
 interface SellerSemaphoreProps {
@@ -60,6 +61,29 @@ export function SellerSemaphore({ data, currentSellerName, isAdmin, companyReven
     };
   }, [isAdmin, visibleData, data, companyRevenueGoal, selectedSellerName]);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleShareSemaphore = async () => {
+    if (!containerRef.current) return;
+    try {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      const dataUrl = await htmlToImage.toPng(containerRef.current, {
+        quality: 1,
+        backgroundColor: '#ffffff',
+        pixelRatio: 2,
+      });
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = `semaforo_vendedores_${new Date().toISOString().split('T')[0]}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Erro ao gerar imagem:', error);
+      alert('Não foi possível gerar a imagem no momento. Tente novamente.');
+    }
+  };
+
   const statusLabels: Record<string, string> = {
     red: 'Crítico (Abaixo 50%)',
     yellow: 'Em Risco (50-69%)',
@@ -118,7 +142,7 @@ export function SellerSemaphore({ data, currentSellerName, isAdmin, companyReven
   const cfg = statusConfig[activeSeller.color];
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+    <div ref={containerRef} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 relative">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
@@ -127,23 +151,33 @@ export function SellerSemaphore({ data, currentSellerName, isAdmin, companyReven
           </div>
           <h3 className="font-bold text-slate-800">Semáforo dos Vendedores</h3>
         </div>
-        {isAdmin && (
-          <div className="relative">
-            <select
-              value={selectedSellerName}
-              onChange={(e) => setSelectedSellerName(e.target.value)}
-              className="appearance-none text-xs font-semibold border border-slate-200 rounded-lg pl-3 pr-7 py-1.5 bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-200 cursor-pointer hover:bg-slate-100 transition-colors"
-            >
-              <option value="Total da Empresa">Total da Empresa</option>
-              {visibleData.map((seller) => (
-                <option key={seller.label} value={seller.label}>
-                  {seller.label}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleShareSemaphore}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors text-[11px] font-bold border border-emerald-100"
+            title="Baixar imagem para compartilhar no WhatsApp"
+          >
+            <Share2 className="w-3.5 h-3.5" />
+            Compartilhar
+          </button>
+          {isAdmin && (
+            <div className="relative">
+              <select
+                value={selectedSellerName}
+                onChange={(e) => setSelectedSellerName(e.target.value)}
+                className="appearance-none text-xs font-semibold border border-slate-200 rounded-lg pl-3 pr-7 py-1.5 bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-200 cursor-pointer hover:bg-slate-100 transition-colors"
+              >
+                <option value="Total da Empresa">Total da Empresa</option>
+                {visibleData.map((seller) => (
+                  <option key={seller.label} value={seller.label}>
+                    {seller.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Seller name display */}

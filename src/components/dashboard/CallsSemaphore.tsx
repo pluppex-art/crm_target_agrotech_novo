@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Phone, BarChart2, Users, Loader2, Calendar } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { Phone, BarChart2, Users, Loader2, Calendar, Share2 } from 'lucide-react';
+import * as htmlToImage from 'html-to-image';
 import { callService } from '../../services/callService';
 
 interface SellerCallData {
@@ -100,6 +101,29 @@ export function CallsSemaphore({ goals, isAdmin, currentUserId }: CallsSemaphore
   const [rawData, setRawData] = useState<Omit<SellerCallData, 'goal'>[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleShareCalls = async () => {
+    if (!containerRef.current) return;
+    try {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      const dataUrl = await htmlToImage.toPng(containerRef.current, {
+        quality: 1,
+        backgroundColor: '#ffffff',
+        pixelRatio: 2,
+      });
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = `ligacoes_vendedores_${new Date().toISOString().split('T')[0]}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Erro ao gerar imagem:', error);
+      alert('Não foi possível gerar a imagem no momento. Tente novamente.');
+    }
+  };
+
   // Fetch only when period/dates change — goals changes don't re-trigger a fetch
   const fetchData = useCallback(async (p: Period, cs: string, ce: string) => {
     const { start, end } = getDateRange(p, cs, ce);
@@ -145,7 +169,7 @@ export function CallsSemaphore({ goals, isAdmin, currentUserId }: CallsSemaphore
   const maxCount = Math.max(...visible.map(s => s.atendidas), maxGoal, 1);
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col">
+    <div ref={containerRef} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col relative">
       {/* Header */}
       <div className="flex flex-col gap-3 mb-4">
         <div className="flex items-center justify-between">
@@ -154,6 +178,14 @@ export function CallsSemaphore({ goals, isAdmin, currentUserId }: CallsSemaphore
             {loading && <Loader2 className="w-3.5 h-3.5 text-slate-400 animate-spin" />}
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleShareCalls}
+              className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors text-[11px] font-bold border border-emerald-100"
+              title="Baixar imagem para compartilhar no WhatsApp"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              Compartilhar
+            </button>
             <button
               onClick={() => setShowAll(v => !v)}
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-bold transition-colors ${

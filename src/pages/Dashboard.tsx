@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
-import { Loader2, ShieldAlert, Users, Filter, Search, ChevronDown, ChevronUp, X, Calendar, GitBranch, Package, User, Clock, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Loader2, ShieldAlert, Users, Filter, Search, ChevronDown, ChevronUp, X, Calendar, GitBranch, Package, User, Clock, AlertCircle, CheckCircle2, Share2 } from 'lucide-react';
+import * as htmlToImage from 'html-to-image';
 import { usePermissions } from '../hooks/usePermissions';
 import { useLeadStore } from '../store/useLeadStore';
 import { useFinanceStore } from '../store/useFinanceStore';
@@ -112,6 +113,33 @@ export function Dashboard() {
   const { user: currentUser } = useAuthStore();
   const { fetchPipelines } = usePipelineStore();
   const { fetchSquads, getSquadInfoForUser } = useSquadStore();
+
+  const rankingRef = useRef<HTMLDivElement>(null);
+
+  const handleShareRanking = async () => {
+    if (!rankingRef.current) return;
+    try {
+      // Pequeno delay para garantir que a renderização esteja estável
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const dataUrl = await htmlToImage.toPng(rankingRef.current, {
+        quality: 1,
+        backgroundColor: '#ffffff',
+        pixelRatio: 2, // Maior resolução
+      });
+      
+      // Cria um link temporário para download
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = `ranking_vendedores_${new Date().toISOString().split('T')[0]}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Erro ao gerar imagem:', error);
+      alert('Não foi possível gerar a imagem no momento. Tente novamente.');
+    }
+  };
 
   const [goals, setGoals] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -386,8 +414,18 @@ export function Dashboard() {
       {/* ── Ranking + Semáforo + Taxa de Ocupação ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Ranking de Vendedores */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col">
-          <h3 className="font-bold text-slate-800 mb-5">Ranking de Vendedores</h3>
+        <div ref={rankingRef} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col relative">
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="font-bold text-slate-800">Ranking de Vendedores</h3>
+            <button
+              onClick={handleShareRanking}
+              className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors text-xs font-semibold"
+              title="Baixar imagem para compartilhar no WhatsApp"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              Compartilhar
+            </button>
+          </div>
           {salesMetrics.allSellersRanking.length === 0 ? (
             <div className="flex flex-col items-center justify-center flex-1 py-10 text-slate-300">
               <Users className="w-10 h-10 mb-2 opacity-30" />
@@ -426,9 +464,9 @@ export function Dashboard() {
                         <div key={s.label} className="flex items-center justify-between text-sm py-1.5 border-b border-slate-50 last:border-0">
                           <div className="flex items-center gap-2">
                             <span className="text-slate-700 font-bold">{s.label}</span>
-                            <span 
+                            <span
                               className="text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider"
-                              style={{ 
+                              style={{
                                 backgroundColor: sq.name.toUpperCase() === 'PLUPPEX' ? '#f5f3ff' : '#f0fdf4',
                                 color: sq.name.toUpperCase() === 'PLUPPEX' ? '#7c3aed' : '#16a34a'
                               }}
