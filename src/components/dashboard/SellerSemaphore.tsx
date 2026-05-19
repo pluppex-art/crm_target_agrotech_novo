@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { TrafficCone, Target, TrendingUp, ChevronDown, User, Share2 } from 'lucide-react';
-import * as htmlToImage from 'html-to-image';
+import { smartShareImage } from '../../lib/shareUtils';
 import { fmt } from '../../lib/utils';
 
 interface SellerSemaphoreProps {
@@ -65,23 +65,7 @@ export function SellerSemaphore({ data, currentSellerName, isAdmin, companyReven
 
   const handleShareSemaphore = async () => {
     if (!containerRef.current) return;
-    try {
-      await new Promise(resolve => setTimeout(resolve, 100));
-      const dataUrl = await htmlToImage.toPng(containerRef.current, {
-        quality: 1,
-        backgroundColor: '#ffffff',
-        pixelRatio: 2,
-      });
-      const link = document.createElement('a');
-      link.href = dataUrl;
-      link.download = `semaforo_vendedores_${new Date().toISOString().split('T')[0]}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (error) {
-      console.error('Erro ao gerar imagem:', error);
-      alert('Não foi possível gerar a imagem no momento. Tente novamente.');
-    }
+    await smartShareImage(containerRef.current, `semaforo_vendedores_${new Date().toISOString().split('T')[0]}.png`);
   };
 
   const statusLabels: Record<string, string> = {

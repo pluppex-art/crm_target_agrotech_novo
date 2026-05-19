@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Phone, BarChart2, Users, Loader2, Calendar, Share2 } from 'lucide-react';
-import * as htmlToImage from 'html-to-image';
+import { smartShareImage } from '../../lib/shareUtils';
 import { callService } from '../../services/callService';
 
 interface SellerCallData {
@@ -105,23 +105,7 @@ export function CallsSemaphore({ goals, isAdmin, currentUserId }: CallsSemaphore
 
   const handleShareCalls = async () => {
     if (!containerRef.current) return;
-    try {
-      await new Promise(resolve => setTimeout(resolve, 100));
-      const dataUrl = await htmlToImage.toPng(containerRef.current, {
-        quality: 1,
-        backgroundColor: '#ffffff',
-        pixelRatio: 2,
-      });
-      const link = document.createElement('a');
-      link.href = dataUrl;
-      link.download = `ligacoes_vendedores_${new Date().toISOString().split('T')[0]}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (error) {
-      console.error('Erro ao gerar imagem:', error);
-      alert('Não foi possível gerar a imagem no momento. Tente novamente.');
-    }
+    await smartShareImage(containerRef.current, `ligacoes_vendedores_${new Date().toISOString().split('T')[0]}.png`);
   };
 
   // Fetch only when period/dates change — goals changes don't re-trigger a fetch

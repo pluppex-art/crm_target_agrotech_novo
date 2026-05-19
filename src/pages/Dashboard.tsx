@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { Loader2, ShieldAlert, Users, Filter, Search, ChevronDown, ChevronUp, X, Calendar, GitBranch, Package, User, Clock, AlertCircle, CheckCircle2, Share2 } from 'lucide-react';
-import * as htmlToImage from 'html-to-image';
+import { smartShareImage } from '../lib/shareUtils';
 import { usePermissions } from '../hooks/usePermissions';
 import { useLeadStore } from '../store/useLeadStore';
 import { useFinanceStore } from '../store/useFinanceStore';
@@ -118,27 +118,7 @@ export function Dashboard() {
 
   const handleShareRanking = async () => {
     if (!rankingRef.current) return;
-    try {
-      // Pequeno delay para garantir que a renderização esteja estável
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      const dataUrl = await htmlToImage.toPng(rankingRef.current, {
-        quality: 1,
-        backgroundColor: '#ffffff',
-        pixelRatio: 2, // Maior resolução
-      });
-      
-      // Cria um link temporário para download
-      const link = document.createElement('a');
-      link.href = dataUrl;
-      link.download = `ranking_vendedores_${new Date().toISOString().split('T')[0]}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (error) {
-      console.error('Erro ao gerar imagem:', error);
-      alert('Não foi possível gerar a imagem no momento. Tente novamente.');
-    }
+    await smartShareImage(rankingRef.current, `ranking_vendedores_${new Date().toISOString().split('T')[0]}.png`);
   };
 
   const [goals, setGoals] = useState<any[]>([]);
