@@ -222,9 +222,9 @@ export function isVendedor(profile: { cargos?: { name?: string } | null; role?: 
   const role = profile.role?.toLowerCase().trim() || '';
   const cargo = profile.cargo?.toLowerCase().trim() || '';
 
-  return cargoName.includes('vendedor') || cargoName.includes('vendedora') ||
-    role.includes('vendedor') || role.includes('vendedora') ||
-    cargo.includes('vendedor') || cargo.includes('vendedora');
+  return cargoName.includes('vendedor') || cargoName.includes('vendedora') || cargoName.includes('closer') ||
+    role.includes('vendedor') || role.includes('vendedora') || role.includes('closer') ||
+    cargo.includes('vendedor') || cargo.includes('vendedora') || cargo.includes('closer');
 }
 
 /**
