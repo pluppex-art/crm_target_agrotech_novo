@@ -20,7 +20,9 @@ function mapTaskRow(row: any): Task {
   return {
     ...row,
     responsible: (row.perfis as { name?: string } | null)?.name ?? null,
+    lead_name: (row.leads as { name?: string } | null)?.name ?? null,
     perfis: undefined,
+    leads: undefined,
   };
 }
 
@@ -31,7 +33,7 @@ export const taskService = {
 
     const { data, error } = await supabase
       .from('tasks')
-      .select('*, perfis!tasks_responsavel_usuario_id_fkey(name)')
+      .select('*, perfis!tasks_responsavel_usuario_id_fkey(name), leads(name)')
       .eq('lead_id', leadId)
       .order('due_date', { ascending: true });
 
@@ -49,7 +51,7 @@ export const taskService = {
 
     const { data, error } = await supabase
       .from('tasks')
-      .select('*, perfis!tasks_responsavel_usuario_id_fkey(name)')
+      .select('*, perfis!tasks_responsavel_usuario_id_fkey(name), leads(name)')
       .order('due_date', { ascending: true });
 
     if (error) {
@@ -70,7 +72,7 @@ export const taskService = {
     const { data, error } = await supabase
       .from('tasks')
       .insert([dbPayload])
-      .select('*, perfis!tasks_responsavel_usuario_id_fkey(name)')
+      .select('*, perfis!tasks_responsavel_usuario_id_fkey(name), leads(name)')
       .single();
 
     if (error) {
