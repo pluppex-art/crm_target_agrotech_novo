@@ -37,8 +37,8 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
     discount_applied: lead.discount_applied ?? !!lead.discount,
     discount: lead.discount || '',
     discount_type: lead.discount_type || 'percent',
-    pix_completed: lead.pix_completed || false,
-    contract_signed: lead.contract_signed || false,
+    pix_completed: lead.pix_completed ?? false,
+    contract_signed: lead.contract_signed ?? false,
     valor_recebido: lead.valor_recebido ?? null,
     forma_pagamento: lead.forma_pagamento || '',
     taxa_matricula_recebido: lead.taxa_matricula_recebido ?? null,
@@ -84,8 +84,8 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
       discount_applied: lead.discount_applied ?? !!lead.discount,
       discount: lead.discount || '',
       discount_type: lead.discount_type || 'percent',
-      pix_completed: lead.pix_completed || false,
-      contract_signed: lead.contract_signed || false,
+      pix_completed: lead.pix_completed ?? false,
+      contract_signed: lead.contract_signed ?? false,
       valor_recebido: lead.valor_recebido ?? null,
       forma_pagamento: lead.forma_pagamento || '',
       taxa_matricula_recebido: lead.taxa_matricula_recebido ?? null,
@@ -116,8 +116,8 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
   // Sync specific real-time changes (toggles, values) from external sources without blowing away local typing
   useEffect(() => {
     setFormData(prev => {
-      const incomingPix = lead.pix_completed || false;
-      const incomingContract = lead.contract_signed || false;
+      const incomingPix = lead.pix_completed ?? false;
+      const incomingContract = lead.contract_signed ?? false;
       const incomingDiscountApplied = lead.discount_applied ?? !!lead.discount;
       const incomingValue = lead.value.toString();
       const incomingProof = lead.payment_proof_url ?? null;
@@ -222,8 +222,8 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
         taxa_matricula_recebido: formData.taxa_matricula_recebido ?? undefined,
         taxa_matricula_paid_at: formData.taxa_matricula_paid_at || undefined,
         valor_recebido_paid_at: formData.valor_recebido_paid_at || undefined,
-        payment_proof_url: formData.payment_proof_url || undefined,
-        contract_url: formData.contract_url || undefined,
+        payment_proof_url: formData.payment_proof_url ?? undefined,
+        contract_url: formData.contract_url ?? undefined,
         professor_proof_url: formData.professor_proof_url ?? undefined,
         address: formData.address || undefined,
         instagram: formData.instagram || undefined,

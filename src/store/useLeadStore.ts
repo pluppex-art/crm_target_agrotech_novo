@@ -292,11 +292,14 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
             let updatedLeads = [...state.leads];
             let updatedSelectedLead = state.selectedLead;
 
-            // Fields stored in lead_class_enrollments — never overwrite in-memory values
-            // with nulls coming from the leads table realtime event
+            // Fields that come from lead_class_enrollments via JOIN and should NOT be
+            // overwritten with values from the raw 'leads' realtime event (which won't have
+            // enrollment data merged in). We keep valor_recebido, taxa_matricula_recebido,
+            // forma_pagamento, discount fields here since they live only in enrollments.
+            // BUT pix_completed, contract_signed and URLs now ALSO live in the leads table
+            // (Phase 1 fix), so we allow those to come through from realtime updates.
             const ENROLLMENT_FIELDS = new Set([
-              'pix_completed', 'contract_signed', 'payment_proof_url', 'contract_url',
-              'professor_proof_url', 'rg_photo_url', 'profile_photo_url', 'valor_recebido',
+              'rg_photo_url', 'profile_photo_url', 'valor_recebido',
               'taxa_matricula_recebido', 'forma_pagamento', 'discount', 'discount_applied',
               'discount_type',
             ]);

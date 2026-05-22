@@ -142,8 +142,15 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
         }
         const selectedProduct = products.find(p => p.id === formData.product || p.name === formData.product);
         const isService = (selectedProduct?.category || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').startsWith('servico');
-        if (isGanhoStage && !isService && (!formData.pix_completed || !formData.contract_signed || !proofFile || !contractFile)) {
-          alert('Dados de ganho incompletos: É necessário anexar comprovante e contrato para etapas de ganho.'); setLoading(false); return;
+        if (isGanhoStage) {
+          // Produtos de Serviço (professor): o comprovante é enviado no dia da turma, não agora
+          if (!isService) {
+            if (!formData.pix_completed || !formData.contract_signed || !proofFile || !contractFile) {
+              alert('Dados de ganho incompletos: É necessário marcar Taxa Matrícula e Contrato assinado, e anexar Comprovante e Contrato.');
+              setLoading(false);
+              return;
+            }
+          }
         }
         const val = parseBRNumber(formData.value);
         const discVal = parseBRNumber(formData.discount);
@@ -169,7 +176,13 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
         if (newLead) {
           // Note: notifyNewLead is already called inside useLeadStore.addLead
           let updates: Partial<Lead> = {};
-          if (proofFile) updates.payment_proof_url = await uploadLeadFile(newLead.id, 'payment_proof', proofFile) || undefined;
+          if (proofFile) {
+            if (isService) {
+              updates.professor_proof_url = await uploadLeadFile(newLead.id, 'payment_proof', proofFile) || undefined;
+            } else {
+              updates.payment_proof_url = await uploadLeadFile(newLead.id, 'payment_proof', proofFile) || undefined;
+            }
+          }
           if (contractFile) updates.contract_url = await uploadLeadFile(newLead.id, 'contract', contractFile) || undefined;
           if (rgFile) updates.rg_photo_url = await uploadLeadFile(newLead.id, 'rg_photo', rgFile) || undefined;
           if (profileFile) updates.profile_photo_url = await uploadLeadFile(newLead.id, 'profile_photo', profileFile) || undefined;
@@ -228,7 +241,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
             <DocumentationSection formData={formData} setFormData={setFormData} rgInputRef={rgInputRef} profileInputRef={profileInputRef} rgFile={rgFile} setRgFile={setRgFile} profileFile={profileFile} setProfileFile={setProfileFile} />
             <LossReasonSection isPerdidoStage={isPerdidoStage} motivo_perda={formData.motivo_perda} onChange={(val) => setFormData((prev: any) => ({ ...prev, motivo_perda: val }))} />
             {isGanhoStage && !isServiceProduct && (
-              <GanhoConfirmations formData={formData} setFormData={setFormData} proofInputRef={proofInputRef} contractInputRef={contractInputRef} proofFile={proofFile} setProofFile={setProofFile} contractFile={contractFile} setContractFile={setContractFile} />
+              <GanhoConfirmations formData={formData} setFormData={setFormData} proofInputRef={proofInputRef} contractInputRef={contractInputRef} proofFile={proofFile} setProofFile={setProofFile} contractFile={contractFile} setContractFile={setContractFile} isServiceProduct={isServiceProduct} />
             )}
           </form>
           <ModalFooter onClose={onClose} loading={loading} />

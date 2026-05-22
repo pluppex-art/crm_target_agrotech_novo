@@ -11,6 +11,7 @@ interface GanhoConfirmationsProps {
   setProofFile: (file: File | null) => void;
   contractFile: File | null;
   setContractFile: (file: File | null) => void;
+  isServiceProduct?: boolean;
 }
 
 export const GanhoConfirmations: React.FC<GanhoConfirmationsProps> = ({
@@ -21,8 +22,59 @@ export const GanhoConfirmations: React.FC<GanhoConfirmationsProps> = ({
   proofFile,
   setProofFile,
   contractFile,
-  setContractFile
+  setContractFile,
+  isServiceProduct
 }) => {
+  if (isServiceProduct) {
+    return (
+      <div className="space-y-4 p-5 bg-slate-50/50 rounded-2xl border border-slate-100 mt-4">
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] flex items-center gap-1.5">
+            <ClipboardCheck size={13} className="text-emerald-500" /> Confirmações para avançar para Ganho (Serviço)
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <p className="text-xs font-semibold text-slate-500">
+            Para salvar este lead do tipo Serviço na etapa Ganho, é obrigatório anexar o comprovante de pagamento do professor.
+          </p>
+
+          <div className="flex items-center gap-2 bg-white p-1 pr-2 rounded-2xl border border-slate-200 shadow-sm w-full">
+            <input
+              ref={proofInputRef}
+              type="file"
+              accept=".jpg,.jpeg,.png,.pdf"
+              className="hidden"
+              onChange={e => setProofFile(e.target.files?.[0] || null)}
+            />
+            <button
+              type="button"
+              onClick={() => proofInputRef.current?.click()}
+              className={cn(
+                "flex-1 flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                proofFile
+                  ? "bg-emerald-50 text-emerald-600"
+                  : "bg-slate-50 text-slate-500 hover:bg-slate-100"
+              )}
+            >
+              <QrCode size={14} />
+              <span className="truncate">{proofFile ? `Comprovante Professor: ${proofFile.name}` : 'Comprovante do Professor'}</span>
+            </button>
+            {proofFile && (
+              <button
+                type="button"
+                onClick={() => setProofFile(null)}
+                className="p-1 px-2 text-slate-400 hover:text-red-500 border-l border-slate-100 ml-1"
+              >
+                <XIcon size={14} />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 p-5 bg-slate-50/50 rounded-2xl border border-slate-100 mt-4">
       <div className="flex items-center justify-between mb-1">

@@ -164,37 +164,16 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
   // Show confirmations in all stages except Lost (including Ganho — already checked)
   const showConfirmations = !isPerdidoStage;
 
-  // Unified stage change handler: delegates to turma or pipeline handler
-  const handleStageChange = (stageId: string) => {
-    if (isTurmaMode && turmaAttendee && onTurmaStatusChange) {
-      onTurmaStatusChange(turmaAttendee.turmaId, turmaAttendee.attendeeId, stageId as any);
-    } else {
-      // Auto-check PIX and contract when moving to Ganho
-      const targetStage = pipelineStages?.find(s => s.id === stageId);
-      const targetName = ((targetStage as any)?.title || (targetStage as any)?.name || '').toLowerCase();
-      const isGanho = targetName.includes('ganho') || targetName.includes('fechado') || targetName.includes('aprovado');
-
-      if (isGanho) {
-        if (!form.formData.pix_completed) form.toggleField('pix_completed', true);
-        if (!form.formData.contract_signed) form.toggleField('contract_signed', true);
-
-        // Enrollment Confirmation email disabled
-      }
-      onStageChange?.(stageId);
-    }
-  };
-
   const currentProduct = useMemo(() =>
     financialCalculator.findProduct(form.formData.product, products),
     [form.formData.product, products]);
 
-  // Must ALWAYS have confirmations to move to Ganho
-  if (!lead) return null;
-
   const isServiceProduct = financialCalculator.isServiceProduct(currentProduct);
 
+  // Para produtos de Serviço: o comprovante do professor é enviado no dia da turma,
+  // não é requisito para entrar em Ganho. Só cursos exigem os 4 campos.
   const canMoveToGanho = isServiceProduct
-    ? (!!form.formData.professor_proof_url)
+    ? true  // Serviço: sem requisito de arquivo na entrada em Ganho
     : (
       form.formData.pix_completed &&
       form.formData.contract_signed &&
@@ -202,9 +181,31 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
       !!form.formData.contract_url
     );
 
-  const totalSteps = isServiceProduct ? 1 : 4;
+  // Unified stage change handler: delegates to turma or pipeline handler
+  const handleStageChange = (stageId: string) => {
+    if (isTurmaMode && turmaAttendee && onTurmaStatusChange) {
+      onTurmaStatusChange(turmaAttendee.turmaId, turmaAttendee.attendeeId, stageId as any);
+    } else {
+      const targetStage = pipelineStages?.find(s => s.id === stageId);
+      const targetName = ((targetStage as any)?.title || (targetStage as any)?.name || '').toLowerCase();
+      const isGanho = targetName.includes('ganho') || targetName.includes('fechado') || targetName.includes('aprovado');
+
+      if (isGanho && !canMoveToGanho) {
+        alert('Para mover para Ganho (Curso) é necessário:\n• Marcar Taxa Matrícula e Contrato assinado\n• Anexar Comprovante e Contrato (Vendedor na aba Informações)');
+        return;
+      }
+
+      onStageChange?.(stageId);
+    }
+  };
+
+  // Must ALWAYS have confirmations to move to Ganho
+  if (!lead) return null;
+
+  // Para serviço não há barra de progress na entrada em Ganho
+  const totalSteps = isServiceProduct ? 0 : 4;
   const completedSteps = isServiceProduct
-    ? [!!form.formData.professor_proof_url].filter(Boolean).length
+    ? 0
     : [
       form.formData.pix_completed,
       form.formData.contract_signed,
@@ -276,9 +277,7 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
                       checklistBlocked
                         ? 'Conclua o checklist da etapa antes de avançar'
                         : !canMoveToGanho
-                          ? (isServiceProduct
-                            ? 'Necessário: Comprovante ( Professor )'
-                            : 'Necessário: Taxa Matrícula + Contrato assinado + Comprovante + Contrato ( Vendedor )')
+                          ? 'Necessário: Taxa Matrícula + Contrato assinado + Comprovante + Contrato ( Vendedor )'
                           : undefined
                     }
                     className={cn(
@@ -342,9 +341,7 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
                       checklistBlocked && !isActive && !isPerdidoBtn
                         ? 'Conclua o checklist da etapa antes de avançar'
                         : isGanhoBtn && !canMoveToGanho
-                          ? (isServiceProduct
-                            ? 'Necessário: Comprovante ( Professor )'
-                            : 'Necessário: Taxa Matrícula + Contrato assinado + Comprovante + Contrato ( Vendedor )')
+                          ? 'Necessário: Taxa Matrícula + Contrato assinado + Comprovante + Contrato ( Vendedor )'
                           : undefined
                     }
                     className={cn(

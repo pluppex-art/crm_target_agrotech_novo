@@ -38,20 +38,20 @@ export const supabaseService = {
 
       return {
         ...lead,
-        discount: activeEnrollment?.discount || '',
-        discount_applied: activeEnrollment?.discount_applied || false,
-        discount_type: activeEnrollment?.discount_type || 'percent',
-        pix_completed: activeEnrollment?.pix_completed || false,
-        contract_signed: activeEnrollment?.contract_signed || false,
-        valor_recebido: activeEnrollment?.valor_recebido || null,
-        taxa_matricula_recebido: activeEnrollment?.taxa_matricula_recebido || null,
-        forma_pagamento: activeEnrollment?.forma_pagamento || null,
-        payment_proof_url: activeEnrollment?.payment_proof_url || null,
-        contract_url: activeEnrollment?.contract_url || null,
-        professor_proof_url: activeEnrollment?.professor_proof_url || null,
-        rg_photo_url: activeEnrollment?.rg_photo_url || null,
-        profile_photo_url: activeEnrollment?.profile_photo_url || null,
-        cost_center: activeEnrollment?.cost_center || lead.cost_center || 'cursos',
+        discount: activeEnrollment?.discount ?? lead.discount ?? '',
+        discount_applied: activeEnrollment?.discount_applied ?? lead.discount_applied ?? false,
+        discount_type: activeEnrollment?.discount_type ?? lead.discount_type ?? 'percent',
+        pix_completed: activeEnrollment?.pix_completed ?? lead.pix_completed ?? false,
+        contract_signed: activeEnrollment?.contract_signed ?? lead.contract_signed ?? false,
+        valor_recebido: activeEnrollment?.valor_recebido ?? lead.valor_recebido ?? null,
+        taxa_matricula_recebido: activeEnrollment?.taxa_matricula_recebido ?? lead.taxa_matricula_recebido ?? null,
+        forma_pagamento: activeEnrollment?.forma_pagamento ?? lead.forma_pagamento ?? null,
+        payment_proof_url: activeEnrollment?.payment_proof_url ?? lead.payment_proof_url ?? null,
+        contract_url: activeEnrollment?.contract_url ?? lead.contract_url ?? null,
+        professor_proof_url: activeEnrollment?.professor_proof_url ?? lead.professor_proof_url ?? null,
+        rg_photo_url: activeEnrollment?.rg_photo_url ?? lead.rg_photo_url ?? null,
+        profile_photo_url: activeEnrollment?.profile_photo_url ?? lead.profile_photo_url ?? null,
+        cost_center: activeEnrollment?.cost_center ?? lead.cost_center ?? 'cursos',
       } as Lead;
     });
   },
@@ -126,6 +126,13 @@ export const supabaseService = {
       ...baseLead,
       substatus: subStatus, // Map subStatus to substatus for database
       lead_source: origin || baseLead.lead_source || null,
+      pix_completed: pix_completed !== undefined ? pix_completed : undefined,
+      contract_signed: contract_signed !== undefined ? contract_signed : undefined,
+      discount_applied: discount_applied !== undefined ? discount_applied : undefined,
+      discount_type: discount_type !== undefined ? discount_type : undefined,
+      payment_proof_url: payment_proof_url !== undefined ? payment_proof_url : undefined,
+      contract_url: contract_url !== undefined ? contract_url : undefined,
+      professor_proof_url: professor_proof_url !== undefined ? professor_proof_url : undefined,
     };
 
     const { data, error } = await supabase
@@ -169,6 +176,13 @@ export const supabaseService = {
     if (origin) {
       dbLead.lead_source = origin;
     }
+    if (pix_completed !== undefined) dbLead.pix_completed = pix_completed;
+    if (contract_signed !== undefined) dbLead.contract_signed = contract_signed;
+    if (discount_applied !== undefined) dbLead.discount_applied = discount_applied;
+    if (discount_type !== undefined) dbLead.discount_type = discount_type;
+    if (payment_proof_url !== undefined) dbLead.payment_proof_url = payment_proof_url;
+    if (contract_url !== undefined) dbLead.contract_url = contract_url;
+    if (professor_proof_url !== undefined) dbLead.professor_proof_url = professor_proof_url;
 
     // Remove undefined values so PostgREST doesn't receive an empty body.
     // Also convert empty strings to null for UUID columns (PostgREST rejects '' for uuid type).

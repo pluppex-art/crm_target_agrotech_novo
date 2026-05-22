@@ -201,28 +201,25 @@ export const Pipeline: React.FC = () => {
 
 
   const checkGanhoRequirements = useCallback((lead: Lead) => {
-    const targetStage = COLUMNS.find(c => c.id === lead.stage_id);
     const productObj = financialCalculator.findProduct(lead.product, products);
     const isService = financialCalculator.isServiceProduct(productObj, lead.product);
 
-    if (!isService) {
-      const hasFiles = !!lead.payment_proof_url && !!lead.contract_url;
-      if (!(lead.pix_completed && lead.contract_signed && hasFiles)) {
-        return {
-          valid: false,
-          message: 'Para mover para Ganho (Curso) é necessário:\n• Marcar Taxa Matrícula e Contrato assinado\n• Anexar Comprovante e Contrato (Vendedor na aba Informações)'
-        };
-      }
-    } else {
-      if (!lead.professor_proof_url) {
-        return {
-          valid: false,
-          message: 'Para mover para Ganho (Serviço) é necessário:\n• Anexar Comprovante de Pagamento (Professor na aba Turma)'
-        };
-      }
+    // Produtos de Serviço (professor): o comprovante é enviado no dia da turma,
+    // não é requisito para entrar em Ganho agora.
+    if (isService) {
+      return { valid: true };
+    }
+
+    // Produtos de Curso: exige os 4 pontos obrigatórios
+    const hasFiles = !!lead.payment_proof_url && !!lead.contract_url;
+    if (!(lead.pix_completed && lead.contract_signed && hasFiles)) {
+      return {
+        valid: false,
+        message: 'Para mover para Ganho (Curso) é necessário:\n• Marcar Taxa Matrícula e Contrato assinado\n• Anexar Comprovante e Contrato (Vendedor na aba Informações)'
+      };
     }
     return { valid: true };
-  }, [COLUMNS, products]);
+  }, [products]);
 
   const onDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
