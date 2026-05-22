@@ -24,7 +24,7 @@ interface Step {
 
 const productPrices: Record<string, number> = {
   'Curso de Inseminação Artificial em Bovinos': 1500,
-  'Curso de Piloto de Drone Agrícola': 2500,
+  'Curso de Piloto de Drone Agrícola': 197,
 };
 
 export function PublicForm() {
