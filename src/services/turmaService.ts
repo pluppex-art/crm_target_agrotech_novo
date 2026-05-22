@@ -58,6 +58,26 @@ function mapEnrollmentToAttendee(e: any): TurmaAttendee {
   };
 }
 
+async function findStageByPattern(patterns: string[]): Promise<string | null> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+
+  for (const pattern of patterns) {
+    const { data } = await supabase
+      .from('pipeline_stages')
+      .select('id')
+      .ilike('name', pattern)
+      .eq('is_active', true)
+      .order('position')
+      .limit(1);
+
+    if (data && data.length > 0) {
+      return data[0].id;
+    }
+  }
+  return null;
+}
+
 export const turmaService = {
   async getAll(): Promise<Turma[]> {
     const supabase = getSupabaseClient();
@@ -189,6 +209,43 @@ export const turmaService = {
       console.error('Error updating attendee status:', error);
       return false;
     }
+
+    if (status === 'cancelado') {
+      try {
+        const { data: enrollment } = await supabase
+          .from('lead_class_enrollments')
+          .select('lead_id')
+          .eq('id', attendeeId)
+          .single();
+
+        if (enrollment?.lead_id) {
+          const stageId = await findStageByPattern([
+            '%Não Compareceu%',
+            '%Nao Compareceu%',
+            '%Compareceu%'
+          ]);
+
+          const updates: any = { substatus: 'Não Compareceu' };
+          if (stageId) {
+            updates.stage_id = stageId;
+          }
+
+          const { error: leadUpdateError } = await supabase
+            .from('leads')
+            .update(updates)
+            .eq('id', enrollment.lead_id);
+
+          if (leadUpdateError) {
+            console.error('Error updating lead for cancelled attendee:', leadUpdateError);
+          } else {
+            console.log(`[turmaService] Attendee cancelled, lead ${enrollment.lead_id} moved to stage ${stageId || 'default'} with substatus 'Não Compareceu'`);
+          }
+        }
+      } catch (autoErr) {
+        console.error('Error in Attendee Cancelled automation:', autoErr);
+      }
+    }
+
     return true;
   },
 
@@ -261,50 +318,33 @@ export const turmaService = {
 
     if (turmaData.status === 'concluida') {
       try {
-        const { data: currentTurma } = await supabase
-          .from('turmas')
-          .select('date')
-          .eq('id', id)
-          .single();
+        const { data: enrollments } = await supabase
+          .from('lead_class_enrollments')
+          .select('lead_id')
+          .eq('class_id', id)
+          .neq('status', 'CANCELLED')
+          .not('lead_id', 'is', null);
 
-        if (currentTurma?.date) {
-          const now = new Date();
-          const turmaDate = new Date(currentTurma.date + 'T12:00:00');
-          const isSameMonth = now.getMonth() === turmaDate.getMonth() && now.getFullYear() === turmaDate.getFullYear();
+        if (enrollments && enrollments.length > 0) {
+          const leadIds = (enrollments as any[]).map(e => e.lead_id).filter(Boolean);
 
-          const { data: enrollments } = await supabase
-            .from('lead_class_enrollments')
-            .select('lead_id')
-            .eq('class_id', id)
-            .neq('status', 'CANCELLED')
-            .not('lead_id', 'is', null);
+          if (leadIds.length > 0) {
+            const stageId = await findStageByPattern([
+              '%Turma Conclu%',
+              '%Conclu%'
+            ]);
 
-          if (enrollments && enrollments.length > 0) {
-            const leadIds = (enrollments as any[]).map(e => e.lead_id).filter(Boolean);
-
-            if (leadIds.length > 0) {
-              const updates: any = { substatus: 'Turma Concluída' };
-
-              if (!isSameMonth) {
-                const { data: stage } = await supabase
-                  .from('pipeline_stages')
-                  .select('id')
-                  .eq('name', 'Turma Concluido')
-                  .limit(1)
-                  .maybeSingle();
-
-                if (stage?.id) {
-                  updates.stage_id = stage.id;
-                }
-              }
-
-              await supabase
-                .from('leads')
-                .update(updates)
-                .in('id', leadIds);
-
-              console.log(`[turmaService] Automation run for ${leadIds.length} leads. isSameMonth: ${isSameMonth}`);
+            const updates: any = { substatus: 'Turma Concluída' };
+            if (stageId) {
+              updates.stage_id = stageId;
             }
+
+            await supabase
+              .from('leads')
+              .update(updates)
+              .in('id', leadIds);
+
+            console.log(`[turmaService] Automation run for ${leadIds.length} leads. Moved to stage ${stageId || 'default'} with substatus 'Turma Concluída'`);
           }
         }
       } catch (autoErr) {
