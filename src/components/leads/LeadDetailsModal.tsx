@@ -260,10 +260,10 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="pt-5 pb-2 px-5 flex flex-col gap-3 border-b border-slate-100">
+        <div className="pt-5 pb-2 px-4 sm:px-5 flex flex-col gap-3 border-b border-slate-100">
           {/* Top bar: Ganho / Perdido + close */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               {!isTurmaMode && (
                 <>
                   <button
@@ -324,7 +324,7 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
           {/* Stage buttons */}
           <div className="flex items-center gap-2 w-full">
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest shrink-0">Etapa:</span>
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 flex-1" style={{ scrollbarWidth: 'thin' }}>
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 flex-1 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               {(stages || []).map((stage: any) => {
                 const stageName = stage.title || stage.name;
                 const { active, inactive } = STAGE_CLASSES
@@ -363,7 +363,7 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
         </div>
 
         {/* Tabs */}
-        <div className="flex items-center gap-5 px-5 border-b border-slate-200 overflow-x-auto whitespace-nowrap scrollbar-thin" style={{ scrollbarWidth: 'thin' }}>
+        <div className="flex items-center gap-4 sm:gap-5 px-4 sm:px-5 border-b border-slate-200 overflow-x-auto whitespace-nowrap [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
           {(['info', 'notes', 'history', 'tasks', 'turma', 'checklist', 'smart_responder'] as TabType[]).map((tab) => (
             <button
               key={tab}
