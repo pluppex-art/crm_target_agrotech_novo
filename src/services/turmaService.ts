@@ -210,40 +210,61 @@ export const turmaService = {
       return false;
     }
 
-    if (status === 'cancelado') {
-      try {
-        const { data: enrollment } = await supabase
-          .from('lead_class_enrollments')
-          .select('lead_id')
-          .eq('id', attendeeId)
-          .single();
+    try {
+      const { data: enrollment } = await supabase
+        .from('lead_class_enrollments')
+        .select('lead_id, status, class_id, turmas:turmas!lead_class_enrollments_class_id_fkey(status)')
+        .eq('id', attendeeId)
+        .single();
 
-        if (enrollment?.lead_id) {
-          const stageId = await findStageByPattern([
-            '%Não Compareceu%',
-            '%Nao Compareceu%',
-            '%Compareceu%'
-          ]);
+      if (enrollment?.lead_id && enrollment?.status !== 'CANCELLED') {
+        const isConcluded = (enrollment as any).turmas?.status === 'concluida';
 
-          const updates: any = { substatus: 'Não Compareceu' };
-          if (stageId) {
-            updates.stage_id = stageId;
-          }
+        if (isConcluded) {
+          if (status === 'confirmado') {
+            const stageId = await findStageByPattern([
+              '%Turma Conclu%',
+              '%Conclu%'
+            ]);
+            const updates: any = { substatus: 'Turma Concluída' };
+            if (stageId) updates.stage_id = stageId;
 
-          const { error: leadUpdateError } = await supabase
-            .from('leads')
-            .update(updates)
-            .eq('id', enrollment.lead_id);
+            await supabase.from('leads').update(updates).eq('id', enrollment.lead_id);
+          } else if (status === 'cancelado') {
+            const stageId = await findStageByPattern([
+              '%Não Compareceu%',
+              '%Nao Compareceu%',
+              '%Compareceu%'
+            ]);
+            const updates: any = { substatus: 'Não Compareceu' };
+            if (stageId) updates.stage_id = stageId;
 
-          if (leadUpdateError) {
-            console.error('Error updating lead for cancelled attendee:', leadUpdateError);
+            await supabase.from('leads').update(updates).eq('id', enrollment.lead_id);
           } else {
-            console.log(`[turmaService] Attendee cancelled, lead ${enrollment.lead_id} moved to stage ${stageId || 'default'} with substatus 'Não Compareceu'`);
+            // Mapeia de volta para Ganho se for matriculado ou outro em turma concluída
+            const stageId = await findStageByPattern(['%Ganho%']);
+            const updates: any = { substatus: null };
+            if (stageId) updates.stage_id = stageId;
+
+            await supabase.from('leads').update(updates).eq('id', enrollment.lead_id);
+          }
+        } else {
+          // Se a turma NÃO está concluída, mas o aluno foi cancelado
+          if (status === 'cancelado') {
+            const stageId = await findStageByPattern([
+              '%Não Compareceu%',
+              '%Nao Compareceu%',
+              '%Compareceu%'
+            ]);
+            const updates: any = { substatus: 'Não Compareceu' };
+            if (stageId) updates.stage_id = stageId;
+
+            await supabase.from('leads').update(updates).eq('id', enrollment.lead_id);
           }
         }
-      } catch (autoErr) {
-        console.error('Error in Attendee Cancelled automation:', autoErr);
       }
+    } catch (autoErr) {
+      console.error('Error in Attendee Status Change automation:', autoErr);
     }
 
     return true;
@@ -318,15 +339,17 @@ export const turmaService = {
 
     if (turmaData.status === 'concluida') {
       try {
-        const { data: enrollments } = await supabase
+        // 1. Move CONFIRMED active attendees to "Turma Concluída"
+        const { data: confirmedEnrollments } = await supabase
           .from('lead_class_enrollments')
           .select('lead_id')
           .eq('class_id', id)
+          .eq('board_status', 'confirmado')
           .neq('status', 'CANCELLED')
           .not('lead_id', 'is', null);
 
-        if (enrollments && enrollments.length > 0) {
-          const leadIds = (enrollments as any[]).map(e => e.lead_id).filter(Boolean);
+        if (confirmedEnrollments && confirmedEnrollments.length > 0) {
+          const leadIds = (confirmedEnrollments as any[]).map(e => e.lead_id).filter(Boolean);
 
           if (leadIds.length > 0) {
             const stageId = await findStageByPattern([
@@ -344,7 +367,55 @@ export const turmaService = {
               .update(updates)
               .in('id', leadIds);
 
-            console.log(`[turmaService] Automation run for ${leadIds.length} leads. Moved to stage ${stageId || 'default'} with substatus 'Turma Concluída'`);
+            console.log(`[turmaService] Automation: Moved ${leadIds.length} confirmed leads to stage ${stageId || 'default'} ('Turma Concluída')`);
+          }
+        }
+
+        // 2. Move CANCELLED attendees of this class to "Não Compareceu"
+        const { data: otherEnrollments } = await supabase
+          .from('lead_class_enrollments')
+          .select('lead_id, board_status, status')
+          .eq('class_id', id)
+          .eq('board_status', 'cancelado')
+          .neq('status', 'CANCELLED')
+          .not('lead_id', 'is', null);
+
+        if (otherEnrollments && otherEnrollments.length > 0) {
+          const cancelledLeads = (otherEnrollments as any[])
+            .map(e => e.lead_id)
+            .filter(Boolean);
+
+          if (cancelledLeads.length > 0) {
+            const stageId = await findStageByPattern([
+              '%Não Compareceu%',
+              '%Nao Compareceu%',
+              '%Compareceu%'
+            ]);
+
+            // Avoid moving them to "Não Compareceu" if they have an active confirmed enrollment in another class
+            const { data: activeConfirmed } = await supabase
+              .from('lead_class_enrollments')
+              .select('lead_id')
+              .in('lead_id', cancelledLeads)
+              .eq('board_status', 'confirmado')
+              .neq('status', 'CANCELLED');
+
+            const activeConfirmedLeadIds = new Set((activeConfirmed || []).map(e => e.lead_id));
+            const finalLeadsToMove = cancelledLeads.filter(leadId => !activeConfirmedLeadIds.has(leadId));
+
+            if (finalLeadsToMove.length > 0) {
+              const updates: any = { substatus: 'Não Compareceu' };
+              if (stageId) {
+                updates.stage_id = stageId;
+              }
+
+              await supabase
+                .from('leads')
+                .update(updates)
+                .in('id', finalLeadsToMove);
+
+              console.log(`[turmaService] Automation: Moved ${finalLeadsToMove.length} cancelled leads to stage ${stageId || 'default'} ('Não Compareceu')`);
+            }
           }
         }
       } catch (autoErr) {
