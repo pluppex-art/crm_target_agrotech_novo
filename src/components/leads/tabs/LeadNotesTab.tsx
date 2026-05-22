@@ -49,17 +49,38 @@ export const LeadNotesTab: React.FC<LeadNotesTabProps> = ({
             const noteDate = new Date(note.created_at);
             const dateStr = noteDate.toLocaleDateString('pt-BR');
             const timeStr = noteDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            
+            const isVendaFechadaOriginal = note.content.includes('🎉 Lead') && note.content.includes('entrou em Ganho na data de');
+            const isVendaFechadaNova = note.content.includes('🏆 Venda Fechada!');
+            const isVendaFechada = isVendaFechadaOriginal || isVendaFechadaNova;
+            
+            let displayContent = note.content;
+            if (isVendaFechadaOriginal) {
+              displayContent = note.content.replace(
+                /🎉 Lead (.*?) entrou em Ganho na data de (.*)/,
+                '🏆 Venda Fechada! O lead $1 foi movido para Ganho com sucesso no dia $2.'
+              );
+            }
+
             return (
-              <div key={note.id} className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm relative group">
+              <div key={note.id} className={cn(
+                "border rounded-2xl p-4 relative group transition-all",
+                isVendaFechada
+                  ? "bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200 shadow-md"
+                  : "bg-white border-slate-100 shadow-sm"
+              )}>
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full uppercase">
+                      <span className={cn(
+                        "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase",
+                        isVendaFechada ? "text-emerald-700 bg-emerald-100" : "text-emerald-600 bg-emerald-50"
+                      )}>
                         {dateStr} às {timeStr}
                       </span>
                     </div>
                     {note.author_name && (
-                      <span className="text-[10px] font-semibold text-slate-500 px-1">
+                      <span className={cn("text-[10px] font-semibold px-1", isVendaFechada ? "text-emerald-600" : "text-slate-500")}>
                         por {note.author_name}
                       </span>
                     )}
@@ -71,7 +92,12 @@ export const LeadNotesTab: React.FC<LeadNotesTabProps> = ({
                     <Trash2 size={14} />
                   </button>
                 </div>
-                <p className="text-sm text-slate-700 leading-relaxed">{note.content}</p>
+                <p className={cn(
+                  "leading-relaxed",
+                  isVendaFechada ? "text-sm md:text-base font-bold text-emerald-800" : "text-sm text-slate-700"
+                )}>
+                  {displayContent}
+                </p>
               </div>
             );
           })

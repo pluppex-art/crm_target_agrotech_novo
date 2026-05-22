@@ -39,13 +39,13 @@ export interface SalesMetrics {
   allSellersRanking: Array<{
     id: any;
     label: string; value: number; received: number;
-    count: number; percentage: number; leads_goal: number;
+    count: number; percentage: number; leads_goal: number; leads?: any[];
   }>;
   otherSellersRanking: Array<{
-    id: string; label: string; value: number; received: number; count: number;
+    id: string; label: string; value: number; received: number; count: number; leads?: any[];
   }>;
   sellerSemaphoreData: Array<{
-    label: string; value: number; received: number; count: number;
+    label: string; value: number; received: number; count: number; leads?: any[];
     percentage: number; revenue_goal: number; pct: number;
     color: 'red' | 'yellow' | 'green' | 'gold';
     colorClass: string; barColor: string;

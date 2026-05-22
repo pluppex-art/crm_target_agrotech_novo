@@ -542,6 +542,7 @@ export function Dashboard() {
                     percentage={s.percentage}
                     rank={i}
                     count={s.count}
+                    leads={s.leads}
                     color={i === 0 ? 'bg-emerald-500' : i === 1 ? 'bg-blue-500' : i === 2 ? 'bg-amber-500' : i === 3 ? 'bg-violet-500' : 'bg-slate-400'}
                   />
                 ))}

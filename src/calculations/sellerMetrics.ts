@@ -57,6 +57,7 @@ export interface SellerRankingItem {
   count: number;
   percentage: number;
   leads_goal: number;
+  leads?: any[];
 }
 
 export interface SellerSemaphoreItem extends SellerRankingItem {
@@ -79,8 +80,8 @@ export function calcSalesByResponsible(
   endDate?: string,
   filterProduct?: string,
   currentSellerId?: string | null,
-): Array<{ id: string; label: string; value: number; received: number; count: number }> {
-  const result: Record<string, { id: string; label: string; value: number; received: number; count: number }> = {};
+): Array<{ id: string; label: string; value: number; received: number; count: number; leads?: any[] }> {
+  const result: Record<string, { id: string; label: string; value: number; received: number; count: number; leads: any[] }> = {};
 
   const start = startDate ? new Date(startDate) : null;
   const end = endDate ? new Date(endDate) : null;
@@ -102,7 +103,7 @@ export function calcSalesByResponsible(
     if (currentSellerId && rawKey !== currentSellerId) return;
 
     if (!result[rawKey]) {
-      result[rawKey] = { id: rawKey, label: l.responsible || 'Sem Nome', value: 0, received: 0, count: 0 };
+      result[rawKey] = { id: rawKey, label: l.responsible || 'Sem Nome', value: 0, received: 0, count: 0, leads: [] };
     }
 
     const isClosed = stageNameToStatus(l.status ?? '') === 'closed' ||
@@ -123,6 +124,13 @@ export function calcSalesByResponsible(
     if (isStrictlyWon(l)) {
       result[rawKey].count += 1;
       result[rawKey].value += getLeadEffectiveValue(l as any);
+      
+      const prod = products.find(p => p.id === l.product || p.name === l.product);
+      const productName = prod ? prod.name : l.product;
+      const wDate = new Date(l.won_at || l.created_at);
+      const formattedWonAt = wDate.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+      
+      result[rawKey].leads.push({ ...l, productName, formattedWonAt });
     }
 
     // 2. Receita Fatiada (Semáforo)
@@ -204,7 +212,7 @@ export function calcAllSellersRanking(
     const sellerId = p.id;
     if (sellerId && !byId[sellerId]) {
       const name = p.name || 'Sem Nome';
-      byId[sellerId] = { id: sellerId, label: name, value: 0, received: 0, count: 0, percentage: 0, leads_goal: 0, profileId: p.id };
+      byId[sellerId] = { id: sellerId, label: name, value: 0, received: 0, count: 0, percentage: 0, leads_goal: 0, profileId: p.id, leads: [] };
     }
   });
 

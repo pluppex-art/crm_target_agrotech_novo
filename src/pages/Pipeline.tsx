@@ -28,6 +28,9 @@ import { LeadCard } from '../components/pipeline/LeadCard';
 import { checklistService } from '../services/checklistService';
 import { financialCalculator } from '../services/financialCalculator';
 import { calcPipelinePayments } from '../calculations/pipelineMetrics';
+import { notificationService } from '../services/notificationService';
+import { noteService } from '../services/noteService';
+import { useNotificationStore } from '../store/useNotificationStore';
 import { notifyStageChange } from '../services/leadNotificationService';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useSquadStore } from '../store/useSquadStore';
@@ -82,7 +85,7 @@ export const Pipeline: React.FC = () => {
 
     const isVendedorRole = cargo.includes('vendedor');
     const isComercialDept = dept === 'comercial';
-    
+
     // Se for do departamento Comercial ou tiver cargo de Vendedor, visão restrita (só vê os próprios leads)
     return isVendedorRole || isComercialDept;
   }, [authUser?.id, profiles]);
@@ -307,6 +310,15 @@ export const Pipeline: React.FC = () => {
         setEnrollLead(draggedLead);
       }
       triggerGanhoAnimation();
+
+      const dateStr = new Date().toLocaleDateString('pt-BR');
+      const authorName = profiles.find(p => p.id === authUser?.id)?.name || authUser?.user_metadata?.full_name || 'Sistema';
+      await noteService.createNote({
+        content: `🎉 Lead ${draggedLead.name || 'Sem nome'} entrou em Ganho na data de ${dateStr}`,
+        lead_id: draggedLead.id,
+        author_id: authUser?.id ?? '',
+        author_name: authorName,
+      });
     }
   };
 
@@ -660,6 +672,15 @@ export const Pipeline: React.FC = () => {
                 setEnrollLead(selectedLead);
               }
               triggerGanhoAnimation();
+
+              const dateStr = new Date().toLocaleDateString('pt-BR');
+              const authorName = profiles.find(p => p.id === authUser?.id)?.name || authUser?.user_metadata?.full_name || 'Sistema';
+              await noteService.createNote({
+                content: `🎉 Lead ${selectedLead.name || 'Sem nome'} entrou em Ganho na data de ${dateStr}`,
+                lead_id: selectedLead.id,
+                author_id: authUser?.id ?? '',
+                author_name: authorName,
+              });
             }
           }}
         />
@@ -685,6 +706,15 @@ export const Pipeline: React.FC = () => {
               setEnrollLead(lead);
             }
             triggerGanhoAnimation();
+
+            const dateStr = new Date().toLocaleDateString('pt-BR');
+            const authorName = profiles.find(p => p.id === authUser?.id)?.name || authUser?.user_metadata?.full_name || 'Sistema';
+            noteService.createNote({
+              content: `🎉 Lead ${lead.name || 'Sem nome'} entrou em Ganho na data de ${dateStr}`,
+              lead_id: lead.id,
+              author_id: authUser?.id ?? '',
+              author_name: authorName,
+            });
           }
         }}
       />
