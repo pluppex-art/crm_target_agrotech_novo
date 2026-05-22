@@ -125,6 +125,26 @@ function StageColumn({ stage, onUpdate, onDelete, dragHandleProps }: StageColumn
             ))}
           </div>
 
+          {/* Toggle para iniciar fechado */}
+          <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-slate-100 mt-1">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Iniciar minimizado</span>
+            <button
+              type="button"
+              onClick={() => onUpdate(stage.id, { default_collapsed: !stage.default_collapsed })}
+              className={cn(
+                'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none',
+                stage.default_collapsed ? 'bg-emerald-500' : 'bg-slate-200'
+              )}
+            >
+              <span
+                className={cn(
+                  'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                  stage.default_collapsed ? 'translate-x-4' : 'translate-x-0'
+                )}
+              />
+            </button>
+          </div>
+
           <div className="text-center">
             <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Etapa {stage.position + 1}</span>
           </div>

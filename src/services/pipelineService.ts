@@ -14,7 +14,7 @@ export const pipelineService = {
       .select(`
         *,
         pipeline_stages (
-          id, pipeline_id, name, color, position, is_active
+          id, pipeline_id, name, color, position, is_active, default_collapsed
         )
       `)
       .eq('is_active', true)
@@ -110,7 +110,7 @@ export const pipelineService = {
 
     const { data, error } = await supabase
       .from('pipeline_stages')
-      .insert([{ pipeline_id: pipelineId, name, color, position, is_active: true }])
+      .insert([{ pipeline_id: pipelineId, name, color, position, is_active: true, default_collapsed: true }])
       .select()
       .single();
 

@@ -127,14 +127,15 @@ export const Pipeline: React.FC = () => {
     });
   };
 
-  // Auto-minimize Perdido / Aquecimento / Desqualificado on pipeline load
+  // Auto-minimize Perdido / Aquecimento / Desqualificado e etapas configuradas por padrão
   useEffect(() => {
     if (!currentPipeline?.stages) return;
     const AUTO_MINIMIZE = ['perdido', 'aquecimento', 'desqualificado', 'conclu'];
     const toMinimize = currentPipeline.stages
       .filter(s => {
         const n = s.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-        return AUTO_MINIMIZE.some(kw => n.includes(kw));
+        const matchesKeyword = AUTO_MINIMIZE.some(kw => n.includes(kw));
+        return matchesKeyword || !!s.default_collapsed;
       })
       .map(s => s.id)
       .filter(id => !userToggledRef.current.has(id));
@@ -146,7 +147,7 @@ export const Pipeline: React.FC = () => {
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPipeline?.id]);
+  }, [currentPipeline?.id, currentPipeline?.stages]);
 
   // Background alerts continue firing
   usePipelineAlerts(leads, tasks);

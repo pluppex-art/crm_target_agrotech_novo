@@ -14,6 +14,7 @@ export interface PipelineStage {
   color: string;
   position: number;
   is_active: boolean;
+  default_collapsed?: boolean;
 }
 
 export interface PipelineWithStages extends Pipeline {
