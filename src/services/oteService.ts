@@ -77,18 +77,7 @@ export const oteService = {
       .select('*', { count: 'exact', head: true })
       .eq('responsavel_usuario_id', userId);
 
-    if ((byId || 0) > 0) return true;
-
-    // Fallback: match by name
-    const { data: profile } = await supabase.from('perfis').select('name').eq('id', userId).maybeSingle();
-    if (!profile?.name) return false;
-
-    const { count: byName } = await supabase
-      .from('lead_class_enrollments')
-      .select('*', { count: 'exact', head: true })
-      .ilike('responsible', profile.name);
-
-    return (byName || 0) > 0;
+    return (byId || 0) > 0;
   },
 
   /**
@@ -152,14 +141,6 @@ export const oteService = {
     const supabase = getSupabaseClient();
     if (!supabase) return null;
 
-    // Busca o nome do usuário na tabela perfis (perfis não tem squad_id — squad vem de squad_members)
-    const { data: userData } = await supabase
-      .from('perfis')
-      .select('name')
-      .eq('id', userId)
-      .single();
-
-    const userName = (userData?.name || '').trim().toLowerCase();
     let squadId: string | null = null;
 
     const rule = await this.getCommissionRule('CLOSER', level);
@@ -182,22 +163,8 @@ export const oteService = {
     
     // Filtra transações onde o lead associado é de responsabilidade do vendedor
     const sellerManualTxs = txs.filter((t: any) => {
-      // 1. Prioridade para user_id ou responsavel_usuario_id do lead (UUID)
       const leads = getLeadRecord(t.leads);
-      if (t.user_id === userId || leads?.responsavel_usuario_id === userId) return true;
-
-      // 2. Fallback para nome (fuzzy match)
-      const resp = (leads?.responsible || t.responsible || '').trim().toLowerCase();
-      if (!resp || !userName) return false;
-
-      if (resp === userName) return true;
-      if (userName.includes(resp) || resp.includes(userName)) return true;
-
-      const respWords = resp.split(/\s+/).filter((w: string) => w.length > 2);
-      const userWords = userName.split(/\s+/).filter(w => w.length > 2);
-      const commonWords = respWords.filter((rw: string) => userWords.some(uw => uw.includes(rw) || rw.includes(uw)));
-      
-      return commonWords.length >= 2;
+      return t.user_id === userId || leads?.responsavel_usuario_id === userId;
     });
 
     // Busca matrículas do período usando lce.responsible diretamente
@@ -209,19 +176,7 @@ export const oteService = {
       .lte('enrolled_at', endDate + 'T23:59:59');
 
     const sellerEnrollments = (enrollments || []).filter((e: any) => {
-      // 1. Prioridade para responsavel_usuario_id
-      if (e.responsavel_usuario_id === userId) return true;
-
-      // 2. Fallback para nome
-      const resp = (e.responsible || '').trim().toLowerCase();
-      if (!resp || !userName) return false;
-      if (resp === userName) return true;
-      if (userName.includes(resp) || resp.includes(userName)) return true;
-
-      const respWords = resp.split(/\s+/).filter((w: string) => w.length > 2);
-      const userWords = userName.split(/\s+/).filter((w: string) => w.length > 2);
-      const commonWords = respWords.filter((rw: string) => userWords.some((uw: string) => uw.includes(rw) || rw.includes(uw)));
-      return commonWords.length >= 2;
+      return e.responsavel_usuario_id === userId;
     });
 
     const manualRevenue = sellerManualTxs.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
@@ -354,55 +309,28 @@ export const oteService = {
       .gte('enrolled_at', startDate + 'T00:00:00')
       .lte('enrolled_at', endDate + 'T23:59:59');
 
-    // Busca o nome do manager e membros ativos do squad via squad_members
-    const [managerUserData, squadMembersList] = await Promise.all([
-      supabase.from('perfis').select('name').eq('id', userId).single(),
-      supabase
-        .from('squad_members')
-        .select('user_id, squad_id, perfis!squad_members_user_id_fkey(name)')
-        .eq('squad_id', squadId)
-        .eq('active', true)
-    ]);
+    // Busca membros ativos do squad via squad_members
+    const { data: squadMembersList } = await supabase
+      .from('squad_members')
+      .select('user_id')
+      .eq('squad_id', squadId)
+      .eq('active', true);
 
-    const managerName = (managerUserData.data?.name || '').trim().toLowerCase();
-
-    const memberIds = (squadMembersList.data || []).map((m: any) => m.user_id).filter(Boolean);
-    const memberNames = (squadMembersList.data || []).map((m: any) => {
-      const p = Array.isArray(m.perfis) ? m.perfis[0] : m.perfis;
-      return p?.name?.trim().toLowerCase();
-    }).filter(Boolean) as string[];
-
-    // Atribuição híbrida: por ID (exato) e por Nome (legado/fuzzy)
+    const memberIds = (squadMembersList || []).map((m: any) => m.user_id).filter(Boolean);
     const allMemberIds = Array.from(new Set([...memberIds, userId]));
-    const allNames = Array.from(new Set([...memberNames, ...(managerName ? [managerName] : [])]));
-
-    const matchesName = (name: string) => {
-      if (!name || !allNames.length) return false;
-      if (allNames.includes(name)) return true;
-      return allNames.some(n => n.includes(name) || name.includes(n));
-    };
 
     const manualRevenue = txs.reduce((sum, t) => {
-      // 1. Checa por ID (user_id ou responsavel_usuario_id do lead)
       const leads = getLeadRecord((t as any).leads);
       const matchesId = (t.user_id && allMemberIds.includes(t.user_id)) ||
         (leads?.responsavel_usuario_id && allMemberIds.includes(leads.responsavel_usuario_id));
-      if (matchesId) return sum + (Number(t.amount) || 0);
-
-      // 2. Checa por Nome
-      const resp = (leads?.responsible || (t as any).responsible || '').trim().toLowerCase();
-      return matchesName(resp) ? sum + (Number(t.amount) || 0) : sum;
+      return matchesId ? sum + (Number(t.amount) || 0) : sum;
     }, 0);
 
     const enrollmentRevenue = (enrollments || []).reduce((sum: number, e: any) => {
-      // 1. Checa por ID
       if (e.responsavel_usuario_id && allMemberIds.includes(e.responsavel_usuario_id)) {
         return sum + (Number(e.valor_recebido) || 0) + (Number(e.taxa_matricula_recebido) || 0);
       }
-
-      // 2. Checa por Nome
-      const resp = (e.responsible || '').trim().toLowerCase();
-      return matchesName(resp) ? sum + (Number(e.valor_recebido) || 0) + (Number(e.taxa_matricula_recebido) || 0) : sum;
+      return sum;
     }, 0);
 
     const realizedRevenue = manualRevenue + enrollmentRevenue;

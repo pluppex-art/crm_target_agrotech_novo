@@ -211,22 +211,43 @@ async function startServer() {
       const PIPELINE_ID = '31f2fdbb-7b19-4973-8f70-7bb629697f11';
       const STAGE_ID = '36f5f922-ac1d-4742-a2b5-43a9af25b37d';
 
-      // 1. Round Robin — cargo closer/vendedor
-      const { data: vendedorCargos, error: cargosErr } = await supabase
-        .from('cargos')
-        .select('id')
-        .or('name.ilike.%vendedor%,name.ilike.%closer%');
+      // 1. Obter o estado atual do rodízio para ler o last_seller_id
+      const { data: rrState } = await supabase
+        .from('round_robin_state')
+        .select('last_seller_id')
+        .eq('id', 'form_leads')
+        .single();
 
-      if (cargosErr) console.error('[submit-lead] Erro ao buscar cargos:', cargosErr.message);
+      let lastSellerId: string | null = rrState?.last_seller_id ?? null;
+      let targetRoleId: string | null = null;
 
-      const vendedorCargoIds = (vendedorCargos || []).map((c: any) => c.id);
+      if (lastSellerId) {
+        // 2. Busca o perfil do último vendedor do rodízio para obter seu role_id
+        const { data: lastProfile } = await supabase
+          .from('perfis')
+          .select('role_id')
+          .eq('id', lastSellerId)
+          .single();
+        if (lastProfile?.role_id) {
+          targetRoleId = lastProfile.role_id;
+        }
+      }
 
-      const { data: sellers, error: sellersErr } = await supabase
+      // 3. Busca todos os vendedores ativos que pertencem a esse cargo ou que estão no rodízio
+      let sellersQuery = supabase
         .from('perfis')
-        .select('id, name, phone, department')
+        .select('id, name, phone, department, role_id')
         .eq('status', 'active')
-        .or('in_round_robin.eq.true,in_round_robin.is.null')
-        .in('role_id', vendedorCargoIds.length > 0 ? vendedorCargoIds : ['__none__']);
+        .neq('in_round_robin', false);
+
+      if (targetRoleId) {
+        sellersQuery = sellersQuery.eq('role_id', targetRoleId);
+      } else {
+        // Fallback robusto se for primeira execução ou sem last_seller_id
+        sellersQuery = sellersQuery.or('department.ilike.%comercial%,in_round_robin.eq.true');
+      }
+
+      const { data: sellers, error: sellersErr } = await sellersQuery;
 
       if (sellersErr) console.error('[submit-lead] Erro ao buscar sellers:', sellersErr.message);
       console.log('[submit-lead] Sellers encontrados:', (sellers || []).length,
@@ -239,15 +260,6 @@ async function startServer() {
       if (validSellers.length === 0) {
         return res.status(500).json({ error: 'Nenhum consultor disponível para atribuição. Verifique os cadastros.' });
       }
-
-      // Round Robin por ID
-      const { data: rrState } = await supabase
-        .from('round_robin_state')
-        .select('last_seller_id')
-        .eq('id', 'form_leads')
-        .single();
-
-      let lastSellerId: string | null = rrState?.last_seller_id ?? null;
 
       // Fallback: buscar último lead atribuído por ID
       if (!lastSellerId) {
@@ -273,6 +285,14 @@ async function startServer() {
       const assignedUserId: string = assignedSeller.id;
       const assignedPhone = assignedSeller.phone;
 
+      // Buscar centro de custo 'cursos' para obter o ID estrutural
+      const { data: ccCursos } = await supabase
+        .from('centro_custos')
+        .select('id')
+        .ilike('nome', 'cursos')
+        .maybeSingle();
+      const centroCustoId = ccCursos?.id || null;
+
       // 2. Insert Lead
       const notesContent = [
         interest ? `Área de Interesse: ${interest}` : null,
@@ -295,7 +315,8 @@ async function startServer() {
         substatus: 'qualified',
         photo: `https://ui-avatars.com/api/?name=${encodeURIComponent(name.trim())}&background=059669&color=fff&size=128`,
         seller_origin: 'target',
-        cost_center: 'cursos'
+        cost_center: 'cursos',
+        centro_custo_id: centroCustoId
       };
 
       const { data: leadData, error: leadError } = await supabase
@@ -339,11 +360,11 @@ async function startServer() {
 
       // 5. Email Notification
       const resendKey = process.env.RESEND_API_KEY;
-      if (assignedResponsible && resendKey) {
+      if (assignedUserId && resendKey) {
         const { data: sellerProfile } = await supabase
           .from('perfis')
           .select('email, name')
-          .eq('name', assignedResponsible)
+          .eq('id', assignedUserId)
           .maybeSingle();
 
         if (sellerProfile?.email) {

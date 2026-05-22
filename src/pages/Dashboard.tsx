@@ -241,13 +241,13 @@ export function Dashboard() {
   }, [profiles, currentUser]);
 
   const salesMetrics = useSalesMetrics({
-    currentSellerName: null, // Global context for cards
+    currentSellerId: null, // Global context for cards
     startDate, endDate, goals,
     searchTerm, filterStage, filterProduct, filterResponsible,
   });
 
   const globalSalesMetrics = useSalesMetrics({
-    currentSellerName: null, // Always compute global context for the dashboard cards
+    currentSellerId: null, // Always compute global context for the dashboard cards
     startDate: '', endDate: '', goals,
     searchTerm, filterStage, filterProduct, filterResponsible,
   });
@@ -263,7 +263,7 @@ export function Dashboard() {
     // Build current ranking lookup
     const currentRanking: Record<string, { count: number; rank: number; percentage: number }> = {};
     salesMetrics.allSellersRanking.forEach((s, idx) => {
-      currentRanking[s.label] = {
+      currentRanking[s.id] = {
         count: s.count,
         rank: idx,
         percentage: s.percentage,
@@ -274,22 +274,22 @@ export function Dashboard() {
 
     if (!isFirstRun && isAudioEnabled) {
       salesMetrics.allSellersRanking.forEach((s, idx) => {
-        const prev = prevRankingRef.current[s.label];
+        const prev = prevRankingRef.current[s.id];
         if (prev) {
           // Check if sales count increased
           if (s.count > prev.count) {
             // Check if they reached the 1st place!
             if (idx === 0 && prev.rank !== 0) {
-              const p = profiles.find(pr => (pr.name || '').trim() === s.label.trim());
-              const sq = getSquadInfoForUser(p?.id || '', s.label, profiles);
+              const p = profiles.find(pr => pr.id === s.id);
+              const sq = getSquadInfoForUser(p?.id || s.id || '', s.label, profiles);
               
               setNewLeader({ name: s.label, squad: sq.name !== '—' ? sq.name : undefined });
               playFirstPlaceJingle();
             }
             // Check if they hit their sales goal (percentage reached 100%)
             else if (s.percentage >= 100 && prev.percentage < 100) {
-              const p = profiles.find(pr => (pr.name || '').trim() === s.label.trim());
-              const sq = getSquadInfoForUser(p?.id || '', s.label, profiles);
+              const p = profiles.find(pr => pr.id === s.id);
+              const sq = getSquadInfoForUser(p?.id || s.id || '', s.label, profiles);
 
               setGoalReached({ name: s.label, value: s.value, squad: sq.name !== '—' ? sq.name : undefined });
               playTargetAchieved();
@@ -533,8 +533,8 @@ export function Dashboard() {
                     key={s.label}
                     label={s.label}
                     squad={(() => {
-                      const p = profiles.find(pr => (pr.name || '').trim() === s.label.trim());
-                      return getSquadInfoForUser(p?.id || '', s.label, profiles);
+                      const p = profiles.find(pr => pr.id === s.id);
+                      return getSquadInfoForUser(p?.id || s.id || '', s.label, profiles);
                     })()}
                     value={s.value}
                     received={s.count}
@@ -554,8 +554,8 @@ export function Dashboard() {
                 <div className="grid grid-cols-2 gap-2">
                   {salesMetrics.otherSellersRanking.map(s => {
                     const sq = (() => {
-                      const p = profiles.find(pr => (pr.name || '').trim() === s.label.trim());
-                      return getSquadInfoForUser(p?.id || '', s.label, profiles);
+                      const p = profiles.find(pr => pr.id === s.id);
+                      return getSquadInfoForUser(p?.id || s.id || '', s.label, profiles);
                     })();
                     return (
                       <div key={s.label} className="flex items-center justify-between text-sm py-1.5 border-b border-slate-50 last:border-0">
@@ -606,8 +606,8 @@ export function Dashboard() {
               </div>
               <PodiumChart
                 top3={salesMetrics.allSellersRanking.slice(0, 3).map((s) => {
-                  const p = profiles.find(pr => (pr.name || '').trim() === s.label.trim());
-                  const sq = getSquadInfoForUser(p?.id || '', s.label, profiles);
+                  const p = profiles.find(pr => pr.id === s.id);
+                  const sq = getSquadInfoForUser(p?.id || s.id || '', s.label, profiles);
                   return { label: s.label, count: s.count, squadName: sq.name !== '—' ? sq.name : undefined };
                 })}
               />

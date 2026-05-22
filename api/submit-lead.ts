@@ -32,22 +32,43 @@ export default async function handler(req: any, res: any) {
   });
 
   // ── Round Robin (Rodízio) Logic ──────────────────────────────────────────
-  // 1. Busca IDs dos cargos de Vendedor/Consultor
-  const { data: vendedorCargos } = await supabase
-    .from('cargos')
-    .select('id')
-    .or('name.ilike.%vendedor%,name.ilike.%consultor%');
+  // 1. Obter o estado atual do rodízio para ler o last_seller_id
+  const { data: rrState } = await supabase
+    .from('round_robin_state')
+    .select('last_seller_id')
+    .eq('id', 'form_leads')
+    .single();
 
-  const vendedorCargoIds = (vendedorCargos || []).map((c: any) => c.id);
+  let lastSellerId: string | null = rrState?.last_seller_id ?? null;
+  let targetRoleId: string | null = null;
 
-  // 2. Busca vendedores ativos do departamento Comercial com esses cargos que estão no rodízio
-  const { data: sellers } = await supabase
+  if (lastSellerId) {
+    // 2. Busca o perfil do último vendedor do rodízio para obter seu role_id
+    const { data: lastProfile } = await supabase
+      .from('perfis')
+      .select('role_id')
+      .eq('id', lastSellerId)
+      .single();
+    if (lastProfile?.role_id) {
+      targetRoleId = lastProfile.role_id;
+    }
+  }
+
+  // 3. Busca todos os vendedores ativos que pertencem a esse cargo ou que estão no rodízio
+  let sellersQuery = supabase
     .from('perfis')
-    .select('name, phone')
-    .eq('department', 'Comercial')
-    .or('status.eq.active,status.is.null')
-    .neq('in_round_robin', false)
-    .in('role_id', vendedorCargoIds.length > 0 ? vendedorCargoIds : ['']);
+    .select('id, name, phone, department, role_id')
+    .eq('status', 'active')
+    .neq('in_round_robin', false);
+
+  if (targetRoleId) {
+    sellersQuery = sellersQuery.eq('role_id', targetRoleId);
+  } else {
+    // Fallback robusto se for primeira execução ou sem last_seller_id
+    sellersQuery = sellersQuery.or('department.ilike.%comercial%,in_round_robin.eq.true');
+  }
+
+  const { data: sellers } = await sellersQuery;
 
   // Ordena alfabeticamente em pt-BR (ignora maiúsculas/minúsculas e acentos)
   const validSellers = (sellers || []).sort((a, b) =>
@@ -55,37 +76,39 @@ export default async function handler(req: any, res: any) {
   );
 
   let assignedResponsible = null;
+  let assignedUserId = null;
   let assignedPhone = null;
 
   if (validSellers.length > 0) {
-    // Prioridade: estado dedicado do rodízio (não afetado por leads criados manualmente)
-    const { data: rrState } = await supabase
-      .from('round_robin_state')
-      .select('last_seller_name')
-      .eq('id', 'form_leads')
-      .single();
-
-    let lastResp: string | null = rrState?.last_seller_name?.trim() ?? null;
 
     // Fallback: se o estado dedicado estiver vazio, busca o último lead da tabela
-    if (!lastResp) {
+    if (!lastSellerId) {
       const { data: lastLead } = await supabase
         .from('leads')
-        .select('responsible')
-        .in('responsible', validSellers.map(s => s.name))
+        .select('responsavel_usuario_id')
+        .in('responsavel_usuario_id', validSellers.map(s => s.id))
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
-      lastResp = lastLead?.responsible?.trim() ?? null;
+        .maybeSingle();
+      lastSellerId = lastLead?.responsavel_usuario_id ?? null;
     }
 
-    const lastIndex = lastResp
-      ? validSellers.findIndex(s => s.name.trim() === lastResp)
+    const lastIndex = lastSellerId
+      ? validSellers.findIndex(s => s.id === lastSellerId)
       : -1;
     const nextIndex = (lastIndex + 1) % validSellers.length;
     assignedResponsible = validSellers[nextIndex].name;
+    assignedUserId = validSellers[nextIndex].id;
     assignedPhone = validSellers[nextIndex].phone;
   }
+
+  // Buscar centro de custo 'cursos' para obter o ID estrutural
+  const { data: ccCursos } = await supabase
+    .from('centro_custos')
+    .select('id')
+    .ilike('nome', 'cursos')
+    .maybeSingle();
+  const centroCustoId = ccCursos?.id || null;
 
   // ── Insert Lead ─────────────────────────────────────────────────────────
   // Combine interest and other notes
@@ -104,12 +127,16 @@ export default async function handler(req: any, res: any) {
       product: product?.trim() ?? null,
       pipeline_id: PIPELINE_ID,
       stage_id: STAGE_ID,
-      status: 'Novos Leads',
+      status: 'new',
       responsible: assignedResponsible,
+      responsavel_usuario_id: assignedUserId,
       stars: 1,
       value: Number(value) || 0,
       substatus: 'qualified',
       photo: `https://ui-avatars.com/api/?name=${encodeURIComponent(name.trim())}&background=059669&color=fff&size=128`,
+      seller_origin: 'target',
+      cost_center: 'cursos',
+      centro_custo_id: centroCustoId
     }])
     .select()
     .single();
@@ -120,18 +147,23 @@ export default async function handler(req: any, res: any) {
   }
 
   // ── Atualiza estado do rodízio ───────────────────────────────────────────
-  if (assignedResponsible) {
+  if (assignedUserId) {
     await supabase
       .from('round_robin_state')
-      .upsert({ id: 'form_leads', last_seller_name: assignedResponsible, updated_at: new Date().toISOString() });
+      .upsert({ 
+        id: 'form_leads', 
+        last_seller_id: assignedUserId, 
+        last_seller_name: assignedResponsible, 
+        updated_at: new Date().toISOString() 
+      });
   }
 
   // ── Notifica vendedor responsável por e-mail ─────────────────────────────
-  if (assignedResponsible) {
+  if (assignedUserId) {
     const { data: sellerProfile } = await supabase
       .from('perfis')
       .select('email, name')
-      .eq('name', assignedResponsible)
+      .eq('id', assignedUserId)
       .single();
 
     const resendKey = process.env.RESEND_API_KEY;

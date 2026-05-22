@@ -9,11 +9,7 @@ import { emailTemplates } from './emailTemplates';
 
 function findProfile(idOrName: string, profiles: UserProfile[]): UserProfile | undefined {
   if (!idOrName) return undefined;
-  const target = idOrName.trim().toLowerCase();
-  return profiles.find(p => 
-    p.id === idOrName.trim() || 
-    (p.name || '').trim().toLowerCase() === target
-  );
+  return profiles.find(p => p.id === idOrName.trim());
 }
 
 
@@ -51,15 +47,15 @@ async function resolveProfileEmail(idOrName: string, profiles: UserProfile[]): P
 
   // Fallback: fetch directly from DB (handles race conditions and missing cache)
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrName.trim());
-  const { data } = isUuid
-    ? await supabase.from('perfis').select('id, name, email').eq('id', idOrName.trim()).single()
-    : await supabase.from('perfis').select('id, name, email').ilike('name', idOrName.trim()).single();
+  if (!isUuid) return null;
+
+  const { data } = await supabase.from('perfis').select('id, name, email').eq('id', idOrName.trim()).single();
   if (data?.email) return { id: data.id, name: data.name || '', email: data.email };
   return null;
 }
 
 export async function notifyNewLead(lead: Lead, profiles: UserProfile[]): Promise<void> {
-  const responsible = await resolveProfileEmail(lead.responsavel_usuario_id || lead.responsible || '', profiles);
+  const responsible = await resolveProfileEmail(lead.responsavel_usuario_id || '', profiles);
   if (!responsible) return;
 
   const { products } = useProductStore.getState();
@@ -87,10 +83,10 @@ export async function notifyNewLead(lead: Lead, profiles: UserProfile[]): Promis
 
 export async function notifyLeadTransferred(
   lead: Lead,
-  newResponsibleName: string,
+  newResponsibleId: string,
   profiles: UserProfile[]
 ): Promise<void> {
-  const newResponsible = findProfile(newResponsibleName, profiles);
+  const newResponsible = findProfile(newResponsibleId, profiles);
   const { products } = useProductStore.getState();
   const prodObj = financialCalculator.findProduct(lead.product || '', products);
   const prodName = prodObj?.name || lead.product || 'N/A';
@@ -123,15 +119,15 @@ export async function notifyLeadTransferred(
 
 export async function notifyLeadManualTransfer(
   lead: Lead,
-  fromResponsibleName: string,
-  toResponsibleName: string,
+  fromResponsibleId: string,
+  toResponsibleId: string,
   profiles: UserProfile[]
 ): Promise<void> {
-  const fromResponsible = findProfile(fromResponsibleName, profiles);
-  const toResponsible = await resolveProfileEmail(toResponsibleName, profiles);
+  const fromResponsible = findProfile(fromResponsibleId, profiles);
+  const toResponsible = await resolveProfileEmail(toResponsibleId, profiles);
   if (!toResponsible) return;
 
-  const displayFromName = fromResponsible?.name || fromResponsibleName;
+  const displayFromName = fromResponsible?.name || 'Vendedor Anterior';
 
   const { products } = useProductStore.getState();
   const prodObj = financialCalculator.findProduct(lead.product || '', products);
@@ -165,10 +161,10 @@ export async function notifyLeadManualTransfer(
 
 export async function notifyLeadAssignment(
   lead: Lead,
-  newResponsibleName: string,
+  newResponsibleId: string,
   profiles: UserProfile[]
 ): Promise<void> {
-  const responsible = findProfile(newResponsibleName, profiles);
+  const responsible = findProfile(newResponsibleId, profiles);
   if (!responsible) return;
 
   const { products } = useProductStore.getState();

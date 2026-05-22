@@ -129,7 +129,7 @@ export function calcActiveLeads(
     searchTerm?: string;
     filterProduct?: string;
     filterResponsible?: string;
-    currentSellerName?: string | null;
+    currentSellerId?: string | null;
   } = {},
 ): number {
   const processed = new Set<string>();
@@ -137,14 +137,14 @@ export function calcActiveLeads(
     if (!l.id || processed.has(l.id)) return false;
     processed.add(l.id);
 
-    const { searchTerm, filterProduct, filterResponsible, currentSellerName } = opts;
+    const { searchTerm, filterProduct, filterResponsible, currentSellerId } = opts;
     if (searchTerm) {
       const q = searchTerm.toLowerCase();
       if (!l.name?.toLowerCase().includes(q) && !l.product?.toLowerCase().includes(q) && !l.responsible?.toLowerCase().includes(q)) return false;
     }
     if (filterProduct && filterProduct !== 'all' && l.product !== filterProduct) return false;
-    if (filterResponsible && filterResponsible !== 'all' && (l.responsible || '').trim().toLowerCase() !== filterResponsible.trim().toLowerCase()) return false;
-    if (currentSellerName && (l.responsible || '').trim().toLowerCase() !== currentSellerName.trim().toLowerCase()) return false;
+    if (filterResponsible && filterResponsible !== 'all' && l.responsavel_usuario_id !== filterResponsible) return false;
+    if (currentSellerId && l.responsavel_usuario_id !== currentSellerId) return false;
 
     const stageName = l.stage_id ? stageMap.get(l.stage_id) : l.status;
     if (!stageName) return true;

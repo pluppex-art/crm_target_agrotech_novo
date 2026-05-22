@@ -227,16 +227,12 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
       // 1. Assignment/Transfer Email: Trigger if responsible changed
       const prevLead = previousLeads.find(l => l.id === leadId);
       const newResponsibleId = leadData.responsavel_usuario_id;
-      const newResponsibleName = leadData.responsible;
       const prevResponsibleId = prevLead?.responsavel_usuario_id;
-      const prevResponsibleName = prevLead?.responsible;
-      const responsibleChanged = newResponsibleId
-        ? newResponsibleId !== prevResponsibleId
-        : (newResponsibleName && newResponsibleName !== prevResponsibleName);
+      const responsibleChanged = newResponsibleId !== prevResponsibleId;
       if (responsibleChanged) {
         const { profiles } = useProfileStore.getState();
-        const toIdentifier = newResponsibleId || newResponsibleName || '';
-        const fromIdentifier = prevResponsibleId || prevResponsibleName;
+        const toIdentifier = newResponsibleId || '';
+        const fromIdentifier = prevResponsibleId || null;
         if (fromIdentifier && toIdentifier) {
           notifyLeadManualTransfer(updatedLead as Lead, fromIdentifier, toIdentifier, profiles);
         } else if (toIdentifier) {

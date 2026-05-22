@@ -199,8 +199,8 @@ export async function fireAlerts(
     const { profiles } = useProfileStore.getState();
     const prodObj = financialCalculator.findProduct(lead.product || '', products);
     const prodName = prodObj?.name || lead.product || 'Não definido';
-    const profile = profiles.find(p => p.id === lead.responsavel_usuario_id || p.name === lead.responsible);
-    const respName = profile?.name || lead.responsible || 'Não definido';
+    const profile = profiles.find(p => p.id === lead.responsavel_usuario_id);
+    const respName = profile?.name || 'Não definido';
 
     const title = isTransfer
       ? `🔄 ${lead.name} foi transferido para novo responsável`
@@ -218,7 +218,7 @@ export async function fireAlerts(
       // Em caso de transferência automática, o targetUserId costuma ser o novo responsável
       const newResp = profiles.find(p => p.id === targetUserId);
       if (newResp) {
-        await notifyLeadTransferred(lead, newResp.name || newResp.id, profiles);
+        await notifyLeadTransferred(lead, newResp.id, profiles);
       }
     } else {
       if (userEmail) {

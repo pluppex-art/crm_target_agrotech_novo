@@ -104,7 +104,17 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
   useEffect(() => {
     if (isOpen) {
       fetchProducts(); fetchProfiles();
-      transactionService.getCentroCustos().then(setCentroCustos);
+      transactionService.getCentroCustos().then((list) => {
+        setCentroCustos(list);
+        const defaultCc = list.find((c: any) => c.nome.toLowerCase() === 'cursos');
+        if (defaultCc) {
+          setFormData((prev: any) => ({
+            ...prev,
+            centro_custo_id: defaultCc.id,
+            cost_center: defaultCc.nome,
+          }));
+        }
+      });
       setSelectedStageId(initialStageId ?? currentPipelineStages[0]?.id ?? '');
       const myProfile = profiles.find(p => p.id === user?.id);
       if (!formData.responsible && myProfile) {
@@ -120,6 +130,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
       if (!formData.name) { alert('Por favor, preencha o nome do cliente.'); return; }
       if (!formData.phone) { alert('Por favor, preencha o telefone do cliente.'); return; }
       if (!formData.responsavel_usuario_id) { alert('Por favor, selecione o responsável.'); return; }
+      if (!formData.centro_custo_id) { alert('Por favor, selecione o centro de custo.'); return; }
       
       setLoading(true);
       try {

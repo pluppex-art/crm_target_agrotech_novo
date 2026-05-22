@@ -18,11 +18,8 @@ export const usePipelineAlerts = (leads: Lead[], tasks: Task[] = []) => {
 
   const myLeads = useMemo(() => {
     if (!user) return [];
-    const myProfile = profiles.find(p => p.id === user.id);
-    const myName = myProfile?.name || user?.user_metadata?.full_name || user?.user_metadata?.name || '';
-    if (!myName) return leads;
-    return leads.filter(l => l.responsible?.toLowerCase() === myName.toLowerCase());
-  }, [leads, user, profiles]);
+    return leads.filter(l => l.responsavel_usuario_id === user.id);
+  }, [leads, user]);
 
   const runInactivityCheck = useCallback(() => {
     if (myLeads.length === 0) return;
@@ -42,7 +39,7 @@ export const usePipelineAlerts = (leads: Lead[], tasks: Task[] = []) => {
       const sessionKey = `transfer_notified_${lead.id}`;
       if (!(window as any)[sessionKey] && !sentAlerts[lead.id]?.h48) {
         (window as any)[sessionKey] = true;
-        notifyLeadTransferred(lead, lead.responsible || '', profiles);
+        notifyLeadTransferred(lead, lead.responsavel_usuario_id || '', profiles);
       }
     }
   }, [myLeads, autoTransferHours, notificationPrefs, user, tasks, profiles]);

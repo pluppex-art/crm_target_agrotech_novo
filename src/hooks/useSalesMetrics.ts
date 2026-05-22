@@ -37,11 +37,12 @@ export interface SalesMetrics {
   occupancyData: ReturnType<typeof getOccupancyData>;
   vendedorProfiles: any[];
   allSellersRanking: Array<{
+    id: any;
     label: string; value: number; received: number;
     count: number; percentage: number; leads_goal: number;
   }>;
   otherSellersRanking: Array<{
-    label: string; value: number; received: number; count: number;
+    id: string; label: string; value: number; received: number; count: number;
   }>;
   sellerSemaphoreData: Array<{
     label: string; value: number; received: number; count: number;
@@ -61,7 +62,7 @@ export interface SalesMetrics {
 }
 
 interface UseSalesMetricsProps {
-  currentSellerName?: string | null;
+  currentSellerId?: string | null;
   startDate?: string;
   endDate?: string;
   goals?: Array<{ type: string; seller_id?: string; seller_name?: string; leads_goal?: number; revenue_goal?: number }>;
@@ -72,7 +73,7 @@ interface UseSalesMetricsProps {
 }
 
 export function useSalesMetrics({
-  currentSellerName,
+  currentSellerId,
   startDate,
   endDate,
   goals = [],
@@ -99,9 +100,12 @@ export function useSalesMetrics({
 
   const availableResponsibles = useMemo(() => {
     const seen = new Set<string>();
-    leads.forEach((l: any) => { if (l.responsible) seen.add(l.responsible); });
-    return Array.from(seen).sort().map(r => ({ value: r, label: r }));
-  }, [leads]);
+    leads.forEach((l: any) => { if (l.responsavel_usuario_id) seen.add(l.responsavel_usuario_id); });
+    return Array.from(seen).sort().map(id => {
+      const profile = profiles.find(p => p.id === id);
+      return { value: id, label: profile?.name || 'Sem Nome' };
+    });
+  }, [leads, profiles]);
 
   // ─── Lead to Turma mapping ──────────────────────────────────────────────────
   const leadToTurma = useMemo(() => {
@@ -152,17 +156,17 @@ export function useSalesMetrics({
     }
     if (filterStage !== 'all') result = result.filter(l => l.stage_id === filterStage);
     if (filterProduct !== 'all') result = result.filter(l => l.product === filterProduct);
-    if (filterResponsible !== 'all') result = result.filter(l => (l.responsible || '').trim() === filterResponsible.trim());
+    if (filterResponsible !== 'all') result = result.filter(l => l.responsavel_usuario_id === filterResponsible);
 
     // IMPORTANTE: Para o Dashboard Geral, não filtramos por vendedor logado nos cartões de topo,
     // permitindo ver o total da empresa. 
     // Se o usuário selecionou um vendedor no FILTRO, aí sim filtramos.
-    if (filterResponsible === 'all' && currentSellerName && false) { // Desativado para mostrar total empresa
-      // result = result.filter(l => l.responsible === currentSellerName);
+    if (filterResponsible === 'all' && currentSellerId && false) { // Desativado para mostrar total empresa
+      // result = result.filter(l => l.responsavel_usuario_id === currentSellerId);
     }
 
     return result;
-  }, [leads, searchTerm, filterStage, filterProduct, filterResponsible, startDate, endDate, currentSellerName, stageMap, leadToTurma]);
+  }, [leads, searchTerm, filterStage, filterProduct, filterResponsible, startDate, endDate, currentSellerId, stageMap, leadToTurma]);
 
   const { totalSalesValue, totalReceivedValue, closedLeadsFiltered } = useMemo(() => {
     let salesValue = 0;
@@ -187,7 +191,7 @@ export function useSalesMetrics({
         const wDate = new Date(l.won_at);
         return (!s || wDate >= s) && (!e || wDate <= e);
       };
-      
+
       if (isStrictlyWon(l)) {
         closed.push(l);
         salesValue += getLeadEffectiveValue(l as any);
@@ -241,8 +245,8 @@ export function useSalesMetrics({
   );
 
   const activeLeadsCount = useMemo(
-    () => calcActiveLeads(leads as any[], stageMap, { searchTerm, filterProduct, filterResponsible, currentSellerName }),
-    [leads, stageMap, searchTerm, filterProduct, filterResponsible, currentSellerName],
+    () => calcActiveLeads(leads as any[], stageMap, { searchTerm, filterProduct, filterResponsible, currentSellerId }),
+    [leads, stageMap, searchTerm, filterProduct, filterResponsible, currentSellerId],
   );
 
   const totalConversionRate = activeLeadsCount > 0 ? (closedLeadsCount / activeLeadsCount) * 100 : 0;
@@ -273,8 +277,8 @@ export function useSalesMetrics({
 
   // ─── Seller metrics (sellerMetrics.ts) ─────────────────────────────────────
   const salesByResponsible = useMemo(
-    () => calcSalesByResponsible(leads as any[], pipelines as any[], products, leadToTurma, startDate, endDate, filterProduct, currentSellerName),
-    [leads, pipelines, products, leadToTurma, startDate, endDate, filterProduct, currentSellerName],
+    () => calcSalesByResponsible(leads as any[], pipelines as any[], products, leadToTurma, startDate, endDate, filterProduct, currentSellerId),
+    [leads, pipelines, products, leadToTurma, startDate, endDate, filterProduct, currentSellerId],
   );
 
   const allSellersRanking = useMemo(
@@ -284,17 +288,16 @@ export function useSalesMetrics({
 
   const otherSellersRanking = useMemo(() => {
     const individualGoalIds = new Set(goals.filter(g => g.type === 'seller').map(g => g.seller_id).filter(Boolean));
-    const individualGoalNames = new Set(goals.filter(g => g.type === 'seller').map(g => g.seller_name?.trim()).filter(Boolean));
     return salesByResponsible
       .filter(s => {
-        const label = s.label.trim();
-        if (!label || s.count === 0) return false;
-        const profile = profiles.find(p => p.name?.trim() === label);
+        const sellerId = s.id;
+        if (!sellerId || s.count === 0) return false;
+        const profile = profiles.find(p => p.id === sellerId);
         const isOfficial = profile ? isVendedor(profile) : false;
-        const hasGoal = individualGoalNames.has(label) || (profile && individualGoalIds.has(profile.id));
+        const hasGoal = individualGoalIds.has(sellerId);
         return !isOfficial && !hasGoal;
       })
-      .map(s => ({ label: s.label.trim(), value: s.value, received: s.received, count: s.count }))
+      .map(s => ({ id: s.id, label: s.label.trim(), value: s.value, received: s.received, count: s.count }))
       .sort((a, b) => b.count - a.count);
   }, [salesByResponsible, profiles, goals]);
 
@@ -324,8 +327,8 @@ export function useSalesMetrics({
       leads.forEach((l: any) => {
         // Apply basic filters (product, responsible, etc.) but ignore date for operational stages
         if (filterProduct !== 'all' && l.product !== filterProduct) return;
-        if (filterResponsible !== 'all' && l.responsible !== filterResponsible) return;
-        if (currentSellerName && l.responsible !== currentSellerName) return;
+        if (filterResponsible !== 'all' && l.responsavel_usuario_id !== filterResponsible) return;
+        if (currentSellerId && l.responsavel_usuario_id !== currentSellerId) return;
         if (searchTerm) {
           const q = searchTerm.toLowerCase();
           const match = l.name?.toLowerCase().includes(q) || l.product?.toLowerCase().includes(q) || l.responsible?.toLowerCase().includes(q);
@@ -359,7 +362,7 @@ export function useSalesMetrics({
       { id: 'proposal', label: 'Proposta', value: filteredLeads.filter((l: any) => stageNameToStatus(l.status) === 'proposal').length, color: 'hsl(262, 80%, 55%)' },
       { id: 'closed', label: 'Fechado', value: closedLeadsCount, color: 'hsl(16, 85%, 55%)' },
     ];
-  }, [pipelines, filteredLeads, closedLeadsCount]);
+  }, [pipelines, filteredLeads, closedLeadsCount, filterProduct, filterResponsible, currentSellerId, searchTerm, leads]);
 
   const funnelStagesWithRates = useMemo(() => computeFunnelRates(pipelineStages), [pipelineStages]);
 

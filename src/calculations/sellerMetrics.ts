@@ -50,6 +50,7 @@ interface Goal {
 }
 
 export interface SellerRankingItem {
+  id: string;
   label: string;
   value: number;
   received: number;
@@ -77,15 +78,13 @@ export function calcSalesByResponsible(
   startDate?: string,
   endDate?: string,
   filterProduct?: string,
-  currentSellerName?: string | null,
-): Array<{ label: string; value: number; received: number; count: number }> {
-  const result: Record<string, { label: string; value: number; received: number; count: number }> = {};
+  currentSellerId?: string | null,
+): Array<{ id: string; label: string; value: number; received: number; count: number }> {
+  const result: Record<string, { id: string; label: string; value: number; received: number; count: number }> = {};
 
   const start = startDate ? new Date(startDate) : null;
   const end = endDate ? new Date(endDate) : null;
   if (end) end.setHours(23, 59, 59, 999);
-
-  const globalTargetSeller = (currentSellerName || '').trim().toLowerCase();
 
   const processedLeads = new Set<string>();
 
@@ -94,18 +93,16 @@ export function calcSalesByResponsible(
     if (processedLeads.has(l.id)) return;
     processedLeads.add(l.id);
 
-    if (!l.responsible) return;
+    if (!l.responsavel_usuario_id) return;
 
-    const rawKey = (l.responsible || '').trim();
-    const lowerKey = rawKey.toLowerCase();
+    const rawKey = l.responsavel_usuario_id;
 
     if (filterProduct && filterProduct !== 'all' && l.product !== filterProduct) return;
     
-    // Use trimmed comparison for target seller
-    if (globalTargetSeller && lowerKey !== globalTargetSeller.trim().toLowerCase()) return;
+    if (currentSellerId && rawKey !== currentSellerId) return;
 
-    if (!result[lowerKey]) {
-      result[lowerKey] = { label: rawKey, value: 0, received: 0, count: 0 };
+    if (!result[rawKey]) {
+      result[rawKey] = { id: rawKey, label: l.responsible || 'Sem Nome', value: 0, received: 0, count: 0 };
     }
 
     const isClosed = stageNameToStatus(l.status ?? '') === 'closed' ||
@@ -117,10 +114,6 @@ export function calcSalesByResponsible(
     // Normalize to local date by adding offset if needed or just comparing YYYY-MM-DD
     const inWinRange = (!start || cWinDate >= start) && (!end || cWinDate <= end);
 
-    const stageName = l.stage_id ? 
-      pipelines.flatMap(p => p.stages).find(s => s.id === l.stage_id)?.name || '' : 
-      l.status || '';
-
     const isStrictlyWon = (l: any) => {
       if (!l.won_at) return false;
       const wDate = new Date(l.won_at);
@@ -128,8 +121,8 @@ export function calcSalesByResponsible(
     };
 
     if (isStrictlyWon(l)) {
-      result[lowerKey].count += 1;
-      result[lowerKey].value += getLeadEffectiveValue(l as any);
+      result[rawKey].count += 1;
+      result[rawKey].value += getLeadEffectiveValue(l as any);
     }
 
     // 2. Receita Fatiada (Semáforo)
@@ -142,7 +135,7 @@ export function calcSalesByResponsible(
     if (feeVal > 0) {
       const tDate = feePaidAt ? new Date(feePaidAt) : cWinDate;
       if ((!start || tDate >= start) && (!end || tDate <= end)) {
-        result[lowerKey].received += feeVal;
+        result[rawKey].received += feeVal;
       }
     }
 
@@ -158,7 +151,7 @@ export function calcSalesByResponsible(
         const conclusionDate = new Date(conclusionDateStr);
 
         if ((!start || conclusionDate >= start) && (!end || conclusionDate <= end)) {
-          result[lowerKey].received += remaining;
+          result[rawKey].received += remaining;
         }
       }
     }
@@ -176,53 +169,55 @@ export function calcAllSellersRanking(
   profiles: Profile[],
   goals: Goal[],
 ): SellerRankingItem[] {
-  const byName: Record<string, SellerRankingItem & { profileId?: string }> = {};
+  const byId: Record<string, SellerRankingItem & { profileId?: string; id?: string }> = {};
 
   const individualGoalIds = new Set(goals.filter(g => g.type === 'seller').map(g => g.seller_id).filter(Boolean));
-  const individualGoalNames = new Set(goals.filter(g => g.type === 'seller').map(g => g.seller_name?.trim()).filter(Boolean));
 
   const sellerGoalMap = goals.reduce<Record<string, { leads_goal: number; revenue_goal: number }>>((acc, g) => {
     const data = { leads_goal: g.leads_goal || 0, revenue_goal: g.revenue_goal || 0 };
-    if (g.seller_name) acc[g.seller_name.trim()] = data;
     if (g.seller_id) acc[g.seller_id.trim()] = data;
     return acc;
   }, {});
 
   // 1. Quem vendeu
   salesByResponsible.forEach((s) => {
-    const trimmedLabel = s.label.trim();
-    if (!trimmedLabel) return;
+    const sellerId = s.id;
+    if (!sellerId) return;
 
-    const profile = profiles.find(p => p.name?.trim().toLowerCase() === trimmedLabel.toLowerCase());
+    const profile = profiles.find(p => p.id === sellerId);
     const isOfficialVendedor = profile ? isVendedor(profile) : false;
-    const hasIndividualGoal = individualGoalNames.has(trimmedLabel) || (profile && individualGoalIds.has(profile.id));
+    const hasIndividualGoal = individualGoalIds.has(sellerId);
 
     if (isOfficialVendedor || hasIndividualGoal) {
-      byName[trimmedLabel] = {
-        ...s, label: trimmedLabel, percentage: 0, leads_goal: 0,
-        profileId: profile?.id,
+      byId[sellerId] = {
+        ...s,
+        label: profile?.name || s.label || 'Sem Nome',
+        percentage: 0,
+        leads_goal: 0,
+        profileId: sellerId,
       };
     }
   });
 
   // 2. Vendedores sem venda
   vendedorProfiles.forEach((p) => {
-    const name = (p.name || '').trim();
-    if (name && !byName[name]) {
-      byName[name] = { label: name, value: 0, received: 0, count: 0, percentage: 0, leads_goal: 0, profileId: p.id };
+    const sellerId = p.id;
+    if (sellerId && !byId[sellerId]) {
+      const name = p.name || 'Sem Nome';
+      byId[sellerId] = { id: sellerId, label: name, value: 0, received: 0, count: 0, percentage: 0, leads_goal: 0, profileId: p.id };
     }
   });
 
   // 3. Percentuais e metas
-  const maxCount = Math.max(...Object.values(byName).map(s => s.count), 1);
-  Object.values(byName).forEach((s: any) => {
-    const goal = sellerGoalMap[s.label.trim()] || (s.profileId ? sellerGoalMap[s.profileId] : null);
+  const maxCount = Math.max(...Object.values(byId).map(s => s.count), 1);
+  Object.values(byId).forEach((s: any) => {
+    const goal = s.id ? sellerGoalMap[s.id] : null;
     s.leads_goal = goal?.leads_goal ?? 0;
     s.percentage = goal && goal.leads_goal > 0 ? Math.round((s.count / goal.leads_goal) * 100) : 0;
     if (s.percentage === 0 && s.count > 0) s.percentage = Math.round((s.count / maxCount) * 100);
   });
 
-  return Object.values(byName).sort((a: any, b: any) => b.count - a.count || b.percentage - a.percentage) as SellerRankingItem[];
+  return Object.values(byId).sort((a: any, b: any) => b.count - a.count || b.percentage - a.percentage) as SellerRankingItem[];
 }
 
 /**
@@ -230,18 +225,17 @@ export function calcAllSellersRanking(
  */
 export function calcSellerSemaphore(
   allSellersRanking: SellerRankingItem[],
-  otherSellersRanking: Array<{ label: string; value: number; received: number; count: number }>,
+  otherSellersRanking: Array<{ id: string; label: string; value: number; received: number; count: number }>,
   goals: Goal[],
 ): SellerSemaphoreItem[] {
   const sellerGoalMap = goals.reduce<Record<string, { leads_goal: number; revenue_goal: number }>>((acc, g) => {
     const data = { leads_goal: g.leads_goal || 0, revenue_goal: g.revenue_goal || 0 };
-    if (g.seller_name) acc[g.seller_name.trim()] = data;
     if (g.seller_id) acc[g.seller_id.trim()] = data;
     return acc;
   }, {});
 
   return [...allSellersRanking, ...otherSellersRanking].map((s: any) => {
-    const goal = sellerGoalMap[s.label.trim()];
+    const goal = s.id ? sellerGoalMap[s.id] : null;
     const revGoal = goal?.revenue_goal ?? 0;
 
     let pct = 0;
