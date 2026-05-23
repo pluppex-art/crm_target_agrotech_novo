@@ -1,12 +1,12 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import {
   User, Bell, Lock, Globe, Shield, UserPlus, Tag, Activity,
-  Target, ClipboardList, Settings as SettingsIcon, RefreshCcw, Users2, History
+  Target, ClipboardList, Settings as SettingsIcon, RefreshCcw, Users2, History, Loader2
 } from 'lucide-react';
 import { cn, isVendedor } from '../../lib/utils';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useProfileStore } from '../../store/useProfileStore';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 
@@ -108,7 +108,13 @@ export function SettingsLayout() {
             {/* Optional indicator for mobile if needed, but we keep the same toggle */}
           </div>
         )}
-        <Outlet />
+        <Suspense fallback={
+          <div className="absolute inset-0 flex items-center justify-center bg-[#f3f6f9]/80 backdrop-blur-sm z-10">
+            <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
+          </div>
+        }>
+          <Outlet />
+        </Suspense>
       </div>
     </div>
   );
