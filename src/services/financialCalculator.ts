@@ -24,7 +24,8 @@ export function parseBRNumber(val: string | number | undefined | null): number {
   let clean = val.toString().trim();
   if (!clean) return 0;
 
-  clean = clean.replace(/[R$\s]/g, '');
+  // Remove currency symbols, spaces, and any non-numeric/punctuation chars
+  clean = clean.replace(/[R$\s]/g, '').replace(/[^0-9.,-]/g, '');
 
   // "1.234,56"
   if (clean.includes(',') && clean.includes('.')) {
@@ -91,7 +92,8 @@ export const financialCalculator = {
         ? baseValue - discountAmount
         : baseValue * (1 - discountAmount / 100);
 
-    return Math.max(0, Math.round(total * 100) / 100);
+    // Apply strict JS banking rounding
+    return Math.max(0, Number(Math.round(Number(total + 'e2')) + 'e-2'));
   },
 
   /** Enrollment fee from the product record (0 for service products). */
@@ -121,22 +123,24 @@ export const financialCalculator = {
     
     // Ensure valor_recebido is treated as a number
     const professorRec = typeof lead.valor_recebido === 'string'
-      ? parseBRNumber(lead.valor_recebido)
+      ? financialCalculator.parseBRNumber(lead.valor_recebido)
       : (lead.valor_recebido ?? 0);
     
     paid += professorRec;
 
     const productObj = financialCalculator.findProduct(lead.product, products);
     if (!financialCalculator.isServiceProduct(productObj)) {
-      // Soma a taxa de matrícula apenas se o valor foi REALMENTE registrado
-      if (lead.taxa_matricula_recebido != null && lead.taxa_matricula_recebido > 0) {
-        paid += lead.taxa_matricula_recebido;
+      if (lead.taxa_matricula_recebido != null) {
+        const taxa = typeof lead.taxa_matricula_recebido === 'string'
+          ? financialCalculator.parseBRNumber(lead.taxa_matricula_recebido)
+          : lead.taxa_matricula_recebido;
+        if (taxa > 0) {
+          paid += taxa;
+        }
       }
-      // NOTA: pix_completed = true sem taxa_matricula_recebido preenchido NÃO soma nada.
-      // O valor real precisa ser digitado no campo "Valor R$" ao lado do checkbox.
     }
 
-    return Math.round(paid * 100) / 100;
+    return Number(Math.round(Number(paid + 'e2')) + 'e-2');
   },
 
   /**

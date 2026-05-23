@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useFinanceStore } from '../store/useFinanceStore';
 import { useLeadStore } from '../store/useLeadStore';
 import { useTurmaStore } from '../store/useTurmaStore';
+import { financialCalculator } from '../services/financialCalculator';
 
 export interface SellerCommissionRates {
   pluppex: number;
@@ -76,8 +77,8 @@ export function useFinanceMetrics(
     let curso = 0;
     let taxa = 0;
     leads.forEach((l: any) => {
-      curso += l.valor_recebido ?? 0;
-      taxa += l.taxa_matricula_recebido ?? 0;
+      curso += financialCalculator.parseBRNumber(l.valor_recebido);
+      taxa += financialCalculator.parseBRNumber(l.taxa_matricula_recebido);
     });
     return { turmaIncome: curso, taxaMatriculaTotal: taxa };
   }, [leads]);
@@ -110,10 +111,14 @@ export function useFinanceMetrics(
         .reduce((s, t) => s + Math.abs(t.amount), 0);
 
       const leadVal = leads.reduce((s: number, l: any) => {
-        if (!l.created_at) return s;
-        const d = new Date(l.created_at);
+        // Use updated_at instead of created_at for accurate cash flow month
+        const dateString = l.updated_at || l.created_at;
+        if (!dateString) return s;
+        const d = new Date(dateString);
         if (d.getMonth() !== month || d.getFullYear() !== year) return s;
-        return s + (l.valor_recebido ?? 0) + (l.taxa_matricula_recebido ?? 0);
+        const vRec = financialCalculator.parseBRNumber(l.valor_recebido);
+        const tRec = financialCalculator.parseBRNumber(l.taxa_matricula_recebido);
+        return s + vRec + tRec;
       }, 0);
 
       return { label, value: txVal + leadVal, month, year };
