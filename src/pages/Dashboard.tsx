@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
-import { Loader2, ShieldAlert, Users, Filter, Search, ChevronDown, ChevronUp, X, Calendar, GitBranch, Package, User, Clock, AlertCircle, CheckCircle2, Share2, Maximize2, Minimize2 } from 'lucide-react';
+import { Loader2, ShieldAlert, Users, Filter, Search, ChevronDown, ChevronUp, X, Calendar, GitBranch, Package, User, Clock, AlertCircle, CheckCircle2, Share2, Maximize2, Minimize2, Download } from 'lucide-react';
+import { useExportPDF } from '../hooks/useExportPDF';
 import { smartShareImage } from '../lib/shareUtils';
 import { usePermissions } from '../hooks/usePermissions';
 import { useLeadStore } from '../store/useLeadStore';
@@ -108,6 +109,7 @@ function OccupancyCard({ occupancyData }: { occupancyData: OccupancyItem[] }) {
 }
 
 export function Dashboard() {
+  const { exportElementToPDF, isExporting } = useExportPDF();
   const { hasPermission, loading: permissionsLoading } = usePermissions();
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
@@ -331,7 +333,7 @@ export function Dashboard() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-[#f3f6f9] min-h-full">
+    <div id="dashboard-content" className="flex-1 overflow-y-auto p-4 sm:p-6 bg-[#f3f6f9] min-h-full">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
@@ -339,6 +341,14 @@ export function Dashboard() {
           <p className="text-sm text-slate-500 mt-0.5">Performance comercial e pipeline.</p>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => exportElementToPDF('dashboard-content', `Dashboard_${new Date().toISOString().split('T')[0]}.pdf`)}
+            disabled={isExporting}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-all shadow-sm text-xs font-bold disabled:opacity-50"
+          >
+            {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            <span>{isExporting ? 'Exportando...' : 'Exportar PDF'}</span>
+          </button>
           <button
             onClick={() => {
               unlockAudio();

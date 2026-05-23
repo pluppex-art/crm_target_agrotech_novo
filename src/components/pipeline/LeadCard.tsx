@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 
 import { Flame, Phone, Plus, Trash2, Edit2, CheckSquare, Clock } from 'lucide-react';
 import { useLeadChecklist } from '../../hooks/useLeadChecklist';
@@ -115,10 +116,12 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
 
 
   return (
-    <div
+    <motion.div
+      whileHover={{ y: -4, scale: 1.01 }}
+      transition={{ type: "spring", stiffness: 400, damping: 25 }}
       onDoubleClick={onDoubleClick}
       className={cn(
-        "bg-white p-4 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition-all group relative",
+        "bg-white p-4 rounded-2xl shadow-sm border border-slate-200 hover:shadow-lg transition-shadow group relative",
         isDragging ? "shadow-xl border-emerald-500 rotate-2" : "",
         isDanger ? "border-red-200 hover:border-red-300" : isWarning ? "border-amber-200 hover:border-amber-300" : "hover:border-emerald-200"
       )}
@@ -278,7 +281,7 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
         )}
       </div>
 
-    </div>
+    </motion.div>
   );
 }
 

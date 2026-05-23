@@ -8,6 +8,7 @@ import { notifyNewLead, notifyLeadAssignment, notifyLeadManualTransfer } from '.
 import { useProfileStore } from './useProfileStore';
 import { useTurmaStore } from './useTurmaStore';
 import { useAuthStore } from './useAuthStore';
+import { auditService } from '../services/auditService';
 import { usePipelineStore } from './usePipelineStore';
 
 interface LeadStore {
@@ -259,10 +260,24 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
     }));
 
     try {
+      const deletedLead = previousLeads.find(l => l.id === leadId);
       const success = await supabaseService.deleteLead(leadId);
       if (!success) {
         // Revert on failure
         set({ leads: previousLeads, error: 'Failed to delete lead in Supabase' });
+      } else if (deletedLead) {
+        const user = useAuthStore.getState().user;
+        if (user) {
+          const profile = useProfileStore.getState().profiles.find(p => p.id === user.id);
+          auditService.logAction({
+            userId: user.id,
+            userName: profile?.name || user.email || 'Usuário Desconhecido',
+            action: 'Excluir Lead',
+            entityType: 'lead',
+            entityId: leadId,
+            details: { leadName: deletedLead.name, phone: deletedLead.phone }
+          });
+        }
       }
     } catch (err) {
       set({ leads: previousLeads, error: 'Failed to delete lead in Supabase' });
