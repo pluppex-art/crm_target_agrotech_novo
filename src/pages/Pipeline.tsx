@@ -69,6 +69,7 @@ export const Pipeline: React.FC = () => {
   const authUser = useAuthStore(state => state.user);
   const { profiles, fetchProfiles } = useProfileStore();
   const { fetchSettings, subscribe: subscribeSettings } = useSettingsStore();
+  const { squads, fetchSquads } = useSquadStore();
   const permissions = usePermissions();
 
   const isComercial = useMemo(() => {
@@ -172,7 +173,8 @@ export const Pipeline: React.FC = () => {
     fetchProfiles();
     fetchTasks();
     fetchSettings();
-  }, [fetchPipelines, fetchTurmas, fetchProducts, fetchProfiles, fetchTasks, fetchSettings]);
+    fetchSquads();
+  }, [fetchPipelines, fetchTurmas, fetchProducts, fetchProfiles, fetchTasks, fetchSettings, fetchSquads]);
 
 
 
@@ -448,6 +450,7 @@ export const Pipeline: React.FC = () => {
         selectedStars={filters.selectedStars}
         selectedSquad={filters.selectedSquad}
         responsibles={filters.responsibles}
+        squads={squads}
         products={activeProductsForFilter}
         columns={COLUMNS}
         onSearchChange={filters.setSearchTerm}

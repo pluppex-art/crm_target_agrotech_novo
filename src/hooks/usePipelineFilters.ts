@@ -4,6 +4,7 @@ import { useProfileStore } from '../store/useProfileStore';
 import { useProductStore } from '../store/useProductStore';
 import { getSupabaseClient } from '../lib/supabase';
 import { financialCalculator } from '../services/financialCalculator';
+import { useSquadStore } from '../store/useSquadStore';
 
 export const usePipelineFilters = (
   leads: Lead[], 
@@ -18,45 +19,7 @@ export const usePipelineFilters = (
   const [selectedProduct, setSelectedProduct] = useState<string>('all');
   const [selectedStars, setSelectedStars] = useState<number[]>([]);
   const [selectedSquad, setSelectedSquad] = useState<string>('all');
-  const [squadMapping, setSquadMapping] = useState<Record<string, string[]>>({});
-
-
-  useEffect(() => {
-    fetchProfiles();
-    
-    // Fetch squad members mapping
-    const fetchSquads = async () => {
-      const supabase = getSupabaseClient();
-      if (!supabase) return;
-
-      const [squadsRes, membersRes] = await Promise.all([
-        supabase.from('squads').select('id, name'),
-        supabase.from('squad_members').select('squad_id, user_id').eq('active', true)
-      ]);
-
-      if (squadsRes.data && membersRes.data) {
-        const mapping: Record<string, string[]> = {};
-        
-        membersRes.data.forEach(m => {
-          const squad = squadsRes.data.find(s => s.id === m.squad_id);
-          if (!squad) return;
-          
-          const squadKey = squad.name.toUpperCase();
-          if (!mapping[squadKey]) mapping[squadKey] = [];
-          
-          const profile = profiles.find(p => p.id === m.user_id);
-          if (profile?.name) {
-            mapping[squadKey].push(profile.name.toLowerCase());
-          }
-        });
-        setSquadMapping(mapping);
-      }
-    };
-
-    if (profiles.length > 0) {
-      fetchSquads();
-    }
-  }, [fetchProfiles, profiles]);
+  const { members } = useSquadStore();
 
   // Nome do usuário atual no perfil
   const myProfileName = useMemo(() => {
@@ -136,13 +99,14 @@ export const usePipelineFilters = (
         respName.trim().toLowerCase() === search;
     }
     
-    const selectedProductLower = selectedProduct.trim().toLowerCase();
+    const selectedProductObj = products.find(p => p.id === selectedProduct);
+    const selectedProductName = selectedProductObj?.name.trim().toLowerCase() || '';
     const leadProductLower = prodName.trim().toLowerCase();
     
     const matchesProduct = selectedProduct === 'all' ||
-      leadProductLower === selectedProductLower ||
-      leadProductLower.includes(selectedProductLower) ||
-      selectedProductLower.includes(leadProductLower);
+      leadProductLower === selectedProductName ||
+      leadProductLower.includes(selectedProductName) ||
+      selectedProductName.includes(leadProductLower);
     
     const matchesStars = selectedStars.length === 0 || selectedStars.includes(lead.stars || 0);
 
@@ -150,23 +114,23 @@ export const usePipelineFilters = (
     // Todos os leads (ativos ou não) devem aparecer nas colunas, sem sumir por causa da data.
 
     const matchesSquad = selectedSquad === 'all' || (() => {
-      const squadName = selectedSquad.toUpperCase();
-      const members = squadMapping[squadName] || [];
-      const respLower = (lead.responsible ?? '').trim().toLowerCase();
-      if (!respLower) return false;
-
-      return members.some(mName => {
-        if (mName === respLower) return true;
-        if (mName.includes(respLower) || respLower.includes(mName)) return true;
-        const leadWords = respLower.split(/\s+/).filter(w => w.length > 2);
-        const memberWords = mName.split(/\s+/).filter(w => w.length > 2);
-        const common = leadWords.filter(lw => memberWords.some(mw => mw.includes(lw) || lw.includes(mw)));
-        return common.length >= 2;
-      });
+      // Find all user IDs in this squad
+      const squadUserIds = members.filter(m => m.squad_id === selectedSquad).map(m => m.user_id);
+      
+      // The lead must be assigned to one of these user IDs
+      if (lead.responsavel_usuario_id) {
+        return squadUserIds.includes(lead.responsavel_usuario_id);
+      }
+      
+      // Fallback: check by responsible name
+      const squadUsers = profiles.filter(p => squadUserIds.includes(p.id));
+      const respNameLower = (lead.responsible || '').trim().toLowerCase();
+      if (!respNameLower) return false;
+      return squadUsers.some(p => p.name?.toLowerCase() === respNameLower);
     })();
 
     return matchesSearch && matchesResponsible && matchesProduct && matchesStars && matchesSquad;
-  }), [leads, searchTerm, selectedResponsible, selectedProduct, selectedStars, selectedSquad, profiles, squadMapping]);
+  }), [leads, searchTerm, selectedResponsible, selectedProduct, selectedStars, selectedSquad, profiles, products, members]);
 
 
   const activeFilterCount = useMemo(() => [

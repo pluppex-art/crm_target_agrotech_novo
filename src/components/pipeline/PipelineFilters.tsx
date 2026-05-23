@@ -10,6 +10,7 @@ interface PipelineFiltersProps {
   selectedStars: number[];
   selectedSquad: string;
   responsibles: { id: string; name: string }[];
+  squads: { id: string; name: string }[];
 
   products: any[];
   columns: any[];
@@ -33,6 +34,7 @@ export const PipelineFilters: React.FC<PipelineFiltersProps> = ({
   selectedStars,
   selectedSquad,
   responsibles,
+  squads,
 
   products,
   columns,
@@ -81,7 +83,7 @@ export const PipelineFilters: React.FC<PipelineFiltersProps> = ({
           )}
           {selectedProduct !== 'all' && (
             <span className="flex items-center gap-1 text-xs font-medium bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded-full">
-              {selectedProduct}
+              {products.find(p => p.id === selectedProduct)?.name || selectedProduct}
               <span role="button" onClick={e => { e.stopPropagation(); onProductChange('all'); }} className="cursor-pointer hover:opacity-70"><X size={11} /></span>
             </span>
           )}
@@ -99,10 +101,9 @@ export const PipelineFilters: React.FC<PipelineFiltersProps> = ({
           )}
           {selectedSquad !== 'all' && (
             <span className={cn(
-              "flex items-center gap-1 text-xs font-medium border px-2 py-0.5 rounded-full",
-              selectedSquad.toLowerCase() === 'pluppex' ? "bg-violet-50 text-violet-700 border-violet-100" : "bg-blue-50 text-blue-700 border-blue-100"
+              "flex items-center gap-1 text-xs font-medium border px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border-blue-100"
             )}>
-              Squad {selectedSquad}
+              {squads.find(s => s.id === selectedSquad)?.name || selectedSquad}
               <span role="button" onClick={e => { e.stopPropagation(); onSquadChange('all'); }} className="cursor-pointer hover:opacity-70"><X size={11} /></span>
             </span>
           )}
@@ -173,7 +174,7 @@ export const PipelineFilters: React.FC<PipelineFiltersProps> = ({
           >
             <option value="all">Todos os produtos</option>
             {products.map((p: any) => (
-              <option key={p.id} value={p.name}>{p.name}</option>
+              <option key={p.id} value={p.id}>{p.name}</option>
             ))}
           </select>
           <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
@@ -208,14 +209,13 @@ export const PipelineFilters: React.FC<PipelineFiltersProps> = ({
             onChange={(e) => onSquadChange(e.target.value)}
             className={cn(
               "w-full pl-9 pr-8 py-2 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none cursor-pointer text-sm font-medium transition-all text-ellipsis whitespace-nowrap overflow-hidden",
-              selectedSquad !== 'all'
-                ? (selectedSquad.toLowerCase() === 'pluppex' ? "border-violet-300 bg-violet-50 text-violet-700" : "border-blue-300 bg-blue-50 text-blue-700")
-                : "border-gray-200 text-gray-700"
+              selectedSquad !== 'all' ? "border-blue-300 bg-blue-50 text-blue-700" : "border-gray-200 text-gray-700"
             )}
           >
             <option value="all">Todos Squads</option>
-            <option value="TARGET">Squad TARGET</option>
-            <option value="PLUPPEX">Squad PLUPPEX</option>
+            {squads.map(sq => (
+              <option key={sq.id} value={sq.id}>{sq.name}</option>
+            ))}
           </select>
           <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
         </div>

@@ -16,7 +16,7 @@ type EditingState = {
 };
 
 export function OteProfilesSection() {
-  const [profiles, setProfiles] = useState<(UserCompensationProfile & { user_name?: string; squad_name?: string; squad_color?: string })[]>([]);
+  const [profiles, setProfiles] = useState<(UserCompensationProfile & { user_name?: string; squads_info?: { name: string; color?: string }[] })[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [squads, setSquads] = useState<{ id: string; name: string; manager_id: string | null; active: boolean }[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -213,8 +213,12 @@ export function OteProfilesSection() {
                           <option value="">Sem squad</option>
                           {squads.filter(s => s.active).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                         </select>
-                      ) : p.squad_name ? (
-                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold" style={{ backgroundColor: `${p.squad_color}20`, color: p.squad_color }}>{p.squad_name}</span>
+                      ) : p.squads_info && p.squads_info.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {p.squads_info.map((sq, i) => (
+                            <span key={i} className="px-2.5 py-1 rounded-full text-[10px] font-bold" style={{ backgroundColor: `${sq.color || '#6366f1'}20`, color: sq.color || '#6366f1' }}>{sq.name}</span>
+                          ))}
+                        </div>
                       ) : '—'}
                     </td>
                     <td className="px-5 py-3">

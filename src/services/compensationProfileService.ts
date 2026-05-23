@@ -71,27 +71,28 @@ export const compensationProfileService = {
       perfisMap[p.id] = p.full_name || p.name || p.email || p.id.substring(0, 8);
     });
 
-    const userSquadMap: Record<string, { name: string; color?: string }> = {};
+    const userSquadMap: Record<string, { name: string; color?: string }[]> = {};
     
     // Mapeia squads de membros (Closers/SDRs)
     (membersRes.data || []).forEach((m: any) => {
       if (m.squads?.name) {
-        userSquadMap[m.user_id] = { name: m.squads.name, color: m.squads.color };
+        if (!userSquadMap[m.user_id]) userSquadMap[m.user_id] = [];
+        userSquadMap[m.user_id].push({ name: m.squads.name, color: m.squads.color });
       }
     });
 
     // Mapeia squads de gestores
     (squadsRes.data || []).forEach((s: any) => {
       if (s.manager_id) {
-        userSquadMap[s.manager_id] = { name: s.name, color: s.color };
+        if (!userSquadMap[s.manager_id]) userSquadMap[s.manager_id] = [];
+        userSquadMap[s.manager_id].push({ name: s.name, color: s.color });
       }
     });
 
-    return (profiles as (UserCompensationProfile & { squad_color?: string })[]).map(p => ({
+    return (profiles as (UserCompensationProfile & { squads_info?: { name: string; color?: string }[] })[]).map(p => ({
       ...p,
       user_name: perfisMap[p.user_id] || p.user_id.substring(0, 8),
-      squad_name: userSquadMap[p.user_id]?.name,
-      squad_color: userSquadMap[p.user_id]?.color
+      squads_info: userSquadMap[p.user_id] || []
     }));
   },
 
@@ -163,16 +164,16 @@ export const compensationProfileService = {
     return true;
   },
 
-  async getSquads(): Promise<{ id: string; name: string; manager_id: string | null; active: boolean; color?: string; logo_url?: string }[]> {
+  async getSquads(): Promise<{ id: string; name: string; manager_id: string | null; active: boolean; color?: string; logo_url?: string; company?: string }[]> {
     const supabase = getSupabaseClient();
     if (!supabase) return [];
     
     // Tenta buscar com os novos campos
-    const { data, error } = await supabase
+    const { data, error } = (await supabase
       .from('squads')
-      .select('id, name, manager_id, active, color, logo_url')
+      .select('id, name, manager_id, active, color, logo_url, company')
       .order('active', { ascending: false })
-      .order('name');
+      .order('name')) as any;
 
     if (error) {
       // Se der erro de coluna inexistente, tenta buscar apenas o básico
@@ -192,7 +193,7 @@ export const compensationProfileService = {
     return data || [];
   },
 
-  async createSquad(name: string, color?: string, logo_url?: string, manager_id?: string | null): Promise<{ success: boolean; error?: string }> {
+  async createSquad(name: string, color?: string, logo_url?: string, manager_id?: string | null, company?: string): Promise<{ success: boolean; error?: string }> {
     const supabase = getSupabaseClient();
     if (!supabase) return { success: false, error: 'Supabase client not initialized' };
     
@@ -207,6 +208,7 @@ export const compensationProfileService = {
         color,
         logo_url,
         manager_id: manager_id || null,
+        company: company || 'target',
         created_by: user?.id,
         updated_by: user?.id
       }]);
@@ -218,7 +220,7 @@ export const compensationProfileService = {
     return { success: true };
   },
 
-  async updateSquad(id: string, fields: { name?: string; active?: boolean; manager_id?: string | null; color?: string; logo_url?: string }): Promise<boolean> {
+  async updateSquad(id: string, fields: { name?: string; active?: boolean; manager_id?: string | null; color?: string; logo_url?: string; company?: string }): Promise<boolean> {
     const supabase = getSupabaseClient();
     if (!supabase) return false;
 
@@ -234,6 +236,7 @@ export const compensationProfileService = {
       .eq('id', id);
     if (error) {
       console.error('[compensationProfileService] Error updating squad:', error);
+      alert('Erro ao atualizar squad: ' + error.message);
       return false;
     }
     return true;
@@ -252,12 +255,12 @@ export const compensationProfileService = {
     return true;
   },
 
-  async getSquadMembers(squadId: string): Promise<{ user_id: string; user_name?: string }[]> {
+  async getSquadMembers(squadId: string): Promise<{ user_id: string; user_name?: string; role_type: string }[]> {
     const supabase = getSupabaseClient();
     if (!supabase) return [];
     const { data: members, error } = await supabase
       .from('squad_members')
-      .select('user_id')
+      .select('user_id, role_type')
       .eq('squad_id', squadId)
       .eq('active', true);
     
@@ -275,11 +278,12 @@ export const compensationProfileService = {
 
     return members.map(m => ({
       user_id: m.user_id,
-      user_name: perfisMap[m.user_id] || m.user_id.substring(0, 8)
+      user_name: perfisMap[m.user_id] || m.user_id.substring(0, 8),
+      role_type: m.role_type || 'membro'
     }));
   },
 
-  async addMemberToSquad(squadId: string, userId: string): Promise<boolean> {
+  async addMemberToSquad(squadId: string, userId: string, roleType: 'membro' | 'capitao' = 'membro'): Promise<boolean> {
     const supabase = getSupabaseClient();
     if (!supabase) return false;
     
@@ -294,12 +298,14 @@ export const compensationProfileService = {
         squad_id: squadId, 
         user_id: userId, 
         active: true,
+        role_type: roleType,
         created_by: user?.id,
         updated_by: user?.id
       }]);
     
     if (error) {
       console.error('[compensationProfileService] Error adding member to squad:', error);
+      alert('Erro ao adicionar membro: ' + error.message);
       return false;
     }
     return true;
@@ -323,13 +329,10 @@ export const compensationProfileService = {
 
   async assignManagerToSquad(managerId: string, squadId: string | null): Promise<boolean> {
     const supabase = getSupabaseClient();
-    if (!supabase) return false;
-    // Remove este gestor de qualquer squad atual
-    await supabase
-      .from('squads')
-      .update({ manager_id: null, updated_at: new Date().toISOString() })
-      .eq('manager_id', managerId);
-    if (!squadId) return true;
+    if (!supabase || !squadId) return true;
+    
+    // Adiciona o gestor ao novo squad, sem remover dos squads anteriores
+    // (Pois um gestor pode gerenciar múltiplos squads, e a remoção deve ser feita na gestão do Squad específico)
     const { error } = await supabase
       .from('squads')
       .update({ manager_id: managerId, updated_at: new Date().toISOString() })

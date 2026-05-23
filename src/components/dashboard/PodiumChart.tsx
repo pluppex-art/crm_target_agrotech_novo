@@ -4,6 +4,7 @@ interface PodiumEntry {
   label: string;
   count: number;
   squadName?: string;
+  squadColor?: string;
 }
 
 interface PodiumChartProps {
@@ -113,18 +114,16 @@ export function PodiumChart({ top3 }: PodiumChartProps) {
           const gender = detectGender(entry.label);
           
           // Select squad name prefix dynamically: pluppex, target or default
-          let prefix = "";
+          let prefix = "pluppex_";
           if (entry.squadName) {
             const squadLower = entry.squadName.toLowerCase();
-            if (squadLower.includes("pluppex")) {
-              prefix = "pluppex_";
-            } else if (squadLower.includes("target")) {
+            if (squadLower.includes("target")) {
               prefix = "target_";
             }
           }
-          
+
           // Append cache buster version query parameter to force browser to discard old cached versions
-          const imagePath = `/podium_${prefix}${gender}_${cfg.place}.png?v=5`;
+          const imagePath = `/podium_${prefix}${gender}_${cfg.place}.png?v=6`;
 
           return (
             <div key={cfg.place} className={`flex-1 min-w-[80px] sm:min-w-[100px] flex flex-col items-center relative ${cfg.zIndex}`}>
@@ -171,8 +170,8 @@ export function PodiumChart({ top3 }: PodiumChartProps) {
                   <span
                     className="mt-2 text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider scale-90"
                     style={{
-                      backgroundColor: entry.squadName.toUpperCase() === 'PLUPPEX' ? '#f5f3ff' : '#f0fdf4',
-                      color: entry.squadName.toUpperCase() === 'PLUPPEX' ? '#7c3aed' : '#16a34a',
+                      backgroundColor: entry.squadColor ? `${entry.squadColor}20` : '#f0fdf4',
+                      color: entry.squadColor || '#16a34a',
                     }}
                   >
                     {entry.squadName}

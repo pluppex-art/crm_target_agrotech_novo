@@ -26,9 +26,9 @@ interface SellerSemaphoreProps {
 
 const STATUS_CONFIG = {
   red: { text: 'text-red-600', border: 'border-red-200', bg: 'bg-red-50', dot: 'bg-red-400', bar: '#ef4444', label: 'Crítico' },
-  yellow: { text: 'text-amber-600', border: 'border-amber-200', bg: 'bg-amber-50', dot: 'bg-amber-400', bar: '#f59e0b', label: 'Em Risco' },
+  yellow: { text: 'text-yellow-600', border: 'border-yellow-200', bg: 'bg-yellow-50', dot: 'bg-yellow-400', bar: '#eab308', label: 'Em Risco' },
   green: { text: 'text-emerald-600', border: 'border-emerald-200', bg: 'bg-emerald-50', dot: 'bg-emerald-400', bar: '#10b981', label: 'No Alvo' },
-  gold: { text: 'text-yellow-600', border: 'border-yellow-200', bg: 'bg-yellow-50', dot: 'bg-yellow-400', bar: '#eab308', label: 'Superou!' },
+  gold: { text: 'text-yellow-700', border: 'border-yellow-300', bg: 'bg-yellow-100', dot: 'bg-yellow-500', bar: '#ca8a04', label: 'Superou!' },
 };
 
 const checkIsManager = (profile: any, squads: any[]) => {
@@ -41,10 +41,15 @@ const checkIsManager = (profile: any, squads: any[]) => {
   );
 };
 
+const checkIsCapitao = (profile: any, members: any[]) => {
+  if (!profile || !members) return false;
+  return members.some(m => m.user_id === profile.id && m.role_type === 'capitao');
+};
+
 export function SellerSemaphore({ data, currentSellerName, isAdmin, companyRevenueGoal, profiles, getSquadInfoForUser }: SellerSemaphoreProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const { squads } = useSquadStore();
+  const { squads, members } = useSquadStore();
 
   React.useEffect(() => {
     const handleFullscreenChange = () => {
@@ -246,6 +251,7 @@ export function SellerSemaphore({ data, currentSellerName, isAdmin, companyReven
 
           const p = !isCompany ? profiles?.find(pr => (pr.name || '').trim() === s.label.trim()) : null;
           const isManager = !isCompany && checkIsManager(p, squads);
+          const isCapitao = !isCompany && checkIsCapitao(p, members);
 
           return (
             <div
@@ -277,6 +283,11 @@ export function SellerSemaphore({ data, currentSellerName, isAdmin, companyReven
                         Gestor
                       </span>
                     )}
+                    {isCapitao && !isManager && (
+                      <span className="inline-flex items-center gap-0.5 text-[8px] bg-amber-50 text-amber-600 border border-amber-200/60 font-black px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 scale-95 origin-left shadow-sm">
+                        ©️ Capitão
+                      </span>
+                    )}
                   </span>
 
                   {/* Squad badge - single line */}
@@ -284,12 +295,16 @@ export function SellerSemaphore({ data, currentSellerName, isAdmin, companyReven
                     const p = profiles?.find(pr => (pr.name || '').trim() === s.label.trim());
                     const sq = p && getSquadInfoForUser ? getSquadInfoForUser(p.id, s.label, profiles) : null;
                     if (!sq || sq.name === '—') return null;
+                    
+                    const squadObj = squads.find(sqd => sqd.name.toUpperCase() === sq.name.toUpperCase());
+                    const sqColor = squadObj?.color || sq.color;
+                    
                     return (
                       <span
                         className="text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider shrink-0"
                         style={{
-                          backgroundColor: sq.name.toUpperCase() === 'PLUPPEX' ? '#f5f3ff' : '#f0fdf4',
-                          color: sq.name.toUpperCase() === 'PLUPPEX' ? '#7c3aed' : '#16a34a'
+                          backgroundColor: sqColor ? `${sqColor}20` : '#f0fdf4',
+                          color: sqColor || '#16a34a'
                         }}
                       >
                         {sq.name}
@@ -326,13 +341,7 @@ export function SellerSemaphore({ data, currentSellerName, isAdmin, companyReven
                       : `0 2px 8px ${cfg.bar}44`,
                   }}
                 />
-                {/* Goal marker at 100% of this seller's goal */}
-                {s.revenue_goal > 0 && maxGoal > 0 && (
-                  <div
-                    className="absolute top-0 h-full w-0.5 bg-slate-400/40"
-                    style={{ left: `${(s.revenue_goal / maxGoal) * 100}%` }}
-                  />
-                )}
+                {/* Marker removed */}
               </div>
 
               {/* Nested Squads Card under Company Total */}
@@ -342,36 +351,54 @@ export function SellerSemaphore({ data, currentSellerName, isAdmin, companyReven
                     <Target className="w-3.5 h-3.5 text-slate-400" />
                     <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Desempenho por Squad</h4>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
                     {squadRows.map(sq => {
+                      const squadObj = squads.find(s => s.name.toUpperCase() === sq.squadName.toUpperCase());
+                      const isPluppex = squadObj?.company === 'pluppex' || (!squadObj?.company && sq.squadName.toUpperCase() === 'PLUPPEX');
+                      const baseColor = squadObj?.color || (isPluppex ? '#7c3aed' : '#16a34a');
                       const sqCfg = STATUS_CONFIG[sq.color as keyof typeof STATUS_CONFIG];
-                      const sqBarPct = maxGoal > 0 ? (sq.received / maxGoal) * 100 : 0;
+                      const sqBarPct = sq.pct;
                       return (
-                        <div key={sq.label} className="bg-white p-3 rounded-lg border border-slate-100 shadow-xxs">
-                          <div className="flex items-center justify-between mb-1.5">
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <span
-                                className="text-[9px] px-2.5 py-0.5 rounded-full font-black uppercase tracking-wider shrink-0"
-                                style={{
-                                  backgroundColor: sq.squadName.toUpperCase() === 'PLUPPEX' ? '#f5f3ff' : '#f0fdf4',
-                                  color: sq.squadName.toUpperCase() === 'PLUPPEX' ? '#7c3aed' : '#16a34a'
-                                }}
-                              >
-                                Squad {sq.squadName}
-                              </span>
-                              <span className={`inline-flex items-center gap-1 text-[8px] font-black px-1 rounded-full border flex-shrink-0 ${sqCfg.text} ${sqCfg.border} ${sqCfg.bg}`}>
-                                <span className={`w-1 h-1 rounded-full ${sqCfg.dot}`} />
-                                {sq.pct}%
-                              </span>
+                        <div key={sq.label} className="bg-white p-4 rounded-[1.25rem] border border-slate-200 shadow-sm transition-all hover:shadow-md relative overflow-hidden flex flex-col">
+                          {/* Fundo colorido translúcido */}
+                          <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundColor: baseColor }}></div>
+
+                          <div className="relative z-10 flex items-start justify-between mb-3 mt-1">
+                            <div className="flex flex-col gap-1.5 min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span
+                                  className="text-[10px] px-2.5 py-0.5 rounded-full font-black uppercase tracking-wider shrink-0"
+                                  style={{
+                                    backgroundColor: `${baseColor}15`,
+                                    color: baseColor,
+                                    border: `1px solid ${baseColor}30`
+                                  }}
+                                >
+                                  {sq.squadName}
+                                </span>
+                                <span className={`inline-flex items-center gap-1 text-[8px] font-black px-1.5 rounded-full border flex-shrink-0 ${sqCfg.text} ${sqCfg.border} ${sqCfg.bg}`}>
+                                  <span className={`w-1 h-1 rounded-full ${sqCfg.dot}`} />
+                                  {sq.pct}%
+                                </span>
+                              </div>
+                              <div className="flex items-baseline gap-1.5 mt-0.5">
+                                <span className="text-[11px] text-slate-700 font-bold whitespace-nowrap">
+                                  R$ {fmt(sq.received)}
+                                </span>
+                                <span className="text-[9px] text-slate-400 whitespace-nowrap font-medium">
+                                  / R$ {fmt(sq.revenue_goal)}
+                                </span>
+                              </div>
                             </div>
-                            <div className="flex flex-col items-end flex-shrink-0 ml-2">
-                              <span className="text-[9px] text-slate-500 font-bold whitespace-nowrap">
-                                R$ {fmt(sq.received)}
-                              </span>
-                              <span className="text-[8px] text-slate-400 whitespace-nowrap">
-                                Meta: R$ {fmt(sq.revenue_goal)}
-                              </span>
-                            </div>
+
+                            {/* Logo */}
+                            {squadObj?.logo_url && (
+                              <img
+                                src={squadObj.logo_url}
+                                alt={`Logo ${sq.squadName}`}
+                                className="w-8 h-8 object-contain opacity-90 drop-shadow-sm shrink-0 ml-2"
+                              />
+                            )}
                           </div>
 
                           {/* Bar */}
@@ -383,12 +410,6 @@ export function SellerSemaphore({ data, currentSellerName, isAdmin, companyReven
                                 background: `linear-gradient(90deg, ${sqCfg.bar}cc, ${sqCfg.bar})`,
                               }}
                             />
-                            {sq.revenue_goal > 0 && maxGoal > 0 && (
-                              <div
-                                className="absolute top-0 h-full w-0.5 bg-slate-400/40"
-                                style={{ left: `${(sq.revenue_goal / maxGoal) * 100}%` }}
-                              />
-                            )}
                           </div>
 
                           <div className="flex justify-between items-center text-[8px] text-slate-400 font-medium mb-3">
@@ -411,24 +432,24 @@ export function SellerSemaphore({ data, currentSellerName, isAdmin, companyReven
                             });
 
                             return (
-                              <div className="flex items-center justify-between bg-gradient-to-r from-amber-500/10 to-yellow-500/5 p-2 rounded-lg border border-amber-200/60 mb-3 shadow-xxs">
+                              <div className="flex items-center justify-between p-2.5 rounded-2xl border mb-3 shadow-xxs" style={{ backgroundColor: `${baseColor}0A`, borderColor: `${baseColor}30` }}>
                                 <div className="flex items-center gap-2 min-w-0">
-                                  <div className="w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center text-white flex-shrink-0 shadow-xxs">
+                                  <div className="w-6 h-6 rounded-full flex items-center justify-center text-white flex-shrink-0 shadow-xxs" style={{ backgroundColor: baseColor }}>
                                     <Crown className="w-3.5 h-3.5 fill-white" />
                                   </div>
                                   <div className="flex flex-col min-w-0">
-                                    <span className="text-[8px] font-black text-amber-600 uppercase tracking-wider">Gestor do Squad</span>
+                                    <span className="text-[8px] font-black uppercase tracking-wider" style={{ color: baseColor }}>Gestor do Squad</span>
                                     <span className="text-xs font-bold text-slate-800 truncate">{managerProfile.full_name || managerProfile.name}</span>
                                   </div>
                                 </div>
 
                                 {managerMember ? (
                                   <div className="flex items-center gap-1.5 flex-shrink-0">
-                                    <span className="text-[10px] font-bold text-amber-600">R$ {fmt(managerMember.received)}</span>
-                                    <span className="text-[8px] font-black text-amber-600 bg-amber-100 border border-amber-200/50 px-1.5 py-0.2 rounded-full">{managerMember.pct}%</span>
+                                    <span className="text-[10px] font-bold" style={{ color: baseColor }}>R$ {fmt(managerMember.received)}</span>
+                                    <span className="text-[8px] font-black px-1.5 py-0.2 rounded-full border" style={{ color: baseColor, backgroundColor: `${baseColor}15`, borderColor: `${baseColor}40` }}>{managerMember.pct}%</span>
                                   </div>
                                 ) : (
-                                  <span className="text-[8px] font-black text-amber-700 bg-amber-100/60 border border-amber-200/50 px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0">
+                                  <span className="text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 border" style={{ color: baseColor, backgroundColor: `${baseColor}15`, borderColor: `${baseColor}40` }}>
                                     Liderança
                                   </span>
                                 )}
@@ -448,74 +469,79 @@ export function SellerSemaphore({ data, currentSellerName, isAdmin, companyReven
                                 .map(m => {
                                   const mCfg = STATUS_CONFIG[m.color as keyof typeof STATUS_CONFIG];
                                   const overallRank = data.findIndex(d => d.label === m.label) + 1;
-                                  const mBarPct = maxGoal > 0 ? (m.received / maxGoal) * 100 : 0;
+                                  const mBarPct = m.pct;
 
                                   const p = profiles?.find(pr => (pr.name || '').trim() === m.label.trim());
                                   const isManager = checkIsManager(p, squads);
+                                  const isCapitao = checkIsCapitao(p, members);
+
+                                  const bgGradient = isManager ? `linear-gradient(to right, ${baseColor}15, ${baseColor}05)` : undefined;
 
                                   return (
                                     <div
                                       key={m.label}
-                                      className={`p-2.5 rounded-lg border transition-all duration-300 ${isManager
-                                        ? 'bg-gradient-to-r from-amber-50/80 to-yellow-50/30 border-amber-200/80 shadow-sm shadow-amber-100/50'
-                                        : 'bg-slate-50/50 border-slate-100/60 shadow-xs'
-                                        }`}
+                                      className={`p-3 rounded-2xl border transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md ${isManager ? 'shadow-sm' : 'bg-slate-50/40 border-slate-100/60 shadow-xs'}`}
+                                      style={isManager ? { background: bgGradient, borderColor: `${baseColor}40` } : {}}
                                     >
-                                      {/* Top row: Rank, Name, Pct badge, values, and gains */}
-                                      <div className="flex items-center justify-between mb-1.5">
-                                        <div className="flex items-center gap-1.5 min-w-0">
+                                      {/* Top row */}
+                                      <div className="flex items-start justify-between mb-2.5">
+                                        <div className="flex items-center gap-2 min-w-0">
                                           <div
-                                            className="w-5 h-5 rounded-full flex items-center justify-center font-black text-[9px] text-white flex-shrink-0"
-                                            style={{ backgroundColor: isManager ? '#d97706' : mCfg.bar }}
+                                            className="w-5 h-5 rounded-full flex items-center justify-center font-black text-[9px] text-white flex-shrink-0 shadow-sm"
+                                            style={{ backgroundColor: isManager ? baseColor : mCfg.bar }}
                                           >
                                             {overallRank}
                                           </div>
-                                          <span className="text-[11px] font-bold text-slate-700 truncate flex items-center gap-1" title={m.label}>
-                                            {m.label}
-                                            {isManager && (
-                                              <span className="inline-flex items-center gap-0.5 text-[8px] bg-amber-100 text-amber-800 border border-amber-200/60 font-black px-1.5 py-0.2 rounded-full uppercase tracking-wider shrink-0 scale-95 origin-left">
-                                                <Crown className="w-2.5 h-2.5 text-amber-600 fill-amber-400" />
-                                                Gestor
+                                          <div className="flex flex-col min-w-0 gap-0.5">
+                                            <span className="text-[11px] font-bold text-slate-700 truncate flex items-center gap-1.5" title={m.label}>
+                                              {m.label}
+                                              {isManager && (
+                                                <span className="inline-flex items-center gap-0.5 text-[8px] font-black px-1.5 py-0.2 rounded-full uppercase tracking-wider shrink-0" style={{ color: baseColor, backgroundColor: `${baseColor}1A`, border: `1px solid ${baseColor}40` }}>
+                                                  <Crown className="w-2.5 h-2.5" style={{ fill: baseColor }} />
+                                                  Gestor
+                                                </span>
+                                              )}
+                                              {isCapitao && !isManager && (
+                                                <span className="inline-flex items-center gap-0.5 text-[8px] bg-amber-50 text-amber-600 border border-amber-200/60 font-black px-1.5 py-0.2 rounded-full uppercase tracking-wider shrink-0 shadow-sm">
+                                                  ©️ Capitão
+                                                </span>
+                                              )}
+                                            </span>
+                                            <div className="flex items-center gap-1.5">
+                                              <span className={`inline-flex items-center gap-0.5 text-[8px] font-black px-1.5 py-0.2 rounded-full border flex-shrink-0 ${mCfg.text} ${mCfg.border} ${mCfg.bg}`}>
+                                                <span className={`w-1 h-1 rounded-full ${mCfg.dot}`} />
+                                                {m.pct}%
                                               </span>
-                                            )}
-                                          </span>
-
-                                          <span className={`inline-flex items-center gap-0.5 text-[8px] font-black px-1.5 py-0.2 rounded-full border flex-shrink-0 ${mCfg.text} ${mCfg.border} ${mCfg.bg}`}>
-                                            <span className={`w-1 h-1 rounded-full ${mCfg.dot}`} />
-                                            {m.pct}%
-                                          </span>
+                                              <span className="text-[8px] font-bold text-slate-400 bg-white px-1.5 py-0.5 rounded-full border border-slate-100 shadow-xxs">
+                                                {m.count} {m.count === 1 ? 'ganho' : 'ganhos'}
+                                              </span>
+                                            </div>
+                                          </div>
                                         </div>
-                                        <div className="flex items-center gap-2 flex-shrink-0 ml-1">
-                                          <span className="text-[9px] text-slate-400 font-medium whitespace-nowrap">
-                                            R$ {fmt(m.received)} / R$ {fmt(m.revenue_goal)}
+                                        <div className="flex flex-col items-end flex-shrink-0 ml-2">
+                                          <span className="text-[10px] text-slate-700 font-bold whitespace-nowrap">
+                                            R$ {fmt(m.received)}
                                           </span>
-                                          <span className="text-[9px] font-bold text-slate-500 bg-white px-1.5 py-0.2 rounded border border-slate-100 whitespace-nowrap">
-                                            {m.count} {m.count === 1 ? 'ganho' : 'ganhos'}
+                                          <span className="text-[8px] text-slate-400 font-medium whitespace-nowrap">
+                                            Meta: R$ {fmt(m.revenue_goal)}
                                           </span>
                                         </div>
                                       </div>
 
                                       {/* Progress Bar */}
-                                      <div className={`relative h-2 rounded-full overflow-hidden ${isManager ? 'bg-amber-100/50' : 'bg-slate-200/60'}`}>
+                                      <div className="relative h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: isManager ? `${baseColor}20` : '#f1f5f9' }}>
                                         <div
                                           className="absolute left-0 top-0 h-full rounded-full transition-all duration-700 ease-out"
                                           style={{
                                             width: `${Math.min(mBarPct, 100)}%`,
                                             background: isManager
-                                              ? `linear-gradient(90deg, #d97706cc, #d97706)`
+                                              ? `linear-gradient(90deg, ${baseColor}cc, ${baseColor})`
                                               : `linear-gradient(90deg, ${mCfg.bar}cc, ${mCfg.bar})`,
                                             boxShadow: isManager
-                                              ? `0 1px 4px rgba(217, 119, 6, 0.2)`
+                                              ? `0 1px 4px ${baseColor}33`
                                               : `0 1px 4px ${mCfg.bar}33`,
                                           }}
                                         />
-                                        {/* Goal marker at 100% of this seller's goal */}
-                                        {m.revenue_goal > 0 && maxGoal > 0 && (
-                                          <div
-                                            className="absolute top-0 h-full w-0.5 bg-slate-400/40"
-                                            style={{ left: `${(m.revenue_goal / maxGoal) * 100}%` }}
-                                          />
-                                        )}
                                       </div>
                                     </div>
                                   );

@@ -33,6 +33,7 @@ import {
   playTargetAchieved
 } from '../utils/audioEffects';
 import { NewLeaderOverlay, GoalReachedOverlay } from '../components/dashboard/CelebrationOverlays';
+import { LeadDetailsModal } from '../components/leads/LeadDetailsModal';
 
 
 type OccupancyItem = { name: string; pct: number; level: 'red' | 'yellow' | 'green'; alunos: number; capacity: number; color: string; category: string };
@@ -131,6 +132,7 @@ export function Dashboard() {
   const [goalReached, setGoalReached] = useState<{ name: string; value: number; squad?: string } | null>(null);
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [selectedLeadModal, setSelectedLeadModal] = useState<any>(null);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -543,6 +545,7 @@ export function Dashboard() {
                     rank={i}
                     count={s.count}
                     leads={s.leads}
+                    onLeadDoubleClick={setSelectedLeadModal}
                     color={i === 0 ? 'bg-emerald-500' : i === 1 ? 'bg-blue-500' : i === 2 ? 'bg-amber-500' : i === 3 ? 'bg-violet-500' : 'bg-slate-400'}
                   />
                 ))}
@@ -565,8 +568,8 @@ export function Dashboard() {
                           <span
                             className="text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider"
                             style={{
-                              backgroundColor: sq.name.toUpperCase() === 'PLUPPEX' ? '#f5f3ff' : '#f0fdf4',
-                              color: sq.name.toUpperCase() === 'PLUPPEX' ? '#7c3aed' : '#16a34a'
+                              backgroundColor: sq.color ? `${sq.color}20` : '#f0fdf4',
+                              color: sq.color || '#16a34a'
                             }}
                           >
                             {sq.name}
@@ -609,7 +612,7 @@ export function Dashboard() {
                 top3={salesMetrics.allSellersRanking.slice(0, 3).map((s) => {
                   const p = profiles.find(pr => pr.id === s.id);
                   const sq = getSquadInfoForUser(p?.id || s.id || '', s.label, profiles);
-                  return { label: s.label, count: s.count, squadName: sq.name !== '—' ? sq.name : undefined };
+                  return { label: s.label, count: s.count, squadName: sq.name !== '—' ? sq.name : undefined, squadColor: sq.color };
                 })}
               />
             </div>
@@ -712,6 +715,31 @@ export function Dashboard() {
           squadName={goalReached.squad}
           value={goalReached.value}
           onClose={() => setGoalReached(null)}
+        />
+      )}
+
+      {selectedLeadModal && (
+        <LeadDetailsModal
+          isOpen={!!selectedLeadModal}
+          onClose={() => setSelectedLeadModal(null)}
+          lead={selectedLeadModal}
+          pipelineStages={(() => {
+            const pipeline = usePipelineStore.getState().pipelines.find(p => 
+              p.stages.some(s => s.id === selectedLeadModal.stage_id)
+            );
+            return (pipeline?.stages || []).map(s => ({ ...s, title: s.name }));
+          })()}
+          currentStageId={selectedLeadModal.stage_id}
+          responsibles={profiles.map(p => ({ id: p.id, name: p.name }))}
+          onStageChange={(stageId) => {
+            useLeadStore.getState().updateLeadStage(selectedLeadModal.id, stageId);
+            useLeadStore.getState().updateLead(selectedLeadModal.id, { 
+              status: usePipelineStore.getState().pipelines
+                .flatMap(p => p.stages)
+                .find(s => s.id === stageId)?.name as any
+            });
+            setSelectedLeadModal(null);
+          }}
         />
       )}
     </div>

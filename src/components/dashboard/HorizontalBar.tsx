@@ -11,6 +11,7 @@ interface HorizontalBarProps {
   count?: number;
   squad?: { name: string; color: string };
   leads?: any[];
+  onLeadDoubleClick?: (lead: any) => void;
 }
 
 const getGradient = (rank: number) => {
@@ -28,7 +29,7 @@ const getGradient = (rank: number) => {
   }
 };
 
-export function HorizontalBar({ label, received, max, percentage: precomputedPct, rank, count, squad, leads }: HorizontalBarProps) {
+export function HorizontalBar({ label, received, max, percentage: precomputedPct, rank, count, squad, leads, onLeadDoubleClick }: HorizontalBarProps) {
   const pct = (max > 0 && received > 0) ? Math.min((received / max) * 100, 100) : precomputedPct;
   const barWidth = pct > 0 ? Math.max(pct, 6) : 0;
   const medal = rank === 0 ? '🥇' : rank === 1 ? '🥈' : rank === 2 ? '🥉' : `${rank + 1}º`;
@@ -46,8 +47,8 @@ export function HorizontalBar({ label, received, max, percentage: precomputedPct
               <span 
                 className="text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider shrink-0"
                 style={{ 
-                  backgroundColor: squad.name.toUpperCase() === 'PLUPPEX' ? '#f5f3ff' : '#f0fdf4',
-                  color: squad.name.toUpperCase() === 'PLUPPEX' ? '#7c3aed' : '#16a34a'
+                  backgroundColor: squad.color ? `${squad.color}20` : '#f0fdf4',
+                  color: squad.color || '#16a34a'
                 }}
               >
                 {squad.name}
@@ -96,8 +97,17 @@ export function HorizontalBar({ label, received, max, percentage: precomputedPct
           </div>
           <div className="flex flex-col gap-2 max-h-80 overflow-y-auto custom-scrollbar pr-1">
             {leads.map((l, i) => (
-              <div key={l.id || i} className="flex flex-col gap-0.5 pb-1.5 border-b border-slate-50 last:border-0 last:pb-0">
-                <span className="font-bold text-slate-700 truncate">{l.name || 'Sem nome'}</span>
+              <div 
+                key={l.id || i} 
+                className="flex flex-col gap-0.5 pb-1.5 border-b border-slate-50 last:border-0 last:pb-0 cursor-pointer hover:bg-slate-50 p-1 -mx-1 rounded transition-colors select-none"
+                onDoubleClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  onLeadDoubleClick?.(l);
+                }}
+                title="Dê um duplo clique para ver os detalhes do lead"
+              >
+                <span className="font-bold text-slate-700 truncate px-1">{l.name || 'Sem nome'}</span>
                 <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-medium">
                   {l.productName && <span className="truncate max-w-[120px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-sm">{l.productName}</span>}
                   {l.formattedWonAt && <span className="text-slate-400">📅 {l.formattedWonAt}</span>}

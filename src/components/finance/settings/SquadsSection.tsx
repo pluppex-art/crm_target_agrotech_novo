@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Users2, X, Loader2, Save, Pencil, ToggleRight, ToggleLeft, Trash2, UserPlus } from 'lucide-react';
+import { Users2, X, Loader2, Save, Pencil, ToggleRight, ToggleLeft, Trash2, UserPlus, Check, Trophy } from 'lucide-react';
 import { getSupabaseClient } from '../../../lib/supabase';
 import { compensationProfileService } from '../../../services/compensationProfileService';
 import { profileService, UserProfile } from '../../../services/profileService';
 import { cn } from '../../../lib/utils';
 
-type Squad = { id: string; name: string; manager_id: string | null; active: boolean; color?: string; logo_url?: string };
+type Squad = { id: string; name: string; manager_id: string | null; active: boolean; color?: string; logo_url?: string; company?: string };
 
-const EMPTY_FORM = { name: '', color: '#6366f1', logo_url: '', manager_id: null as string | null };
+const EMPTY_FORM = { name: '', color: '#6366f1', logo_url: '', manager_id: null as string | null, company: 'target' };
 
 const PRESET_COLORS = [
   '#6366f1', // Indigo
@@ -26,12 +26,18 @@ export function SquadsSection() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [selectedSquadId, setSelectedSquadId] = useState<string | null>(null);
-  const [members, setMembers] = useState<{ user_id: string; user_name?: string }[]>([]);
+  const [members, setMembers] = useState<{
+    role_type: string; user_id: string; user_name?: string
+  }[]>([]);
   const [isMembersLoading, setIsMembersLoading] = useState(false);
 
   // Add states for adding custom members/managers in the Members sidebar
   const [selectedUserToAdd, setSelectedUserToAdd] = useState('');
-  const [selectedRoleToAdd, setSelectedRoleToAdd] = useState<'membro' | 'gestor'>('membro');
+  const [selectedRoleToAdd, setSelectedRoleToAdd] = useState<'membro' | 'gestor' | 'capitao'>('membro');
+  
+  // Inline editing state
+  const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
+  const [editRoleValue, setEditRoleValue] = useState<'membro' | 'gestor' | 'capitao'>('membro');
 
   // Modal state: null = closed, 'create' = new, squad id = edit
   const [modalMode, setModalMode] = useState<null | 'create' | string>(null);
@@ -53,7 +59,7 @@ export function SquadsSection() {
   useEffect(() => { load(); }, [load]);
 
   const openCreate = () => { setModalForm(EMPTY_FORM); setModalMode('create'); };
-  const openEdit = (s: Squad) => { setModalForm({ name: s.name, color: s.color || '#6366f1', logo_url: s.logo_url || '', manager_id: s.manager_id || null }); setModalMode(s.id); };
+  const openEdit = (s: Squad) => { setModalForm({ name: s.name, color: s.color || '#6366f1', logo_url: s.logo_url || '', manager_id: s.manager_id || null, company: s.company || 'target' }); setModalMode(s.id); };
   const closeModal = () => setModalMode(null);
 
   const handleFileUpload = async (file: File) => {
@@ -78,7 +84,7 @@ export function SquadsSection() {
     setIsSaving(true);
     try {
       if (modalMode === 'create') {
-        await compensationProfileService.createSquad(modalForm.name, modalForm.color, modalForm.logo_url, modalForm.manager_id);
+        await compensationProfileService.createSquad(modalForm.name, modalForm.color, modalForm.logo_url, modalForm.manager_id, modalForm.company);
       } else if (modalMode) {
         await compensationProfileService.updateSquad(modalMode, modalForm);
       }
@@ -108,6 +114,27 @@ export function SquadsSection() {
     } finally { setIsMembersLoading(false); }
   };
 
+  const saveRoleChange = async (userId: string, currentRole: string) => {
+    if (!selectedSquadId) return;
+    setIsMembersLoading(true);
+    try {
+      if (editRoleValue === 'gestor') {
+        await compensationProfileService.updateSquad(selectedSquadId, { manager_id: userId });
+        await compensationProfileService.removeMemberFromSquad(selectedSquadId, userId);
+      } else {
+        if (currentRole === 'gestor') {
+           await compensationProfileService.updateSquad(selectedSquadId, { manager_id: null });
+        }
+        await compensationProfileService.addMemberToSquad(selectedSquadId, userId, editRoleValue as 'membro' | 'capitao');
+      }
+      setEditingMemberId(null);
+      await load();
+      await loadMembers(selectedSquadId);
+    } finally {
+      setIsMembersLoading(false);
+    }
+  };
+
   const isOpen = modalMode !== null;
   const isEdit = modalMode !== null && modalMode !== 'create';
 
@@ -132,41 +159,76 @@ export function SquadsSection() {
           ) : squads.length === 0 ? (
             <div className="p-10 text-center text-slate-400 text-sm">Nenhum squad cadastrado.</div>
           ) : (
-            <div className="divide-y">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4">
               {squads.map(s => (
                 <div
                   key={s.id}
                   onClick={() => loadMembers(s.id)}
-                  className="p-4 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-all border-l-4"
-                  style={{
-                    backgroundColor: selectedSquadId === s.id ? `${s.color || '#6366f1'}0a` : 'transparent',
-                    borderColor: selectedSquadId === s.id ? (s.color || '#6366f1') : 'transparent',
-                  }}
+                  className={`relative h-48 rounded-2xl overflow-hidden cursor-pointer group transition-all duration-300 ${selectedSquadId === s.id ? 'ring-4 ring-offset-2 ring-indigo-500' : 'hover:shadow-xl hover:-translate-y-1 border border-slate-200'}`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center border"
-                      style={{ backgroundColor: `${s.color}20`, borderColor: `${s.color}50` }}
-                    >
-                      {s.logo_url
-                        ? <img src={s.logo_url} className="w-full h-full object-cover rounded-xl" />
-                        : <Users2 size={18} style={{ color: s.color }} />}
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-slate-800">{s.name}</p>
-                      <p className="text-[10px] text-slate-400 uppercase font-bold">{s.active ? 'Ativo' : 'Inativo'}</p>
-                    </div>
+                  {/* Background Uniform Image */}
+                  <div 
+                    className="absolute inset-0 bg-cover bg-top bg-no-repeat transition-transform duration-700 group-hover:scale-110"
+                    style={{ 
+                      backgroundImage: `url('${s.company === 'pluppex' ? '/podium_pluppex_man_1.png' : '/podium_target_man_1.png'}')`,
+                      backgroundColor: '#f8fafc'
+                    }}
+                  >
+                    {/* Magical CSS Tint Overlay */}
+                    {s.color && (
+                      <div 
+                        className="absolute inset-0 transition-colors duration-500"
+                        style={{ 
+                          backgroundColor: s.color,
+                          mixBlendMode: 'color',
+                          opacity: 0.85
+                        }}
+                      />
+                    )}
                   </div>
-                  <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                    <button onClick={() => openEdit(s)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all">
-                      <Pencil size={15} />
-                    </button>
-                    <button onClick={() => handleToggle(s.id, s.active)} className="p-1.5 rounded-lg hover:bg-slate-100 transition-all">
-                      {s.active ? <ToggleRight size={20} className="text-emerald-500" /> : <ToggleLeft size={20} className="text-slate-300" />}
-                    </button>
-                    <button onClick={() => handleDelete(s.id, s.name)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all">
-                      <Trash2 size={15} />
-                    </button>
+                  {/* Dark gradient overlay to make text pop */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/40 to-slate-900/10" />
+
+                  {/* Content Overlay */}
+                  <div className="absolute inset-0 p-4 flex flex-col justify-between z-10">
+                    <div className="flex items-center justify-between">
+                      {/* Left: Podium icon / Logo */}
+                      <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-sm" style={{ backgroundColor: s.color ? `${s.color}40` : undefined }}>
+                        {s.logo_url 
+                          ? <img src={s.logo_url} className="w-full h-full object-cover rounded-xl" />
+                          : <Trophy size={18} className="text-amber-300 drop-shadow-md" />}
+                      </div>
+                      
+                      {/* Right: Actions */}
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+                        <button onClick={() => openEdit(s)} className="p-1.5 bg-black/30 hover:bg-black/50 backdrop-blur-md text-white rounded-lg transition-all" title="Editar Squad">
+                          <Pencil size={14} />
+                        </button>
+                        <button onClick={() => handleToggle(s.id, s.active)} className="p-1.5 bg-black/30 hover:bg-black/50 backdrop-blur-md text-white rounded-lg transition-all" title={s.active ? 'Desativar' : 'Ativar'}>
+                          {s.active ? <ToggleRight size={14} className="text-emerald-400" /> : <ToggleLeft size={14} className="text-slate-400" />}
+                        </button>
+                        <button onClick={() => handleDelete(s.id, s.name)} className="p-1.5 bg-black/30 hover:bg-rose-600/80 backdrop-blur-md text-white rounded-lg transition-all" title="Excluir Squad">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="text-left mt-auto">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md border backdrop-blur-md shadow-sm tracking-wider ${
+                          s.company === 'pluppex' 
+                            ? 'bg-violet-500/30 text-violet-100 border-violet-400/30' 
+                            : 'bg-emerald-500/30 text-emerald-100 border-emerald-400/30'
+                        }`}>
+                          {s.company === 'pluppex' ? 'Pluppex' : 'Target'}
+                        </span>
+                        <span className="w-2 h-2 rounded-full shadow-[0_0_8px_rgba(255,255,255,0.5)]" style={{ backgroundColor: s.active ? '#34d399' : '#94a3b8' }} title={s.active ? 'Ativo' : 'Inativo'} />
+                      </div>
+                      
+                      <h3 className="text-xl sm:text-2xl font-black text-white drop-shadow-lg leading-tight uppercase tracking-wider">
+                        {s.name}
+                      </h3>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -196,7 +258,7 @@ export function SquadsSection() {
                     const managerProfile = users.find(u => u.id === currentSquad.manager_id);
                     if (!managerProfile) return null;
                     return (
-                      <div 
+                      <div
                         className="flex items-center justify-between px-3 py-2 border rounded-lg shadow-sm transition-all duration-300"
                         style={{
                           backgroundColor: `${currentSquad?.color || '#6366f1'}0a`,
@@ -205,42 +267,101 @@ export function SquadsSection() {
                       >
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-bold text-slate-900">{managerProfile.full_name || managerProfile.name}</span>
-                          <span 
-                            className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full text-white shadow-sm transition-all duration-300"
-                            style={{ backgroundColor: currentSquad?.color || '#6366f1' }}
-                          >
-                            Gestor
-                          </span>
+                          {editingMemberId === managerProfile.id ? (
+                            <select
+                              value={editRoleValue}
+                              onChange={(e) => setEditRoleValue(e.target.value as any)}
+                              className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full outline-none ml-2 border border-slate-300"
+                            >
+                              <option value="membro">Membro</option>
+                              <option value="capitao">Capitão</option>
+                              <option value="gestor">Gestor</option>
+                            </select>
+                          ) : (
+                            <span
+                              className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full text-white shadow-sm transition-all duration-300"
+                              style={{ backgroundColor: currentSquad?.color || '#6366f1' }}
+                            >
+                              Gestor
+                            </span>
+                          )}
                         </div>
-                        <button
-                          onClick={async () => {
-                            if (confirm(`Remover gestor do squad "${currentSquad.name}"?`)) {
-                              await compensationProfileService.updateSquad(selectedSquadId, { manager_id: null });
-                              await load();
-                            }
-                          }}
-                          className="text-slate-405 hover:text-rose-500 transition-colors"
-                          title="Remover gestor"
-                        >
-                          <X size={14} />
-                        </button>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {editingMemberId === managerProfile.id ? (
+                            <>
+                              <button onClick={() => saveRoleChange(managerProfile.id, 'gestor')} className="p-1 text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors"><Check size={14} /></button>
+                              <button onClick={() => setEditingMemberId(null)} className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors"><X size={14} /></button>
+                            </>
+                          ) : (
+                            <>
+                              <button onClick={() => { setEditingMemberId(managerProfile.id); setEditRoleValue('gestor'); }} className="p-1 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-md transition-colors" title="Editar Função">
+                                <Pencil size={14} />
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  if (confirm(`Remover gestor do squad "${currentSquad.name}"?`)) {
+                                    await compensationProfileService.updateSquad(selectedSquadId, { manager_id: null });
+                                    await load();
+                                  }
+                                }}
+                                className="p-1 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-md transition-colors"
+                                title="Remover"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
                     );
                   })()}
 
                   {/* Render other squad members */}
                   {otherMembers.map(m => (
-                    <div key={m.user_id} className="flex items-center justify-between px-3 py-2 bg-slate-50 border border-slate-100 rounded-lg">
+                    <div key={m.user_id} className="flex items-center justify-between px-3 py-2 bg-slate-50 border border-slate-100 rounded-lg group">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium text-slate-700">{m.user_name}</span>
-                        <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.25 rounded-md bg-slate-200 text-slate-550">Membro</span>
+                        {editingMemberId === m.user_id ? (
+                          <select
+                            value={editRoleValue}
+                            onChange={(e) => setEditRoleValue(e.target.value as any)}
+                            className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full outline-none ml-2 border border-slate-300"
+                          >
+                            <option value="membro">Membro</option>
+                            <option value="capitao">Capitão</option>
+                            <option value="gestor">Gestor</option>
+                          </select>
+                        ) : (
+                          m.role_type === 'capitao' ? (
+                            <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-50 text-amber-600 border border-amber-200 flex items-center gap-1 shadow-sm">
+                              ©️ Capitão
+                            </span>
+                          ) : (
+                            <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.25 rounded-md bg-slate-200 text-slate-550">Membro</span>
+                          )
+                        )}
                       </div>
-                      <button
-                        onClick={async () => { await compensationProfileService.removeMemberFromSquad(selectedSquadId, m.user_id); loadMembers(selectedSquadId); }}
-                        className="text-slate-350 hover:text-rose-500 transition-colors"
-                      >
-                        <X size={14} />
-                      </button>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {editingMemberId === m.user_id ? (
+                          <>
+                            <button onClick={() => saveRoleChange(m.user_id, m.role_type)} className="p-1 text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors"><Check size={14} /></button>
+                            <button onClick={() => setEditingMemberId(null)} className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors"><X size={14} /></button>
+                          </>
+                        ) : (
+                          <>
+                            <button onClick={() => { setEditingMemberId(m.user_id); setEditRoleValue(m.role_type as any); }} className="p-1 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-md transition-colors" title="Editar Função">
+                              <Pencil size={14} />
+                            </button>
+                            <button
+                              onClick={async () => { await compensationProfileService.removeMemberFromSquad(selectedSquadId, m.user_id); loadMembers(selectedSquadId); }}
+                              className="p-1 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-md transition-colors"
+                              title="Remover"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   ))}
 
@@ -268,10 +389,11 @@ export function SquadsSection() {
                         <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Função</label>
                         <select
                           value={selectedRoleToAdd}
-                          onChange={e => setSelectedRoleToAdd(e.target.value as 'membro' | 'gestor')}
+                          onChange={e => setSelectedRoleToAdd(e.target.value as 'membro' | 'gestor' | 'capitao')}
                           className="w-full p-2 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none font-medium text-slate-700"
                         >
                           <option value="membro">Membro</option>
+                          <option value="capitao">Capitão</option>
                           <option value="gestor">Gestor</option>
                         </select>
                       </div>
@@ -286,7 +408,7 @@ export function SquadsSection() {
                           if (selectedRoleToAdd === 'gestor') {
                             await compensationProfileService.updateSquad(selectedSquadId, { manager_id: selectedUserToAdd });
                           } else {
-                            await compensationProfileService.addMemberToSquad(selectedSquadId, selectedUserToAdd);
+                            await compensationProfileService.addMemberToSquad(selectedSquadId, selectedUserToAdd, selectedRoleToAdd);
                           }
                           setSelectedUserToAdd('');
                           setSelectedRoleToAdd('membro');
@@ -331,15 +453,29 @@ export function SquadsSection() {
             </div>
 
             <form onSubmit={handleSave} className="p-6 space-y-7">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nome do Squad</label>
-                <input
-                  required
-                  value={modalForm.name}
-                  onChange={e => setModalForm(v => ({ ...v, name: e.target.value }))}
-                  placeholder="Ex: Esquadrão Alpha"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all text-slate-700 font-medium placeholder:font-normal placeholder:text-slate-400"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2 col-span-2 sm:col-span-1">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Empresa</label>
+                  <select
+                    value={modalForm.company}
+                    onChange={e => setModalForm(v => ({ ...v, company: e.target.value }))}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all text-slate-700 font-bold"
+                  >
+                    <option value="target">Target</option>
+                    <option value="pluppex">Pluppex</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2 col-span-2 sm:col-span-1">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nome do Squad</label>
+                  <input
+                    required
+                    value={modalForm.name}
+                    onChange={e => setModalForm(v => ({ ...v, name: e.target.value }))}
+                    placeholder="Ex: Esquadrão Alpha"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all text-slate-700 font-medium placeholder:font-normal placeholder:text-slate-400"
+                  />
+                </div>
               </div>
 
               <div className="space-y-3">
@@ -364,11 +500,11 @@ export function SquadsSection() {
                       onChange={e => setModalForm(v => ({ ...v, color: e.target.value }))}
                       className="opacity-0 absolute inset-0 w-full h-full cursor-pointer z-10"
                     />
-                    <div 
+                    <div
                       className={cn(
                         "w-10 h-10 rounded-xl border-2 flex items-center justify-center transition-all",
-                        !PRESET_COLORS.includes(modalForm.color) 
-                          ? "border-slate-800 scale-110 shadow-lg" 
+                        !PRESET_COLORS.includes(modalForm.color)
+                          ? "border-slate-800 scale-110 shadow-lg"
                           : "border-slate-200 border-dashed group-hover:border-slate-400 bg-slate-50 group-hover:bg-slate-100"
                       )}
                       style={{ backgroundColor: !PRESET_COLORS.includes(modalForm.color) ? modalForm.color : 'transparent' }}
@@ -396,7 +532,7 @@ export function SquadsSection() {
               <div className="space-y-3">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Emblema / Logo <span className="font-normal normal-case">(opcional)</span></label>
                 <div className="flex items-center gap-4 p-4 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50 hover:bg-slate-50 hover:border-indigo-300 transition-all group">
-                  <div 
+                  <div
                     className="w-14 h-14 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-center overflow-hidden flex-shrink-0 transition-colors"
                     style={{ backgroundColor: modalForm.color ? `${modalForm.color}15` : '#fff' }}
                   >
@@ -406,7 +542,7 @@ export function SquadsSection() {
                       <Users2 size={24} style={{ color: modalForm.color || '#94a3b8' }} className="transition-colors" />
                     )}
                   </div>
-                  
+
                   <div className="flex-1 min-w-0">
                     <label className={cn(
                       "cursor-pointer block truncate",
@@ -453,3 +589,4 @@ export function SquadsSection() {
     </div>
   );
 }
+

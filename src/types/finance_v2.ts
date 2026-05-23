@@ -171,6 +171,7 @@ export interface Squad {
   active: boolean;
   color?: string;
   logo_url?: string;
+  company?: string;
   created_at: string;
   updated_at?: string;
 }
