@@ -110,13 +110,93 @@ export default async function handler(req: any, res: any) {
     .maybeSingle();
   const centroCustoId = ccCursos?.id || null;
 
-  // ── Insert Lead ─────────────────────────────────────────────────────────
-  // Combine interest and other notes
+  // ── Combine notes ────────────────────────────────────────────────────────
   const notes = [
     interest ? `Área de Interesse: ${interest}` : null,
     extraNotes ? `Notas: ${extraNotes}` : null
   ].filter(Boolean).join('\n');
 
+  // ── Upsert: check for existing lead by phone or email ────────────────────
+  const normalizedPhoneForCheck = phone.trim().replace(/\D/g, '');
+  let existingLeadId: string | null = null;
+  let existingResponsible: string | null = null;
+  let existingUserId: string | null = null;
+
+  if (normalizedPhoneForCheck.length >= 10) {
+    const { data: byPhone } = await supabase
+      .from('leads')
+      .select('id, responsible, responsavel_usuario_id')
+      .or(`phone.ilike.%${normalizedPhoneForCheck}%,phone.eq.${phone.trim()}`)
+      .limit(1)
+      .maybeSingle();
+    if (byPhone) {
+      existingLeadId = byPhone.id;
+      existingResponsible = byPhone.responsible;
+      existingUserId = byPhone.responsavel_usuario_id;
+    }
+  }
+
+  if (!existingLeadId && email.trim()) {
+    const { data: byEmail } = await supabase
+      .from('leads')
+      .select('id, responsible, responsavel_usuario_id')
+      .ilike('email', email.trim())
+      .limit(1)
+      .maybeSingle();
+    if (byEmail) {
+      existingLeadId = byEmail.id;
+      existingResponsible = byEmail.responsible;
+      existingUserId = byEmail.responsavel_usuario_id;
+    }
+  }
+
+  // ── If lead already exists: UPDATE and return ────────────────────────────
+  if (existingLeadId) {
+    const { error: updateError } = await supabase
+      .from('leads')
+      .update({
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        phone: phone.trim(),
+        city: city?.trim() ?? null,
+        product: product?.trim() ?? null,
+      })
+      .eq('id', existingLeadId);
+
+    if (updateError) {
+      console.error('Error updating existing lead:', updateError);
+      return res.status(500).json({ error: updateError.message });
+    }
+
+    if (notes) {
+      await supabase.from('notes').insert([{
+        content: `[Atualização via Formulário]\n${notes}`,
+        lead_id: existingLeadId,
+        author_name: 'Sistema',
+      }]);
+    }
+
+    // Get existing responsible's phone for WhatsApp link
+    let existingResponsiblePhone: string | null = null;
+    if (existingUserId) {
+      const { data: sellerProfile } = await supabase
+        .from('perfis')
+        .select('phone')
+        .eq('id', existingUserId)
+        .single();
+      existingResponsiblePhone = sellerProfile?.phone ?? null;
+    }
+
+    return res.status(200).json({
+      success: true,
+      id: existingLeadId,
+      updated: true,
+      responsibleName: existingResponsible,
+      responsiblePhone: existingResponsiblePhone,
+    });
+  }
+
+  // ── Insert new lead ──────────────────────────────────────────────────────
   const { data: leadData, error: leadError } = await supabase
     .from('leads')
     .insert([{

@@ -8,7 +8,7 @@ import {
   Loader2,
   Leaf,
   ArrowUp,
-  AlertTriangle
+  AlertTriangle,
 } from 'lucide-react';
 import { formatPhone } from '../lib/utils';
 
@@ -38,7 +38,40 @@ export function PublicForm() {
   const [sellerPhone, setSellerPhone] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [allCities, setAllCities] = useState<string[]>([]);
+  const [duplicateWarning, setDuplicateWarning] = useState(false);
   const inputRef = useRef<HTMLInputElement | HTMLSelectElement>(null);
+
+  // Check for duplicate lead when user finishes typing phone or email
+  useEffect(() => {
+    const currentStepId = steps[currentStep]?.id;
+    if (currentStepId !== 'phone' && currentStepId !== 'email') {
+      setDuplicateWarning(false);
+      return;
+    }
+
+    const val = inputValue.trim();
+    if (!val) { setDuplicateWarning(false); return; }
+
+    const timer = setTimeout(async () => {
+      try {
+        const body = currentStepId === 'phone'
+          ? { phone: val }
+          : { phone: answers.phone, email: val };
+        const resp = await fetch('/api/check-lead', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (resp.ok) {
+          const { exists } = await resp.json();
+          setDuplicateWarning(exists);
+        }
+      } catch { /* silently ignore */ }
+    }, 600);
+
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inputValue, currentStep]);
 
   // Busca cidades do IBGE
   useEffect(() => {
@@ -437,6 +470,12 @@ export function PublicForm() {
                   {error && (
                     <p className="text-red-300 font-bold text-sm flex items-center gap-2 animate-pulse">
                       <AlertTriangle size={14} /> {error}
+                    </p>
+                  )}
+                  {!error && duplicateWarning && (
+                    <p className="text-emerald-300/80 text-sm flex items-start gap-2">
+                      <AlertTriangle size={14} className="mt-0.5 shrink-0 text-emerald-400" />
+                      Já temos um cadastro com esse dado. Pode continuar — vamos atualizar suas informações.
                     </p>
                   )}
                 </div>
