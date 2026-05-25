@@ -125,8 +125,7 @@ export const PipelineFilters: React.FC<PipelineFiltersProps> = ({
 
       {/* Filter inputs — colapsável */}
       {open && <div
-        className="flex flex-nowrap items-center gap-3 p-4 overflow-x-auto"
-        style={{ scrollbarWidth: 'thin', scrollbarColor: '#e5e7eb transparent' }}
+        className="flex flex-wrap items-center gap-3 p-4"
       >
         {/* Search */}
         <div className="relative flex-1 min-w-[200px]">
