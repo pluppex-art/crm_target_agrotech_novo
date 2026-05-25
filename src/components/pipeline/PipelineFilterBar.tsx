@@ -51,7 +51,7 @@ const PipelineFilterBar: React.FC<PipelineFilterBarProps> = ({
   responsibleDropdownRef
 }) => {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-3">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 space-y-3">
       {/* Active filters chips */}
       <div className="flex flex-wrap gap-2">
         {searchTerm && (
@@ -105,7 +105,7 @@ const PipelineFilterBar: React.FC<PipelineFilterBarProps> = ({
             placeholder="Pesquisar leads..."
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all shadow-sm"
+            className="w-full pl-10 pr-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all shadow-sm"
           />
         </div>
 
@@ -115,7 +115,7 @@ const PipelineFilterBar: React.FC<PipelineFilterBarProps> = ({
           <select
             value={selectedStatus}
             onChange={(e) => onStatusChange(e.target.value === 'all' ? 'all' : e.target.value)}
-            className="w-full pl-10 pr-10 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all shadow-sm appearance-none"
+            className="w-full pl-10 pr-10 py-3 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all shadow-sm appearance-none"
           >
             <option value="all">Todos status</option>
             {COLUMNS.map(col => (
@@ -131,7 +131,7 @@ const PipelineFilterBar: React.FC<PipelineFilterBarProps> = ({
           <select
             value={selectedProduct}
             onChange={(e) => onProductChange(e.target.value)}
-            className="w-full pl-10 pr-10 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all shadow-sm appearance-none"
+            className="w-full pl-10 pr-10 py-3 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all shadow-sm appearance-none"
           >
             <option value="">Todos produtos</option>
             {products.map(p => (
@@ -147,7 +147,7 @@ const PipelineFilterBar: React.FC<PipelineFilterBarProps> = ({
           <select
             value={selectedStars}
             onChange={(e) => onStarsChange(e.target.value === 'all' ? 'all' as any : Number(e.target.value))}
-            className="w-full pl-10 pr-10 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all shadow-sm appearance-none"
+            className="w-full pl-10 pr-10 py-3 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all shadow-sm appearance-none"
           >
             <option value="all">Todas estrelas</option>
             {[1,2,3,4,5].map(s => (
@@ -163,7 +163,7 @@ const PipelineFilterBar: React.FC<PipelineFilterBarProps> = ({
           <select
             value={selectedResponsible}
             onChange={(e) => onResponsibleChange(e.target.value)}
-            className="w-full pl-10 pr-10 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all shadow-sm appearance-none"
+            className="w-full pl-10 pr-10 py-3 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all shadow-sm appearance-none"
           >
             <option value="all">Todos responsáveis</option>
             {filteredResponsibles.map(r => (

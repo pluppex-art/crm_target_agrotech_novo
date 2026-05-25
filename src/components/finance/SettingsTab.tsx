@@ -24,14 +24,14 @@ export function SettingsTab() {
 
   return (
     <div className="space-y-5">
-      <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 flex flex-wrap items-center gap-3">
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm p-4 flex flex-wrap items-center gap-3">
         <Settings size={18} className="text-slate-400" />
-        <span className="text-sm font-bold text-slate-600">Configurações Financeiras</span>
+        <span className="text-sm font-bold text-slate-600 dark:text-slate-400">Configurações Financeiras</span>
         <span className="text-slate-200">|</span>
         {(['ote', 'commission', 'partner', 'fees', 'goals'] as SettingsSection[]).map(s => (
           <button key={s} onClick={() => setSection(s)}
             className={cn('px-3 py-1.5 rounded-lg text-xs font-bold transition-all',
-              section === s ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'text-slate-500 hover:bg-slate-50')}>
+              section === s ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:bg-slate-800')}>
             {sectionLabels[s]}
           </button>
         ))}

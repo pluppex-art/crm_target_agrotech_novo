@@ -141,7 +141,7 @@ export function SquadsSection() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-bold text-slate-700">Squads</p>
+        <p className="text-sm font-bold text-slate-700 dark:text-slate-300">Squads</p>
         <button
           onClick={openCreate}
           className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200"
@@ -153,7 +153,7 @@ export function SquadsSection() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Squad list */}
-        <div className="bg-white rounded-xl border overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-xl border overflow-hidden">
           {isLoading ? (
             <div className="p-10 text-center"><Loader2 className="animate-spin inline text-indigo-500" /></div>
           ) : squads.length === 0 ? (
@@ -164,7 +164,7 @@ export function SquadsSection() {
                 <div
                   key={s.id}
                   onClick={() => loadMembers(s.id)}
-                  className={`relative h-48 rounded-2xl overflow-hidden cursor-pointer group transition-all duration-300 ${selectedSquadId === s.id ? 'ring-4 ring-offset-2 ring-indigo-500' : 'hover:shadow-xl hover:-translate-y-1 border border-slate-200'}`}
+                  className={`relative h-48 rounded-2xl overflow-hidden cursor-pointer group transition-all duration-300 ${selectedSquadId === s.id ? 'ring-4 ring-offset-2 ring-indigo-500' : 'hover:shadow-xl hover:-translate-y-1 border border-slate-200 dark:border-slate-700'}`}
                 >
                   {/* Background Uniform Image */}
                   <div 
@@ -193,7 +193,7 @@ export function SquadsSection() {
                   <div className="absolute inset-0 p-4 flex flex-col justify-between z-10">
                     <div className="flex items-center justify-between">
                       {/* Left: Podium icon / Logo */}
-                      <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-sm" style={{ backgroundColor: s.color ? `${s.color}40` : undefined }}>
+                      <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-sm" style={{ backgroundColor: s.color ? `${s.color}40` : undefined }}>
                         {s.logo_url 
                           ? <img src={s.logo_url} className="w-full h-full object-cover rounded-xl" />
                           : <Trophy size={18} className="text-amber-300 drop-shadow-md" />}
@@ -237,8 +237,8 @@ export function SquadsSection() {
         </div>
 
         {/* Members panel */}
-        <div className="bg-white rounded-xl border p-4 space-y-4">
-          <h3 className="text-sm font-bold text-slate-700">Membros</h3>
+        <div className="bg-white dark:bg-slate-900 rounded-xl border p-4 space-y-4">
+          <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300">Membros</h3>
           {selectedSquadId ? (
             (() => {
               const currentSquad = squads.find(s => s.id === selectedSquadId);
@@ -266,12 +266,12 @@ export function SquadsSection() {
                         }}
                       >
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-bold text-slate-900">{managerProfile.full_name || managerProfile.name}</span>
+                          <span className="text-sm font-bold text-slate-900 dark:text-slate-100">{managerProfile.full_name || managerProfile.name}</span>
                           {editingMemberId === managerProfile.id ? (
                             <select
                               value={editRoleValue}
                               onChange={(e) => setEditRoleValue(e.target.value as any)}
-                              className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full outline-none ml-2 border border-slate-300"
+                              className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full outline-none ml-2 border border-slate-300 dark:border-slate-600"
                             >
                               <option value="membro">Membro</option>
                               <option value="capitao">Capitão</option>
@@ -290,7 +290,7 @@ export function SquadsSection() {
                           {editingMemberId === managerProfile.id ? (
                             <>
                               <button onClick={() => saveRoleChange(managerProfile.id, 'gestor')} className="p-1 text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors"><Check size={14} /></button>
-                              <button onClick={() => setEditingMemberId(null)} className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors"><X size={14} /></button>
+                              <button onClick={() => setEditingMemberId(null)} className="p-1 text-slate-400 hover:text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:bg-slate-800/50 rounded-md transition-colors"><X size={14} /></button>
                             </>
                           ) : (
                             <>
@@ -318,14 +318,14 @@ export function SquadsSection() {
 
                   {/* Render other squad members */}
                   {otherMembers.map(m => (
-                    <div key={m.user_id} className="flex items-center justify-between px-3 py-2 bg-slate-50 border border-slate-100 rounded-lg group">
+                    <div key={m.user_id} className="flex items-center justify-between px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-lg group">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-slate-700">{m.user_name}</span>
+                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{m.user_name}</span>
                         {editingMemberId === m.user_id ? (
                           <select
                             value={editRoleValue}
                             onChange={(e) => setEditRoleValue(e.target.value as any)}
-                            className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full outline-none ml-2 border border-slate-300"
+                            className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full outline-none ml-2 border border-slate-300 dark:border-slate-600"
                           >
                             <option value="membro">Membro</option>
                             <option value="capitao">Capitão</option>
@@ -337,7 +337,7 @@ export function SquadsSection() {
                               ©️ Capitão
                             </span>
                           ) : (
-                            <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.25 rounded-md bg-slate-200 text-slate-550">Membro</span>
+                            <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.25 rounded-md bg-slate-200 dark:bg-slate-700 text-slate-550">Membro</span>
                           )
                         )}
                       </div>
@@ -345,7 +345,7 @@ export function SquadsSection() {
                         {editingMemberId === m.user_id ? (
                           <>
                             <button onClick={() => saveRoleChange(m.user_id, m.role_type)} className="p-1 text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors"><Check size={14} /></button>
-                            <button onClick={() => setEditingMemberId(null)} className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors"><X size={14} /></button>
+                            <button onClick={() => setEditingMemberId(null)} className="p-1 text-slate-400 hover:text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:bg-slate-800/50 rounded-md transition-colors"><X size={14} /></button>
                           </>
                         ) : (
                           <>
@@ -366,14 +366,14 @@ export function SquadsSection() {
                   ))}
 
                   {/* Combined combobox form to add a user as Membro or Gestor */}
-                  <div className="pt-3 border-t border-slate-100 space-y-2.5">
+                  <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
                     <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-1">
                         <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Usuário</label>
                         <select
                           value={selectedUserToAdd}
                           onChange={e => setSelectedUserToAdd(e.target.value)}
-                          className="w-full p-2 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none font-medium text-slate-700"
+                          className="w-full p-2 border border-slate-200 dark:border-slate-700 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none font-medium text-slate-700 dark:text-slate-300"
                         >
                           <option value="">Adicionar...</option>
                           {users
@@ -390,7 +390,7 @@ export function SquadsSection() {
                         <select
                           value={selectedRoleToAdd}
                           onChange={e => setSelectedRoleToAdd(e.target.value as 'membro' | 'gestor' | 'capitao')}
-                          className="w-full p-2 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none font-medium text-slate-700"
+                          className="w-full p-2 border border-slate-200 dark:border-slate-700 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none font-medium text-slate-700 dark:text-slate-300"
                         >
                           <option value="membro">Membro</option>
                           <option value="capitao">Capitão</option>
@@ -441,13 +441,13 @@ export function SquadsSection() {
       {/* Modal Novo / Editar Squad */}
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md animate-in fade-in zoom-in duration-300 overflow-hidden">
-            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/95 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-md animate-in fade-in zoom-in duration-300 overflow-hidden">
+            <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/95 backdrop-blur-sm">
               <div>
-                <h2 className="text-xl font-black text-slate-800">{isEdit ? 'Editar Squad' : 'Novo Squad'}</h2>
-                <p className="text-xs text-slate-500 mt-0.5">{isEdit ? 'Atualize as informações da equipe' : 'Configure uma nova equipe comercial'}</p>
+                <h2 className="text-xl font-black text-slate-800 dark:text-slate-200">{isEdit ? 'Editar Squad' : 'Novo Squad'}</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{isEdit ? 'Atualize as informações da equipe' : 'Configure uma nova equipe comercial'}</p>
               </div>
-              <button onClick={closeModal} className="p-2 hover:bg-slate-200 rounded-xl text-slate-400 hover:text-slate-600 transition-all">
+              <button onClick={closeModal} className="p-2 hover:bg-slate-200 dark:bg-slate-700 rounded-xl text-slate-400 hover:text-slate-600 dark:text-slate-400 transition-all">
                 <X size={20} />
               </button>
             </div>
@@ -455,11 +455,11 @@ export function SquadsSection() {
             <form onSubmit={handleSave} className="p-6 space-y-7">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2 col-span-2 sm:col-span-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Empresa</label>
+                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Empresa</label>
                   <select
                     value={modalForm.company}
                     onChange={e => setModalForm(v => ({ ...v, company: e.target.value }))}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all text-slate-700 font-bold"
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all text-slate-700 dark:text-slate-300 font-bold"
                   >
                     <option value="target">Target</option>
                     <option value="pluppex">Pluppex</option>
@@ -467,19 +467,19 @@ export function SquadsSection() {
                 </div>
 
                 <div className="space-y-2 col-span-2 sm:col-span-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nome do Squad</label>
+                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Nome do Squad</label>
                   <input
                     required
                     value={modalForm.name}
                     onChange={e => setModalForm(v => ({ ...v, name: e.target.value }))}
                     placeholder="Ex: Esquadrão Alpha"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all text-slate-700 font-medium placeholder:font-normal placeholder:text-slate-400"
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all text-slate-700 dark:text-slate-300 font-medium placeholder:font-normal placeholder:text-slate-400"
                   />
                 </div>
               </div>
 
               <div className="space-y-3">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Cor de Identificação</label>
+                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Cor de Identificação</label>
                 <div className="flex flex-wrap gap-3">
                   {PRESET_COLORS.map(c => (
                     <button
@@ -505,22 +505,22 @@ export function SquadsSection() {
                         "w-10 h-10 rounded-xl border-2 flex items-center justify-center transition-all",
                         !PRESET_COLORS.includes(modalForm.color)
                           ? "border-slate-800 scale-110 shadow-lg"
-                          : "border-slate-200 border-dashed group-hover:border-slate-400 bg-slate-50 group-hover:bg-slate-100"
+                          : "border-slate-200 dark:border-slate-700 border-dashed group-hover:border-slate-400 bg-slate-50 dark:bg-slate-800 group-hover:bg-slate-100 dark:bg-slate-800/50"
                       )}
                       style={{ backgroundColor: !PRESET_COLORS.includes(modalForm.color) ? modalForm.color : 'transparent' }}
                     >
-                      {PRESET_COLORS.includes(modalForm.color) && <span className="text-sm font-bold text-slate-400 group-hover:text-slate-600">+</span>}
+                      {PRESET_COLORS.includes(modalForm.color) && <span className="text-sm font-bold text-slate-400 group-hover:text-slate-600 dark:text-slate-400">+</span>}
                     </div>
                   </div>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Gestor do Squad</label>
+                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Gestor do Squad</label>
                 <select
                   value={modalForm.manager_id || ''}
                   onChange={e => setModalForm(v => ({ ...v, manager_id: e.target.value || null }))}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all text-slate-700 font-medium"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all text-slate-700 dark:text-slate-300 font-medium"
                 >
                   <option value="">Sem gestor definido</option>
                   {users.map(u => (
@@ -530,10 +530,10 @@ export function SquadsSection() {
               </div>
 
               <div className="space-y-3">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Emblema / Logo <span className="font-normal normal-case">(opcional)</span></label>
-                <div className="flex items-center gap-4 p-4 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50 hover:bg-slate-50 hover:border-indigo-300 transition-all group">
+                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Emblema / Logo <span className="font-normal normal-case">(opcional)</span></label>
+                <div className="flex items-center gap-4 p-4 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-50 dark:bg-slate-800 hover:border-indigo-300 transition-all group">
                   <div
-                    className="w-14 h-14 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-center overflow-hidden flex-shrink-0 transition-colors"
+                    className="w-14 h-14 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center overflow-hidden flex-shrink-0 transition-colors"
                     style={{ backgroundColor: modalForm.color ? `${modalForm.color}15` : '#fff' }}
                   >
                     {modalForm.logo_url ? (
@@ -569,7 +569,7 @@ export function SquadsSection() {
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="w-full sm:w-1/3 py-3.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-2xl transition-colors order-2 sm:order-1"
+                  className="w-full sm:w-1/3 py-3.5 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:bg-slate-800/50 rounded-2xl transition-colors order-2 sm:order-1"
                 >
                   Cancelar
                 </button>

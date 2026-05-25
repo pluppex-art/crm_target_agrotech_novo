@@ -61,15 +61,15 @@ export function AIChat() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] bg-[#f3f6f9]">
-      <div className="p-4 sm:p-6 border-b border-slate-200 bg-white">
+    <div className="flex flex-col h-[calc(100vh-64px)] bg-[#f3f6f9] dark:bg-transparent">
+      <div className="p-4 sm:p-6 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 sm:w-10 sm:h-10 bg-indigo-600 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0">
             <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </div>
           <div className="min-w-0">
-            <h1 className="text-lg sm:text-xl font-bold text-slate-800 truncate">Assistente de IA de Vendas</h1>
-            <p className="text-[10px] sm:text-xs text-slate-500 truncate">Sua ferramenta para criar abordagens comerciais de alta performance.</p>
+            <h1 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-200 truncate">Assistente de IA de Vendas</h1>
+            <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 truncate">Sua ferramenta para criar abordagens comerciais de alta performance.</p>
           </div>
         </div>
       </div>
@@ -82,13 +82,13 @@ export function AIChat() {
           )}>
             <div className={cn(
               "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0",
-              msg.role === 'model' ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-600"
+              msg.role === 'model' ? "bg-emerald-600 text-white" : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400"
             )}>
               {msg.role === 'model' ? <Bot className="w-5 h-5" /> : <User className="w-5 h-5" />}
             </div>
             <div className={cn(
               "p-4 rounded-2xl shadow-sm text-sm leading-relaxed",
-              msg.role === 'model' ? "bg-white text-slate-700 border border-slate-100" : "bg-emerald-600 text-white"
+              msg.role === 'model' ? "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-100 dark:border-slate-800" : "bg-emerald-600 text-white"
             )}>
               {msg.content}
               {msg.role === 'model' && i > 0 && (
@@ -114,7 +114,7 @@ export function AIChat() {
             <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center text-white">
               <Bot className="w-5 h-5" />
             </div>
-            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
               <div className="flex gap-1">
                 <span className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce" />
                 <span className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce [animation-delay:0.2s]" />
@@ -125,7 +125,7 @@ export function AIChat() {
         )}
       </div>
 
-      <div className="p-4 sm:p-6 bg-white border-t border-slate-200">
+      <div className="p-4 sm:p-6 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700">
         <div className="max-w-4xl mx-auto relative">
           <textarea
             value={input}
@@ -137,7 +137,7 @@ export function AIChat() {
               }
             }}
             placeholder="Ex: Crie um e-mail de prospecção..."
-            className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 sm:py-4 pl-4 pr-14 text-sm focus:ring-2 focus:ring-emerald-500 transition-all resize-none h-20 sm:h-24"
+            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-3 sm:py-4 pl-4 pr-14 text-sm focus:ring-2 focus:ring-emerald-500 transition-all resize-none h-20 sm:h-24"
           />
           <button 
             onClick={handleSend}

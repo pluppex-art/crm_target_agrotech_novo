@@ -27,7 +27,7 @@ export function ManageCargos() {
     return (
       <div className="p-6 flex flex-col items-center justify-center min-h-[400px] bg-gradient-to-br from-slate-50 to-slate-100">
         <Loader2 className="w-8 h-8 animate-spin text-emerald-600 mb-4" />
-        <p className="text-slate-500 text-lg">Carregando permissões...</p>
+        <p className="text-slate-500 dark:text-slate-400 text-lg">Carregando permissões...</p>
       </div>
     );
   }
@@ -38,8 +38,8 @@ export function ManageCargos() {
         <div className="w-24 h-24 bg-orange-200 rounded-2xl flex items-center justify-center mb-6 shadow-lg border-4 border-orange-300">
           <ShieldAlert className="w-12 h-12 text-orange-500" />
         </div>
-        <h2 className="text-2xl font-bold text-slate-800 mb-3">Configurações Restritas</h2>
-        <p className="text-slate-500 max-w-md mb-6 leading-relaxed">Você precisa da permissão <code className="bg-orange-100 px-2 py-1 rounded-lg text-sm font-mono text-orange-800 font-bold">settings.manage</code> para gerenciar cargos.</p>
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200 mb-3">Configurações Restritas</h2>
+        <p className="text-slate-500 dark:text-slate-400 max-w-md mb-6 leading-relaxed">Você precisa da permissão <code className="bg-orange-100 px-2 py-1 rounded-lg text-sm font-mono text-orange-800 font-bold">settings.manage</code> para gerenciar cargos.</p>
         <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Contate o administrador</p>
       </div>
     );
@@ -84,8 +84,8 @@ export function ManageCargos() {
     <div className="p-6 max-w-5xl mx-auto">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Gerenciar Cargos</h1>
-          <p className="text-sm text-slate-500">Crie e gerencie cargos/perfis de acesso da equipe.</p>
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Gerenciar Cargos</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Crie e gerencie cargos/perfis de acesso da equipe.</p>
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
@@ -96,14 +96,14 @@ export function ManageCargos() {
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Nome</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Descrição</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Ações</th>
+              <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Nome</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Descrição</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -111,7 +111,7 @@ export function ManageCargos() {
                 <tr>
                   <td colSpan={3} className="px-6 py-12 text-center">
                     <Loader2 className="w-8 h-8 text-emerald-600 animate-spin mx-auto mb-2" />
-                    <p className="text-sm text-slate-500">Carregando cargos...</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Carregando cargos...</p>
                   </td>
                 </tr>
               ) : cargos.length === 0 ? (
@@ -122,13 +122,13 @@ export function ManageCargos() {
                 </tr>
               ) : (
                 cargos.map((cargo) => (
-                  <tr key={cargo.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-slate-700">
+                  <tr key={cargo.id} className="hover:bg-slate-50 dark:bg-slate-800/50 transition-colors">
+                    <td className="px-6 py-4 font-medium text-slate-700 dark:text-slate-300">
                       <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm font-semibold">
                         {cargo.name}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-600 max-w-md">
+                    <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400 max-w-md">
                       {cargo.description || '—'}
                     </td>
                     <td className="px-6 py-4 text-right">
@@ -162,44 +162,44 @@ export function ManageCargos() {
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-slate-800">{editingId ? 'Editar Cargo' : 'Novo Cargo'}</h2>
-              <button onClick={handleCloseModal} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 transition-colors">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">{editingId ? 'Editar Cargo' : 'Novo Cargo'}</h2>
+              <button onClick={handleCloseModal} className="p-2 hover:bg-slate-100 dark:bg-slate-800/50 rounded-lg text-slate-400 transition-colors">
                 <X size={20} />
               </button>
             </div>
             
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nome do Cargo *</label>
+                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Nome do Cargo *</label>
                 <input 
                   required
                   type="text" 
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700"
+                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 dark:text-slate-300"
                   placeholder="Ex: Consultor"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Descrição</label>
+                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Descrição</label>
                 <textarea 
                   value={formData.description}
                   onChange={(e) => setFormData({...formData, description: e.target.value})}
                   rows={3}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 resize-vertical"
+                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 dark:text-slate-300 resize-vertical"
                   placeholder="Descrição opcional do cargo..."
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Permissões</label>
+                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Permissões</label>
                 <p className="text-xs text-slate-400 mb-3">Selecione as permissões deste cargo</p>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-2 bg-slate-50 rounded-xl border border-slate-200">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-2 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
                   {PERMISSIONS.map((permission) => (
-                    <label key={permission} className="flex items-center gap-2 p-2 hover:bg-slate-100 rounded-lg cursor-pointer group">
+                    <label key={permission} className="flex items-center gap-2 p-2 hover:bg-slate-100 dark:bg-slate-800/50 rounded-lg cursor-pointer group">
                       <input
                         type="checkbox"
 checked={formData.permissions?.includes(permission) || false}
@@ -209,9 +209,9 @@ const newPermissions = e.target.checked
                             : (formData.permissions || []).filter(p => p !== permission);
                           setFormData({ ...formData, permissions: newPermissions });
                         }}
-                        className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-4 w-4"
+                        className="rounded border-slate-300 dark:border-slate-600 text-emerald-600 focus:ring-emerald-500 h-4 w-4"
                       />
-                        <span className="text-xs font-medium text-slate-700 group-hover:text-emerald-600">
+                        <span className="text-xs font-medium text-slate-700 dark:text-slate-300 group-hover:text-emerald-600">
                         {permission.replace('dashboard.view', 'Visualizar Dashboard')
                           .replace('leads.view', 'Visualizar Leads')
                           .replace('leads.create', 'Criar Leads')
@@ -261,7 +261,7 @@ const newPermissions = e.target.checked
                   type="button"
                   onClick={handleCloseModal}
                   disabled={submitting}
-                  className="px-6 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors disabled:opacity-50"
+                  className="px-6 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:bg-slate-800/50 rounded-xl transition-colors disabled:opacity-50"
                 >
                   Cancelar
                 </button>

@@ -33,7 +33,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   setIsCallInProgress,
 }) => {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100 dark:border-slate-800">
       <div className="flex items-center gap-4 flex-1 min-w-0 w-full">
         <img
           src={formData.profile_photo_url || formData.photo || '/placeholder-avatar.jpg'}
@@ -42,7 +42,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         />
         <div className="flex-1 min-w-0 space-y-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="text-base font-bold text-slate-800 truncate">{formData.name}</h3>
+            <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 truncate">{formData.name}</h3>
             {squadInfo && (
               <span
                 className="text-[9px] font-black px-2 py-0.5 rounded-full border uppercase tracking-tighter shrink-0"

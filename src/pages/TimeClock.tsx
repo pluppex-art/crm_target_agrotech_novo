@@ -93,7 +93,7 @@ export function TimeClock() {
   const getStatusColor = () => {
     if (activeStatus === 'working' || activeStatus === 'returned') return 'text-emerald-600 bg-emerald-50 border-emerald-100';
     if (activeStatus === 'break') return 'text-amber-600 bg-amber-50 border-amber-100';
-    return 'text-slate-400 bg-slate-50 border-slate-100';
+    return 'text-slate-400 bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800';
   };
 
   const statusLabel = (s: PontoStatus) => {
@@ -163,16 +163,16 @@ export function TimeClock() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {isAdmin && (
-        <div className="flex bg-slate-100 p-1 rounded-xl w-fit mb-4 border border-slate-200 shadow-inner">
+        <div className="flex bg-slate-100 dark:bg-slate-800/50 p-1 rounded-xl w-fit mb-4 border border-slate-200 dark:border-slate-700 shadow-inner">
           <button
             onClick={() => setView('personal')}
-            className={cn("px-6 py-2 rounded-lg text-sm font-bold transition-all", view === 'personal' ? "bg-white text-emerald-600 shadow-sm" : "text-slate-500 hover:text-slate-700")}
+            className={cn("px-6 py-2 rounded-lg text-sm font-bold transition-all", view === 'personal' ? "bg-white dark:bg-slate-900 text-emerald-600 shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-300")}
           >
             Meu Ponto
           </button>
           <button
             onClick={() => setView('admin')}
-            className={cn("px-6 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2", view === 'admin' ? "bg-white text-emerald-600 shadow-sm" : "text-slate-500 hover:text-slate-700")}
+            className={cn("px-6 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2", view === 'admin' ? "bg-white dark:bg-slate-900 text-emerald-600 shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-300")}
           >
             <Users size={16} />
             Gestão da Equipe
@@ -183,21 +183,21 @@ export function TimeClock() {
       {view === 'personal' ? (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
           {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-6">
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-200">
                 <Clock className="text-white w-8 h-8" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-slate-800">Horário de Ponto</h1>
-                <p className="text-slate-500 flex items-center gap-2 mt-1">
+                <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Horário de Ponto</h1>
+                <p className="text-slate-500 dark:text-slate-400 flex items-center gap-2 mt-1">
                   <CalendarIcon size={14} />
                   {currentTime.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                 </p>
               </div>
             </div>
             <div className="text-right">
-              <div className="text-5xl font-black text-slate-800 tabular-nums tracking-tight">
+              <div className="text-5xl font-black text-slate-800 dark:text-slate-200 tabular-nums tracking-tight">
                 {currentTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
               </div>
               <div className={cn("inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold mt-3 border transition-all uppercase tracking-widest", getStatusColor())}>
@@ -213,8 +213,8 @@ export function TimeClock() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Punch Controls */}
             <div className="lg:col-span-2 space-y-6">
-              <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 space-y-8">
-                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-8">
+                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
                   <Briefcase size={20} className="text-emerald-600" />
                   Controle de Jornada
                 </h3>
@@ -233,7 +233,7 @@ export function TimeClock() {
 
               <div className="bg-emerald-600 p-6 rounded-3xl text-white flex items-center justify-between shadow-lg shadow-emerald-100">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                  <div className="w-12 h-12 bg-white dark:bg-slate-900/20 rounded-xl flex items-center justify-center">
                     <CheckCircle2 />
                   </div>
                   <div>
@@ -245,8 +245,8 @@ export function TimeClock() {
             </div>
 
             {/* History Log */}
-            <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 flex flex-col min-h-[500px]">
-              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-6">
+            <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col min-h-[500px]">
+              <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 mb-6">
                 <History size={20} className="text-emerald-600" />
                 Histórico Hoje
               </h3>
@@ -257,14 +257,14 @@ export function TimeClock() {
               ) : (
                 <div className="flex-1 space-y-6 overflow-y-auto pr-2">
                   {todayRecords.map((log) => (
-                    <div key={log.id} className="relative pl-6 border-l-2 border-slate-100 last:border-transparent pb-6 last:pb-0">
+                    <div key={log.id} className="relative pl-6 border-l-2 border-slate-100 dark:border-slate-800 last:border-transparent pb-6 last:pb-0">
                       <div className={cn("absolute -left-[9px] top-0 w-4 h-4 rounded-full border-2 border-white shadow-sm", TYPE_COLOR[log.type] || 'bg-slate-400')} />
                       <div className="flex justify-between items-start">
                         <div>
-                          <p className="text-sm font-bold text-slate-800">{TYPE_LABEL[log.type] || log.type}</p>
+                          <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{TYPE_LABEL[log.type] || log.type}</p>
                           <p className="text-xs text-slate-400 mt-0.5">{log.location || 'Sede'}</p>
                         </div>
-                        <span className="text-sm font-black text-slate-700 tabular-nums">
+                        <span className="text-sm font-black text-slate-700 dark:text-slate-300 tabular-nums">
                           {new Date(log.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
@@ -288,13 +288,13 @@ export function TimeClock() {
             <AdminStatCard label="Presentes" value={String(adminStats.working)} sub="Trabalhando agora" color="text-emerald-600" icon={<Play size={18}/>} />
             <AdminStatCard label="Em Intervalo" value={String(adminStats.onBreak)} sub="Fora temporariamente" color="text-amber-600" icon={<Coffee size={18}/>} />
             <AdminStatCard label="Ausentes" value={String(adminStats.absent)} sub="Sem registro hoje" color="text-red-600" icon={<AlertCircle size={18}/>} />
-            <AdminStatCard label="Total Colaboradores" value={String(adminStats.total)} sub="Ativos no sistema" color="text-slate-600" icon={<Users size={18}/>} />
+            <AdminStatCard label="Total Colaboradores" value={String(adminStats.total)} sub="Ativos no sistema" color="text-slate-600 dark:text-slate-400" icon={<Users size={18}/>} />
           </div>
 
           {/* Status por colaborador */}
-          <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
             <div className="p-6 border-b border-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <h3 className="text-base font-bold text-slate-700">Status da Equipe — Hoje</h3>
+              <h3 className="text-base font-bold text-slate-700 dark:text-slate-300">Status da Equipe — Hoje</h3>
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                 <input
@@ -302,7 +302,7 @@ export function TimeClock() {
                   placeholder="Buscar colaborador ou departamento..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                  className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
                 />
               </div>
             </div>
@@ -315,7 +315,7 @@ export function TimeClock() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-slate-50/50 text-slate-500 uppercase text-[10px] font-bold tracking-widest border-b border-slate-100">
+                    <tr className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 uppercase text-[10px] font-bold tracking-widest border-b border-slate-100 dark:border-slate-800">
                       <th className="px-6 py-4 text-left">Colaborador</th>
                       <th className="px-6 py-4 text-left">Departamento</th>
                       <th className="px-6 py-4 text-left">Status</th>
@@ -325,7 +325,7 @@ export function TimeClock() {
                   </thead>
                   <tbody className="divide-y divide-slate-50">
                     {filteredTeam.map((member) => (
-                      <tr key={member.user_id} className="hover:bg-slate-50/50 transition-colors">
+                      <tr key={member.user_id} className="hover:bg-slate-50 dark:bg-slate-800/50 transition-colors">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             {member.user_avatar ? (
@@ -335,12 +335,12 @@ export function TimeClock() {
                                 {member.user_name.substring(0, 2)}
                               </div>
                             )}
-                            <span className="font-bold text-slate-700">{member.user_name}</span>
+                            <span className="font-bold text-slate-700 dark:text-slate-300">{member.user_name}</span>
                           </div>
                         </td>
                         <td className="px-6 py-4">
                           {member.user_department ? (
-                            <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold uppercase tracking-wide">
+                            <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 rounded-lg text-[10px] font-bold uppercase tracking-wide">
                               {member.user_department}
                             </span>
                           ) : <span className="text-slate-300">—</span>}
@@ -352,11 +352,11 @@ export function TimeClock() {
                           {member.last_record ? (
                             <div className="flex items-center gap-2">
                               <div className={cn("w-2 h-2 rounded-full", TYPE_COLOR[member.last_record.type] || 'bg-slate-400')} />
-                              <span className="text-slate-600">{TYPE_LABEL[member.last_record.type]}</span>
+                              <span className="text-slate-600 dark:text-slate-400">{TYPE_LABEL[member.last_record.type]}</span>
                             </div>
                           ) : <span className="text-slate-300 text-xs">Sem registro</span>}
                         </td>
-                        <td className="px-6 py-4 font-black text-slate-700 tabular-nums">
+                        <td className="px-6 py-4 font-black text-slate-700 dark:text-slate-300 tabular-nums">
                           {member.last_record
                             ? new Date(member.last_record.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
                             : '—'}
@@ -376,9 +376,9 @@ export function TimeClock() {
           </div>
 
           {/* Log de registros do dia */}
-          <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
             <div className="p-6 border-b border-slate-50 flex items-center justify-between">
-              <h3 className="text-base font-bold text-slate-700 flex items-center gap-2">
+              <h3 className="text-base font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
                 <History size={18} className="text-emerald-600" />
                 Todos os Registros de Hoje
               </h3>
@@ -395,7 +395,7 @@ export function TimeClock() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-slate-50/50 text-slate-500 uppercase text-[10px] font-bold tracking-widest border-b border-slate-100">
+                    <tr className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 uppercase text-[10px] font-bold tracking-widest border-b border-slate-100 dark:border-slate-800">
                       <th className="px-6 py-4 text-left">Colaborador</th>
                       <th className="px-6 py-4 text-left">Departamento</th>
                       <th className="px-6 py-4 text-left">Tipo</th>
@@ -405,7 +405,7 @@ export function TimeClock() {
                   </thead>
                   <tbody className="divide-y divide-slate-50">
                     {filteredAllRecords.map((log) => (
-                      <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
+                      <tr key={log.id} className="hover:bg-slate-50 dark:bg-slate-800/50 transition-colors">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             {log.user_avatar ? (
@@ -415,12 +415,12 @@ export function TimeClock() {
                                 {log.user_name.substring(0, 2)}
                               </div>
                             )}
-                            <span className="font-bold text-slate-700">{log.user_name}</span>
+                            <span className="font-bold text-slate-700 dark:text-slate-300">{log.user_name}</span>
                           </div>
                         </td>
                         <td className="px-6 py-4">
                           {log.user_department ? (
-                            <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold uppercase tracking-wide">
+                            <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 rounded-lg text-[10px] font-bold uppercase tracking-wide">
                               {log.user_department}
                             </span>
                           ) : <span className="text-slate-300">—</span>}
@@ -428,14 +428,14 @@ export function TimeClock() {
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
                             <div className={cn("w-2 h-2 rounded-full", TYPE_COLOR[log.type] || 'bg-slate-400')} />
-                            <span className="capitalize font-medium text-slate-600">{TYPE_LABEL[log.type]}</span>
+                            <span className="capitalize font-medium text-slate-600 dark:text-slate-400">{TYPE_LABEL[log.type]}</span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 font-black text-slate-700 tabular-nums">
+                        <td className="px-6 py-4 font-black text-slate-700 dark:text-slate-300 tabular-nums">
                           {new Date(log.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                         </td>
                         <td className="px-6 py-4">
-                          <div className="flex items-center gap-1.5 text-slate-500 text-xs">
+                          <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-xs">
                             <MapPin size={12} />
                             {log.location || 'Sede'}
                           </div>
@@ -464,7 +464,7 @@ function StatusBadge({ status }: { status: PontoStatus }) {
     return <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-bold"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />Em Jornada</span>;
   if (status === 'break')
     return <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-amber-50 text-amber-700 rounded-lg text-xs font-bold"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />Em Intervalo</span>;
-  return <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-slate-100 text-slate-500 rounded-lg text-xs font-bold"><span className="w-1.5 h-1.5 rounded-full bg-slate-400" />Ausente</span>;
+  return <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-slate-100 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 rounded-lg text-xs font-bold"><span className="w-1.5 h-1.5 rounded-full bg-slate-400" />Ausente</span>;
 }
 
 function PunchButton({ label, icon: Icon, onClick, active, variant, spinning }: {
@@ -483,7 +483,7 @@ function PunchButton({ label, icon: Icon, onClick, active, variant, spinning }: 
       disabled={!active || spinning}
       className={cn(
         "flex items-center justify-center gap-3 p-4 rounded-2xl transition-all duration-300 font-bold text-sm border-b-4",
-        active && !spinning ? colors[variant] : "bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed opacity-50 grayscale shadow-none"
+        active && !spinning ? colors[variant] : "bg-slate-50 dark:bg-slate-800 text-slate-300 border-slate-100 dark:border-slate-800 cursor-not-allowed opacity-50 grayscale shadow-none"
       )}
     >
       <Icon size={20} className={spinning ? 'animate-spin' : ''} />
@@ -494,21 +494,21 @@ function PunchButton({ label, icon: Icon, onClick, active, variant, spinning }: 
 
 function MetricCard({ label, value, icon, color }: { label: string; value: string; icon: React.ReactNode; color?: string }) {
   return (
-    <div className="text-center p-3 rounded-2xl bg-slate-50/50 border border-slate-100">
+    <div className="text-center p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
       <div className="flex items-center justify-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
         {icon}
         {label}
       </div>
-      <div className={cn("text-lg font-black tabular-nums", color || "text-slate-700")}>{value}</div>
+      <div className={cn("text-lg font-black tabular-nums", color || "text-slate-700 dark:text-slate-300")}>{value}</div>
     </div>
   );
 }
 
 function AdminStatCard({ label, value, sub, color, icon }: { label: string; value: string; sub: string; color: string; icon: React.ReactNode }) {
   return (
-    <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+    <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
       <div className="flex items-center gap-3 mb-2">
-        <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center bg-slate-50", color)}>
+        <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center bg-slate-50 dark:bg-slate-800", color)}>
           {icon}
         </div>
         <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{label}</span>

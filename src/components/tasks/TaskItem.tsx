@@ -20,7 +20,7 @@ export function TaskItem({ task, onToggleStatus, onDelete, onEdit }: TaskItemPro
   return (
     <div
       className={cn(
-        "bg-white p-4 rounded-2xl border border-slate-200 flex items-center justify-between group hover:shadow-md transition-all",
+        "bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center justify-between group hover:shadow-md transition-all",
         task.status === 'completed' && "opacity-60"
       )}
     >
@@ -31,14 +31,14 @@ export function TaskItem({ task, onToggleStatus, onDelete, onEdit }: TaskItemPro
             "w-6 h-6 shrink-0 rounded-full border-2 flex items-center justify-center transition-all",
             task.status === 'completed'
               ? "bg-emerald-500 border-emerald-500 text-white"
-              : "border-slate-200 hover:border-emerald-500"
+              : "border-slate-200 dark:border-slate-700 hover:border-emerald-500"
           )}
         >
           {task.status === 'completed' && <CheckCircle2 className="w-4 h-4" />}
         </button>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <h3 className={cn("text-sm font-bold text-slate-800 truncate", task.status === 'completed' && "line-through")}>
+            <h3 className={cn("text-sm font-bold text-slate-800 dark:text-slate-200 truncate", task.status === 'completed' && "line-through")}>
               {task.title}
             </h3>
             {isActivity && (

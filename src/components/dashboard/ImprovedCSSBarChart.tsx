@@ -30,7 +30,7 @@ export function ImprovedCSSBarChart({
   if (!hasData) {
     return (
       <div
-        className="flex flex-col items-center justify-center text-slate-300 rounded-3xl border-2 border-dashed border-slate-200 bg-slate-50/50"
+        className="flex flex-col items-center justify-center text-slate-300 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50"
         style={{ height: chartHeight + 40 }}
       >
         <BarChart2 className="w-12 h-12 mb-3 opacity-20" />
@@ -76,7 +76,7 @@ export function ImprovedCSSBarChart({
                 )}
                 
                 {showValues && (
-                   <span className="text-[10px] font-black text-slate-500 mb-2 tabular-nums">
+                   <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 mb-2 tabular-nums">
                      {d.sublabel ?? fmt(d.value)}
                    </span>
                 )}
@@ -93,7 +93,7 @@ export function ImprovedCSSBarChart({
                 >
                    {/* Gradient highlight */}
                    <div className="absolute inset-0 bg-gradient-to-tr from-black/20 via-transparent to-white/20" />
-                   <div className="absolute top-0 inset-x-0 h-[2px] bg-white/20" />
+                   <div className="absolute top-0 inset-x-0 h-[2px] bg-white dark:bg-slate-900/20" />
                 </div>
 
                 {/* Label — Vertical */}
@@ -123,7 +123,7 @@ export function ImprovedCSSBarChart({
                       letterSpacing: '-0.02em',
                       textTransform: 'uppercase',
                     }}
-                    className="group-hover:text-slate-600 transition-colors duration-300"
+                    className="group-hover:text-slate-600 dark:text-slate-400 transition-colors duration-300"
                   >
                     {d.label}
                   </span>

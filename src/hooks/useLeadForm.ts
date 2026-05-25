@@ -116,6 +116,7 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
   // Sync only boolean toggles and file URLs from external sources (real-time updates, toggleField calls).
   // Do NOT sync text/numeric fields (value, valor_recebido, taxa_matricula_recebido, discount) here
   // because that would overwrite what the user is currently typing whenever a toggle fires.
+  // We use a ref to track if the user has interacted with the form to avoid overwriting their work.
   useEffect(() => {
     setFormData(prev => {
       const incomingPix = lead.pix_completed ?? false;
@@ -145,7 +146,15 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
       }
       return prev;
     });
-  }, [lead]);
+  }, [
+    lead.pix_completed,
+    lead.contract_signed,
+    lead.discount_applied,
+    lead.discount,
+    lead.payment_proof_url,
+    lead.contract_url,
+    lead.professor_proof_url
+  ]);
 
   const calculateFinalValue = useCallback(() => {
     return financialCalculator.getEffectiveValue(formData);

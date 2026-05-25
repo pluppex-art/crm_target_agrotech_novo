@@ -34,9 +34,9 @@ export function TrendsSection({ sales, totalAchieved, totalGoal }: TrendsSection
   }));
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8 flex flex-col gap-6 w-full min-w-0">
+    <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-xl p-8 flex flex-col gap-6 w-full min-w-0">
       <div className="flex items-center justify-between">
-        <h3 className="font-bold text-xl text-slate-800">Progresso da Meta Geral</h3>
+        <h3 className="font-bold text-xl text-slate-800 dark:text-slate-200">Progresso da Meta Geral</h3>
         <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${statusColor.badge}`}>
           {statusLabel}
         </span>
@@ -47,7 +47,7 @@ export function TrendsSection({ sales, totalAchieved, totalGoal }: TrendsSection
           <Target className="w-12 h-12 opacity-40" />
           <p className="text-sm font-medium text-slate-400 text-center">
             Defina a meta de leads da empresa em<br />
-            <span className="font-bold text-slate-500">Configurações → Metas</span>
+            <span className="font-bold text-slate-500 dark:text-slate-400">Configurações → Metas</span>
           </p>
         </div>
       ) : (
@@ -58,7 +58,7 @@ export function TrendsSection({ sales, totalAchieved, totalGoal }: TrendsSection
                 <TrendingUp size={10} />
                 Ganhos (Total)
               </span>
-              <span className="text-lg font-black text-slate-900 leading-tight">
+              <span className="text-lg font-black text-slate-900 dark:text-slate-100 leading-tight">
                 {totalAchieved}
               </span>
             </div>
@@ -67,7 +67,7 @@ export function TrendsSection({ sales, totalAchieved, totalGoal }: TrendsSection
                 <Target size={10} />
                 Meta (Leads)
               </span>
-              <span className="text-lg font-bold text-slate-600">
+              <span className="text-lg font-bold text-slate-600 dark:text-slate-400">
                 {totalGoal}
               </span>
             </div>

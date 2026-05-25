@@ -28,7 +28,7 @@ export const LeadNotesTab: React.FC<LeadNotesTabProps> = ({
             value={newNote}
             onChange={(e) => setNewNote(e.target.value)}
             placeholder="Adicione uma observação sobre este lead..."
-            className="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm min-h-[100px] resize-none shadow-sm"
+            className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm min-h-[100px] resize-none shadow-sm"
           />
           <button
             onClick={handleAddNote}
@@ -67,7 +67,7 @@ export const LeadNotesTab: React.FC<LeadNotesTabProps> = ({
                 "border rounded-2xl p-4 relative group transition-all",
                 isVendaFechada
                   ? "bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200 shadow-md"
-                  : "bg-white border-slate-100 shadow-sm"
+                  : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 shadow-sm"
               )}>
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex flex-col gap-1">
@@ -80,7 +80,7 @@ export const LeadNotesTab: React.FC<LeadNotesTabProps> = ({
                       </span>
                     </div>
                     {note.author_name && (
-                      <span className={cn("text-[10px] font-semibold px-1", isVendaFechada ? "text-emerald-600" : "text-slate-500")}>
+                      <span className={cn("text-[10px] font-semibold px-1", isVendaFechada ? "text-emerald-600" : "text-slate-500 dark:text-slate-400")}>
                         por {note.author_name}
                       </span>
                     )}
@@ -94,7 +94,7 @@ export const LeadNotesTab: React.FC<LeadNotesTabProps> = ({
                 </div>
                 <p className={cn(
                   "leading-relaxed",
-                  isVendaFechada ? "text-sm md:text-base font-bold text-emerald-800" : "text-sm text-slate-700"
+                  isVendaFechada ? "text-sm md:text-base font-bold text-emerald-800" : "text-sm text-slate-700 dark:text-slate-300"
                 )}>
                   {displayContent}
                 </p>
@@ -102,7 +102,7 @@ export const LeadNotesTab: React.FC<LeadNotesTabProps> = ({
             );
           })
         ) : (
-          <div className="text-center py-12 text-slate-400 border border-dashed border-slate-200 rounded-2xl">
+          <div className="text-center py-12 text-slate-400 border border-dashed border-slate-200 dark:border-slate-700 rounded-2xl">
             <MessageSquare className="w-10 h-10 mx-auto mb-3 opacity-20" />
             <p className="text-sm">Nenhuma nota registrada.</p>
           </div>

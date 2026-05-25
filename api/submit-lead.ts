@@ -70,10 +70,32 @@ export default async function handler(req: any, res: any) {
 
   const { data: sellers } = await sellersQuery;
 
-  // Ordena alfabeticamente em pt-BR (ignora maiúsculas/minúsculas e acentos)
-  const validSellers = (sellers || []).sort((a, b) =>
-    a.name.trim().localeCompare(b.name.trim(), 'pt-BR', { sensitivity: 'base' })
-  );
+  // 4. Fetch the product routing preferences
+  const { data: rrSettings } = await supabase
+    .from('crm_settings')
+    .select('value')
+    .eq('key', 'round_robin_products')
+    .maybeSingle();
+
+  const productRouting = (rrSettings?.value as Record<string, string[]>) || {};
+
+  // Ordena alfabeticamente em pt-BR e filtra por produto
+  const validSellers = (sellers || [])
+    .filter(s => {
+      const allowedProducts = productRouting[s.id];
+      // Se não tem configuração, ou lista vazia, recebe tudo
+      if (!allowedProducts || allowedProducts.length === 0) return true;
+      // Se lead não tem produto, mas vendedor tem restrição, ele pode receber? 
+      // É melhor não bloquear se lead não tem produto para evitar perder o lead
+      if (!product) return true;
+      
+      // Verifica se o produto do form corresponde a algum na lista do vendedor
+      return allowedProducts.some(p => 
+        product.toLowerCase().includes(p.toLowerCase()) || 
+        p.toLowerCase().includes(product.toLowerCase())
+      );
+    })
+    .sort((a, b) => a.name.trim().localeCompare(b.name.trim(), 'pt-BR', { sensitivity: 'base' }));
 
   let assignedResponsible = null;
   let assignedUserId = null;
@@ -81,8 +103,13 @@ export default async function handler(req: any, res: any) {
 
   if (validSellers.length > 0) {
 
-    // Fallback: se o estado dedicado estiver vazio, busca o último lead da tabela
-    if (!lastSellerId) {
+    let lastIndex = lastSellerId
+      ? validSellers.findIndex((s: any) => s.id === lastSellerId)
+      : -1;
+
+    // Se o último vendedor geral não faz parte da lista deste produto (ex: pools separados),
+    // buscamos quem foi o último desta lista específica a receber um lead.
+    if (lastIndex === -1) {
       const { data: lastLead } = await supabase
         .from('leads')
         .select('responsavel_usuario_id')
@@ -90,13 +117,13 @@ export default async function handler(req: any, res: any) {
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
-      lastSellerId = lastLead?.responsavel_usuario_id ?? null;
+        
+      if (lastLead?.responsavel_usuario_id) {
+        lastIndex = validSellers.findIndex((s: any) => s.id === lastLead.responsavel_usuario_id);
+      }
     }
 
-    const lastIndex = lastSellerId
-      ? validSellers.findIndex(s => s.id === lastSellerId)
-      : -1;
-    const nextIndex = (lastIndex + 1) % validSellers.length;
+    const nextIndex = (lastIndex !== -1 ? lastIndex + 1 : 0) % validSellers.length;
     assignedResponsible = validSellers[nextIndex].name;
     assignedUserId = validSellers[nextIndex].id;
     assignedPhone = validSellers[nextIndex].phone;

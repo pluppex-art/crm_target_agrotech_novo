@@ -104,7 +104,7 @@ export const LeadTurmaTab: React.FC<LeadTurmaTabProps> = ({
           }} FORMAS={FORMAS} />
         ))
       ) : (
-        <div className="text-center py-10 text-slate-400 border border-dashed border-slate-200 rounded-2xl">
+        <div className="text-center py-10 text-slate-400 border border-dashed border-slate-200 dark:border-slate-700 rounded-2xl">
           <GraduationCap className="w-10 h-10 mx-auto mb-3 opacity-20" /><p className="text-sm">Nenhuma turma vinculada.</p>
         </div>
       )}

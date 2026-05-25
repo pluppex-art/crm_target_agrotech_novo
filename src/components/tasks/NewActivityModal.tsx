@@ -139,18 +139,18 @@ export const NewActivityModal: React.FC<NewActivityModalProps> = ({
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col"
+          className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col"
         >
           {/* Header */}
-          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-emerald-50 to-white">
+          <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-emerald-50 to-white">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-emerald-100 rounded-xl">
                 <Activity size={18} className="text-emerald-600" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-slate-800">Nova Atividade</h2>
+                <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">Nova Atividade</h2>
                 {leadName && (
-                  <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
                     <User size={11} />
                     {leadName}
                   </p>
@@ -159,7 +159,7 @@ export const NewActivityModal: React.FC<NewActivityModalProps> = ({
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 transition-colors"
+              className="p-2 hover:bg-slate-100 dark:bg-slate-800/50 rounded-lg text-slate-400 transition-colors"
             >
               <X size={18} />
             </button>
@@ -168,7 +168,7 @@ export const NewActivityModal: React.FC<NewActivityModalProps> = ({
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
             {/* Title */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 Título <span className="text-red-400">*</span>
               </label>
               <input
@@ -176,14 +176,14 @@ export const NewActivityModal: React.FC<NewActivityModalProps> = ({
                 type="text"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700"
+                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 dark:text-slate-300"
                 placeholder="Ex: Ligar para confirmar visita..."
               />
             </div>
 
             {/* Category chips */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                 <Tag size={12} />
                 Categoria
               </label>
@@ -198,7 +198,7 @@ export const NewActivityModal: React.FC<NewActivityModalProps> = ({
                         "px-3 py-1.5 rounded-full text-xs font-semibold border transition-all",
                         formData.category === cat.name
                           ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
-                          : "bg-white text-slate-600 border-slate-200 hover:border-emerald-300 hover:text-emerald-600"
+                          : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-emerald-300 hover:text-emerald-600"
                       )}
                     >
                       {cat.name}
@@ -206,7 +206,7 @@ export const NewActivityModal: React.FC<NewActivityModalProps> = ({
                   ))}
                 </div>
               ) : (
-                <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-50 rounded-xl px-3 py-2">
+                <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-50 dark:bg-slate-800 rounded-xl px-3 py-2">
                   <AlertCircle size={14} />
                   Nenhuma categoria. Adicione em Configurações → Categorias de Atividade.
                 </div>
@@ -215,14 +215,14 @@ export const NewActivityModal: React.FC<NewActivityModalProps> = ({
 
             {/* Description */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                 <AlignLeft size={12} />
                 Descrição
               </label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 min-h-[80px] resize-none"
+                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 dark:text-slate-300 min-h-[80px] resize-none"
                 placeholder="Detalhes, observações..."
               />
             </div>
@@ -230,7 +230,7 @@ export const NewActivityModal: React.FC<NewActivityModalProps> = ({
             {/* Date + Time */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                   <Calendar size={12} />
                   Data <span className="text-red-400">*</span>
                 </label>
@@ -239,11 +239,11 @@ export const NewActivityModal: React.FC<NewActivityModalProps> = ({
                   type="date"
                   value={formData.due_date}
                   onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700"
+                  className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 dark:text-slate-300"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                   <Clock size={12} />
                   Horário
                 </label>
@@ -251,14 +251,14 @@ export const NewActivityModal: React.FC<NewActivityModalProps> = ({
                   type="time"
                   value={formData.scheduled_time}
                   onChange={(e) => setFormData({ ...formData, scheduled_time: e.target.value })}
-                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700"
+                  className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 dark:text-slate-300"
                 />
               </div>
             </div>
 
             {/* Priority */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Prioridade</label>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Prioridade</label>
               <div className="flex gap-2">
                 {PRIORITY_OPTIONS.map(opt => (
                   <button
@@ -269,7 +269,7 @@ export const NewActivityModal: React.FC<NewActivityModalProps> = ({
                       "flex-1 py-2 rounded-xl text-xs font-bold border transition-all",
                       formData.priority === opt.value
                         ? opt.active + " shadow-sm"
-                        : "bg-white text-slate-400 border-slate-200 hover:border-slate-300"
+                        : "bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:border-slate-600"
                     )}
                   >
                     {opt.label}
@@ -280,14 +280,14 @@ export const NewActivityModal: React.FC<NewActivityModalProps> = ({
 
             {/* Responsible */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                 <UserCheck size={12} />
                 Responsável
               </label>
               <select
                 value={formData.responsavel_usuario_id}
                 onChange={(e) => setFormData({ ...formData, responsavel_usuario_id: e.target.value })}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700"
+                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 dark:text-slate-300"
               >
                 <option value="">Selecione o responsável...</option>
                 {responsibles.map(r => (
@@ -301,7 +301,7 @@ export const NewActivityModal: React.FC<NewActivityModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+                className="px-5 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:bg-slate-800/50 rounded-xl transition-colors"
               >
                 Cancelar
               </button>

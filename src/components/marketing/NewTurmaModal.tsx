@@ -87,15 +87,15 @@ export function NewTurmaModal({ isOpen, onClose, turma }: NewTurmaModalProps) {
             initial={{ scale: 0.95, y: 20, opacity: 0 }}
             animate={{ scale: 1, y: 0, opacity: 1 }}
             exit={{ scale: 0.95, y: 20, opacity: 0 }}
-            className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden"
+            className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-6 border-b border-slate-100">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-black text-slate-800">
+                <h2 className="text-2xl font-black text-slate-800 dark:text-slate-200">
                   {turma ? 'Editar Turma' : 'Nova Turma'}
                 </h2>
-                <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-2xl text-slate-400 hover:text-slate-600 transition-all">
+                <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:bg-slate-800/50 rounded-2xl text-slate-400 hover:text-slate-600 dark:text-slate-400 transition-all">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -105,33 +105,33 @@ export function NewTurmaModal({ isOpen, onClose, turma }: NewTurmaModalProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">Nome da Turma *</label>
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Nome da Turma *</label>
                     <input
                       required
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm"
+                      className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm"
                       placeholder="Ex: 🚁 Drone, Cuiabá-MT, 15/08/2026"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">Professor</label>
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Professor</label>
                     <input
                       value={formData.professor_name}
                       onChange={(e) => setFormData({ ...formData, professor_name: e.target.value })}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm"
+                      className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm"
                       placeholder="Nome do Professor"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">Email do Professor</label>
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Email do Professor</label>
                     <input
                       type="email"
                       value={formData.professor_email}
                       onChange={(e) => setFormData({ ...formData, professor_email: e.target.value })}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm"
+                      className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm"
                       placeholder="professor@exemplo.com"
                     />
                   </div>
@@ -139,46 +139,46 @@ export function NewTurmaModal({ isOpen, onClose, turma }: NewTurmaModalProps) {
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
                       <Calendar className="w-4 h-4" /> Data
                     </label>
                     <input
                       type="date"
                       value={formData.date}
                       onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm"
+                      className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
                       <Clock className="w-4 h-4" /> Horário
                     </label>
                     <input
                       type="time"
                       value={formData.time}
                       onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm"
+                      className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
                       <MapPin className="w-4 h-4" /> Localização
                     </label>
                     <input
                       value={formData.location}
                       onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm"
+                      className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm"
                       placeholder="Sala 101 ou Online"
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6 pt-6 border-t border-slate-100">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6 pt-6 border-t border-slate-100 dark:border-slate-800">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
                     <DollarSign className="w-4 h-4" /> Preço (R$)
                   </label>
                   <input
@@ -186,13 +186,13 @@ export function NewTurmaModal({ isOpen, onClose, turma }: NewTurmaModalProps) {
                     step="0.01"
                     value={formData.price}
                     onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm"
+                    className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm"
                     placeholder="0.00"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
                     <DollarSign className="w-4 h-4" /> Taxa de Matrícula
                   </label>
                   <input
@@ -200,13 +200,13 @@ export function NewTurmaModal({ isOpen, onClose, turma }: NewTurmaModalProps) {
                     step="0.01"
                     value={formData.enrollment_fee}
                     onChange={(e) => setFormData({ ...formData, enrollment_fee: e.target.value })}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm"
+                    className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm"
                     placeholder="0.00"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
                     <User className="w-4 h-4" /> Capacidade
                   </label>
                   <input
@@ -215,13 +215,13 @@ export function NewTurmaModal({ isOpen, onClose, turma }: NewTurmaModalProps) {
                     max="100"
                     value={formData.student_goal}
                     onChange={(e) => setFormData({ ...formData, student_goal: parseInt(e.target.value) || 20 })}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm"
+                    className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm"
                   />
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-slate-100">
-                <button type="button" onClick={onClose} className="px-6 py-3 text-sm font-bold text-slate-500 hover:text-slate-700 transition-colors">
+              <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-slate-100 dark:border-slate-800">
+                <button type="button" onClick={onClose} className="px-6 py-3 text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-300 transition-colors">
                   Cancelar
                 </button>
                 <button

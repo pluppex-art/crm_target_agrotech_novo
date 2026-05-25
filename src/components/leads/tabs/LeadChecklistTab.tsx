@@ -59,7 +59,7 @@ export const LeadChecklistTab: React.FC<LeadChecklistTabProps> = ({
         </div>
       </div>
 
-      <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+      <div className="w-full bg-slate-100 dark:bg-slate-800/50 rounded-full h-1.5 overflow-hidden">
         <div
           className={cn("h-full rounded-full transition-all duration-500", allRequiredCompleted ? "bg-emerald-500" : "bg-amber-400")}
           style={{ width: requiredTotal > 0 ? `${(requiredCompleted / requiredTotal) * 100}%` : '0%' }}
@@ -75,12 +75,12 @@ export const LeadChecklistTab: React.FC<LeadChecklistTabProps> = ({
               "w-full flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all group",
               item.completed
                 ? "bg-emerald-50 border-emerald-200"
-                : "bg-white border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/30 shadow-sm"
+                : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-emerald-300 hover:bg-emerald-50/30 shadow-sm"
             )}
           >
             <div className={cn(
               "w-5 h-5 shrink-0 rounded-md border-2 flex items-center justify-center transition-all",
-              item.completed ? "bg-emerald-500 border-emerald-500" : "border-slate-300 group-hover:border-emerald-400"
+              item.completed ? "bg-emerald-500 border-emerald-500" : "border-slate-300 dark:border-slate-600 group-hover:border-emerald-400"
             )}>
               {item.completed && (
                 <svg className="w-3 h-3 text-white" viewBox="0 0 12 12" fill="none">
@@ -90,7 +90,7 @@ export const LeadChecklistTab: React.FC<LeadChecklistTabProps> = ({
             </div>
             <span className={cn(
               "flex-1 text-sm font-medium transition-colors",
-              item.completed ? "text-emerald-700 line-through decoration-emerald-300" : "text-slate-700"
+              item.completed ? "text-emerald-700 line-through decoration-emerald-300" : "text-slate-700 dark:text-slate-300"
             )}>
               {item.name}
             </span>

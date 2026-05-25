@@ -63,14 +63,14 @@ export function TurmasRightPanel({
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 20 }}
-      className="fixed inset-0 lg:relative z-50 lg:z-0 lg:flex-1 flex flex-col border-l border-slate-200 bg-white overflow-hidden"
+      className="fixed inset-0 lg:relative z-50 lg:z-0 lg:flex-1 flex flex-col border-l border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden"
     >
       {/* Panel Header */}
-      <div className="px-4 sm:px-6 py-4 border-b border-slate-100 flex items-start justify-between bg-white relative z-10">
+      <div className="px-4 sm:px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-start justify-between bg-white dark:bg-slate-900 relative z-10">
         <div className="flex-1 min-w-0 pr-4">
-          <h2 className="text-lg font-bold text-slate-800 leading-tight truncate">{liveSelectedTurma.name}</h2>
-          <p className="text-xs text-slate-500 mt-0.5 truncate">{liveSelectedTurma.professor_name || 'Sem professor'}</p>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-[10px] sm:text-xs text-slate-500">
+          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200 leading-tight truncate">{liveSelectedTurma.name}</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">{liveSelectedTurma.professor_name || 'Sem professor'}</p>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">
             <span className="flex items-center gap-1"><Calendar size={11} className="text-emerald-500" />{liveSelectedTurma.date ? new Date(liveSelectedTurma.date.replace(/-/g, '\/')).toLocaleDateString('pt-BR') : '--'}</span>
             <span className="flex items-center gap-1"><Clock size={11} className="text-emerald-500" />{liveSelectedTurma.time || '--:--'}</span>
             <span className="flex items-center gap-1"><MapPin size={11} className="text-emerald-500" />{liveSelectedTurma.location || '--'}</span>
@@ -100,17 +100,17 @@ export function TurmasRightPanel({
               </>
             )}
           </button>
-          <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-0.5">
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/50 rounded-lg p-0.5">
             <button
               onClick={() => setViewMode('kanban')}
-              className={cn('p-1.5 rounded-md transition-all', viewMode === 'kanban' ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-400 hover:text-slate-600')}
+              className={cn('p-1.5 rounded-md transition-all', viewMode === 'kanban' ? 'bg-white dark:bg-slate-900 shadow-sm text-emerald-600' : 'text-slate-400 hover:text-slate-600 dark:text-slate-400')}
               title="Visualização Kanban"
             >
               <LayoutGrid size={15} />
             </button>
             <button
               onClick={() => setViewMode('lista')}
-              className={cn('p-1.5 rounded-md transition-all', viewMode === 'lista' ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-400 hover:text-slate-600')}
+              className={cn('p-1.5 rounded-md transition-all', viewMode === 'lista' ? 'bg-white dark:bg-slate-900 shadow-sm text-emerald-600' : 'text-slate-400 hover:text-slate-600 dark:text-slate-400')}
               title="Visualização Lista"
             >
               <LayoutList size={15} />
@@ -118,7 +118,7 @@ export function TurmasRightPanel({
           </div>
           <button
             onClick={() => setSelectedTurma(null)}
-            className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors shadow-sm bg-white shrink-0"
+            className="p-2 hover:bg-slate-100 dark:bg-slate-800/50 rounded-xl text-slate-400 transition-colors shadow-sm bg-white dark:bg-slate-900 shrink-0"
           >
             <X size={20} />
           </button>
@@ -126,7 +126,7 @@ export function TurmasRightPanel({
       </div>
 
       {/* Stats Row */}
-      <div className="px-4 sm:px-6 py-3 bg-slate-50/50 border-b border-slate-100 grid grid-cols-4 gap-2 sm:gap-3">
+      <div className="px-4 sm:px-6 py-3 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 grid grid-cols-4 gap-2 sm:gap-3">
         {STATUS_COLUMNS.map(col => {
           const count = (liveSelectedTurma.attendees || []).filter(a => a.status === col.id).length;
           const totalReceived = (liveSelectedTurma.attendees || []).filter(a => a.status === col.id).reduce((s: number, a) => 
@@ -139,8 +139,8 @@ export function TurmasRightPanel({
                 {col.icon}
                 <span className={cn('text-[10px] font-bold hidden sm:block', col.color)}>{col.label}</span>
               </div>
-              <p className="text-xl font-bold text-slate-800">{count}</p>
-              <p className="text-[10px] text-slate-500 mt-0.5" title="Total Recebido">
+              <p className="text-xl font-bold text-slate-800 dark:text-slate-200">{count}</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5" title="Total Recebido">
                 Rec. R$ {totalReceived.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
               </p>
             </div>
@@ -198,10 +198,10 @@ export function TurmasRightPanel({
                 return (
                   <div
                     key={att.id}
-                    className="flex items-center gap-3 bg-white border border-slate-100 rounded-xl px-3 py-2.5 shadow-sm hover:border-emerald-200 transition-colors"
+                    className="flex items-center gap-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl px-3 py-2.5 shadow-sm hover:border-emerald-200 transition-colors"
                   >
                     <div className="relative shrink-0">
-                      <img src={att.photo} alt={att.name} className="w-9 h-9 rounded-full object-cover border-2 border-slate-100" referrerPolicy="no-referrer" />
+                      <img src={att.photo} alt={att.name} className="w-9 h-9 rounded-full object-cover border-2 border-slate-100 dark:border-slate-800" referrerPolicy="no-referrer" />
                       {isPago && (
                         <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center">
                           <BadgeCheck size={10} className="text-white" />
@@ -209,7 +209,7 @@ export function TurmasRightPanel({
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-slate-700 truncate">{att.name}</p>
+                      <p className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">{att.name}</p>
                       <p className="text-[10px] text-slate-400 truncate">{att.responsible || 'Sem responsável'}</p>
                     </div>
                     <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full hidden sm:inline', colDef?.bg, colDef?.color)}>

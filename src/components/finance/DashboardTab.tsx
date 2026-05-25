@@ -163,7 +163,7 @@ export function DashboardTab({ startDate, endDate }: { startDate: string; endDat
 
   // --- Premium UI Components ---
   const MiniCard = ({ title, value, color, icon: Icon, sub }: any) => (
-    <div className="flex flex-col p-5 rounded-2xl border border-slate-100 bg-white shadow-sm transition-all hover:shadow-md group relative overflow-hidden">
+    <div className="flex flex-col p-5 rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm transition-all hover:shadow-md group relative overflow-hidden">
       <div className="flex items-center justify-between mb-4">
         <div className={cn(
           "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-500",
@@ -175,7 +175,7 @@ export function DashboardTab({ startDate, endDate }: { startDate: string; endDat
         </div>
         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{title}</span>
       </div>
-      <p className="text-2xl font-black text-slate-800 tracking-tighter mb-1">R$ {fmt(value || 0)}</p>
+      <p className="text-2xl font-black text-slate-800 dark:text-slate-200 tracking-tighter mb-1">R$ {fmt(value || 0)}</p>
       <div className="flex items-center gap-1.5">
         <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">{sub}</span>
         {color === 'emerald' && <ArrowUpRight size={10} className="text-emerald-500" />}
@@ -211,12 +211,12 @@ export function DashboardTab({ startDate, endDate }: { startDate: string; endDat
               )}>
                 {(kpis?.lucro_liquido || 0) >= 0 ? 'Resultado Positivo' : 'Resultado Negativo'}
               </span>
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{kpis?.margem_liquida?.toFixed(1)}% Margem</span>
+              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{kpis?.margem_liquida?.toFixed(1)}% Margem</span>
             </div>
           </div>
           <div className="relative z-10 text-right">
             <Zap size={48} className="text-emerald-500 opacity-20 mb-2 ml-auto" />
-            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-tight">Relatório de Performance <br/>Consolidada</p>
+            <p className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-tight">Relatório de Performance <br/>Consolidada</p>
           </div>
         </div>
       </div>
@@ -224,10 +224,10 @@ export function DashboardTab({ startDate, endDate }: { startDate: string; endDat
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Main Fluxo Chart */}
         <div className="lg:col-span-3 space-y-6">
-          <div className="bg-white p-7 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 p-7 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm relative overflow-hidden">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest flex items-center gap-2">
                   <Activity size={16} className="text-emerald-500" />
                   Fluxo de Caixa
                 </h3>
@@ -236,11 +236,11 @@ export function DashboardTab({ startDate, endDate }: { startDate: string; endDat
               <div className="flex items-center gap-5">
                 <div className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-200" />
-                  <span className="text-[10px] font-black text-slate-500 uppercase">Entradas</span>
+                  <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase">Entradas</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-sm shadow-rose-200" />
-                  <span className="text-[10px] font-black text-slate-500 uppercase">Saídas</span>
+                  <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase">Saídas</span>
                 </div>
               </div>
             </div>
@@ -282,17 +282,17 @@ export function DashboardTab({ startDate, endDate }: { startDate: string; endDat
           </div>
 
           {/* Turma Desempenho Section */}
-          <div className="bg-white p-7 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 p-7 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm relative overflow-hidden">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest flex items-center gap-2">
                   <GraduationCap size={16} className="text-indigo-500" />
                   Performance por Turma
                 </h3>
                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Evolução de faturamento das turmas core</p>
               </div>
               <div className="flex items-center gap-2">
-                 <span className="px-2 py-1 bg-slate-50 text-slate-400 text-[8px] font-black rounded uppercase">Top 5 Turmas Ativas</span>
+                 <span className="px-2 py-1 bg-slate-50 dark:bg-slate-800 text-slate-400 text-[8px] font-black rounded uppercase">Top 5 Turmas Ativas</span>
               </div>
             </div>
 
@@ -346,7 +346,7 @@ export function DashboardTab({ startDate, endDate }: { startDate: string; endDat
         <div className="space-y-6">
           
           {/* Projeção Financeira Premium */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-5">
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm space-y-5">
             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
               <Target size={14} className="text-slate-400" />
               Projeção Financeira
@@ -361,7 +361,7 @@ export function DashboardTab({ startDate, endDate }: { startDate: string; endDat
                   </div>
                   <ArrowRight size={12} className="text-emerald-500 opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
                 </div>
-                <div className="w-full h-1.5 bg-slate-50 rounded-full overflow-hidden">
+                <div className="w-full h-1.5 bg-slate-50 dark:bg-slate-800 rounded-full overflow-hidden">
                   <div className="h-full bg-emerald-500 rounded-full" style={{ width: '85%' }} />
                 </div>
                 <div className="mt-2 flex items-center justify-between text-[8px] font-bold text-slate-400 uppercase">
@@ -377,7 +377,7 @@ export function DashboardTab({ startDate, endDate }: { startDate: string; endDat
                     <p className="text-lg font-black text-rose-600 tracking-tighter">R$ {fmt(kpis?.contas_pagar || 0)}</p>
                   </div>
                 </div>
-                <div className="w-full h-1.5 bg-slate-50 rounded-full overflow-hidden">
+                <div className="w-full h-1.5 bg-slate-50 dark:bg-slate-800 rounded-full overflow-hidden">
                   <div className="h-full bg-rose-500 rounded-full" style={{ width: '30%' }} />
                 </div>
               </div>
@@ -403,7 +403,7 @@ export function DashboardTab({ startDate, endDate }: { startDate: string; endDat
           </div>
 
           {/* Origem Doughnut */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Origem da Receita</h3>
             <div className="h-[200px] w-full">
               {originData.length > 0 ? (
@@ -429,7 +429,7 @@ export function DashboardTab({ startDate, endDate }: { startDate: string; endDat
           </div>
 
           {/* Categorias Bar */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Ranking Categorias</h3>
             <div className="h-[250px] w-full">
               {categoryData.length > 0 ? (

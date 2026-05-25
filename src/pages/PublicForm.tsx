@@ -304,7 +304,7 @@ export function PublicForm() {
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="max-w-md w-full bg-white/10 backdrop-blur-xl border border-white/20 p-10 rounded-3xl text-center shadow-2xl"
+            className="max-w-md w-full bg-white dark:bg-slate-900/10 backdrop-blur-xl border border-white/20 p-10 rounded-3xl text-center shadow-2xl"
           >
             <div className="w-20 h-20 bg-emerald-400/20 border-2 border-emerald-400 rounded-full flex items-center justify-center mx-auto mb-6">
               <CheckCircle2 className="w-10 h-10 text-emerald-400" />

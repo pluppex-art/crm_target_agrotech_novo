@@ -37,7 +37,7 @@ export function TurmaColumn({
       <div className="flex-1 space-y-2.5 p-2 rounded-xl min-h-[150px]">
         <div ref={setNodeRef} className={cn(
           'min-h-[150px]',
-          isOver ? 'bg-emerald-50/50 ring-2 ring-emerald-100 ring-inset' : 'bg-slate-50/30'
+          isOver ? 'bg-emerald-50/50 ring-2 ring-emerald-100 ring-inset' : 'bg-slate-50 dark:bg-slate-800/30'
         )}>
           {attendeesInCol.map((att) => (
             <AttendeeCard

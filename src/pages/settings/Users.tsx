@@ -235,8 +235,8 @@ export function Users() {
     <div className="p-6 max-w-5xl mx-auto">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Cadastro de Usuários</h1>
-          <p className="text-sm text-slate-500">Gerencie os membros da sua equipe.</p>
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Cadastro de Usuários</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Gerencie os membros da sua equipe.</p>
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
@@ -247,17 +247,17 @@ export function Users() {
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Nome / Depto</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Contato</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Cargo / Nível</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Squad</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Ações</th>
+              <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Nome / Depto</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Contato</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Cargo / Nível</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Squad</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -265,29 +265,29 @@ export function Users() {
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center">
                     <Loader2 className="w-8 h-8 text-emerald-600 animate-spin mx-auto mb-2" />
-                    <p className="text-sm text-slate-500">Carregando usuários...</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Carregando usuários...</p>
                   </td>
                 </tr>
               ) : profiles.map((user) => (
-                <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
+                <tr key={user.id} className="hover:bg-slate-50 dark:bg-slate-800/50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center font-bold text-xs">
                         {(user.name || '?').charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <div className="font-medium text-slate-700">{user.name ?? 'Sem nome'}</div>
+                        <div className="font-medium text-slate-700 dark:text-slate-300">{user.name ?? 'Sem nome'}</div>
                         <div className="text-[10px] text-slate-400 uppercase font-bold">{user.department}</div>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-sm text-slate-600">{user.email}</div>
+                    <div className="text-sm text-slate-600 dark:text-slate-400">{user.email}</div>
                     <div className="text-xs text-slate-400">{user.phone}</div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-col gap-1">
-                      <span className="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-medium border border-slate-200 w-fit">
+                      <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-700 w-fit">
                         {user.cargos?.name ?? user.role ?? '—'}
                       </span>
                       {userExtras[user.id]?.nivel && (
@@ -302,7 +302,7 @@ export function Users() {
                     <span className={`px-2.5 py-1 rounded-lg text-xs font-medium border ${
                       user.status === 'active'
                         ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                        : 'bg-slate-50 text-slate-400 border-slate-100'
+                        : 'bg-slate-50 dark:bg-slate-800 text-slate-400 border-slate-100 dark:border-slate-800'
                     }`}>
                       {user.status === 'active' ? 'Ativo' : 'Inativo'}
                     </span>
@@ -334,12 +334,12 @@ export function Users() {
       {/* Modal Novo/Editar Usuário */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in duration-200">
-            <div className="sticky top-0 z-10 px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/95 backdrop-blur-sm">
-              <h2 className="text-xl font-bold text-slate-800">{editingId ? 'Editar Usuário' : 'Novo Usuário'}</h2>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in duration-200">
+            <div className="sticky top-0 z-10 px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/95 backdrop-blur-sm">
+              <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">{editingId ? 'Editar Usuário' : 'Novo Usuário'}</h2>
               <button
                 onClick={handleCloseModal}
-                className="p-2 hover:bg-slate-200 rounded-xl text-slate-400 hover:text-slate-600 transition-all"
+                className="p-2 hover:bg-slate-200 dark:bg-slate-700 rounded-xl text-slate-400 hover:text-slate-600 dark:text-slate-400 transition-all"
               >
                 <X size={20} />
               </button>
@@ -348,26 +348,26 @@ export function Users() {
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nome Completo</label>
+                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Nome Completo</label>
                   <input
                     required
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700"
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 dark:text-slate-300"
                     placeholder="Ex: João Silva"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">E-mail Corporativo</label>
+                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">E-mail Corporativo</label>
                   <div className="relative">
                     <input
                       required
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData({...formData, email: e.target.value})}
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700"
+                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 dark:text-slate-300"
                       placeholder="email@targetagrotech.com"
                     />
                     <Mail size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -375,48 +375,48 @@ export function Users() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Telefone / WhatsApp</label>
+                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Telefone / WhatsApp</label>
                   <input
                     type="text"
                     value={formData.phone}
                     onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700"
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 dark:text-slate-300"
                     placeholder="(00) 00000-0000"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">CPF</label>
+                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">CPF</label>
                   <input
                     type="text"
                     value={formData.cpf}
                     onChange={(e) => setFormData({...formData, cpf: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700"
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 dark:text-slate-300"
                     placeholder="000.000.000-00"
                   />
                 </div>
 
                 {!editingId && (
                   <div className="space-y-1.5 md:col-span-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Senha</label>
+                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Senha</label>
                     <input
                       required
                       type="password"
                       value={formData.password}
                       onChange={(e) => setFormData({...formData, password: e.target.value})}
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700"
+                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 dark:text-slate-300"
                       placeholder="Senha segura"
                     />
                   </div>
                 )}
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Departamento</label>
+                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Departamento</label>
                   <select
                     required
                     value={formData.department}
                     onChange={(e) => setFormData({...formData, department: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700"
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 dark:text-slate-300"
                   >
                     <option value="Comercial">Comercial</option>
                     <option value="Financeiro">Financeiro</option>
@@ -428,11 +428,11 @@ export function Users() {
 
                 {editingId && (
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Status</label>
+                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</label>
                     <select
                       value={formData.status}
                       onChange={(e) => setFormData({...formData, status: e.target.value as 'active' | 'inactive'})}
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700"
+                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 dark:text-slate-300"
                     >
                       <option value="active">Ativo</option>
                       <option value="inactive">Inativo</option>
@@ -441,13 +441,13 @@ export function Users() {
                 )}
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Cargo / Permissão</label>
+                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Cargo / Permissão</label>
                   <div className="relative">
                     <select
                       required
                       value={formData.role_id}
                       onChange={(e) => setFormData({...formData, role_id: e.target.value})}
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 appearance-none"
+                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 dark:text-slate-300 appearance-none"
                     >
                       <option value="" disabled>Selecione um cargo</option>
                       {cargos.map((cargo) => (
@@ -462,15 +462,15 @@ export function Users() {
               </div>
 
               {/* Perfil Comercial */}
-              <div className="border-t border-slate-100 pt-5">
+              <div className="border-t border-slate-100 dark:border-slate-800 pt-5">
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Perfil Comercial <span className="font-normal normal-case">(opcional)</span></p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nível</label>
+                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Nível</label>
                     <select
                       value={formData.nivel}
                       onChange={(e) => setFormData({...formData, nivel: e.target.value})}
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700"
+                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 dark:text-slate-300"
                     >
                       <option value="">Sem nível</option>
                       {VALID_LEVELS.map(l => (
@@ -480,11 +480,11 @@ export function Users() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Squad</label>
+                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Squad</label>
                     <select
                       value={formData.squad_id}
                       onChange={(e) => setFormData({...formData, squad_id: e.target.value})}
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700"
+                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 dark:text-slate-300"
                     >
                       <option value="">Sem squad</option>
                       {squads.map(s => (
@@ -506,7 +506,7 @@ export function Users() {
                   type="button"
                   onClick={handleCloseModal}
                   disabled={submitting}
-                  className="px-6 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors w-full sm:w-auto order-2 sm:order-1 disabled:opacity-50"
+                  className="px-6 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:bg-slate-800/50 rounded-xl transition-colors w-full sm:w-auto order-2 sm:order-1 disabled:opacity-50"
                 >
                   Cancelar
                 </button>
@@ -529,22 +529,22 @@ export function Users() {
         const userToDelete = profiles.find(p => p.id === deleteConfirmId);
         return (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in duration-300">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in duration-300">
               <div className="relative h-2 bg-red-500" />
               <div className="px-8 pt-8 pb-6 text-center">
                 <div className="w-20 h-20 rounded-2xl bg-red-50 flex items-center justify-center mx-auto mb-6 rotate-3 hover:rotate-0 transition-transform duration-300 shadow-inner">
                   <Trash2 size={40} className="text-red-500" />
                 </div>
 
-                <h2 className="text-2xl font-black text-slate-800 mb-1">Excluir Usuário</h2>
+                <h2 className="text-2xl font-black text-slate-800 dark:text-slate-200 mb-1">Excluir Usuário</h2>
                 <p className="text-sm text-slate-400 mb-5">Confirme com atenção antes de prosseguir</p>
 
-                <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-4 text-left">
+                <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 mb-4 text-left">
                   <div className="w-10 h-10 bg-red-100 text-red-600 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">
                     {(userToDelete?.name || '?').charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <p className="font-bold text-slate-800">{userToDelete?.name ?? 'Sem nome'}</p>
+                    <p className="font-bold text-slate-800 dark:text-slate-200">{userToDelete?.name ?? 'Sem nome'}</p>
                     <p className="text-xs text-slate-400">{userToDelete?.email}</p>
                     <p className="text-[10px] text-slate-400 uppercase font-bold mt-0.5">{userToDelete?.department}</p>
                   </div>
@@ -569,7 +569,7 @@ export function Users() {
                   </button>
                   <button
                     onClick={() => setDeleteConfirmId(null)}
-                    className="w-full py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-2xl transition-all"
+                    className="w-full py-4 bg-slate-100 dark:bg-slate-800/50 hover:bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 font-bold rounded-2xl transition-all"
                   >
                     Cancelar
                   </button>

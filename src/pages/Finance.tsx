@@ -68,8 +68,8 @@ export function Finance() {
         <div className="w-24 h-24 bg-emerald-200 rounded-2xl flex items-center justify-center mb-6 shadow-lg border-4 border-emerald-300">
           <ShieldAlert className="w-12 h-12 text-emerald-500" />
         </div>
-        <h2 className="text-2xl font-bold text-slate-800 mb-3">Acesso ao Financeiro Bloqueado</h2>
-        <p className="text-slate-500 max-w-md mb-6 leading-relaxed">
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200 mb-3">Acesso ao Financeiro Bloqueado</h2>
+        <p className="text-slate-500 dark:text-slate-400 max-w-md mb-6 leading-relaxed">
           Você precisa da permissão{' '}
           <code className="bg-emerald-100 px-2 py-1 rounded-lg text-sm font-mono text-emerald-800 font-bold">finance.view</code>{' '}
           para visualizar dados financeiros.
@@ -89,7 +89,7 @@ export function Finance() {
   ] as const;
 
   return (
-    <div className="flex h-full bg-slate-50/50 relative overflow-hidden">
+    <div className="flex h-full bg-slate-50 dark:bg-slate-800/50 relative overflow-hidden">
       {/* Sidebar - Redesigned to match the more premium feel */}
       <div className="relative flex flex-shrink-0 z-20 h-full">
         <motion.div
@@ -99,7 +99,7 @@ export function Finance() {
             opacity: isSidebarOpen ? 1 : 0
           }}
           transition={{ duration: 0.3, ease: 'easeInOut' }}
-          className="bg-white border-r border-slate-200 flex flex-col h-full overflow-hidden"
+          className="bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 flex flex-col h-full overflow-hidden"
         >
           <div className="w-64 flex flex-col h-full">
             <div className="p-6">
@@ -113,7 +113,7 @@ export function Finance() {
                       "w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-bold transition-all",
                       activeTab === tab.id
                         ? "bg-emerald-50 text-emerald-700 shadow-sm shadow-emerald-100/50 border border-emerald-100"
-                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+                        : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:bg-slate-800 hover:text-slate-700 dark:text-slate-300"
                     )}
                   >
                     <tab.icon className={cn("w-4 h-4", activeTab === tab.id ? "text-emerald-600" : "text-slate-400")} />
@@ -129,7 +129,7 @@ export function Finance() {
         <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
           className={cn(
-            "absolute top-6 -right-3 z-30 w-6 h-6 bg-white border border-slate-200 rounded-full flex items-center justify-center shadow-md hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-600 transition-all group",
+            "absolute top-6 -right-3 z-30 w-6 h-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full flex items-center justify-center shadow-md hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-600 transition-all group",
             !isSidebarOpen && "right-[-1.5rem] bg-emerald-500 text-white border-emerald-400 hover:bg-emerald-600"
           )}
           title={isSidebarOpen ? "Recolher menu" : "Expandir menu"}
@@ -144,23 +144,23 @@ export function Finance() {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
-        <div className="h-20 bg-white border-b border-slate-200 px-8 flex items-center justify-between">
+        <div className="h-20 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 px-8 flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-black text-slate-800 tracking-tight">Centro Financeiro</h1>
+            <h1 className="text-xl font-black text-slate-800 dark:text-slate-200 tracking-tight">Centro Financeiro</h1>
             <p className="text-xs text-slate-400 font-medium">Gestão de resultados e automação financeira do CRM.</p>
           </div>
 
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsFilterOpen(true)}
-              className="flex items-center gap-3 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-100 transition-all group"
+              className="flex items-center gap-3 px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:bg-slate-800/50 transition-all group"
             >
               <CalendarRange className="w-4 h-4 text-slate-400 group-hover:text-emerald-600" />
               <span className="capitalize">{filterLabel}</span>
             </button>
 
             {activeTab !== 'categories' && activeTab !== 'settings' && (
-              <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all">
+              <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-xl text-sm font-bold hover:bg-slate-50 dark:bg-slate-800 transition-all">
                 <Download className="w-4 h-4" />
                 <span className="hidden sm:inline">Exportar</span>
               </button>

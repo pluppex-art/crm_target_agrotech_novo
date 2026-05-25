@@ -8,11 +8,11 @@ interface ModalFooterProps {
 
 export const ModalFooter: React.FC<ModalFooterProps> = ({ onClose, loading }) => {
   return (
-    <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-end gap-3 bg-white sticky bottom-0 z-10">
+    <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3 bg-white dark:bg-slate-900 sticky bottom-0 z-10">
       <button
         type="button"
         onClick={onClose}
-        className="px-6 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+        className="px-6 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:bg-slate-800/50 rounded-xl transition-colors"
       >
         Cancelar
       </button>

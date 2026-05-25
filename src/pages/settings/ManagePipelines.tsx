@@ -58,7 +58,7 @@ function StageColumn({ stage, onUpdate, onDelete, dragHandleProps }: StageColumn
   };
 
   return (
-    <div className="flex-shrink-0 w-56 flex flex-col bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+    <div className="flex-shrink-0 w-56 flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm overflow-hidden">
       {/* Color top stripe */}
       <div className="h-2 w-full" style={{ backgroundColor: color }} />
 
@@ -69,7 +69,7 @@ function StageColumn({ stage, onUpdate, onDelete, dragHandleProps }: StageColumn
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') handleCancel(); }}
-            className="w-full text-sm font-semibold bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 text-slate-800"
+            className="w-full text-sm font-semibold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 text-slate-800 dark:text-slate-200"
           />
           <ColorPicker value={color} onChange={setColor} />
           <div className="flex gap-2">
@@ -81,7 +81,7 @@ function StageColumn({ stage, onUpdate, onDelete, dragHandleProps }: StageColumn
             </button>
             <button
               onClick={handleCancel}
-              className="p-2 text-slate-400 hover:bg-slate-100 rounded-xl transition-colors"
+              className="p-2 text-slate-400 hover:bg-slate-100 dark:bg-slate-800/50 rounded-xl transition-colors"
             >
               <X size={14} />
             </button>
@@ -100,7 +100,7 @@ function StageColumn({ stage, onUpdate, onDelete, dragHandleProps }: StageColumn
                 <GripVertical size={14} />
               </div>
               <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: color }} />
-              <span className="text-sm font-bold text-slate-700 leading-tight">{stage.name}</span>
+              <span className="text-sm font-bold text-slate-700 dark:text-slate-300 leading-tight">{stage.name}</span>
             </div>
             <div className="flex items-center gap-0.5 shrink-0">
               <button
@@ -121,24 +121,24 @@ function StageColumn({ stage, onUpdate, onDelete, dragHandleProps }: StageColumn
           {/* Placeholder cards to give column feel */}
           <div className="space-y-2 flex-1">
             {[...Array(2)].map((_, i) => (
-              <div key={i} className="h-10 bg-slate-50 border border-slate-100 rounded-xl" />
+              <div key={i} className="h-10 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl" />
             ))}
           </div>
 
           {/* Toggle para iniciar fechado */}
-          <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-slate-100 mt-1">
+          <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-slate-100 dark:border-slate-800 mt-1">
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Iniciar minimizado</span>
             <button
               type="button"
               onClick={() => onUpdate(stage.id, { default_collapsed: !stage.default_collapsed })}
               className={cn(
                 'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none',
-                stage.default_collapsed ? 'bg-emerald-500' : 'bg-slate-200'
+                stage.default_collapsed ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-700'
               )}
             >
               <span
                 className={cn(
-                  'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                  'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white dark:bg-slate-900 shadow ring-0 transition duration-200 ease-in-out',
                   stage.default_collapsed ? 'translate-x-4' : 'translate-x-0'
                 )}
               />
@@ -180,9 +180,9 @@ function AddColumn({ pipelineId, count, onAdd }: AddColumnProps) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="flex-shrink-0 w-56 min-h-[200px] border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center gap-3 text-slate-400 hover:border-emerald-400 hover:text-emerald-500 hover:bg-emerald-50/40 transition-all group"
+        className="flex-shrink-0 w-56 min-h-[200px] border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl flex flex-col items-center justify-center gap-3 text-slate-400 hover:border-emerald-400 hover:text-emerald-500 hover:bg-emerald-50/40 transition-all group"
       >
-        <div className="w-10 h-10 rounded-xl bg-slate-100 group-hover:bg-emerald-100 flex items-center justify-center transition-colors">
+        <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800/50 group-hover:bg-emerald-100 flex items-center justify-center transition-colors">
           <Plus size={20} className="group-hover:scale-110 transition-transform" />
         </div>
         <span className="text-sm font-bold">Nova etapa</span>
@@ -191,7 +191,7 @@ function AddColumn({ pipelineId, count, onAdd }: AddColumnProps) {
   }
 
   return (
-    <div className="flex-shrink-0 w-56 bg-white border-2 border-emerald-300 rounded-2xl shadow-sm overflow-hidden">
+    <div className="flex-shrink-0 w-56 bg-white dark:bg-slate-900 border-2 border-emerald-300 rounded-2xl shadow-sm overflow-hidden">
       <div className="h-2 w-full" style={{ backgroundColor: color }} />
       <div className="p-4 space-y-3">
         <input
@@ -200,7 +200,7 @@ function AddColumn({ pipelineId, count, onAdd }: AddColumnProps) {
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); if (e.key === 'Escape') { setOpen(false); setName(''); } }}
           placeholder="Nome da etapa"
-          className="w-full text-sm font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 placeholder:font-normal placeholder:text-slate-400 text-slate-800"
+          className="w-full text-sm font-semibold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 placeholder:font-normal placeholder:text-slate-400 text-slate-800 dark:text-slate-200"
         />
         <ColorPicker value={color} onChange={setColor} />
         <div className="flex gap-2">
@@ -212,7 +212,7 @@ function AddColumn({ pipelineId, count, onAdd }: AddColumnProps) {
           </button>
           <button
             onClick={() => { setOpen(false); setName(''); }}
-            className="p-2 text-slate-400 hover:bg-slate-100 rounded-xl transition-colors"
+            className="p-2 text-slate-400 hover:bg-slate-100 dark:bg-slate-800/50 rounded-xl transition-colors"
           >
             <X size={14} />
           </button>
@@ -296,12 +296,12 @@ export function ManagePipelines() {
     return (
       <div className="p-8 space-y-6">
         <div className="animate-pulse">
-          <div className="h-8 bg-slate-200 rounded-xl w-48 mb-6" />
+          <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded-xl w-48 mb-6" />
           <div className="flex gap-3 mb-8">
-            {[...Array(3)].map((_, i) => <div key={i} className="h-10 w-32 bg-slate-200 rounded-xl" />)}
+            {[...Array(3)].map((_, i) => <div key={i} className="h-10 w-32 bg-slate-200 dark:bg-slate-700 rounded-xl" />)}
           </div>
           <div className="flex gap-4">
-            {[...Array(4)].map((_, i) => <div key={i} className="w-56 h-48 bg-slate-100 rounded-2xl" />)}
+            {[...Array(4)].map((_, i) => <div key={i} className="w-56 h-48 bg-slate-100 dark:bg-slate-800/50 rounded-2xl" />)}
           </div>
         </div>
       </div>
@@ -309,12 +309,12 @@ export function ManagePipelines() {
   }
 
   return (
-    <div className="p-8 min-h-screen bg-slate-50/50 flex flex-col gap-6">
+    <div className="p-8 min-h-screen bg-slate-50 dark:bg-slate-800/50 flex flex-col gap-6">
       {/* Page header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Gerenciar Pipelines</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Configure as etapas de cada pipeline de vendas.</p>
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Gerenciar Pipelines</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Configure as etapas de cada pipeline de vendas.</p>
         </div>
         <button
           onClick={() => setIsCreateOpen(true)}
@@ -327,10 +327,10 @@ export function ManagePipelines() {
 
       {pipelines.length === 0 ? (
         <div className="flex flex-col items-center justify-center flex-1 py-24 text-slate-400">
-          <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mb-4">
+          <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800/50 rounded-2xl flex items-center justify-center mb-4">
             <Settings2 size={28} className="text-slate-300" />
           </div>
-          <p className="font-semibold text-slate-500">Nenhum pipeline criado</p>
+          <p className="font-semibold text-slate-500 dark:text-slate-400">Nenhum pipeline criado</p>
           <p className="text-sm mt-1">Clique em "Novo Pipeline" para começar.</p>
         </div>
       ) : (
@@ -345,13 +345,13 @@ export function ManagePipelines() {
                   'flex-shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-all',
                   activePipelineId === p.id
                     ? 'bg-emerald-500 text-white shadow-sm'
-                    : 'bg-white border border-slate-200 text-slate-500 hover:border-emerald-300 hover:text-emerald-600'
+                    : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-emerald-300 hover:text-emerald-600'
                 )}
               >
                 {p.name}
                 <span className={cn(
                   'ml-2 text-xs font-bold px-1.5 py-0.5 rounded-full',
-                  activePipelineId === p.id ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-400'
+                  activePipelineId === p.id ? 'bg-white dark:bg-slate-900/20 text-white' : 'bg-slate-100 dark:bg-slate-800/50 text-slate-400'
                 )}>
                   {p.stages.length}
                 </span>
@@ -361,9 +361,9 @@ export function ManagePipelines() {
 
           {/* Active pipeline kanban */}
           {activePipeline && (
-            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex-1">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm overflow-hidden flex-1">
               {/* Pipeline header */}
-              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 {editingPipelineId === activePipeline.id ? (
                   <div className="flex items-center gap-2">
                     <input
@@ -374,22 +374,22 @@ export function ManagePipelines() {
                         if (e.key === 'Enter') handleSavePipelineName();
                         if (e.key === 'Escape') setEditingPipelineId(null);
                       }}
-                      className="text-base font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400"
+                      className="text-base font-bold text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400"
                     />
                     <button onClick={handleSavePipelineName} className="p-1.5 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors">
                       <Check size={14} />
                     </button>
-                    <button onClick={() => setEditingPipelineId(null)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors">
+                    <button onClick={() => setEditingPipelineId(null)} className="p-1.5 text-slate-400 hover:bg-slate-100 dark:bg-slate-800/50 rounded-lg transition-colors">
                       <X size={14} />
                     </button>
                   </div>
                 ) : (
                   <div className="flex items-center gap-3">
-                    <h2 className="text-base font-bold text-slate-800">{activePipeline.name}</h2>
+                    <h2 className="text-base font-bold text-slate-800 dark:text-slate-200">{activePipeline.name}</h2>
                     {activePipeline.description && (
                       <span className="text-sm text-slate-400">{activePipeline.description}</span>
                     )}
-                    <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                    <span className="text-xs font-bold text-slate-400 bg-slate-100 dark:bg-slate-800/50 px-2 py-0.5 rounded-full">
                       {activePipeline.stages.length} etapa{activePipeline.stages.length !== 1 ? 's' : ''}
                     </span>
                   </div>
@@ -399,20 +399,20 @@ export function ManagePipelines() {
                   <div className="relative" ref={menuRef}>
                     <button
                       onClick={() => setPipelineMenuOpen((v) => !v)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-slate-500 hover:bg-slate-100 rounded-xl transition-colors text-sm font-medium"
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:bg-slate-800/50 rounded-xl transition-colors text-sm font-medium"
                     >
                       <Settings2 size={15} />
                       <ChevronDown size={13} />
                     </button>
                     {pipelineMenuOpen && (
-                      <div className="absolute right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-20 w-44 overflow-hidden">
+                      <div className="absolute right-0 top-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg z-20 w-44 overflow-hidden">
                         <button
                           onClick={() => {
                             setEditingPipelineId(activePipeline.id);
                             setEditPipelineName(activePipeline.name);
                             setPipelineMenuOpen(false);
                           }}
-                          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:bg-slate-800 transition-colors"
                         >
                           <Pencil size={14} /> Renomear
                         </button>
@@ -492,33 +492,33 @@ export function ManagePipelines() {
       {/* Create pipeline modal */}
 {isCreateOpen && createPortal(
         <div key="create-pipeline-modal" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md p-6">
             <div className="flex items-center justify-between mb-5">
-              <h3 className="text-lg font-bold text-slate-800">Novo Pipeline</h3>
-              <button onClick={() => setIsCreateOpen(false)} className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors">
+              <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">Novo Pipeline</h3>
+              <button onClick={() => setIsCreateOpen(false)} className="p-2 hover:bg-slate-100 dark:bg-slate-800/50 rounded-xl text-slate-400 transition-colors">
                 <X size={18} />
               </button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Nome *</label>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Nome *</label>
                 <input
                   autoFocus
                   type="text"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleCreatePipeline()}
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 text-slate-700"
+                  className="w-full px-3 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 text-slate-700 dark:text-slate-300"
                   placeholder="Ex: Vendas, Pós-venda..."
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Descrição</label>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Descrição</label>
                 <input
                   type="text"
                   value={newDesc}
                   onChange={(e) => setNewDesc(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 text-slate-700"
+                  className="w-full px-3 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 text-slate-700 dark:text-slate-300"
                   placeholder="Opcional"
                 />
               </div>
@@ -526,7 +526,7 @@ export function ManagePipelines() {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setIsCreateOpen(false)}
-                className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 transition-colors font-medium"
+                className="flex-1 px-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:bg-slate-800 transition-colors font-medium"
               >
                 Cancelar
               </button>

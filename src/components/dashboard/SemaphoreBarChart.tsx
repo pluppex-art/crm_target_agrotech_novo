@@ -31,7 +31,7 @@ export function SemaphoreBarChart({
   if (!hasData) {
     return (
       <div
-        className="flex flex-col items-center justify-center text-slate-300 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50"
+        className="flex flex-col items-center justify-center text-slate-300 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800"
         style={{ height: chartHeight + 60 }}
       >
         <BarChart2 className="w-10 h-10 mb-2 opacity-40" />
@@ -62,7 +62,7 @@ export function SemaphoreBarChart({
               {/* Value Indicator */}
               {showValues && (
                 <div className="mb-2 transition-all duration-300 transform translate-y-1 group-hover:translate-y-0 opacity-80 group-hover:opacity-100">
-                  <span className="text-[10px] font-black text-slate-600 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-100 shadow-sm whitespace-nowrap">
+                  <span className="text-[10px] font-black text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-100 dark:border-slate-800 shadow-sm whitespace-nowrap">
                     {d.sublabel ?? fmt(d.value)}
                   </span>
                 </div>
@@ -80,16 +80,16 @@ export function SemaphoreBarChart({
                   }}
                 >
                   {/* Glass highlight */}
-                  <div className="absolute inset-x-0 top-0 h-1/2 bg-white/10 rounded-t-2xl" />
+                  <div className="absolute inset-x-0 top-0 h-1/2 bg-white dark:bg-slate-900/10 rounded-t-2xl" />
                 </div>
                 
                 {/* Empty State / Floor */}
-                <div className="w-full max-w-[40px] h-[2px] bg-slate-100 rounded-full" />
+                <div className="w-full max-w-[40px] h-[2px] bg-slate-100 dark:bg-slate-800/50 rounded-full" />
               </div>
 
               {/* Label */}
               <div className="mt-3 text-center w-full px-1">
-                <p className="text-[10px] font-bold text-slate-500 truncate uppercase tracking-tight group-hover:text-slate-800 transition-colors" title={d.label}>
+                <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 truncate uppercase tracking-tight group-hover:text-slate-800 dark:text-slate-200 transition-colors" title={d.label}>
                   {d.label}
                 </p>
               </div>
@@ -99,7 +99,7 @@ export function SemaphoreBarChart({
       </div>
       
       {/* Decorative Baseline */}
-      <div className="h-[1px] w-full bg-slate-100 mt-1" />
+      <div className="h-[1px] w-full bg-slate-100 dark:bg-slate-800/50 mt-1" />
     </div>
   );
 }

@@ -90,13 +90,13 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col"
+          className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col"
         >
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white">
-            <h2 className="text-xl font-bold text-gray-800">{product ? 'Editar Produto' : 'Novo Produto'}</h2>
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900">
+            <h2 className="text-xl font-bold text-gray-800 dark:text-slate-200">{product ? 'Editar Produto' : 'Novo Produto'}</h2>
             <button 
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 transition-colors"
+              className="p-2 hover:bg-gray-100 dark:bg-slate-800/50 rounded-lg text-gray-400 transition-colors"
             >
               <X size={20} />
             </button>
@@ -104,14 +104,14 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
 
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Nome do Produto</label>
+              <label className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Nome do Produto</label>
               <div className="relative">
                 <input 
                   required
                   type="text" 
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 dark:text-slate-300"
                   placeholder="Ex: Fertilizante Premium"
                 />
                 <Package size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -119,17 +119,17 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Descrição</label>
+              <label className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Descrição</label>
               <textarea 
                 value={formData.description}
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 min-h-[80px]"
+                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 dark:text-slate-300 min-h-[80px]"
                 placeholder="Detalhes do produto..."
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Preço (R$)</label>
+              <label className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Preço (R$)</label>
               <div className="relative">
                 <input
                   required
@@ -137,7 +137,7 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
                   step="0.01"
                   value={formData.price}
                   onChange={(e) => setFormData({...formData, price: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 dark:text-slate-300"
                   placeholder="0.00"
                 />
                 <DollarSign size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -146,13 +146,13 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Categoria</label>
+                <label className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Categoria</label>
                 <div className="relative">
                   <select
                     required
                     value={formData.category}
                     onChange={(e) => setFormData({...formData, category: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 appearance-none"
+                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 dark:text-slate-300 appearance-none"
                   >
                     <option value="">Selecionar...</option>
                     {categories.map(cat => (
@@ -164,14 +164,14 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Taxa de Matrícula (R$)</label>
+                <label className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Taxa de Matrícula (R$)</label>
                 <div className="relative">
                   <input
                     type="number"
                     step="0.01"
                     value={formData.enrollment_fee}
                     onChange={(e) => setFormData({...formData, enrollment_fee: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
+                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 dark:text-slate-300"
                     placeholder="0.00"
                   />
                   <DollarSign size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -181,13 +181,13 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
 
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">URL da Imagem (Opcional)</label>
+              <label className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">URL da Imagem (Opcional)</label>
               <div className="relative">
                 <input 
                   type="url" 
                   value={formData.image_url}
                   onChange={(e) => setFormData({...formData, image_url: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 dark:text-slate-300"
                   placeholder="https://..."
                 />
                 <ImageIcon size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -198,7 +198,7 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
               <button 
                 type="button"
                 onClick={onClose}
-                className="px-6 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+                className="px-6 py-2.5 text-sm font-bold text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:bg-slate-800/50 rounded-xl transition-colors"
               >
                 Cancelar
               </button>

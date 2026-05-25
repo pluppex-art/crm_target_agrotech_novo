@@ -39,16 +39,16 @@ export function PageFilters({
   const activeFilterCount = (searchTerm ? 1 : 0) + activeFilters.length;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm mb-4">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm mb-4">
       {/* Header — clicável para minimizar */}
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-4 py-3 border-b border-gray-100 min-h-[3rem] hover:bg-gray-50 transition-colors rounded-t-2xl"
+        className="w-full flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-slate-800 min-h-[3rem] hover:bg-gray-50 dark:bg-slate-800 transition-colors rounded-t-2xl"
       >
-        <div className="flex items-center gap-3 text-sm font-bold text-gray-700 shrink-0">
+        <div className="flex items-center gap-3 text-sm font-bold text-gray-700 dark:text-slate-300 shrink-0">
           <div className={cn(
             "p-2 rounded-lg transition-all",
-            activeFilterCount > 0 ? "bg-emerald-100 text-emerald-600" : "bg-gray-100 text-gray-400"
+            activeFilterCount > 0 ? "bg-emerald-100 text-emerald-600" : "bg-gray-100 dark:bg-slate-800/50 text-gray-400"
           )}>
             <Filter size={18} />
           </div>
@@ -72,7 +72,7 @@ export function PageFilters({
             const label = f.type === 'stars'
               ? `${f.value}★`
               : (f.options?.find(o => o.value === String(f.value))?.label || f.value);
-            const pillColor = f.activeColorClass || "bg-gray-100 text-gray-700 border-gray-200";
+            const pillColor = f.activeColorClass || "bg-gray-100 dark:bg-slate-800/50 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-700";
             return (
               <span key={f.id} className={cn("flex items-center gap-1 text-xs font-medium border px-2 py-0.5 rounded-full whitespace-nowrap", pillColor)}>
                 {label}
@@ -109,10 +109,10 @@ export function PageFilters({
               placeholder={searchPlaceholder}
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="w-full pl-9 pr-9 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm"
+              className="w-full pl-9 pr-9 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm"
             />
             {searchTerm && (
-              <button onClick={() => onSearchChange('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <button onClick={() => onSearchChange('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-slate-400">
                 <X size={14} />
               </button>
             )}
@@ -129,9 +129,9 @@ export function PageFilters({
                     value={filter.value}
                     onChange={(e) => filter.onChange(e.target.value)}
                     className={cn(
-                      "w-full pr-8 py-2 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none cursor-pointer text-sm font-medium transition-all text-ellipsis whitespace-nowrap overflow-hidden",
+                      "w-full pr-8 py-2 bg-gray-50 dark:bg-slate-800 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none cursor-pointer text-sm font-medium transition-all text-ellipsis whitespace-nowrap overflow-hidden",
                       Icon ? "pl-9" : "pl-3",
-                      filter.value !== 'all' && filter.value !== '' ? "bg-emerald-50/50 border-emerald-300 text-emerald-800" : "border-gray-200 text-gray-700"
+                      filter.value !== 'all' && filter.value !== '' ? "bg-emerald-50/50 border-emerald-300 text-emerald-800" : "border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300"
                     )}
                   >
                     <option value="all">{filter.placeholder || 'Todos'}</option>
@@ -147,7 +147,7 @@ export function PageFilters({
             if (filter.type === 'stars') {
               const Icon = filter.icon;
               return (
-                <div key={filter.id} className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 shrink-0">
+                <div key={filter.id} className="flex items-center gap-1 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 shrink-0">
                   {Icon && <Icon size={14} className="text-gray-400 mr-1" />}
                   {(['all', 1, 2, 3, 4, 5] as const).map((s) => (
                     <button

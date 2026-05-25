@@ -11,9 +11,9 @@ export function CampaignTable({ campaigns, loading }: CampaignTableProps) {
   const { deleteCampaign } = useMarketingStore();
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-      <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-        <h3 className="font-bold text-slate-800">Campanhas Recentes</h3>
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+      <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
+        <h3 className="font-bold text-slate-800 dark:text-slate-200">Campanhas Recentes</h3>
       </div>
       <div className="overflow-x-auto">
         {loading ? (
@@ -23,20 +23,20 @@ export function CampaignTable({ campaigns, loading }: CampaignTableProps) {
         ) : (
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50/50">
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">Nome</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">Plataforma</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">Status</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">Leads</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">Orçamento</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 text-right">Ações</th>
+              <tr className="bg-slate-50 dark:bg-slate-800/50">
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">Nome</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">Plataforma</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">Status</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">Leads</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">Orçamento</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 text-right">Ações</th>
               </tr>
             </thead>
             <tbody>
               {campaigns.map((c) => (
-                <tr key={c.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-4 text-sm font-bold text-slate-800 border-b border-slate-50">{c.name}</td>
-                  <td className="px-6 py-4 text-sm text-slate-500 border-b border-slate-50">
+                <tr key={c.id} className="hover:bg-slate-50 dark:bg-slate-800 transition-colors">
+                  <td className="px-6 py-4 text-sm font-bold text-slate-800 dark:text-slate-200 border-b border-slate-50">{c.name}</td>
+                  <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400 border-b border-slate-50">
                     <div className="flex items-center gap-2">
                       {c.platform === 'E-mail Marketing' ? <Mail className="w-3 h-3" /> : c.platform === 'WhatsApp' ? <MessageCircle className="w-3 h-3" /> : <Share2 className="w-3 h-3" />}
                       {c.platform}
@@ -47,13 +47,13 @@ export function CampaignTable({ campaigns, loading }: CampaignTableProps) {
                       "px-2 py-0.5 rounded text-[8px] font-bold uppercase",
                       c.status === 'active' ? "bg-emerald-50 text-emerald-600" :
                       c.status === 'paused' ? "bg-yellow-50 text-yellow-600" :
-                      "bg-slate-100 text-slate-500"
+                      "bg-slate-100 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400"
                     )}>
                       {c.status === 'active' ? 'Ativa' : c.status === 'paused' ? 'Pausada' : 'Finalizada'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-slate-500 border-b border-slate-50">{c.leads_count}</td>
-                  <td className="px-6 py-4 text-sm font-bold text-slate-800 border-b border-slate-50">R$ {c.budget?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                  <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400 border-b border-slate-50">{c.leads_count}</td>
+                  <td className="px-6 py-4 text-sm font-bold text-slate-800 dark:text-slate-200 border-b border-slate-50">R$ {c.budget?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
                   <td className="px-6 py-4 text-sm border-b border-slate-50 text-right">
                     <button 
                       onClick={() => {

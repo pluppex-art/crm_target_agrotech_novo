@@ -10,8 +10,8 @@ interface PipelineFunnelProps {
 export function PipelineFunnel({ sales }: PipelineFunnelProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8">
-        <h3 className="font-bold text-xl text-slate-800 mb-6 flex items-center gap-2">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-xl p-8">
+        <h3 className="font-bold text-xl text-slate-800 dark:text-slate-200 mb-6 flex items-center gap-2">
           <Users className="w-6 h-6" />
           Distribuição do Pipeline
         </h3>
@@ -21,9 +21,9 @@ export function PipelineFunnel({ sales }: PipelineFunnelProps) {
         />
       </div>
 
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8 flex flex-col relative">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-xl p-8 flex flex-col relative">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="font-bold text-xl text-slate-800">Funil de Conversão</h3>
+          <h3 className="font-bold text-xl text-slate-800 dark:text-slate-200">Funil de Conversão</h3>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 text-white rounded-lg shadow-sm">
               <Users className="w-4 h-4 text-emerald-50" />

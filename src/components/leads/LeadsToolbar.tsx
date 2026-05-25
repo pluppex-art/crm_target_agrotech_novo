@@ -12,7 +12,7 @@ export function LeadsToolbar({ isLoading, onModalOpen, hasPermissionExport, hasP
     <div className="flex items-center gap-3 w-full sm:w-auto">
       {isLoading && <Loader2 className="w-5 h-5 text-emerald-600 animate-spin" />}
       {hasPermissionExport && (
-        <button className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-slate-200 rounded-lg bg-white text-sm font-medium hover:bg-slate-50 transition-all">
+        <button className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-sm font-medium hover:bg-slate-50 dark:bg-slate-800 transition-all">
           <Download className="w-4 h-4" />
           <span className="hidden sm:inline">Exportar</span>
         </button>

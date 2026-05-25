@@ -257,11 +257,11 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 30, stiffness: 280 }}
-        className="bg-white shadow-2xl w-full sm:max-w-[680px] h-full flex flex-col overflow-hidden border-l border-slate-200 relative"
+        className="bg-white dark:bg-slate-900 shadow-2xl w-full sm:max-w-[680px] h-full flex flex-col overflow-hidden border-l border-slate-200 dark:border-slate-800 relative transition-colors duration-300"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="pt-5 pb-2 px-4 sm:px-5 flex flex-col gap-3 border-b border-slate-100">
+        <div className="pt-5 pb-2 px-4 sm:px-5 flex flex-col gap-3 border-b border-slate-100 dark:border-slate-800">
           {/* Top bar: Ganho / Perdido + close */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 flex-wrap">
@@ -286,7 +286,7 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
                         ? "bg-emerald-600 border-emerald-600 text-white"
                         : (canMoveToGanho && !checklistBlocked)
                           ? "border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
-                          : "border-slate-200 text-slate-400 bg-white cursor-not-allowed"
+                          : "border-slate-200 dark:border-slate-700 text-slate-400 bg-white dark:bg-slate-900 cursor-not-allowed"
                     )}
                   >
                     <Trophy size={14} className={currentStageId === ganhoStage?.id ? "text-white" : (canMoveToGanho && !checklistBlocked) ? "text-emerald-500" : "text-slate-400"} />
@@ -314,7 +314,7 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
             </div>
             <button
               onClick={handleClose}
-              className="p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 rounded-full transition-colors"
+              className="p-1.5 text-slate-400 hover:bg-slate-100 dark:bg-slate-800/50 hover:text-slate-600 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-300 rounded-full transition-colors"
             >
               <X size={18} />
             </button>
@@ -347,7 +347,7 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
                     className={cn(
                       "px-3 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all border shadow-sm",
                       isActive ? active : inactive,
-                      isActive ? "hover:shadow-md" : "bg-white hover:shadow-sm",
+                      isActive ? "hover:shadow-md" : "bg-white dark:bg-slate-800 dark:border-slate-700 hover:shadow-sm",
                       isDisabled && "opacity-40 cursor-not-allowed"
                     )}
                   >
@@ -360,7 +360,7 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
         </div>
 
         {/* Tabs */}
-        <div className="flex items-center gap-4 sm:gap-5 px-4 sm:px-5 border-b border-slate-200 overflow-x-auto whitespace-nowrap [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+        <div className="flex items-center gap-4 sm:gap-5 px-4 sm:px-5 border-b border-slate-200 dark:border-slate-800 overflow-x-auto whitespace-nowrap [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
           {(['info', 'notes', 'history', 'tasks', 'turma', 'checklist', 'smart_responder'] as TabType[]).map((tab) => (
             <button
               key={tab}
@@ -368,8 +368,8 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
               className={cn(
                 'relative pb-3 pt-2 font-bold text-xs transition-colors border-b-[2px] uppercase tracking-wider shrink-0',
                 activeTab === tab
-                  ? 'border-emerald-500 text-emerald-600'
-                  : 'border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-200'
+                  ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
+                  : 'border-transparent text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-300 hover:border-slate-200 dark:border-slate-700 dark:hover:border-slate-700'
               )}
             >
               {tab === 'info' && 'Informações'}
@@ -478,11 +478,11 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white shadow-2xl rounded-3xl w-full max-w-sm p-6 space-y-6 text-center border border-slate-100 relative"
+            className="bg-white dark:bg-slate-900 shadow-2xl rounded-3xl w-full max-w-sm p-6 space-y-6 text-center border border-slate-100 dark:border-slate-800 relative"
           >
             <button
               onClick={() => setShowLockWarning(false)}
-              className="absolute top-4 right-4 p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 rounded-full transition-colors"
+              className="absolute top-4 right-4 p-1.5 text-slate-400 hover:bg-slate-100 dark:bg-slate-800/50 hover:text-slate-600 dark:text-slate-400 rounded-full transition-colors"
             >
               <X size={16} />
             </button>
@@ -491,9 +491,9 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
               <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center shadow-sm">
                 <Phone size={22} className="stroke-[2.5]" />
               </div>
-              <h3 className="text-lg font-black text-slate-800 tracking-tight">📞 Registrar Chamada</h3>
-              <p className="text-xs font-semibold text-slate-500 max-w-[260px] mx-auto leading-relaxed">
-                Você iniciou um contato por WhatsApp com <span className="font-extrabold text-slate-700">{lead.name}</span>. Como foi o retorno da ligação?
+              <h3 className="text-lg font-black text-slate-800 dark:text-slate-200 tracking-tight">📞 Registrar Chamada</h3>
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 max-w-[260px] mx-auto leading-relaxed">
+                Você iniciou um contato por WhatsApp com <span className="font-extrabold text-slate-700 dark:text-slate-300">{lead.name}</span>. Como foi o retorno da ligação?
               </p>
             </div>
 
@@ -527,7 +527,7 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
               </button>
             </div>
             
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest pt-2 border-t border-slate-100">
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest pt-2 border-t border-slate-100 dark:border-slate-800">
               Registro Obrigatório
             </p>
           </motion.div>

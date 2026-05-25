@@ -11,7 +11,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void 
   return (
     <label className="relative inline-flex items-center cursor-pointer">
       <input type="checkbox" className="sr-only peer" checked={checked} onChange={onChange} />
-      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600" />
+      <div className="w-11 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white dark:bg-slate-900 after:border-gray-300 dark:border-slate-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600" />
     </label>
   );
 }
@@ -124,8 +124,8 @@ export function Notifications() {
   if (permLoading) {
     return (
       <div className="p-6 max-w-2xl mx-auto">
-        <div className="h-8 w-48 bg-slate-100 rounded-lg animate-pulse mb-2" />
-        <div className="h-4 w-72 bg-slate-100 rounded animate-pulse" />
+        <div className="h-8 w-48 bg-slate-100 dark:bg-slate-800/50 rounded-lg animate-pulse mb-2" />
+        <div className="h-4 w-72 bg-slate-100 dark:bg-slate-800/50 rounded animate-pulse" />
       </div>
     );
   }
@@ -133,19 +133,19 @@ export function Notifications() {
   return (
     <div className="p-6 max-w-2xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
           <Bell size={22} className="text-emerald-600" />
           Notificações
         </h1>
-        <p className="text-sm text-slate-500 mt-1">Configure como você deseja ser avisado pelo sistema.</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Configure como você deseja ser avisado pelo sistema.</p>
       </div>
 
       <div className="space-y-6">
         {/* Configurações Pessoais (Aparece para todos) */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2 bg-gradient-to-r from-blue-50 to-white">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2 bg-gradient-to-r from-blue-50 to-white">
             <Bell size={16} className="text-blue-600" />
-            <h3 className="text-sm font-bold text-slate-800">Preferências Pessoais</h3>
+            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Preferências Pessoais</h3>
           </div>
           <div className="p-6 space-y-5">
             <div className="flex items-center justify-between gap-4">
@@ -154,8 +154,8 @@ export function Notifications() {
                   <Megaphone size={14} className="text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-slate-800">Barulho de Alerta</p>
-                  <p className="text-xs text-slate-500 leading-relaxed">
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">Barulho de Alerta</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                     Ativa um sinal sonoro breve quando houver lembretes ou tarefas pendentes.
                   </p>
                 </div>
@@ -180,10 +180,10 @@ export function Notifications() {
         {isAdmin && (
           <>
             {/* Tipos de notificação */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-              <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2 bg-gradient-to-r from-emerald-50 to-white">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2 bg-gradient-to-r from-emerald-50 to-white">
                 <Shield size={16} className="text-emerald-600" />
-                <h3 className="text-sm font-bold text-slate-800">Tipos de Notificação (Global)</h3>
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Tipos de Notificação (Global)</h3>
                 <span className="ml-auto text-[10px] font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full uppercase tracking-wider">
                   Admin
                 </span>
@@ -192,12 +192,12 @@ export function Notifications() {
                 {NOTIFICATION_ITEMS.map(({ key, icon: Icon, label, description }) => (
                   <div key={key} className="flex items-center justify-between gap-4">
                     <div className="flex items-start gap-3">
-                      <div className="p-1.5 bg-slate-100 rounded-lg mt-0.5">
-                        <Icon size={14} className="text-slate-600" />
+                      <div className="p-1.5 bg-slate-100 dark:bg-slate-800/50 rounded-lg mt-0.5">
+                        <Icon size={14} className="text-slate-600 dark:text-slate-400" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-slate-800">{label}</p>
-                        <p className="text-xs text-slate-500 leading-relaxed">{description}</p>
+                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{label}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{description}</p>
                       </div>
                     </div>
                     <Toggle checked={localPrefs[key]} onChange={() => togglePref(key)} />
@@ -208,18 +208,18 @@ export function Notifications() {
 
             {/* Thresholds de inatividade */}
             <div className={cn(
-              "bg-white rounded-2xl border shadow-sm overflow-hidden transition-opacity",
+              "bg-white dark:bg-slate-900 rounded-2xl border shadow-sm overflow-hidden transition-opacity",
               !localPrefs.leadInactive && "opacity-50 pointer-events-none"
             )}>
-              <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+              <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2">
                 <AlertTriangle size={16} className="text-amber-500" />
-                <h3 className="text-sm font-bold text-slate-800">Thresholds de Alerta de Inatividade</h3>
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Thresholds de Alerta de Inatividade</h3>
                 {!localPrefs.leadInactive && (
                   <span className="ml-auto text-[10px] text-slate-400 font-semibold">Desativado</span>
                 )}
               </div>
               <div className="p-6">
-                <p className="text-xs text-slate-500 mb-4">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
                   Selecione em quais marcos de inatividade o sistema deve enviar alertas ao responsável do lead. Menos é mais — evite os thresholds muito curtos para não gerar spam.
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -237,7 +237,7 @@ export function Notifications() {
                             ? 'bg-red-50 border-red-200 text-red-700 cursor-default'
                             : enabled
                               ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
-                              : 'bg-slate-50 border-slate-200 text-slate-400 hover:border-slate-300'
+                              : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 hover:border-slate-300 dark:border-slate-600'
                         )}
                       >
                         <span className="text-sm font-bold leading-tight">{label}</span>
@@ -254,21 +254,21 @@ export function Notifications() {
             </div>
 
             {/* Automação de transferência */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-              <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2">
                 <Zap size={16} className="text-amber-500" />
-                <h3 className="text-sm font-bold text-slate-800">Transferência Automática</h3>
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Transferência Automática</h3>
               </div>
               <div className="p-6 space-y-4">
-                <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-800">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex-1">
-                      <p className="text-sm font-bold text-slate-800">Horas até transferência</p>
-                      <p className="text-xs text-slate-500 leading-relaxed">
+                      <p className="text-sm font-bold text-slate-800 dark:text-slate-200">Horas até transferência</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                         Tempo de inatividade para sinalizar o lead para transferência e notificar coordenadores.
                       </p>
                     </div>
-                    <div className="flex items-center gap-2 bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
+                    <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-1 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
                       <input
                         type="number"
                         min={1}
@@ -306,7 +306,7 @@ export function Notifications() {
             className={cn(
               "px-8 py-2.5 rounded-xl font-bold text-sm shadow-lg transition-all flex items-center gap-2",
               saveState === 'saving'
-                ? "bg-slate-300 text-slate-500 cursor-not-allowed shadow-none"
+                ? "bg-slate-300 text-slate-500 dark:text-slate-400 cursor-not-allowed shadow-none"
                 : "bg-emerald-600 text-white shadow-emerald-200 hover:bg-emerald-700"
             )}
           >

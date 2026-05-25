@@ -62,7 +62,7 @@ export const LeadSmartResponderTab: React.FC<LeadSmartResponderTabProps> = ({ le
             value={context}
             onChange={(e) => setContext(e.target.value)}
             placeholder="Ex: O lead quer saber sobre o curso de drones agrícolas e pediu desconto para pagamento à vista..."
-            className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all min-h-[100px] shadow-sm resize-none"
+            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all min-h-[100px] shadow-sm resize-none"
           />
         </div>
 
@@ -72,7 +72,7 @@ export const LeadSmartResponderTab: React.FC<LeadSmartResponderTabProps> = ({ le
           className={cn(
             "w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all shadow-lg",
             loading 
-              ? "bg-slate-100 text-slate-400 cursor-not-allowed" 
+              ? "bg-slate-100 dark:bg-slate-800/50 text-slate-400 cursor-not-allowed" 
               : "bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-200 active:scale-[0.98]"
           )}
         >
@@ -99,7 +99,7 @@ export const LeadSmartResponderTab: React.FC<LeadSmartResponderTabProps> = ({ le
             </span>
             <button
               onClick={copyToClipboard}
-              className="text-[10px] font-bold text-slate-500 hover:text-emerald-600 flex items-center gap-1.5 transition-colors uppercase tracking-widest bg-slate-100 px-2 py-1 rounded-md"
+              className="text-[10px] font-bold text-slate-500 dark:text-slate-400 hover:text-emerald-600 flex items-center gap-1.5 transition-colors uppercase tracking-widest bg-slate-100 dark:bg-slate-800/50 px-2 py-1 rounded-md"
             >
               {copied ? (
                 <>
@@ -114,8 +114,8 @@ export const LeadSmartResponderTab: React.FC<LeadSmartResponderTabProps> = ({ le
               )}
             </button>
           </div>
-          <div className="bg-slate-50 rounded-3xl p-6 border border-slate-200 shadow-inner relative group">
-            <p className="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap italic">
+          <div className="bg-slate-50 dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-inner relative group">
+            <p className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed whitespace-pre-wrap italic">
               "{response}"
             </p>
             <div className="absolute top-4 right-4 opacity-10 group-hover:opacity-30 transition-opacity">

@@ -25,8 +25,8 @@ export function ManageTurmas() {
   return (
     <div className="p-6 max-w-3xl">
       <div className="mb-6">
-        <h1 className="text-xl font-bold text-slate-800">Configuração de Turmas</h1>
-        <p className="text-sm text-slate-500 mt-1">Defina a meta de alunos por turma.</p>
+        <h1 className="text-xl font-bold text-slate-800 dark:text-slate-200">Configuração de Turmas</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Defina a meta de alunos por turma.</p>
       </div>
 
       {turmas.length === 0 ? (
@@ -44,18 +44,18 @@ export function ManageTurmas() {
             return (
               <div
                 key={t.id}
-                className="bg-white rounded-xl border border-slate-100 px-4 py-3 flex items-center gap-4"
+                className="bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 px-4 py-3 flex items-center gap-4"
               >
                 <div className="w-9 h-9 bg-emerald-50 rounded-xl flex items-center justify-center flex-shrink-0">
                   <GraduationCap className="w-4 h-4 text-emerald-600" />
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm text-slate-800 truncate">{t.name}</p>
+                  <p className="font-semibold text-sm text-slate-800 dark:text-slate-200 truncate">{t.name}</p>
                   <p className="text-[11px] text-slate-400">{t.date} · {t.category}</p>
                 </div>
 
-                <div className="flex items-center gap-1 text-xs text-slate-500 flex-shrink-0">
+                <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 flex-shrink-0">
                   <Users className="w-3.5 h-3.5" />
                   <span>{activeAttendees} aluno{activeAttendees !== 1 ? 's' : ''}</span>
                 </div>
@@ -69,7 +69,7 @@ export function ManageTurmas() {
                       setLocalMeta(prev => ({ ...prev, [t.id]: e.target.value }))
                     }
                     placeholder="Meta"
-                    className="w-24 rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
+                    className="w-24 rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-1.5 text-sm text-slate-800 dark:text-slate-200 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
                   />
 
                   <button
@@ -81,7 +81,7 @@ export function ManageTurmas() {
                         ? 'bg-emerald-400'
                         : isDirty
                         ? 'bg-emerald-500 hover:bg-emerald-600'
-                        : 'bg-slate-200 cursor-not-allowed'
+                        : 'bg-slate-200 dark:bg-slate-700 cursor-not-allowed'
                     }`}
                   >
                     {saved[t.id] ? (

@@ -107,13 +107,13 @@ export const NewTransactionModal: React.FC<NewTransactionModalProps> = ({ isOpen
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col"
+          className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col"
         >
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white">
-            <h2 className="text-xl font-bold text-gray-800">Nova Transação</h2>
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900">
+            <h2 className="text-xl font-bold text-gray-800 dark:text-slate-200">Nova Transação</h2>
             <button 
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 transition-colors"
+              className="p-2 hover:bg-gray-100 dark:bg-slate-800/50 rounded-lg text-gray-400 transition-colors"
             >
               <X size={20} />
             </button>
@@ -127,7 +127,7 @@ export const NewTransactionModal: React.FC<NewTransactionModalProps> = ({ isOpen
                 className={`flex-1 py-3 rounded-xl border-2 flex items-center justify-center gap-2 font-bold transition-all ${
                   formData.type === 'INCOME' 
                     ? 'border-emerald-500 bg-emerald-50 text-emerald-600' 
-                    : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200'
+                    : 'border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-400 hover:border-slate-200 dark:border-slate-700'
                 }`}
               >
                 <ArrowUpCircle size={20} />
@@ -139,7 +139,7 @@ export const NewTransactionModal: React.FC<NewTransactionModalProps> = ({ isOpen
                 className={`flex-1 py-3 rounded-xl border-2 flex items-center justify-center gap-2 font-bold transition-all ${
                   formData.type === 'EXPENSE' 
                     ? 'border-rose-500 bg-rose-50 text-rose-600' 
-                    : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200'
+                    : 'border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-400 hover:border-slate-200 dark:border-slate-700'
                 }`}
               >
                 <ArrowDownCircle size={20} />
@@ -148,7 +148,7 @@ export const NewTransactionModal: React.FC<NewTransactionModalProps> = ({ isOpen
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Status</label>
+              <label className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Status</label>
               <div className="flex gap-4">
                 <button
                   type="button"
@@ -157,7 +157,7 @@ export const NewTransactionModal: React.FC<NewTransactionModalProps> = ({ isOpen
                     "flex-1 py-2.5 rounded-xl border-2 flex items-center justify-center gap-2 text-sm font-bold transition-all",
                     formData.status === 'PAID'
                       ? "border-indigo-500 bg-indigo-50 text-indigo-600"
-                      : "border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200"
+                      : "border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-400 hover:border-slate-200 dark:border-slate-700"
                   )}
                 >
                   <CheckCircle2 size={16} />
@@ -170,7 +170,7 @@ export const NewTransactionModal: React.FC<NewTransactionModalProps> = ({ isOpen
                     "flex-1 py-2.5 rounded-xl border-2 flex items-center justify-center gap-2 text-sm font-bold transition-all",
                     formData.status === 'PENDING'
                       ? "border-amber-500 bg-amber-50 text-amber-600"
-                      : "border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200"
+                      : "border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-400 hover:border-slate-200 dark:border-slate-700"
                   )}
                 >
                   <Clock size={16} />
@@ -180,14 +180,14 @@ export const NewTransactionModal: React.FC<NewTransactionModalProps> = ({ isOpen
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Descrição</label>
+              <label className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Descrição</label>
               <div className="relative">
                 <input 
                   required
                   type="text" 
                   value={formData.description}
                   onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 dark:text-slate-300"
                   placeholder="Ex: Venda Fertilizante"
                 />
               </div>
@@ -195,7 +195,7 @@ export const NewTransactionModal: React.FC<NewTransactionModalProps> = ({ isOpen
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Valor (R$)</label>
+                <label className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Valor (R$)</label>
                 <div className="relative">
                   <input 
                     required
@@ -203,7 +203,7 @@ export const NewTransactionModal: React.FC<NewTransactionModalProps> = ({ isOpen
                     step="0.01"
                     value={formData.amount}
                     onChange={(e) => setFormData({...formData, amount: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
+                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 dark:text-slate-300"
                     placeholder="0.00"
                   />
                   <DollarSign size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -211,7 +211,7 @@ export const NewTransactionModal: React.FC<NewTransactionModalProps> = ({ isOpen
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                <label className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
                   {formData.status === 'PAID' ? 'Data de Pagamento' : 'Data de Vencimento'}
                 </label>
                 <input 
@@ -219,20 +219,20 @@ export const NewTransactionModal: React.FC<NewTransactionModalProps> = ({ isOpen
                   type="date" 
                   value={formData.date}
                   onChange={(e) => setFormData({...formData, date: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 dark:text-slate-300"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Categoria</label>
+                <label className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Categoria</label>
                 <div className="relative">
                   <select
                     required
                     value={formData.category_id}
                     onChange={(e) => setFormData({...formData, category_id: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 appearance-none"
+                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 dark:text-slate-300 appearance-none"
                   >
                     <option value="" disabled>Selecione</option>
                     {categories.map(c => (
@@ -244,12 +244,12 @@ export const NewTransactionModal: React.FC<NewTransactionModalProps> = ({ isOpen
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Centro de Custo</label>
+                <label className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Centro de Custo</label>
                 <div className="relative">
                   <select
                     value={formData.centro_custo_id}
                     onChange={(e) => setFormData({...formData, centro_custo_id: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 appearance-none"
+                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 dark:text-slate-300 appearance-none"
                   >
                     <option value="">Nenhum (Geral)</option>
                     {centroCustos.map(cc => (
@@ -265,7 +265,7 @@ export const NewTransactionModal: React.FC<NewTransactionModalProps> = ({ isOpen
               <button 
                 type="button"
                 onClick={onClose}
-                className="px-6 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+                className="px-6 py-2.5 text-sm font-bold text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:bg-slate-800/50 rounded-xl transition-colors"
               >
                 Cancelar
               </button>

@@ -97,12 +97,12 @@ export function AIAgentHeader() {
             initial={{ opacity: 0, y: 10, scale: 0.95, x: 20 }}
             animate={{ opacity: 1, y: 0, scale: 1, x: 0 }}
             exit={{ opacity: 0, y: 10, scale: 0.95, x: 20 }}
-            className="absolute top-full right-0 mt-3 w-80 sm:w-96 bg-white rounded-2xl border border-slate-200 shadow-2xl z-50 overflow-hidden flex flex-col h-[500px]"
+            className="absolute top-full right-0 mt-3 w-80 sm:w-96 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xl z-50 overflow-hidden flex flex-col h-[500px]"
           >
             {/* Header do Agente */}
-            <div className="p-4 border-b border-slate-100 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white flex items-center justify-between">
+            <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-white dark:bg-slate-900/20 rounded-lg flex items-center justify-center">
                   <Bot size={18} />
                 </div>
                 <div>
@@ -110,13 +110,13 @@ export function AIAgentHeader() {
                   <p className="text-sm font-bold">Inteligência Operacional</p>
                 </div>
               </div>
-              <button onClick={() => setIsOpen(false)} className="p-1 hover:bg-white/10 rounded-lg transition-colors">
+              <button onClick={() => setIsOpen(false)} className="p-1 hover:bg-white dark:bg-slate-900/10 rounded-lg transition-colors">
                 <X size={18} />
               </button>
             </div>
 
             {/* Chat Messages */}
-            <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50">
+            <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 dark:bg-slate-800/50">
               {messages.map((msg, i) => (
                 <div key={i} className={cn(
                   "flex gap-3",
@@ -124,13 +124,13 @@ export function AIAgentHeader() {
                 )}>
                   <div className={cn(
                     "w-6 h-6 rounded flex items-center justify-center shrink-0 mt-1",
-                    msg.role === 'model' ? "bg-emerald-600 text-white" : "bg-slate-300 text-slate-600"
+                    msg.role === 'model' ? "bg-emerald-600 text-white" : "bg-slate-300 text-slate-600 dark:text-slate-400"
                   )}>
                     {msg.role === 'model' ? <Bot size={14} /> : <span className="text-[10px] font-bold">EU</span>}
                   </div>
                   <div className={cn(
                     "p-3 rounded-xl text-xs leading-relaxed shadow-sm",
-                    msg.role === 'model' ? "bg-white text-slate-700 border border-slate-100" : "bg-emerald-600 text-white"
+                    msg.role === 'model' ? "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-100 dark:border-slate-800" : "bg-emerald-600 text-white"
                   )}>
                     {msg.content}
                   </div>
@@ -141,7 +141,7 @@ export function AIAgentHeader() {
                   <div className="w-6 h-6 bg-emerald-600 rounded flex items-center justify-center text-white">
                     <Loader2 size={14} className="animate-spin" />
                   </div>
-                  <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+                  <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
                     <span className="text-[10px] text-slate-400 font-bold animate-pulse">Pensando...</span>
                   </div>
                 </div>
@@ -149,7 +149,7 @@ export function AIAgentHeader() {
             </div>
 
             {/* Footer Input */}
-            <div className="p-3 border-t border-slate-100 bg-white">
+            <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
               <div className="relative">
                 <input
                   type="text"
@@ -157,7 +157,7 @@ export function AIAgentHeader() {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                   placeholder="Pergunte algo ao agente..."
-                  className="w-full bg-slate-100 border-none rounded-xl py-2.5 pl-3 pr-10 text-xs focus:ring-2 focus:ring-emerald-500 transition-all"
+                  className="w-full bg-slate-100 dark:bg-slate-800/50 border-none rounded-xl py-2.5 pl-3 pr-10 text-xs focus:ring-2 focus:ring-emerald-500 transition-all"
                 />
                 <button 
                   onClick={handleSend}

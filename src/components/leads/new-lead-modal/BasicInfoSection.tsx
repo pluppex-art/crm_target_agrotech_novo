@@ -41,8 +41,8 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
                 setFieldErrors(p => ({ ...p, name: undefined }));
               }}
               className={cn(
-                "w-full px-4 py-2.5 bg-white border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm",
-                fieldErrors.name ? "border-red-400 bg-red-50" : "border-slate-200"
+                "w-full px-4 py-2.5 bg-white dark:bg-slate-900 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm",
+                fieldErrors.name ? "border-red-400 bg-red-50" : "border-slate-200 dark:border-slate-700"
               )}
               placeholder="Nome do cliente"
             />
@@ -50,7 +50,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
         </div>
 
         {/* Menor de Idade Checkbox */}
-        <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 md:col-span-2">
+        <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-800 md:col-span-2">
           <label className="flex items-center gap-3 cursor-pointer group">
             <div className="relative">
               <input
@@ -61,12 +61,12 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
               />
               <div className={cn(
                 "w-5 h-5 border-2 rounded transition-all flex items-center justify-center",
-                formData.is_minor ? "bg-emerald-600 border-emerald-600" : "bg-white border-slate-300"
+                formData.is_minor ? "bg-emerald-600 border-emerald-600" : "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600"
               )}>
                 {formData.is_minor && <CheckSquare size={12} className="text-white" />}
               </div>
             </div>
-            <span className="text-sm font-bold text-slate-700">O lead é menor de idade?</span>
+            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">O lead é menor de idade?</span>
           </label>
         </div>
 
@@ -93,7 +93,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
                         type="text"
                         value={formData.guardian_name}
                         onChange={(e) => setFormData(prev => ({ ...prev, guardian_name: e.target.value }))}
-                        className="w-full px-4 py-2 bg-white border border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm"
+                        className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm"
                         placeholder="Nome completo do pai, mãe ou tutor"
                       />
                     </div>
@@ -104,7 +104,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
                         type="text"
                         value={formData.guardian_cpf}
                         onChange={(e) => setFormData(prev => ({ ...prev, guardian_cpf: formatCPFCNPJ(e.target.value) }))}
-                        className="w-full px-4 py-2 bg-white border border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm"
+                        className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm"
                         placeholder="000.000.000-00"
                         maxLength={14}
                       />
@@ -116,7 +116,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
                         type="text"
                         value={formData.guardian_phone}
                         onChange={(e) => setFormData(prev => ({ ...prev, guardian_phone: formatPhone(e.target.value) }))}
-                        className="w-full px-4 py-2 bg-white border border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm"
+                        className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm"
                         placeholder="(00) 00000-0000"
                         maxLength={15}
                       />
@@ -143,8 +143,8 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
                 setFieldErrors(p => ({ ...p, phone: undefined }));
               }}
               className={cn(
-                "w-full px-4 py-2.5 bg-white border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium pr-10 shadow-sm",
-                fieldErrors.phone ? "border-red-400 bg-red-50" : "border-slate-200"
+                "w-full px-4 py-2.5 bg-white dark:bg-slate-900 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium pr-10 shadow-sm",
+                fieldErrors.phone ? "border-red-400 bg-red-50" : "border-slate-200 dark:border-slate-700"
               )}
               placeholder="(00) 00000-0000"
               maxLength={15}
@@ -164,8 +164,8 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
                 setFieldErrors(p => ({ ...p, email: undefined }));
               }}
               className={cn(
-                "w-full px-4 py-2.5 bg-white border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm",
-                (fieldErrors.email || duplicateEmailError) ? "border-red-400 bg-red-50" : "border-slate-200"
+                "w-full px-4 py-2.5 bg-white dark:bg-slate-900 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm",
+                (fieldErrors.email || duplicateEmailError) ? "border-red-400 bg-red-50" : "border-slate-200 dark:border-slate-700"
               )}
               placeholder="email@exemplo.com"
             />
@@ -180,7 +180,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
               type="text"
               value={formData.city}
               onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
-              className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm"
+              className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm"
               placeholder="Cidade - UF"
             />
             <MapPin size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -194,7 +194,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
               type="text"
               value={formData.cnpj}
               onChange={(e) => setFormData(prev => ({ ...prev, cnpj: formatCPFCNPJ(e.target.value) }))}
-              className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm"
+              className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm"
               placeholder="000.000.000-00"
               maxLength={18}
             />

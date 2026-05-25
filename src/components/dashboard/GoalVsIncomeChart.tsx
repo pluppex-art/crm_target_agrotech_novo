@@ -10,7 +10,7 @@ export function GoalVsIncomeChart({ incomeData, monthlyGoal }: GoalVsIncomeChart
 
   if (!hasData) {
     return (
-      <div className="flex flex-col items-center justify-center h-48 p-8 text-slate-300 rounded-2xl border-2 border-dashed border-slate-200">
+      <div className="flex flex-col items-center justify-center h-48 p-8 text-slate-300 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700">
         <TrendingUp className="w-12 h-12 mb-3 opacity-30" />
         <p className="text-sm font-medium text-slate-400">Sem dados de receita</p>
       </div>
@@ -44,7 +44,7 @@ export function GoalVsIncomeChart({ incomeData, monthlyGoal }: GoalVsIncomeChart
     : String(n);
 
   return (
-    <div className="rounded-2xl border border-slate-100 bg-gradient-to-b from-slate-50/50 to-slate-100/50 overflow-hidden">
+    <div className="rounded-2xl border border-slate-100 dark:border-slate-800 bg-gradient-to-b from-slate-50/50 to-slate-100/50 overflow-hidden">
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ display: 'block' }}>
         {/* Horizontal grid lines */}
         {[0.25, 0.5, 0.75, 1].map((level, i) => (

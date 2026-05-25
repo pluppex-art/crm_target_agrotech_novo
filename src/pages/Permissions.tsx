@@ -301,16 +301,16 @@ export function Permissions() {
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate('/settings')}
-            className="p-2.5 hover:bg-white border border-transparent hover:border-slate-200 rounded-xl transition-all text-slate-500 shadow-sm hover:shadow-md"
+            className="p-2.5 hover:bg-white dark:bg-slate-900 border border-transparent hover:border-slate-200 dark:border-slate-700 rounded-xl transition-all text-slate-500 dark:text-slate-400 shadow-sm hover:shadow-md"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-2xl font-black text-slate-800 flex items-center gap-2">
+            <h1 className="text-2xl font-black text-slate-800 dark:text-slate-200 flex items-center gap-2">
               <Shield className="w-7 h-7 text-emerald-600" />
               Central de Acessos
             </h1>
-            <p className="text-sm text-slate-500 font-medium">Controle de privilégios por cargo e função</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Controle de privilégios por cargo e função</p>
           </div>
         </div>
 
@@ -322,7 +322,7 @@ export function Permissions() {
             placeholder="Buscar permissão..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all placeholder:text-slate-400"
+            className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold text-slate-700 dark:text-slate-300 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all placeholder:text-slate-400"
           />
         </div>
       </div>
@@ -332,7 +332,7 @@ export function Permissions() {
         <div className="lg:col-span-3 space-y-4">
           <div className="flex items-center justify-between px-2">
             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Cargos Definidos</h3>
-            <span className="text-[10px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">{cargos.length}</span>
+            <span className="text-[10px] font-black bg-slate-100 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded-full">{cargos.length}</span>
           </div>
 
           <div className="space-y-2 max-h-[calc(100vh-250px)] overflow-y-auto pr-2 custom-scrollbar">
@@ -346,8 +346,8 @@ export function Permissions() {
                   className={cn(
                     'w-full flex items-center gap-3 p-4 rounded-2xl border transition-all text-left relative overflow-hidden group',
                     isSelected
-                      ? 'bg-white border-emerald-500 shadow-lg shadow-emerald-500/5'
-                      : 'bg-white/50 border-slate-200 hover:border-emerald-200 hover:bg-white'
+                      ? 'bg-white dark:bg-slate-900 border-emerald-500 shadow-lg shadow-emerald-500/5'
+                      : 'bg-white dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 hover:border-emerald-200 hover:bg-white dark:bg-slate-900'
                   )}
                 >
                   {isSelected && (
@@ -358,7 +358,7 @@ export function Permissions() {
                     'w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-300',
                     isSelected
                       ? 'bg-emerald-500 text-white shadow-inner'
-                      : 'bg-slate-100 text-slate-500 group-hover:bg-emerald-50 group-hover:text-emerald-600'
+                      : 'bg-slate-100 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 group-hover:bg-emerald-50 group-hover:text-emerald-600'
                   )}>
                     <UserCog className="w-5 h-5" />
                   </div>
@@ -366,7 +366,7 @@ export function Permissions() {
                   <div className="min-w-0 flex-1">
                     <h4 className={cn(
                       'font-bold text-sm truncate',
-                      isSelected ? 'text-slate-900' : 'text-slate-600'
+                      isSelected ? 'text-slate-900 dark:text-slate-100' : 'text-slate-600 dark:text-slate-400'
                     )}>
                       {cargo.name}
                     </h4>
@@ -398,7 +398,7 @@ export function Permissions() {
 
         {/* Content — Permissions */}
         <div className="lg:col-span-9">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-xl shadow-slate-200/50 overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-xl shadow-slate-200/50 overflow-hidden">
             {/* Active Cargo Info */}
             <div className={cn(
               'p-6 sm:p-8 border-b flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 relative',
@@ -409,7 +409,7 @@ export function Permissions() {
               </div>
 
               <div className="flex items-center gap-5 relative z-10">
-                <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center shadow-2xl border border-white/20">
+                <div className="w-16 h-16 rounded-2xl bg-white dark:bg-slate-900/10 backdrop-blur-md flex items-center justify-center shadow-2xl border border-white/20">
                   <Lock className="w-8 h-8 text-white" />
                 </div>
                 <div>
@@ -423,7 +423,7 @@ export function Permissions() {
               </div>
 
               {isAdminCargo && (
-                <div className="relative z-10 flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md text-white rounded-xl text-xs font-black uppercase tracking-widest border border-white/20">
+                <div className="relative z-10 flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-900/10 backdrop-blur-md text-white rounded-xl text-xs font-black uppercase tracking-widest border border-white/20">
                   <Check className="w-4 h-4" />
                   Blindagem Ativa
                 </div>
@@ -451,11 +451,11 @@ export function Permissions() {
                   <div key={category} className="space-y-6">
                     <div className="flex items-center justify-between group">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-slate-50 rounded-lg group-hover:bg-emerald-50 transition-colors">
+                        <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg group-hover:bg-emerald-50 transition-colors">
                           <Icon className="w-5 h-5 text-slate-400 group-hover:text-emerald-600 transition-colors" />
                         </div>
-                        <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">{label}</h3>
-                        <span className="w-1.5 h-1.5 rounded-full bg-slate-200" />
+                        <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">{label}</h3>
+                        <span className="w-1.5 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700" />
                         <span className="text-xs font-bold text-slate-400">{perms.length} opções</span>
                       </div>
 
@@ -475,7 +475,7 @@ export function Permissions() {
                             'text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all border shadow-sm active:scale-95',
                             allEnabled
                               ? 'bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100'
-                              : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
+                              : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:bg-slate-800'
                           )}
                         >
                           {allEnabled ? 'Revogar Categoria' : 'Liberar Tudo'}
@@ -493,18 +493,18 @@ export function Permissions() {
                             className={cn(
                               'p-5 rounded-3xl border transition-all flex items-start gap-4 group/item',
                               isEnabled
-                                ? 'bg-white border-emerald-200 shadow-lg shadow-emerald-500/5 ring-1 ring-emerald-50'
-                                : 'bg-slate-50/50 border-slate-100 opacity-60 grayscale hover:grayscale-0 hover:opacity-100'
+                                ? 'bg-white dark:bg-slate-900 border-emerald-200 shadow-lg shadow-emerald-500/5 ring-1 ring-emerald-50'
+                                : 'bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800 opacity-60 grayscale hover:grayscale-0 hover:opacity-100'
                             )}
                           >
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">
-                                <h4 className="text-sm font-black text-slate-800">{title}</h4>
+                                <h4 className="text-sm font-black text-slate-800 dark:text-slate-200">{title}</h4>
                                 {permission.includes('delete') && (
                                   <span className="text-[8px] font-black bg-rose-100 text-rose-600 px-1.5 py-0.5 rounded uppercase tracking-wider">Crítico</span>
                                 )}
                               </div>
-                              <p className="text-xs text-slate-500 font-medium leading-relaxed">{description}</p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">{description}</p>
                             </div>
                             <button
                               disabled={isAdminCargo}
@@ -516,7 +516,7 @@ export function Permissions() {
                               )}
                             >
                               <div className={cn(
-                                'w-5 h-5 bg-white rounded-full absolute transition-all duration-300 shadow-md',
+                                'w-5 h-5 bg-white dark:bg-slate-900 rounded-full absolute transition-all duration-300 shadow-md',
                                 isEnabled ? 'right-1' : 'left-1'
                               )} />
                             </button>
@@ -537,11 +537,11 @@ export function Permissions() {
                 })
               ) && (
                   <div className="flex flex-col items-center justify-center py-20 text-center">
-                    <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                    <div className="w-20 h-20 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
                       <Search className="w-8 h-8 text-slate-300" />
                     </div>
-                    <h3 className="text-lg font-bold text-slate-800">Nenhuma permissão encontrada</h3>
-                    <p className="text-sm text-slate-500 mt-1">Tente buscar por termos diferentes ou navegue pelas categorias.</p>
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">Nenhuma permissão encontrada</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Tente buscar por termos diferentes ou navegue pelas categorias.</p>
                   </div>
                 )}
             </div>

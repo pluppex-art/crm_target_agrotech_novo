@@ -105,7 +105,7 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = (props) => {
       {formData.isPerdidoStage && (
         <div className="space-y-1.5 px-1">
           <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Motivo da Perda</label>
-          <select value={formData.motivo_perda || ''} onChange={(e) => updateFormField({ motivo_perda: e.target.value || null })} className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm cursor-pointer">
+          <select value={formData.motivo_perda || ''} onChange={(e) => updateFormField({ motivo_perda: e.target.value || null })} className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm cursor-pointer">
             <option value="">Selecione...</option>
             {['Preço alto', 'Concorrência', 'Orçamento insuficiente', 'Não atende necessidades', 'Outros'].map(m => <option key={m} value={m}>{m}</option>)}
           </select>

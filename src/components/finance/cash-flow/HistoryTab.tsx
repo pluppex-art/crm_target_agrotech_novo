@@ -27,7 +27,7 @@ export const HistoryTab: React.FC<{
 
   return (
     <div className="min-h-[400px]">
-      <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/20">
+      <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/20">
         <PageFilters
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
@@ -43,7 +43,7 @@ export const HistoryTab: React.FC<{
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm text-left">
-          <thead className="text-[10px] text-slate-400 uppercase bg-slate-50 font-black tracking-widest">
+          <thead className="text-[10px] text-slate-400 uppercase bg-slate-50 dark:bg-slate-800 font-black tracking-widest">
             <tr>
               <th className="px-6 py-4">Descrição Detalhada</th>
               <th className="px-6 py-4">Data Ref.</th>
@@ -54,9 +54,9 @@ export const HistoryTab: React.FC<{
           </thead>
           <tbody className="divide-y divide-slate-100">
             {filteredAll.map((t) => (
-              <tr key={t.id} className="hover:bg-slate-50/50 transition-colors">
+              <tr key={t.id} className="hover:bg-slate-50 dark:bg-slate-800/50 transition-colors">
                 <td className="px-6 py-4">
-                  <p className="font-black text-slate-800 tracking-tight">{t.description}</p>
+                  <p className="font-black text-slate-800 dark:text-slate-200 tracking-tight">{t.description}</p>
                   <div className="flex items-center gap-2 mt-0.5">
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">{(t as any).financial_categories?.name || 'Sem Categoria'} • {t.origin_type}</p>
                     {(t.cost_center === 'cursos' || (t as any).leads?.product) && (
@@ -64,7 +64,7 @@ export const HistoryTab: React.FC<{
                     )}
                   </div>
                 </td>
-                <td className="px-6 py-4 text-slate-500 whitespace-nowrap font-medium">{new Date(t.status === 'PAID' ? (t.payment_date || t.created_at) : (t.due_date || t.created_at)).toLocaleDateString('pt-BR')}</td>
+                <td className="px-6 py-4 text-slate-500 dark:text-slate-400 whitespace-nowrap font-medium">{new Date(t.status === 'PAID' ? (t.payment_date || t.created_at) : (t.due_date || t.created_at)).toLocaleDateString('pt-BR')}</td>
                 <td className="px-6 py-4 text-right whitespace-nowrap"><span className={cn('font-black text-base tabular-nums', t.type === 'INCOME' ? 'text-emerald-600' : 'text-rose-600')}>{t.type === 'INCOME' ? '+' : '-'} R$ {fmt(t.amount)}</span></td>
                 <td className="px-6 py-4 text-center"><span className={cn('px-2.5 py-1 text-[10px] font-black rounded-lg uppercase tracking-wider', t.status === 'PAID' ? 'bg-emerald-100 text-emerald-700' : t.status === 'PENDING' ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700')}>{t.status === 'PAID' ? 'Confirmado' : t.status === 'PENDING' ? 'Pendente' : 'Atrasado'}</span></td>
                 <td className="px-6 py-4 text-right"><div className="flex items-center justify-end gap-2">{t.status !== 'PAID' && t.status !== 'CANCELLED' && (<button onClick={() => handleMarkAsPaid(t.id)} className="p-2 text-emerald-600 hover:bg-emerald-100 rounded-xl transition-all" title="Confirmar Pagamento"><CheckCircle2 size={18} /></button>)}<button onClick={() => handleCancel(t.id)} className="p-2 text-rose-500 hover:bg-rose-100 rounded-xl transition-all" title="Cancelar"><XCircle size={18} /></button></div></td>

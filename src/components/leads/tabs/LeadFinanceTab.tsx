@@ -132,17 +132,17 @@ export const LeadFinanceTab: React.FC<LeadFinanceTabProps> = ({
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between py-2">
-        <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
           <DollarSign className="w-5 h-5 text-emerald-600" />
           Ganho Caixa e Competência
         </h3>
       </div>
 
       {/* Totais Agregados - igual PipelineHeader */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-6 bg-gradient-to-r from-emerald-50 to-blue-50 rounded-2xl border border-slate-100">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-6 bg-gradient-to-r from-emerald-50 to-blue-50 rounded-2xl border border-slate-100 dark:border-slate-800">
         <div className="text-center">
-          <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Total Vendas</p>
-          <p className="text-2xl font-black text-slate-800 mt-1">
+          <p className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Vendas</p>
+          <p className="text-2xl font-black text-slate-800 dark:text-slate-200 mt-1">
             R$ {formatCurrency(totals.totalVendas)}
           </p>
         </div>
@@ -163,7 +163,7 @@ export const LeadFinanceTab: React.FC<LeadFinanceTabProps> = ({
       {/* Breakdown por Turma */}
       {leadTurmas.length > 0 ? (
         <div className="space-y-4">
-          <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider px-1 border-b border-slate-200 pb-1">
+          <h4 className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-1 border-b border-slate-200 dark:border-slate-700 pb-1">
             Por Turma
           </h4>
           {leadTurmas.map(({ turma, attendee }) => {
@@ -173,16 +173,16 @@ export const LeadFinanceTab: React.FC<LeadFinanceTabProps> = ({
             const competenciaTurma = Math.max(0, vendasTurma - recebidoTurma);
 
             return (
-              <div key={turma.id} className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-3">
+              <div key={turma.id} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-3">
                 <div className="flex items-start justify-between">
                   <div>
-                    <h5 className="font-bold text-slate-800 text-sm">{turma.name}</h5>
-                    <p className="text-xs text-slate-500">{turma.professor_name || 'Sem professor'}</p>
+                    <h5 className="font-bold text-slate-800 dark:text-slate-200 text-sm">{turma.name}</h5>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{turma.professor_name || 'Sem professor'}</p>
                   </div>
                   <span className={`text-xs font-bold px-2 py-1 rounded-full ${
                     attendee.status === 'confirmado' 
                       ? 'bg-emerald-100 text-emerald-700' 
-                      : 'bg-slate-100 text-slate-500'
+                      : 'bg-slate-100 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400'
                   }`}>
                     {attendee.status}
                   </span>
@@ -210,7 +210,7 @@ export const LeadFinanceTab: React.FC<LeadFinanceTabProps> = ({
                 </div>
 
                 {/* Pagamento editável */}
-                <div className="pt-3 border-t border-slate-100 space-y-3">
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-3">
                   <div className="flex items-center justify-between">
                     <label className="flex items-center gap-3 cursor-pointer">
                       <div className="relative">
@@ -222,12 +222,12 @@ export const LeadFinanceTab: React.FC<LeadFinanceTabProps> = ({
                         />
                         <div className={cn(
                           'w-5 h-5 border-2 rounded-md transition-all flex items-center justify-center',
-                          payment.open ? 'bg-emerald-600 border-emerald-600' : 'bg-white border-slate-200'
+                          payment.open ? 'bg-emerald-600 border-emerald-600' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700'
                         )}>
                           {payment.open && <CheckSquare size={12} className="text-white" />}
                         </div>
                       </div>
-                      <span className="text-sm font-bold text-slate-700">Pagamento nesta turma</span>
+                      <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Pagamento nesta turma</span>
                     </label>
                     {payment.open && (
                       <button
@@ -252,14 +252,14 @@ export const LeadFinanceTab: React.FC<LeadFinanceTabProps> = ({
                             onChange={(e) => handleEntryChange(attendee.id, index, 'valor', e.target.value)}
                             onBlur={() => savePayment(attendee.id)}
                             placeholder="0,00"
-                            className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm font-medium shadow-sm"
+                            className="flex-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm font-medium shadow-sm"
                           />
                           <div className="relative flex-1">
                             <select
                               value={entry.forma}
                               onChange={(e) => handleEntryChange(attendee.id, index, 'forma', e.target.value)}
                               onBlur={() => savePayment(attendee.id)}
-                              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 appearance-none text-sm font-medium shadow-sm"
+                              className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 appearance-none text-sm font-medium shadow-sm"
                             >
                               <option value="">Forma...</option>
                               {FORMAS.map(f => <option key={f} value={f}>{f}</option>)}
@@ -284,9 +284,9 @@ export const LeadFinanceTab: React.FC<LeadFinanceTabProps> = ({
           })}
         </div>
       ) : (
-        <div className="text-center py-12 text-slate-400 border-2 border-dashed border-slate-200 rounded-2xl">
+        <div className="text-center py-12 text-slate-400 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl">
           <DollarSign className="w-12 h-12 mx-auto mb-4 opacity-30 text-emerald-400" />
-          <p className="text-lg font-medium text-slate-500 mb-1">Sem dados financeiros</p>
+          <p className="text-lg font-medium text-slate-500 dark:text-slate-400 mb-1">Sem dados financeiros</p>
           <p className="text-sm">Este lead não possui turmas ou vendas registradas.</p>
         </div>
       )}

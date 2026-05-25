@@ -15,7 +15,7 @@ export function MetricCard({ label, value, sub, icon: Icon, color }: MetricCardP
     <motion.div 
       whileHover={{ y: -4, scale: 1.01 }}
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
-      className="relative overflow-hidden bg-white/70 backdrop-blur-xl rounded-3xl border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 flex flex-col gap-4 group"
+      className="relative overflow-hidden bg-white dark:bg-slate-900/70 backdrop-blur-xl rounded-3xl border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 flex flex-col gap-4 group"
     >
       {/* Decorative gradient blob in the background */}
       <div className={cn("absolute -right-8 -top-8 w-32 h-32 rounded-full opacity-10 blur-3xl transition-all duration-500 group-hover:opacity-20 group-hover:scale-150", color.split(' ')[0].replace('text-', 'bg-').replace('bg-', 'bg-'))} />
@@ -26,8 +26,8 @@ export function MetricCard({ label, value, sub, icon: Icon, color }: MetricCardP
         </span>
       </div>
       <div className="relative z-10">
-        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{label}</p>
-        <p className="text-3xl font-black text-slate-800 tracking-tight">{value}</p>
+        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">{label}</p>
+        <p className="text-3xl font-black text-slate-800 dark:text-slate-200 tracking-tight">{value}</p>
         {sub && <p className="text-sm font-medium text-slate-400 mt-1">{sub}</p>}
       </div>
     </motion.div>

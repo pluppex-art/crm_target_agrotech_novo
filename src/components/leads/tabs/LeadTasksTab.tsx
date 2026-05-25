@@ -47,8 +47,8 @@ export const LeadTasksTab: React.FC<LeadTasksTabProps> = ({
               className={cn(
                 "flex items-center gap-4 p-4 rounded-2xl border transition-all cursor-pointer group",
                 task.status === 'completed'
-                  ? "bg-slate-50 border-slate-100 opacity-60"
-                  : "bg-white border-slate-100 hover:border-emerald-200 shadow-sm"
+                  ? "bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 opacity-60"
+                  : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-emerald-200 shadow-sm"
               )}
               onClick={() => handleToggleTask(task.id, task.status)}
             >
@@ -56,14 +56,14 @@ export const LeadTasksTab: React.FC<LeadTasksTabProps> = ({
                 "w-6 h-6 shrink-0 rounded-full border-2 flex items-center justify-center transition-all",
                 task.status === 'completed'
                   ? "bg-emerald-500 border-emerald-500"
-                  : "border-slate-200 group-hover:border-emerald-300"
+                  : "border-slate-200 dark:border-slate-700 group-hover:border-emerald-300"
               )}>
                 {task.status === 'completed' && <CheckSquare size={14} className="text-white" />}
               </div>
               <div className="flex-1 min-w-0">
                 <span className={cn(
                   "text-sm font-medium block truncate",
-                  task.status === 'completed' ? "line-through text-slate-400" : "text-slate-700"
+                  task.status === 'completed' ? "line-through text-slate-400" : "text-slate-700 dark:text-slate-300"
                 )}>
                   {task.title}
                 </span>
@@ -86,7 +86,7 @@ export const LeadTasksTab: React.FC<LeadTasksTabProps> = ({
             </div>
           ))
         ) : (
-          <div className="text-center py-12 text-slate-400 border border-dashed border-slate-200 rounded-2xl">
+          <div className="text-center py-12 text-slate-400 border border-dashed border-slate-200 dark:border-slate-700 rounded-2xl">
             <CheckSquare className="w-10 h-10 mx-auto mb-3 opacity-20" />
             <p className="text-sm">Nenhuma atividade registrada.</p>
           </div>

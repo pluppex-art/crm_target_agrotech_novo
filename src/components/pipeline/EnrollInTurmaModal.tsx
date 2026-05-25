@@ -31,7 +31,7 @@ export function EnrollInTurmaModal({ lead, onConfirm, onSkip }: EnrollModalProps
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm overflow-hidden"
+        className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl w-full max-w-sm overflow-hidden"
       >
         <div className="bg-emerald-600 p-6 text-white text-center relative overflow-hidden">
             {/* Abstract Background pattern */}
@@ -40,7 +40,7 @@ export function EnrollInTurmaModal({ lead, onConfirm, onSkip }: EnrollModalProps
             </div>
             
             <div className="relative z-10 space-y-2">
-                <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/30">
+                <div className="w-16 h-16 bg-white dark:bg-slate-900/20 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/30">
                     <CheckCircle2 size={32} className="text-white" />
                 </div>
                 <h3 className="text-2xl font-black tracking-tight">Venda Sucesso!</h3>
@@ -53,40 +53,40 @@ export function EnrollInTurmaModal({ lead, onConfirm, onSkip }: EnrollModalProps
             <div className="space-y-6">
                 <div className="space-y-1">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Produto / Curso</label>
-                    <p className="text-lg font-bold text-slate-800 leading-tight">{selectedTurma.name}</p>
+                    <p className="text-lg font-bold text-slate-800 dark:text-slate-200 leading-tight">{selectedTurma.name}</p>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 bg-slate-50 p-5 rounded-2xl border border-slate-100">
+                <div className="grid grid-cols-1 gap-4 bg-slate-50 dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-800">
                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shadow-sm border border-slate-100">
+                        <div className="w-8 h-8 rounded-lg bg-white dark:bg-slate-900 flex items-center justify-center shadow-sm border border-slate-100 dark:border-slate-800">
                             <Calendar size={14} className="text-emerald-600" />
                         </div>
                         <div>
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Data de Início</p>
-                            <p className="text-sm font-bold text-slate-700">
+                            <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
                                 {selectedTurma.date ? new Date(selectedTurma.date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }) : 'A definir'}
                             </p>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shadow-sm border border-slate-100">
+                        <div className="w-8 h-8 rounded-lg bg-white dark:bg-slate-900 flex items-center justify-center shadow-sm border border-slate-100 dark:border-slate-800">
                             <MapPin size={14} className="text-emerald-600" />
                         </div>
                         <div>
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Localização</p>
-                            <p className="text-sm font-bold text-slate-700">{selectedTurma.location || 'Não especificado'}</p>
+                            <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{selectedTurma.location || 'Não especificado'}</p>
                         </div>
                     </div>
 
                     {selectedTurma.professor_name && (
                         <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shadow-sm border border-slate-100">
+                            <div className="w-8 h-8 rounded-lg bg-white dark:bg-slate-900 flex items-center justify-center shadow-sm border border-slate-100 dark:border-slate-800">
                                 <User size={14} className="text-emerald-600" />
                             </div>
                             <div>
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Instrutor</p>
-                                <p className="text-sm font-bold text-slate-700">{selectedTurma.professor_name}</p>
+                                <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{selectedTurma.professor_name}</p>
                             </div>
                         </div>
                     )}
@@ -108,12 +108,12 @@ export function EnrollInTurmaModal({ lead, onConfirm, onSkip }: EnrollModalProps
             </div>
           ) : (
             <div className="text-center py-8 space-y-4">
-                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto">
+                <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800/50 rounded-full flex items-center justify-center mx-auto">
                     <Info size={32} className="text-slate-300" />
                 </div>
                 <div className="space-y-1">
-                    <h4 className="font-bold text-slate-800">Pronto!</h4>
-                    <p className="text-xs text-slate-500 leading-relaxed px-4">
+                    <h4 className="font-bold text-slate-800 dark:text-slate-200">Pronto!</h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed px-4">
                         O lead foi movido para <strong>Ganho</strong> com sucesso.
                     </p>
                 </div>

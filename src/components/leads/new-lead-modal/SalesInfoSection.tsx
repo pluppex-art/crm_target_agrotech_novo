@@ -56,7 +56,7 @@ export const SalesInfoSection: React.FC<SalesInfoSectionProps> = ({
                   responsavel_usuario_id: e.target.value,
                 }));
               }}
-              className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"
+              className="w-full pl-10 pr-10 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"
             >
               <option value="">Selecione o responsável</option>
               {responsibles.map(p => (
@@ -77,7 +77,7 @@ export const SalesInfoSection: React.FC<SalesInfoSectionProps> = ({
             <select
               value={formData.product}
               onChange={handleProductChange}
-              className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"
+              className="w-full pl-10 pr-10 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"
             >
               <option value="">Selecione um produto</option>
               {products.map(product => (
@@ -98,7 +98,7 @@ export const SalesInfoSection: React.FC<SalesInfoSectionProps> = ({
               type="text"
               value={formData.value ? Number(formData.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : ''}
               readOnly
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none font-medium shadow-sm text-slate-500 cursor-not-allowed"
+              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-medium shadow-sm text-slate-500 dark:text-slate-400 cursor-not-allowed"
               placeholder="0,00"
             />
             <DollarSign size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -113,7 +113,7 @@ export const SalesInfoSection: React.FC<SalesInfoSectionProps> = ({
               required
               value={formData.seller_origin}
               onChange={(e) => setFormData(prev => ({ ...prev, seller_origin: e.target.value as any }))}
-              className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"
+              className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"
             >
               <option value="target">Target</option>
               <option value="pluppex">Pluppex</option>
@@ -137,7 +137,7 @@ export const SalesInfoSection: React.FC<SalesInfoSectionProps> = ({
                   cost_center: cc?.nome || prev.cost_center 
                 }));
               }}
-              className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"
+              className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"
             >
               <option value="">Selecione um centro</option>
               {centroCustos.map(cc => (
@@ -156,7 +156,7 @@ export const SalesInfoSection: React.FC<SalesInfoSectionProps> = ({
               required
               value={selectedStageId}
               onChange={(e) => setSelectedStageId(e.target.value)}
-              className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"
+              className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"
             >
               <option value="">Selecione uma etapa</option>
               {currentPipelineStages.map((stage: any) => (
@@ -174,7 +174,7 @@ export const SalesInfoSection: React.FC<SalesInfoSectionProps> = ({
             <select
               value={formData.subStatus}
               onChange={(e) => setFormData(prev => ({ ...prev, subStatus: e.target.value as LeadSubStatus }))}
-              className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm"
+              className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm"
             >
               <option value="qualified">Qualificado</option>
               <option value="warming">Aquecimento</option>

@@ -19,7 +19,7 @@ export function LineTrendChart({
 
   if (!hasData) {
     return (
-      <div className="flex flex-col items-center justify-center h-48 p-8 text-slate-300 rounded-2xl border-2 border-dashed border-slate-200">
+      <div className="flex flex-col items-center justify-center h-48 p-8 text-slate-300 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700">
         <TrendingUp className="w-12 h-12 mb-3 opacity-30" />
         <p className="text-sm font-medium text-slate-400">{emptyLabel}</p>
       </div>
@@ -62,7 +62,7 @@ export function LineTrendChart({
     v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v);
 
   return (
-    <div className="rounded-2xl border border-slate-100 bg-gradient-to-b from-slate-50/50 to-slate-100/50 overflow-hidden">
+    <div className="rounded-2xl border border-slate-100 dark:border-slate-800 bg-gradient-to-b from-slate-50/50 to-slate-100/50 overflow-hidden">
       {/* Trend badge */}
       <div className="flex justify-end px-4 pt-3">
         <span

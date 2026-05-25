@@ -37,7 +37,7 @@ export const DocumentationSection: React.FC<DocumentationSectionProps> = ({
             type="text"
             value={formData.instagram}
             onChange={(e) => setFormData(prev => ({ ...prev, instagram: e.target.value }))}
-            className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm text-sm"
+            className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm text-sm"
             placeholder="@usuario"
           />
         </div>
@@ -48,7 +48,7 @@ export const DocumentationSection: React.FC<DocumentationSectionProps> = ({
             type="text"
             value={formData.emergency_contact}
             onChange={(e) => setFormData(prev => ({ ...prev, emergency_contact: e.target.value }))}
-            className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm text-sm"
+            className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm text-sm"
             placeholder="Nome e Número"
           />
         </div>
@@ -59,7 +59,7 @@ export const DocumentationSection: React.FC<DocumentationSectionProps> = ({
             rows={2}
             value={formData.address}
             onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-            className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm text-sm resize-none"
+            className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm text-sm resize-none"
             placeholder="Rua, Número, Bairro, Cidade - UF, CEP"
           ></textarea>
         </div>
@@ -68,7 +68,7 @@ export const DocumentationSection: React.FC<DocumentationSectionProps> = ({
         <div className="grid grid-cols-2 gap-3 md:col-span-2">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Foto RG/CNH</label>
-            <div className="flex items-center gap-2 bg-white p-1 pr-2 rounded-xl border border-slate-200 shadow-sm w-full">
+            <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-1 pr-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm w-full">
               <input
                 ref={rgInputRef}
                 type="file"
@@ -81,14 +81,14 @@ export const DocumentationSection: React.FC<DocumentationSectionProps> = ({
                 onClick={() => rgInputRef.current?.click()}
                 className={cn(
                   "flex-1 flex items-center gap-2 px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all",
-                  rgFile ? "bg-emerald-50 text-emerald-600" : "bg-slate-50 text-slate-500 hover:bg-slate-100"
+                  rgFile ? "bg-emerald-50 text-emerald-600" : "bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:bg-slate-800/50"
                 )}
               >
                 <ClipboardCheck size={12} />
                 <span className="truncate">{rgFile ? `RG: ${rgFile.name}` : 'Anexar RG/CNH'}</span>
               </button>
               {rgFile && (
-                <button type="button" onClick={() => setRgFile(null)} className="p-1 px-2 text-slate-400 hover:text-red-500 border-l border-slate-100 ml-1">
+                <button type="button" onClick={() => setRgFile(null)} className="p-1 px-2 text-slate-400 hover:text-red-500 border-l border-slate-100 dark:border-slate-800 ml-1">
                   <XIcon size={14} />
                 </button>
               )}
@@ -97,7 +97,7 @@ export const DocumentationSection: React.FC<DocumentationSectionProps> = ({
 
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Foto de Perfil</label>
-            <div className="flex items-center gap-2 bg-white p-1 pr-2 rounded-xl border border-slate-200 shadow-sm w-full">
+            <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-1 pr-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm w-full">
               <input
                 ref={profileInputRef}
                 type="file"
@@ -110,14 +110,14 @@ export const DocumentationSection: React.FC<DocumentationSectionProps> = ({
                 onClick={() => profileInputRef.current?.click()}
                 className={cn(
                   "flex-1 flex items-center gap-2 px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all",
-                  profileFile ? "bg-emerald-50 text-emerald-600" : "bg-slate-50 text-slate-500 hover:bg-slate-100"
+                  profileFile ? "bg-emerald-50 text-emerald-600" : "bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:bg-slate-800/50"
                 )}
               >
                 <User size={12} />
                 <span className="truncate">{profileFile ? `Foto: ${profileFile.name}` : 'Anexar Foto'}</span>
               </button>
               {profileFile && (
-                <button type="button" onClick={() => setProfileFile(null)} className="p-1 px-2 text-slate-400 hover:text-red-500 border-l border-slate-100 ml-1">
+                <button type="button" onClick={() => setProfileFile(null)} className="p-1 px-2 text-slate-400 hover:text-red-500 border-l border-slate-100 dark:border-slate-800 ml-1">
                   <XIcon size={14} />
                 </button>
               )}

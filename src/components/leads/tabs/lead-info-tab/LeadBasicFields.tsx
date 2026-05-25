@@ -23,8 +23,8 @@ export const LeadBasicFields: React.FC<LeadBasicFieldsProps> = ({
           value={formData.name}
           onChange={(e) => updateFormField({ name: e.target.value })}
           className={cn(
-            "w-full px-4 py-2.5 bg-white border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm",
-            fieldErrors?.name ? "border-red-400 bg-red-50" : "border-slate-200"
+            "w-full px-4 py-2.5 bg-white dark:bg-slate-900 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm",
+            fieldErrors?.name ? "border-red-400 bg-red-50" : "border-slate-200 dark:border-slate-700"
           )}
         />
         {fieldErrors?.name && (
@@ -34,7 +34,7 @@ export const LeadBasicFields: React.FC<LeadBasicFieldsProps> = ({
         )}
       </div>
 
-      <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+      <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-800">
         <label className="flex items-center gap-3 cursor-pointer group">
           <div className="relative">
             <input
@@ -45,12 +45,12 @@ export const LeadBasicFields: React.FC<LeadBasicFieldsProps> = ({
             />
             <div className={cn(
               "w-5 h-5 border-2 rounded transition-all flex items-center justify-center",
-              formData.is_minor ? "bg-emerald-600 border-emerald-600" : "bg-white border-slate-300"
+              formData.is_minor ? "bg-emerald-600 border-emerald-600" : "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600"
             )}>
               {formData.is_minor && <CheckSquare size={12} className="text-white" />}
             </div>
           </div>
-          <span className="text-sm font-bold text-slate-700">O lead é menor de idade?</span>
+          <span className="text-sm font-bold text-slate-700 dark:text-slate-300">O lead é menor de idade?</span>
         </label>
       </div>
 
@@ -69,7 +69,7 @@ export const LeadBasicFields: React.FC<LeadBasicFieldsProps> = ({
                     type="text"
                     value={formData.guardian_name || ''}
                     onChange={(e) => updateFormField({ guardian_name: e.target.value })}
-                    className="w-full px-4 py-2 bg-white border border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm"
+                    className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm"
                     placeholder="Nome completo do pai, mãe ou tutor"
                   />
                 </div>
@@ -79,7 +79,7 @@ export const LeadBasicFields: React.FC<LeadBasicFieldsProps> = ({
                     type="text"
                     value={formData.guardian_cpf || ''}
                     onChange={(e) => updateFormField({ guardian_cpf: formatCPFCNPJ(e.target.value) })}
-                    className="w-full px-4 py-2 bg-white border border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm"
+                    className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm"
                     placeholder="000.000.000-00"
                     maxLength={14}
                   />
@@ -90,7 +90,7 @@ export const LeadBasicFields: React.FC<LeadBasicFieldsProps> = ({
                     type="text"
                     value={formData.guardian_phone || ''}
                     onChange={(e) => updateFormField({ guardian_phone: formatPhone(e.target.value) })}
-                    className="w-full px-4 py-2 bg-white border border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm"
+                    className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm"
                     placeholder="(00) 00000-0000"
                     maxLength={15}
                   />
@@ -110,8 +110,8 @@ export const LeadBasicFields: React.FC<LeadBasicFieldsProps> = ({
               value={formData.phone}
               onChange={(e) => updateFormField({ phone: e.target.value })}
               className={cn(
-                "w-full px-4 py-2.5 bg-white border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium pr-10 shadow-sm",
-                fieldErrors?.phone ? "border-red-400 bg-red-50" : "border-slate-200"
+                "w-full px-4 py-2.5 bg-white dark:bg-slate-900 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium pr-10 shadow-sm",
+                fieldErrors?.phone ? "border-red-400 bg-red-50" : "border-slate-200 dark:border-slate-700"
               )}
             />
             <Phone size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500" />
@@ -125,8 +125,8 @@ export const LeadBasicFields: React.FC<LeadBasicFieldsProps> = ({
             value={formData.email}
             onChange={(e) => updateFormField({ email: e.target.value })}
             className={cn(
-              "w-full px-4 py-2.5 bg-white border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm",
-              fieldErrors?.email ? "border-red-400 bg-red-50" : "border-slate-200"
+              "w-full px-4 py-2.5 bg-white dark:bg-slate-900 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm",
+              fieldErrors?.email ? "border-red-400 bg-red-50" : "border-slate-200 dark:border-slate-700"
             )}
           />
           {fieldErrors?.email && <p className="flex items-center gap-1 text-xs text-red-600 font-medium"><AlertCircle size={12} /> {fieldErrors.email}</p>}

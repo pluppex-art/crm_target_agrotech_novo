@@ -29,7 +29,7 @@ export function CSSBarChart({ data, color = 'bg-emerald-500', emptyLabel = 'Sem 
         const pct = max > 0 ? (d.value / max) * 100 : 0;
         return (
           <div key={`${d.label}-${i}`} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
-            <span className="text-[9px] font-bold text-slate-500">
+            <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400">
               {d.value > 0 ? (d.value >= 1000 ? `${(d.value / 1000).toFixed(0)}k` : d.value) : ''}
             </span>
             <div

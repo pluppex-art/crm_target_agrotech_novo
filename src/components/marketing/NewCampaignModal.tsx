@@ -55,13 +55,13 @@ export const NewCampaignModal: React.FC<NewCampaignModalProps> = ({ isOpen, onCl
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col"
+          className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col"
         >
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white">
-            <h2 className="text-xl font-bold text-gray-800">Nova Campanha</h2>
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900">
+            <h2 className="text-xl font-bold text-gray-800 dark:text-slate-200">Nova Campanha</h2>
             <button 
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 transition-colors"
+              className="p-2 hover:bg-gray-100 dark:bg-slate-800/50 rounded-lg text-gray-400 transition-colors"
             >
               <X size={20} />
             </button>
@@ -69,14 +69,14 @@ export const NewCampaignModal: React.FC<NewCampaignModalProps> = ({ isOpen, onCl
 
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Nome da Campanha</label>
+              <label className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Nome da Campanha</label>
               <div className="relative">
                 <input 
                   required
                   type="text" 
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 dark:text-slate-300"
                   placeholder="Ex: Lançamento Fertilizante X"
                 />
                 <Megaphone size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -84,11 +84,11 @@ export const NewCampaignModal: React.FC<NewCampaignModalProps> = ({ isOpen, onCl
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Plataforma</label>
+              <label className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Plataforma</label>
               <select 
                 value={formData.platform}
                 onChange={(e) => setFormData({...formData, platform: e.target.value})}
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 appearance-none"
+                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 dark:text-slate-300 appearance-none"
               >
                 <option value="Facebook Ads">Facebook Ads</option>
                 <option value="Google Ads">Google Ads</option>
@@ -99,7 +99,7 @@ export const NewCampaignModal: React.FC<NewCampaignModalProps> = ({ isOpen, onCl
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Orçamento (R$)</label>
+              <label className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Orçamento (R$)</label>
               <div className="relative">
                 <input 
                   required
@@ -107,7 +107,7 @@ export const NewCampaignModal: React.FC<NewCampaignModalProps> = ({ isOpen, onCl
                   step="0.01"
                   value={formData.budget}
                   onChange={(e) => setFormData({...formData, budget: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 dark:text-slate-300"
                   placeholder="0.00"
                 />
                 <Target size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -116,22 +116,22 @@ export const NewCampaignModal: React.FC<NewCampaignModalProps> = ({ isOpen, onCl
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Data Início</label>
+                <label className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Data Início</label>
                 <input 
                   required
                   type="date" 
                   value={formData.start_date}
                   onChange={(e) => setFormData({...formData, start_date: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 dark:text-slate-300"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Data Fim (Opcional)</label>
+                <label className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Data Fim (Opcional)</label>
                 <input 
                   type="date" 
                   value={formData.end_date}
                   onChange={(e) => setFormData({...formData, end_date: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 dark:text-slate-300"
                 />
               </div>
             </div>
@@ -140,7 +140,7 @@ export const NewCampaignModal: React.FC<NewCampaignModalProps> = ({ isOpen, onCl
               <button 
                 type="button"
                 onClick={onClose}
-                className="px-6 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+                className="px-6 py-2.5 text-sm font-bold text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:bg-slate-800/50 rounded-xl transition-colors"
               >
                 Cancelar
               </button>

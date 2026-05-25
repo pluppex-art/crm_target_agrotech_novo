@@ -69,11 +69,11 @@ export function Sidebar({ collapsed = false, onToggle, onClose, isOpen }: Sideba
   });
 
   return (
-    <div className="flex flex-col h-full w-full bg-white">
+    <div className="flex flex-col h-full w-full bg-white dark:bg-slate-900 transition-colors duration-300">
 
       {/* ── Header ─────────────────────────────────────────── */}
       <header className={cn(
-        "flex items-center gap-3 border-b border-slate-100 flex-shrink-0 p-4 min-h-[64px]",
+        "flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 flex-shrink-0 p-4 min-h-[64px]",
         collapsed && !isOpen && "justify-center gap-0 p-3"
       )}>
         {/* Toggle Button - Only show on desktop (lg) */}
@@ -81,12 +81,12 @@ export function Sidebar({ collapsed = false, onToggle, onClose, isOpen }: Sideba
           type="button"
           onClick={onToggle}
           aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
-          className="hidden lg:flex p-1.5 rounded-lg transition-colors hover:bg-slate-100 -ml-1 flex-shrink-0"
+          className="hidden lg:flex p-1.5 rounded-lg transition-colors hover:bg-slate-100 dark:bg-slate-800/50 dark:hover:bg-slate-800 -ml-1 flex-shrink-0"
         >
           <ChevronRight
             aria-hidden="true"
             className={cn(
-              "w-5 h-5 text-slate-500 transition-transform duration-200",
+              "w-5 h-5 text-slate-500 dark:text-slate-400 transition-transform duration-200",
               !collapsed && "rotate-180"
             )}
           />
@@ -96,9 +96,9 @@ export function Sidebar({ collapsed = false, onToggle, onClose, isOpen }: Sideba
         <button
           type="button"
           onClick={onClose}
-          className="lg:hidden p-1.5 rounded-lg transition-colors hover:bg-slate-100 -ml-1 flex-shrink-0"
+          className="lg:hidden p-1.5 rounded-lg transition-colors hover:bg-slate-100 dark:bg-slate-800/50 dark:hover:bg-slate-800 -ml-1 flex-shrink-0"
         >
-          <XIcon className="w-5 h-5 text-slate-500" />
+          <XIcon className="w-5 h-5 text-slate-500 dark:text-slate-400" />
         </button>
 
         <div className={cn(
@@ -118,7 +118,7 @@ export function Sidebar({ collapsed = false, onToggle, onClose, isOpen }: Sideba
             <img
               src="https://tfwclxxcgnmndcnbklkx.supabase.co/storage/v1/object/public/icones/Logotipo%20da%20TARGET%20AGROTECH.png"
               alt="Target Agrotech CRM"
-              className="h-10 w-auto object-contain"
+              className="h-10 w-auto object-contain dark:brightness-0 dark:invert"
             />
           </div>
         )}
@@ -137,8 +137,8 @@ export function Sidebar({ collapsed = false, onToggle, onClose, isOpen }: Sideba
               "flex items-center rounded-xl px-3 h-12 text-sm font-medium transition-all duration-200 overflow-hidden border",
               (collapsed && !isOpen) ? "justify-center" : "gap-3",
               isActive
-                ? "bg-gradient-to-r from-emerald-500/10 to-emerald-600/10 text-emerald-700 border-emerald-200 shadow-sm"
-                : "text-slate-600 border-transparent hover:bg-slate-50 hover:text-slate-900 hover:border-slate-100"
+                ? "bg-gradient-to-r from-emerald-500/10 to-emerald-600/10 text-emerald-700 dark:from-emerald-500/20 dark:to-emerald-600/20 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30 shadow-sm"
+                : "text-slate-600 dark:text-slate-400 border-transparent hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-800 hover:text-slate-900 dark:text-slate-100 dark:hover:text-slate-200 hover:border-slate-100 dark:border-slate-800 dark:hover:border-slate-700"
             )}
           >
             <Icon aria-hidden="true" className="w-5 h-5 flex-shrink-0" />
@@ -148,14 +148,14 @@ export function Sidebar({ collapsed = false, onToggle, onClose, isOpen }: Sideba
       </nav>
 
       {/* ── Footer ─────────────────────────────────────────── */}
-      <footer className="p-3 border-t border-slate-100 flex-shrink-0">
+      <footer className="p-3 border-t border-slate-100 dark:border-slate-800 flex-shrink-0">
         <button
           type="button"
           onClick={signOut}
           title={(collapsed && !isOpen) ? "Sair" : undefined}
           className={cn(
             "flex items-center w-full rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-            "hover:bg-red-50 text-red-500 hover:text-red-600",
+            "hover:bg-red-50 dark:hover:bg-red-500/10 text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300",
             (collapsed && !isOpen) ? "justify-center" : "gap-3"
           )}
         >

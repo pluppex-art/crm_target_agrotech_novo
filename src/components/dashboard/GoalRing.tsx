@@ -65,12 +65,12 @@ export function GoalRing({
         {/* Center content */}
         <div className="absolute inset-0 flex items-center justify-center">
           <div
-            className={`${centerBoxSize} bg-white rounded-xl border border-slate-100 shadow-lg flex flex-col items-center justify-center`}
+            className={`${centerBoxSize} bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 shadow-lg flex flex-col items-center justify-center`}
           >
-            <span className={`${percentFontSize} font-black text-slate-900 leading-none`}>
+            <span className={`${percentFontSize} font-black text-slate-900 dark:text-slate-100 leading-none`}>
               {Math.round(progress)}%
             </span>
-            <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 mt-0.5">
+            <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
               {label}
             </span>
           </div>
@@ -79,7 +79,7 @@ export function GoalRing({
 
       {/* Values */}
       <div className="text-center">
-        <p className="text-sm font-bold text-slate-800">
+        <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
           R$ {current.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
         </p>
         <p className="text-xs text-slate-400">

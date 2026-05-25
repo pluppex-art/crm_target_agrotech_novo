@@ -48,7 +48,7 @@ export const ContractConfirmations: React.FC<ContractConfirmationsProps> = ({
   if (!showConfirmations || isServiceProduct) return null;
 
   return (
-    <div className="space-y-4 p-4 bg-slate-50/50 rounded-2xl border border-slate-100">
+    <div className="space-y-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
       <div className="flex items-center justify-between mb-1">
         <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] flex items-center gap-1.5">
           <ClipboardCheck size={13} className="text-emerald-500" /> Confirmações para avançar para Ganho
@@ -75,14 +75,14 @@ export const ContractConfirmations: React.FC<ContractConfirmationsProps> = ({
                 />
                 <div className={cn(
                   "w-6 h-6 border-2 rounded-lg transition-all flex items-center justify-center",
-                  pixCompleted ? "bg-emerald-600 border-emerald-600" : "bg-white border-slate-300"
+                  pixCompleted ? "bg-emerald-600 border-emerald-600" : "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600"
                 )}>
                   {pixCompleted && <CheckSquare size={14} className="text-white" />}
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <QrCode size={18} className={cn("transition-colors", pixCompleted ? "text-emerald-500" : "text-slate-400")} />
-                <span className="text-[14px] font-bold text-slate-700 tracking-tight">Taxa Matrícula</span>
+                <span className="text-[14px] font-bold text-slate-700 dark:text-slate-300 tracking-tight">Taxa Matrícula</span>
               </div>
             </label>
             <div className="max-w-[100px]">
@@ -97,8 +97,8 @@ export const ContractConfirmations: React.FC<ContractConfirmationsProps> = ({
                 className={cn(
                   "w-full px-3 py-1.5 border rounded-xl outline-none text-xs font-black shadow-sm transition-all text-center",
                   pixCompleted
-                    ? "bg-white border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                    : "bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed"
+                    ? "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                    : "bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 text-slate-300 cursor-not-allowed"
                 )}
               />
             </div>
@@ -114,21 +114,21 @@ export const ContractConfirmations: React.FC<ContractConfirmationsProps> = ({
               />
               <div className={cn(
                 "w-6 h-6 border-2 rounded-lg transition-all flex items-center justify-center",
-                contractSigned ? "bg-emerald-600 border-emerald-600" : "bg-white border-slate-300"
+                contractSigned ? "bg-emerald-600 border-emerald-600" : "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600"
               )}>
                 {contractSigned && <CheckSquare size={14} className="text-white" />}
               </div>
             </div>
             <div className="flex items-center gap-2">
               <ClipboardCheck size={18} className={cn("transition-colors", contractSigned ? "text-emerald-500" : "text-slate-400")} />
-              <span className="text-[14px] font-bold text-slate-700 tracking-tight">Contrato assinado</span>
+              <span className="text-[14px] font-bold text-slate-700 dark:text-slate-300 tracking-tight">Contrato assinado</span>
             </div>
           </label>
 
         </div>
 
         <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-2 bg-white p-1 pr-2 rounded-2xl border border-slate-200 shadow-sm w-full">
+          <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-1 pr-2 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm w-full">
             <input
               ref={proofInputRef}
               type="file"
@@ -145,21 +145,21 @@ export const ContractConfirmations: React.FC<ContractConfirmationsProps> = ({
               disabled={uploadingProof}
               className={cn(
                 "flex-1 flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                formData.payment_proof_url ? "bg-emerald-50 text-emerald-600" : "bg-slate-50 text-slate-500 hover:bg-slate-100"
+                formData.payment_proof_url ? "bg-emerald-50 text-emerald-600" : "bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:bg-slate-800/50"
               )}
             >
               {uploadingProof ? <Loader2 size={14} className="animate-spin" /> : <QrCode size={14} />}
               <span className="truncate">{formData.payment_proof_url ? 'Comprovante ✅' : 'Comprovante'}</span>
             </button>
             {formData.payment_proof_url && (
-              <div className="flex items-center gap-0.5 border-l border-slate-100 ml-1 pl-1">
+              <div className="flex items-center gap-0.5 border-l border-slate-100 dark:border-slate-800 ml-1 pl-1">
                 <a href={formData.payment_proof_url} target="_blank" rel="noreferrer" className="p-1.5 text-slate-400 hover:text-emerald-500 transition-colors"><Eye size={16} /></a>
                 <button onClick={() => handleDeleteFile('payment_proof')} className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"><XIcon size={16} /></button>
               </div>
             )}
           </div>
 
-          <div className="flex items-center gap-2 bg-white p-1 pr-2 rounded-2xl border border-slate-200 shadow-sm w-full">
+          <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-1 pr-2 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm w-full">
             <input
               ref={contractInputRef}
               type="file"
@@ -176,14 +176,14 @@ export const ContractConfirmations: React.FC<ContractConfirmationsProps> = ({
               disabled={uploadingContract}
               className={cn(
                 "flex-1 flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                formData.contract_url ? "bg-emerald-50 text-emerald-600" : "bg-slate-50 text-slate-500 hover:bg-slate-100"
+                formData.contract_url ? "bg-emerald-50 text-emerald-600" : "bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:bg-slate-800/50"
               )}
             >
               {uploadingContract ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />}
               <span className="truncate">{formData.contract_url ? 'Contrato ✅' : 'Contrato'}</span>
             </button>
             {formData.contract_url && (
-              <div className="flex items-center gap-0.5 border-l border-slate-100 ml-1 pl-1">
+              <div className="flex items-center gap-0.5 border-l border-slate-100 dark:border-slate-800 ml-1 pl-1">
                 <a href={formData.contract_url} target="_blank" rel="noreferrer" className="p-1.5 text-slate-400 hover:text-emerald-500 transition-colors"><Eye size={16} /></a>
                 <button onClick={() => handleDeleteFile('contract')} className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"><XIcon size={16} /></button>
               </div>

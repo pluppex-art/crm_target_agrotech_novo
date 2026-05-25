@@ -51,19 +51,19 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
 
   // --- Metric Item (Compact) ---
   const MetricItem = ({ title, value, color, icon: Icon, sub }: any) => (
-    <div className="flex flex-col p-4 rounded-xl border border-slate-100 bg-white shadow-sm transition-all hover:shadow-md group">
+    <div className="flex flex-col p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm transition-all hover:shadow-md group">
       <div className="flex items-center justify-between mb-2">
         <div className={cn(
           "w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
           color === 'green' ? 'bg-emerald-50 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white' : 
           color === 'violet' ? 'bg-violet-50 text-violet-500 group-hover:bg-violet-500 group-hover:text-white' : 
-          'bg-slate-50 text-slate-500 group-hover:bg-slate-900 group-hover:text-white'
+          'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:bg-slate-900 group-hover:text-white'
         )}>
           <Icon size={16} />
         </div>
         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{title}</span>
       </div>
-      <p className="text-xl font-black text-slate-800 tracking-tighter">R$ {fmt(value || 0)}</p>
+      <p className="text-xl font-black text-slate-800 dark:text-slate-200 tracking-tighter">R$ {fmt(value || 0)}</p>
       <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">{sub}</p>
     </div>
   );
@@ -87,13 +87,13 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
     <div className="space-y-6 w-full pb-12 animate-in fade-in duration-500 px-4">
       
       {/* Header Premium */}
-      <div className="flex items-center justify-between border-b border-slate-100 pb-6">
+      <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-6">
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-100">
             <Handshake size={20} className="text-white" />
           </div>
           <div>
-            <h2 className="text-lg font-black text-slate-800 tracking-tight uppercase leading-none mb-1">Parceria Estratégica</h2>
+            <h2 className="text-lg font-black text-slate-800 dark:text-slate-200 tracking-tight uppercase leading-none mb-1">Parceria Estratégica</h2>
             <div className="flex items-center gap-2">
               <p className="text-emerald-600 text-[10px] font-black uppercase tracking-widest leading-none">Target × Pluppex</p>
             </div>
@@ -119,7 +119,7 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
 
           <button
             onClick={loadReport}
-            className="p-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-all text-slate-400 group"
+            className="p-1.5 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg transition-all text-slate-400 group"
           >
             <RefreshCw size={16} className={cn("group-hover:text-emerald-600", isLoading && 'animate-spin')} />
           </button>
@@ -137,10 +137,10 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
       {/* Resultados e Margem */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="md:col-span-2 p-6 rounded-2xl bg-emerald-600 text-white flex flex-col justify-between shadow-xl relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-24 -mt-24" />
+          <div className="absolute top-0 right-0 w-48 h-48 bg-white dark:bg-slate-900/10 rounded-full blur-3xl -mr-24 -mt-24" />
           <div className="relative flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-md bg-white/20 flex items-center justify-center">
+              <div className="w-6 h-6 rounded-md bg-white dark:bg-slate-900/20 flex items-center justify-center">
                 <DollarSign size={14} className="text-white" />
               </div>
               <span className="text-[9px] font-black uppercase tracking-widest opacity-60">Resultado Líquido Target</span>
@@ -150,20 +150,20 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
           <div className="relative">
             <p className="text-4xl font-black tracking-tighter leading-none mb-3">R$ {fmt(safeR.target_net_result || 0)}</p>
             <div className="flex items-center gap-2">
-              <div className="px-1.5 py-0.5 bg-white/20 rounded text-white text-[7px] font-black tracking-widest uppercase">Target Revenue</div>
+              <div className="px-1.5 py-0.5 bg-white dark:bg-slate-900/20 rounded text-white text-[7px] font-black tracking-widest uppercase">Target Revenue</div>
               <span className="text-[9px] text-white/40 font-bold italic">Líquido após taxas tech</span>
             </div>
           </div>
         </div>
 
-        <div className="p-6 rounded-2xl border border-slate-100 bg-white shadow-sm flex flex-col justify-between">
+        <div className="p-6 rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Margem Real</span>
             <ShieldCheck size={14} className="text-emerald-500/30" />
           </div>
           <div className="my-4">
-            <p className="text-4xl font-black text-slate-800 tracking-tighter">{safeR.net_margin?.toFixed(1) || '0.0'}%</p>
-            <div className="mt-3 h-1 w-full bg-slate-50 rounded-full overflow-hidden">
+            <p className="text-4xl font-black text-slate-800 dark:text-slate-200 tracking-tighter">{safeR.net_margin?.toFixed(1) || '0.0'}%</p>
+            <div className="mt-3 h-1 w-full bg-slate-50 dark:bg-slate-800 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-emerald-500 transition-all duration-1000" 
                 style={{ width: `${Math.min(safeR.net_margin || 0, 100)}%` }} 
@@ -177,17 +177,17 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3 space-y-6">
           {/* Evolução Chart */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Evolução Comparativa</h3>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                  <span className="text-[10px] font-bold text-slate-600 uppercase">Target</span>
+                  <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase">Target</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-full bg-violet-500" />
-                  <span className="text-[10px] font-bold text-slate-600 uppercase">Pluppex</span>
+                  <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase">Pluppex</span>
                 </div>
               </div>
             </div>
@@ -221,16 +221,16 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
           </div>
 
           {/* Turmas Table */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
             <div className="p-6 border-b border-slate-50 flex items-center justify-between">
               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Performance por Turma (BPO)</h3>
-              <span className="px-2 py-1 bg-slate-50 text-slate-400 text-[8px] font-black rounded uppercase">
+              <span className="px-2 py-1 bg-slate-50 dark:bg-slate-800 text-slate-400 text-[8px] font-black rounded uppercase">
                 {safeR.turmas?.length || 0} Turmas Ativas
               </span>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left">
-                <thead className="bg-slate-50/50">
+                <thead className="bg-slate-50 dark:bg-slate-800/50">
                   <tr>
                     <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Turma</th>
                     <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest text-center">Matrículas</th>
@@ -242,11 +242,11 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {(safeR.turmas || []).map((turma) => (
-                    <tr key={turma.class_id} className="hover:bg-slate-50/50 transition-colors">
+                    <tr key={turma.class_id} className="hover:bg-slate-50 dark:bg-slate-800/50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <GraduationCap className="w-4 h-4 text-slate-300" />
-                          <span className="text-sm font-bold text-slate-700">{turma.class_name}</span>
+                          <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{turma.class_name}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-center">
@@ -255,16 +255,16 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <span className="text-sm font-bold text-slate-600 tracking-tight">R$ {fmt(turma.receita_total)}</span>
+                        <span className="text-sm font-bold text-slate-600 dark:text-slate-400 tracking-tight">R$ {fmt(turma.receita_total)}</span>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <span className="text-sm font-medium text-slate-500 tracking-tight">R$ {fmt(turma.bpo_target)}</span>
+                        <span className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-tight">R$ {fmt(turma.bpo_target)}</span>
                       </td>
                       <td className="px-6 py-4 text-right">
                         <span className="text-sm font-black text-violet-600 tracking-tight">R$ {fmt(turma.bpo_pluppex)}</span>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <span className="text-sm font-black text-slate-800 tracking-tight">R$ {fmt(turma.total_bpo)}</span>
+                        <span className="text-sm font-black text-slate-800 dark:text-slate-200 tracking-tight">R$ {fmt(turma.total_bpo)}</span>
                       </td>
                     </tr>
                   ))}
@@ -289,13 +289,13 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
             <p className="text-xl font-black tracking-tighter relative">R$ {fmt(safeR.pluppex_technology_fee || 0)}</p>
           </div>
 
-          <div className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm space-y-3">
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl p-4 shadow-sm space-y-3">
             <div>
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Fee Fixo</span>
                 <span className="text-xs font-black text-indigo-500 tracking-tighter">R$ {fmt(safeR.fixed_fee_total || 0)}</span>
               </div>
-              <div className="h-0.5 w-full bg-slate-50 rounded-full">
+              <div className="h-0.5 w-full bg-slate-50 dark:bg-slate-800 rounded-full">
                 <div className="h-full bg-indigo-500 w-full rounded-full opacity-30" />
               </div>
             </div>
@@ -305,7 +305,7 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
                 <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Target Fee</span>
                 <span className="text-xs font-black text-emerald-500 tracking-tighter">R$ {fmt(safeR.target_fee || 0)}</span>
               </div>
-              <div className="h-0.5 w-full bg-slate-50 rounded-full">
+              <div className="h-0.5 w-full bg-slate-50 dark:bg-slate-800 rounded-full">
                 <div className="h-full bg-emerald-500 w-1/3 rounded-full opacity-30" />
               </div>
             </div>
@@ -315,7 +315,7 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
                 <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Pluppex Fee</span>
                 <span className="text-xs font-black text-violet-500 tracking-tighter">R$ {fmt(safeR.pluppex_fee || 0)}</span>
               </div>
-              <div className="h-0.5 w-full bg-slate-50 rounded-full">
+              <div className="h-0.5 w-full bg-slate-50 dark:bg-slate-800 rounded-full">
                 <div className="h-full bg-violet-500 w-1/2 rounded-full opacity-30" />
               </div>
             </div>

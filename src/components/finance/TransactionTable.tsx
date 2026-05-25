@@ -10,32 +10,32 @@ export function TransactionTable({ filteredTransactions }: TransactionTableProps
   const { deleteTransaction } = useFinanceStore();
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-      <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-        <h3 className="font-bold text-slate-800">Últimas Movimentações</h3>
-        <button className="p-2 border border-slate-200 rounded-lg bg-white hover:bg-slate-50 transition-colors">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+      <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
+        <h3 className="font-bold text-slate-800 dark:text-slate-200">Últimas Movimentações</h3>
+        <button className="p-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 hover:bg-slate-50 dark:bg-slate-800 transition-colors">
           <Filter className="w-4 h-4 text-slate-400" />
         </button>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-slate-50/50">
-              <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">Descrição</th>
-              <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">Categoria</th>
-              <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">Data</th>
-              <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 text-right">Valor</th>
-              <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100"></th>
+            <tr className="bg-slate-50 dark:bg-slate-800/50">
+              <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">Descrição</th>
+              <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">Categoria</th>
+              <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">Data</th>
+              <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 text-right">Valor</th>
+              <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800"></th>
             </tr>
           </thead>
           <tbody>
             {filteredTransactions.map((t) => (
-              <tr key={t.id} className="hover:bg-slate-50 transition-colors">
-                <td className="px-6 py-4 text-sm font-bold text-slate-800 border-b border-slate-50">{t.description}</td>
-                <td className="px-6 py-4 text-sm text-slate-500 border-b border-slate-50">
-                  <span className="px-2 py-1 bg-slate-100 rounded text-[10px] font-bold uppercase">{t.category}</span>
+              <tr key={t.id} className="hover:bg-slate-50 dark:bg-slate-800 transition-colors">
+                <td className="px-6 py-4 text-sm font-bold text-slate-800 dark:text-slate-200 border-b border-slate-50">{t.description}</td>
+                <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400 border-b border-slate-50">
+                  <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800/50 rounded text-[10px] font-bold uppercase">{t.category}</span>
                 </td>
-                <td className="px-6 py-4 text-sm text-slate-500 border-b border-slate-50">
+                <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400 border-b border-slate-50">
                   {new Date(t.date).toLocaleDateString('pt-BR')}
                 </td>
                 <td className={cn(

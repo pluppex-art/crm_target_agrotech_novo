@@ -40,19 +40,19 @@ export function ForgotPassword() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-800 flex items-center justify-center p-4">
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-md w-full bg-white rounded-[32px] shadow-2xl border border-slate-100 overflow-hidden"
+        className="max-w-md w-full bg-white dark:bg-slate-900 rounded-[32px] shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden"
       >
         <div className="p-8 md:p-12">
           <div className="flex flex-col items-center mb-10">
             <div className="w-16 h-16 bg-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-200 mb-6">
               <Mail className="text-white w-8 h-8" />
             </div>
-            <h1 className="text-3xl font-bold text-slate-800 text-center">Recuperar Senha</h1>
-            <p className="text-slate-500 mt-2 font-medium text-center">Enviaremos um link para redefinir sua senha</p>
+            <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-200 text-center">Recuperar Senha</h1>
+            <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium text-center">Enviaremos um link para redefinir sua senha</p>
           </div>
 
           {success ? (
@@ -74,7 +74,7 @@ export function ForgotPassword() {
                   <p className="text-emerald-600 text-sm text-center">Se o e-mail existir e for válido, você receberá as instruções em breve.</p>
                 )}
 
-                <div className="mt-4 p-4 bg-white/50 rounded-2xl text-left w-full">
+                <div className="mt-4 p-4 bg-white dark:bg-slate-900/50 rounded-2xl text-left w-full">
                   <div className="flex gap-2 text-emerald-700 mb-2">
                     <Info size={16} className="shrink-0 mt-0.5" />
                     <p className="text-xs font-bold uppercase tracking-wider">Dica Importante</p>
@@ -121,11 +121,11 @@ export function ForgotPassword() {
                   </motion.div>
                   
                   {error.includes('SMTP') && (
-                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                      <p className="text-[11px] text-slate-500 font-bold uppercase tracking-wider mb-2 flex items-center gap-2">
+                    <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-800">
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-2 flex items-center gap-2">
                         <Info size={14} /> Como resolver:
                       </p>
-                      <ul className="text-[11px] text-slate-600 space-y-1 list-disc ml-4">
+                      <ul className="text-[11px] text-slate-600 dark:text-slate-400 space-y-1 list-disc ml-4">
                         <li>Verifique se o domínio <b>notificacoes.targetagrotech.com.br</b> está verificado no Resend</li>
                         <li>A API Key deve estar correta no arquivo .env</li>
                         <li>O Sender Email deve ser exatamente <code>crm@notificacoes.targetagrotech.com.br</code></li>
@@ -136,7 +136,7 @@ export function ForgotPassword() {
               )}
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">E-mail</label>
+                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">E-mail</label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                   <input 
@@ -144,7 +144,7 @@ export function ForgotPassword() {
                     type="email" 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3.5 pl-12 pr-4 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all text-slate-700 font-medium"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl py-3.5 pl-12 pr-4 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all text-slate-700 dark:text-slate-300 font-medium"
                     placeholder="seu@email.com"
                   />
                 </div>
@@ -162,7 +162,7 @@ export function ForgotPassword() {
               <div className="text-center">
                 <Link 
                   to="/login" 
-                  className="inline-flex items-center gap-2 text-slate-500 font-bold hover:text-emerald-600 transition-colors text-sm"
+                  className="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400 font-bold hover:text-emerald-600 transition-colors text-sm"
                 >
                   <ArrowLeft size={18} />
                   Voltar para o Login

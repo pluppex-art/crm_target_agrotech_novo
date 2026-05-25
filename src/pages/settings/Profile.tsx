@@ -156,12 +156,12 @@ export function Profile() {
   return (
     <div className="p-6 max-w-2xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-800">Meu Perfil</h1>
-        <p className="text-sm text-slate-500">Gerencie suas informações pessoais e foto do perfil.</p>
+        <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Meu Perfil</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400">Gerencie suas informações pessoais e foto do perfil.</p>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-8 border-b border-slate-100 flex flex-col items-center">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+        <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex flex-col items-center">
           <div className="relative">
             <div className="w-32 h-32 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 border-4 border-white shadow-lg overflow-hidden">
               <img
@@ -177,7 +177,7 @@ export function Profile() {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={imageLoading}
-              className="absolute -bottom-3 p-2 bg-white border-4 border-emerald-600 rounded-full shadow-lg hover:shadow-xl transition-all disabled:opacity-60"
+              className="absolute -bottom-3 p-2 bg-white dark:bg-slate-900 border-4 border-emerald-600 rounded-full shadow-lg hover:shadow-xl transition-all disabled:opacity-60"
               title="Adicionar foto"
             >
               {imageLoading
@@ -192,45 +192,45 @@ export function Profile() {
               className="hidden"
             />
           </div>
-          <h2 className="mt-6 text-xl font-bold text-slate-800">{formData.name || 'Usuário Target'}</h2>
-          <p className="text-sm text-slate-500">{selectedCargoName || 'Administrador'}</p>
+          <h2 className="mt-6 text-xl font-bold text-slate-800 dark:text-slate-200">{formData.name || 'Usuário Target'}</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400">{selectedCargoName || 'Administrador'}</p>
         </div>
 
         <div className="p-8 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nome Completo</label>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Nome Completo</label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700"
+                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 dark:text-slate-300"
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">E-mail</label>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">E-mail</label>
               <input
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700"
+                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 dark:text-slate-300"
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Telefone</label>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Telefone</label>
               <input
                 type="text"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700"
+                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 dark:text-slate-300"
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Cargo</label>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Cargo</label>
               <select
                 value={formData.role_id || ''}
                 onChange={(e) => setFormData({ ...formData, role_id: e.target.value })}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 appearance-none"
+                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 dark:text-slate-300 appearance-none"
               >
                 {cargos.map((cargo) => (
                   <option key={cargo.id} value={cargo.id}>{cargo.name}</option>
@@ -238,22 +238,22 @@ export function Profile() {
               </select>
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Departamento</label>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Departamento</label>
               <input
                 type="text"
                 value={formData.department}
                 disabled
                 readOnly
-                className="w-full px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-xl outline-none text-slate-500 cursor-not-allowed"
+                className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl outline-none text-slate-500 dark:text-slate-400 cursor-not-allowed"
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">CPF</label>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">CPF</label>
               <input
                 type="text"
                 value={formData.cpf}
                 onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700"
+                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 dark:text-slate-300"
               />
             </div>
           </div>
@@ -277,7 +277,7 @@ export function Profile() {
               Salvar Alterações
             </button>
           </div>
-          <div className="mt-4 pt-4 border-t border-slate-100 flex justify-center px-4">
+          <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-center px-4">
             <p className="text-[9px] sm:text-[10px] text-slate-400 font-mono uppercase tracking-widest text-center truncate">
               Projeto: {import.meta.env.VITE_SUPABASE_URL?.split('.')[0].replace('https://', '') || 'N/A'}
             </p>

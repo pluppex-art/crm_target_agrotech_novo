@@ -27,7 +27,7 @@ export const GanhoConfirmations: React.FC<GanhoConfirmationsProps> = ({
 }) => {
   if (isServiceProduct) {
     return (
-      <div className="space-y-4 p-5 bg-slate-50/50 rounded-2xl border border-slate-100 mt-4">
+      <div className="space-y-4 p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 mt-4">
         <div className="flex items-center justify-between mb-1">
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] flex items-center gap-1.5">
             <ClipboardCheck size={13} className="text-emerald-500" /> Confirmações para avançar para Ganho (Serviço)
@@ -35,11 +35,11 @@ export const GanhoConfirmations: React.FC<GanhoConfirmationsProps> = ({
         </div>
 
         <div className="flex flex-col gap-3">
-          <p className="text-xs font-semibold text-slate-500">
+          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
             Para salvar este lead do tipo Serviço na etapa Ganho, é obrigatório anexar o comprovante de pagamento do professor.
           </p>
 
-          <div className="flex items-center gap-2 bg-white p-1 pr-2 rounded-2xl border border-slate-200 shadow-sm w-full">
+          <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-1 pr-2 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm w-full">
             <input
               ref={proofInputRef}
               type="file"
@@ -54,7 +54,7 @@ export const GanhoConfirmations: React.FC<GanhoConfirmationsProps> = ({
                 "flex-1 flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
                 proofFile
                   ? "bg-emerald-50 text-emerald-600"
-                  : "bg-slate-50 text-slate-500 hover:bg-slate-100"
+                  : "bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:bg-slate-800/50"
               )}
             >
               <QrCode size={14} />
@@ -64,7 +64,7 @@ export const GanhoConfirmations: React.FC<GanhoConfirmationsProps> = ({
               <button
                 type="button"
                 onClick={() => setProofFile(null)}
-                className="p-1 px-2 text-slate-400 hover:text-red-500 border-l border-slate-100 ml-1"
+                className="p-1 px-2 text-slate-400 hover:text-red-500 border-l border-slate-100 dark:border-slate-800 ml-1"
               >
                 <XIcon size={14} />
               </button>
@@ -76,7 +76,7 @@ export const GanhoConfirmations: React.FC<GanhoConfirmationsProps> = ({
   }
 
   return (
-    <div className="space-y-4 p-5 bg-slate-50/50 rounded-2xl border border-slate-100 mt-4">
+    <div className="space-y-4 p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 mt-4">
       <div className="flex items-center justify-between mb-1">
         <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] flex items-center gap-1.5">
           <ClipboardCheck size={13} className="text-emerald-500" /> Confirmações para avançar para Ganho
@@ -98,14 +98,14 @@ export const GanhoConfirmations: React.FC<GanhoConfirmationsProps> = ({
                 />
                 <div className={cn(
                   "w-6 h-6 border-2 rounded-lg transition-all flex items-center justify-center",
-                  formData.pix_completed ? "bg-emerald-600 border-emerald-600" : "bg-white border-slate-300"
+                  formData.pix_completed ? "bg-emerald-600 border-emerald-600" : "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600"
                 )}>
                   {formData.pix_completed && <CheckSquare size={14} className="text-white" />}
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <QrCode size={18} className={cn("transition-colors", formData.pix_completed ? "text-emerald-500" : "text-slate-400")} />
-                <span className="text-[14px] font-bold text-slate-700 tracking-tight">Taxa Matrícula</span>
+                <span className="text-[14px] font-bold text-slate-700 dark:text-slate-300 tracking-tight">Taxa Matrícula</span>
               </div>
             </label>
             <div className="max-w-[100px]">
@@ -120,8 +120,8 @@ export const GanhoConfirmations: React.FC<GanhoConfirmationsProps> = ({
                 className={cn(
                   "w-full px-3 py-1.5 border rounded-xl outline-none text-xs font-black shadow-sm transition-all text-center",
                   formData.pix_completed
-                    ? "bg-white border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                    : "bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed"
+                    ? "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                    : "bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 text-slate-300 cursor-not-allowed"
                 )}
               />
             </div>
@@ -138,14 +138,14 @@ export const GanhoConfirmations: React.FC<GanhoConfirmationsProps> = ({
               />
               <div className={cn(
                 "w-6 h-6 border-2 rounded-lg transition-all flex items-center justify-center",
-                formData.contract_signed ? "bg-emerald-600 border-emerald-600" : "bg-white border-slate-300"
+                formData.contract_signed ? "bg-emerald-600 border-emerald-600" : "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600"
               )}>
                 {formData.contract_signed && <CheckSquare size={14} className="text-white" />}
               </div>
             </div>
             <div className="flex items-center gap-2">
               <ClipboardCheck size={18} className={cn("transition-colors", formData.contract_signed ? "text-emerald-500" : "text-slate-400")} />
-              <span className="text-[14px] font-bold text-slate-700 tracking-tight">Contrato assinado</span>
+              <span className="text-[14px] font-bold text-slate-700 dark:text-slate-300 tracking-tight">Contrato assinado</span>
             </div>
           </label>
         </div>
@@ -153,7 +153,7 @@ export const GanhoConfirmations: React.FC<GanhoConfirmationsProps> = ({
         {/* Coluna 2: Uploads */}
         <div className="flex flex-col gap-3">
           {/* Comprovante Upload Button */}
-          <div className="flex items-center gap-2 bg-white p-1 pr-2 rounded-2xl border border-slate-200 shadow-sm w-full">
+          <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-1 pr-2 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm w-full">
             <input
               ref={proofInputRef}
               type="file"
@@ -168,7 +168,7 @@ export const GanhoConfirmations: React.FC<GanhoConfirmationsProps> = ({
                 "flex-1 flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
                 proofFile
                   ? "bg-emerald-50 text-emerald-600"
-                  : "bg-slate-50 text-slate-500 hover:bg-slate-100"
+                  : "bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:bg-slate-800/50"
               )}
             >
               <QrCode size={14} />
@@ -178,7 +178,7 @@ export const GanhoConfirmations: React.FC<GanhoConfirmationsProps> = ({
               <button
                 type="button"
                 onClick={() => setProofFile(null)}
-                className="p-1 px-2 text-slate-400 hover:text-red-500 border-l border-slate-100 ml-1"
+                className="p-1 px-2 text-slate-400 hover:text-red-500 border-l border-slate-100 dark:border-slate-800 ml-1"
               >
                 <XIcon size={14} />
               </button>
@@ -186,7 +186,7 @@ export const GanhoConfirmations: React.FC<GanhoConfirmationsProps> = ({
           </div>
 
           {/* Contrato Upload Button */}
-          <div className="flex items-center gap-2 bg-white p-1 pr-2 rounded-2xl border border-slate-200 shadow-sm w-full">
+          <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-1 pr-2 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm w-full">
             <input
               ref={contractInputRef}
               type="file"
@@ -201,7 +201,7 @@ export const GanhoConfirmations: React.FC<GanhoConfirmationsProps> = ({
                 "flex-1 flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
                 contractFile
                   ? "bg-emerald-50 text-emerald-600"
-                  : "bg-slate-50 text-slate-500 hover:bg-slate-100"
+                  : "bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:bg-slate-800/50"
               )}
             >
               <FileText size={14} />
@@ -211,7 +211,7 @@ export const GanhoConfirmations: React.FC<GanhoConfirmationsProps> = ({
               <button
                 type="button"
                 onClick={() => setContractFile(null)}
-                className="p-1 px-2 text-slate-400 hover:text-red-500 border-l border-slate-100 ml-1"
+                className="p-1 px-2 text-slate-400 hover:text-red-500 border-l border-slate-100 dark:border-slate-800 ml-1"
               >
                 <XIcon size={14} />
               </button>

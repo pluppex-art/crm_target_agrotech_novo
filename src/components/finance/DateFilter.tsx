@@ -12,10 +12,10 @@ interface DateFilterProps {
 
 export function DateFilter({ startDate, endDate, onStartDateChange, onEndDateChange, isLoading }: DateFilterProps) {
   return (
-    <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm mb-8 flex flex-wrap items-center gap-4">
+    <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm mb-8 flex flex-wrap items-center gap-4">
       <div className="flex items-center gap-2">
         <Filter className="w-4 h-4 text-slate-400" />
-        <span className="text-sm font-bold text-slate-600 uppercase tracking-wider">Filtrar Período:</span>
+        <span className="text-sm font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Filtrar Período:</span>
       </div>
       <div className="flex items-center gap-2">
         <label className="text-xs font-bold text-slate-400 uppercase">De:</label>
@@ -23,7 +23,7 @@ export function DateFilter({ startDate, endDate, onStartDateChange, onEndDateCha
           type="date" 
           value={startDate}
           onChange={(e) => onStartDateChange(e.target.value)}
-          className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+          className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
         />
       </div>
       <div className="flex items-center gap-2">
@@ -32,7 +32,7 @@ export function DateFilter({ startDate, endDate, onStartDateChange, onEndDateCha
           type="date" 
           value={endDate}
           onChange={(e) => onEndDateChange(e.target.value)}
-          className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+          className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
         />
       </div>
       {(startDate || endDate) && (

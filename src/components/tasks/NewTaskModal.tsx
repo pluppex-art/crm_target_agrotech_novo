@@ -51,13 +51,13 @@ export const NewTaskModal: React.FC<NewTaskModalProps> = ({ isOpen, onClose }) =
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col"
+          className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col"
         >
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white">
-            <h2 className="text-xl font-bold text-gray-800">Nova Tarefa</h2>
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900">
+            <h2 className="text-xl font-bold text-gray-800 dark:text-slate-200">Nova Tarefa</h2>
             <button 
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 transition-colors"
+              className="p-2 hover:bg-gray-100 dark:bg-slate-800/50 rounded-lg text-gray-400 transition-colors"
             >
               <X size={20} />
             </button>
@@ -65,14 +65,14 @@ export const NewTaskModal: React.FC<NewTaskModalProps> = ({ isOpen, onClose }) =
 
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Título da Tarefa</label>
+              <label className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Título da Tarefa</label>
               <div className="relative">
                 <input 
                   required
                   type="text" 
                   value={formData.title}
                   onChange={(e) => setFormData({...formData, title: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 dark:text-slate-300"
                   placeholder="Ex: Ligar para cliente X"
                 />
                 <ClipboardList size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -80,35 +80,35 @@ export const NewTaskModal: React.FC<NewTaskModalProps> = ({ isOpen, onClose }) =
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Descrição</label>
+              <label className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Descrição</label>
               <textarea 
                 value={formData.description}
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 min-h-[100px]"
+                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 dark:text-slate-300 min-h-[100px]"
                 placeholder="Detalhes da tarefa..."
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Data de Entrega</label>
+                <label className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Data de Entrega</label>
                 <div className="relative">
                   <input 
                     required
                     type="date" 
                     value={formData.due_date}
                     onChange={(e) => setFormData({...formData, due_date: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
+                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 dark:text-slate-300"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Prioridade</label>
+                <label className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Prioridade</label>
                 <select 
                   value={formData.priority}
                   onChange={(e) => setFormData({...formData, priority: e.target.value as any})}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 appearance-none"
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 dark:text-slate-300 appearance-none"
                 >
                   <option value="low">Baixa</option>
                   <option value="medium">Média</option>
@@ -118,13 +118,13 @@ export const NewTaskModal: React.FC<NewTaskModalProps> = ({ isOpen, onClose }) =
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Categoria</label>
+              <label className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Categoria</label>
               <div className="relative">
                 <input 
                   type="text" 
                   value={formData.category}
                   onChange={(e) => setFormData({...formData, category: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700"
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-700 dark:text-slate-300"
                   placeholder="Ex: Vendas, Suporte..."
                 />
                 <Tag size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -135,7 +135,7 @@ export const NewTaskModal: React.FC<NewTaskModalProps> = ({ isOpen, onClose }) =
               <button 
                 type="button"
                 onClick={onClose}
-                className="px-6 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+                className="px-6 py-2.5 text-sm font-bold text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:bg-slate-800/50 rounded-xl transition-colors"
               >
                 Cancelar
               </button>

@@ -42,9 +42,9 @@ export const PipelineHeader: React.FC<PipelineHeaderProps> = ({
       {/* Title & Pipeline Selector */}
       <div className="flex flex-col gap-1">
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+          <h1 className="text-xl font-bold text-gray-900 dark:text-slate-100 flex items-center gap-2">
             Pipeline
-            <span className="text-xs font-medium text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full">
+            <span className="text-xs font-medium text-gray-500 dark:text-slate-400 bg-gray-200 dark:bg-slate-800 px-2 py-0.5 rounded-full">
               {leadsCount}
             </span>
           </h1>
@@ -62,16 +62,16 @@ export const PipelineHeader: React.FC<PipelineHeaderProps> = ({
 
 
 
-        <button className="p-1.5 bg-white border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 transition-colors" title="Exportar">
+        <button className="p-1.5 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors" title="Exportar">
           <Download size={16} />
         </button>
 
-        <div className="flex items-center bg-white border border-gray-200 rounded-lg overflow-hidden h-[34px]">
+        <div className="flex items-center bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg overflow-hidden h-[34px]">
           <button
             onClick={() => onViewModeChange('kanban')}
             className={cn(
               "p-1.5 transition-colors h-full flex items-center px-2",
-              viewMode === 'kanban' ? "bg-emerald-50 text-emerald-600 font-bold" : "text-gray-400 hover:bg-gray-50"
+              viewMode === 'kanban' ? "bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold" : "text-gray-400 dark:text-slate-500 dark:text-slate-400 hover:bg-gray-50 dark:bg-slate-800 dark:hover:bg-slate-700"
             )}
             title="Visualização Kanban"
           >
@@ -80,8 +80,8 @@ export const PipelineHeader: React.FC<PipelineHeaderProps> = ({
           <button
             onClick={() => onViewModeChange('list')}
             className={cn(
-              "p-1.5 transition-colors h-full flex items-center px-2 border-l border-gray-100",
-              viewMode === 'list' ? "bg-emerald-50 text-emerald-600 font-bold" : "text-gray-400 hover:bg-gray-50"
+              "p-1.5 transition-colors h-full flex items-center px-2 border-l border-gray-100 dark:border-slate-700",
+              viewMode === 'list' ? "bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold" : "text-gray-400 dark:text-slate-500 dark:text-slate-400 hover:bg-gray-50 dark:bg-slate-800 dark:hover:bg-slate-700"
             )}
             title="Visualização em Lista"
           >

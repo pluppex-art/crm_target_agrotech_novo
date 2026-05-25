@@ -112,7 +112,7 @@ export function OteTab({ startDate, endDate }: { startDate: string; endDate: str
           <button
             onClick={() => loadResults()}
             disabled={isLoading}
-            className="p-2 hover:bg-white border border-transparent hover:border-slate-200 rounded-lg transition-colors text-slate-500"
+            className="p-2 hover:bg-white dark:bg-slate-900 border border-transparent hover:border-slate-200 dark:border-slate-700 rounded-lg transition-colors text-slate-500 dark:text-slate-400"
             title="Atualizar"
           >
             <RefreshCw size={18} className={cn((isLoading || isInitializing) && 'animate-spin')} />
@@ -138,7 +138,7 @@ export function OteTab({ startDate, endDate }: { startDate: string; endDate: str
           <select
             value={selectedSquad}
             onChange={(e) => setSelectedSquad(e.target.value)}
-            className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 transition-all"
+            className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-300 outline-none focus:border-emerald-500 transition-all"
           >
             <option value="all">Todos os Squads</option>
             {squads.map(s => (
@@ -154,11 +154,11 @@ export function OteTab({ startDate, endDate }: { startDate: string; endDate: str
         <ViewToggle label={`Gestores / Squad (${managersList.length})`} active={activeView === 'managers'} onClick={() => setActiveView('managers')} />
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden min-h-[300px]">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden min-h-[300px]">
         {isLoading || isInitializing ? (
           <div className="flex flex-col items-center justify-center h-64">
             <Loader2 className="w-8 h-8 text-emerald-500 animate-spin mb-4" />
-            <p className="text-slate-500 text-sm font-bold animate-pulse uppercase tracking-widest text-[10px]">Calculando Comissões OTE...</p>
+            <p className="text-slate-500 dark:text-slate-400 text-sm font-bold animate-pulse uppercase tracking-widest text-[10px]">Calculando Comissões OTE...</p>
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center h-64 p-6">
@@ -171,13 +171,13 @@ export function OteTab({ startDate, endDate }: { startDate: string; endDate: str
         ) : displayData.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 p-6">
             <Users className="w-16 h-16 text-slate-200 mb-4" />
-            <p className="text-slate-500 font-medium">Nenhum resultado encontrado.</p>
+            <p className="text-slate-500 dark:text-slate-400 font-medium">Nenhum resultado encontrado.</p>
             <p className="text-slate-400 text-xs mt-1">Verifique se os perfis OTE e regras de comissão estão configurados.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
-              <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-100 font-black tracking-widest">
+              <thead className="text-xs text-slate-500 dark:text-slate-400 uppercase bg-slate-50 dark:bg-slate-800 border-b border-slate-100 dark:border-slate-800 font-black tracking-widest">
                 <tr>
                   <th className="px-4 py-4 min-w-[220px]">Colaborador(a)</th>
                   <th className="px-3 py-4 text-right">{activeView === 'sdrs' ? 'Meta SQL' : 'Meta R$'}</th>
@@ -189,7 +189,7 @@ export function OteTab({ startDate, endDate }: { startDate: string; endDate: str
                   <th className="px-3 py-4 text-right whitespace-nowrap">
                     {activeView === 'sdrs' ? 'Bônus Mat.' : activeView === 'managers' ? 'Bônus Squad' : 'Acelerador'}
                   </th>
-                  <th className="px-4 py-4 text-right bg-slate-50/50 sticky right-0 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.1)]">Total OTE</th>
+                  <th className="px-4 py-4 text-right bg-slate-50 dark:bg-slate-800/50 sticky right-0 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.1)]">Total OTE</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -213,14 +213,14 @@ function OteRow({ result, showSquad, view }: { result: CommissionResult; showSqu
   const extraBonus = isSdr ? (result.bonus_amount || 0) : view === 'managers' ? (result.special_bonus_amount || 0) + (result.accelerator_amount || 0) : (result.accelerator_amount || 0);
 
   return (
-    <tr className={cn('hover:bg-slate-50/80 transition-colors', !hasLevel && 'bg-amber-50/30')}>
+    <tr className={cn('hover:bg-slate-50 dark:bg-slate-800/80 transition-colors', !hasLevel && 'bg-amber-50/30')}>
       <td className="px-5 py-4">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-[11px] font-black text-slate-500 shrink-0 shadow-sm border border-slate-200/50">
+          <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800/50 flex items-center justify-center text-[11px] font-black text-slate-500 dark:text-slate-400 shrink-0 shadow-sm border border-slate-200 dark:border-slate-700/50">
             {(result.user_name || result.user_id).substring(0, 2).toUpperCase()}
           </div>
           <div className="min-w-0">
-            <p className="font-bold text-slate-800 text-sm leading-tight truncate">{result.user_name || result.user_id.substring(0, 8) + '…'}</p>
+            <p className="font-bold text-slate-800 dark:text-slate-200 text-sm leading-tight truncate">{result.user_name || result.user_id.substring(0, 8) + '…'}</p>
             <div className="flex items-center gap-1.5 mt-1 flex-wrap">
               <span className="text-[9px] text-slate-400 font-black uppercase tracking-wider">{result.role_type}</span>
 
@@ -228,7 +228,7 @@ function OteRow({ result, showSquad, view }: { result: CommissionResult; showSqu
 
               <span className={cn(
                 "text-[8px] px-1.5 py-0.5 rounded font-black uppercase tracking-widest",
-                hasLevel ? "bg-slate-100 text-slate-600" : "bg-amber-100 text-amber-700"
+                hasLevel ? "bg-slate-100 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400" : "bg-amber-100 text-amber-700"
               )}>
                 {result.level || 'S/ NÍVEL'}
               </span>
@@ -236,7 +236,7 @@ function OteRow({ result, showSquad, view }: { result: CommissionResult; showSqu
               {showSquad && result.squad_name && (
                 <>
                   <span className="w-1 h-1 rounded-full bg-slate-300" />
-                  <span className="text-[8px] px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded font-black uppercase tracking-widest flex items-center gap-1">
+                  <span className="text-[8px] px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 rounded font-black uppercase tracking-widest flex items-center gap-1">
                     {result.squad_color && <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: result.squad_color }} />}
                     {result.squad_name}
                   </span>
@@ -246,10 +246,10 @@ function OteRow({ result, showSquad, view }: { result: CommissionResult; showSqu
           </div>
         </div>
       </td>
-      <td className="px-3 py-4 text-right font-bold text-slate-600 text-xs">
+      <td className="px-3 py-4 text-right font-bold text-slate-600 dark:text-slate-400 text-xs">
         {isSdr ? (targetVal ? Math.round(targetVal as number) : '—') : `R$ ${fmt(result.target_revenue)}`}
       </td>
-      <td className="px-3 py-4 text-right font-bold text-slate-800 text-xs">
+      <td className="px-3 py-4 text-right font-bold text-slate-800 dark:text-slate-200 text-xs">
         {isSdr ? result.realized_sql : `R$ ${fmt(result.realized_revenue)}`}
       </td>
       <td className="px-3 py-4 text-center">
@@ -258,16 +258,16 @@ function OteRow({ result, showSquad, view }: { result: CommissionResult; showSqu
       <td className="px-3 py-4 text-center">
         <SemaphoreIndicator status={result.semaphore_status} />
       </td>
-      <td className="px-3 py-4 text-right text-slate-500 text-xs">R$ {fmt(result.fixed_amount)}</td>
-      <td className="px-3 py-4 text-right text-slate-500 text-xs">R$ {fmt(result.variable_amount)}</td>
-      <td className="px-3 py-4 text-right text-slate-500 text-xs">
+      <td className="px-3 py-4 text-right text-slate-500 dark:text-slate-400 text-xs">R$ {fmt(result.fixed_amount)}</td>
+      <td className="px-3 py-4 text-right text-slate-500 dark:text-slate-400 text-xs">R$ {fmt(result.variable_amount)}</td>
+      <td className="px-3 py-4 text-right text-slate-500 dark:text-slate-400 text-xs">
         {extraBonus > 0 ? (
           <span className="text-indigo-600 font-black inline-flex items-center gap-1">
             <Trophy size={10} /> + R$ {fmt(extraBonus)}
           </span>
         ) : '—'}
       </td>
-      <td className="px-4 py-4 text-right bg-white/80 backdrop-blur-sm sticky right-0 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.1)]">
+      <td className="px-4 py-4 text-right bg-white dark:bg-slate-900/80 backdrop-blur-sm sticky right-0 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.1)]">
         <span className="font-black text-emerald-600 text-sm tracking-tighter">R$ {fmt(result.total_amount)}</span>
       </td>
     </tr>
@@ -305,7 +305,7 @@ function ViewToggle({ label, active, onClick }: { label: string; active: boolean
       onClick={onClick}
       className={cn(
         'px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border-2 transition-all',
-        active ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm' : 'border-slate-100 bg-white text-slate-400 hover:border-slate-200'
+        active ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm' : 'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-400 hover:border-slate-200 dark:border-slate-700'
       )}
     >
       {label}

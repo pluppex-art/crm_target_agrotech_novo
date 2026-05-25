@@ -65,22 +65,22 @@ export function NotificationsPage() {
     if (type === 'urgent') return 'bg-red-50 text-red-600 border-red-100';
     if (type === 'pending') return 'bg-amber-50 text-amber-600 border-amber-100';
     if (type === 'success') return 'bg-emerald-50 text-emerald-600 border-emerald-100';
-    return 'bg-slate-50 text-slate-600 border-slate-100';
+    return 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-100 dark:border-slate-800';
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-slate-50/50 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-[calc(100vh-4rem)] bg-slate-50 dark:bg-slate-800/50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-5xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
-              <div className="p-2 bg-white rounded-xl shadow-sm border border-slate-200">
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-3">
+              <div className="p-2 bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
                 <Bell className="w-6 h-6 text-emerald-600" />
               </div>
               Central de Notificações
             </h1>
-            <p className="text-slate-500 mt-1">Gerencie alertas, avisos e configurações operacionais.</p>
+            <p className="text-slate-500 dark:text-slate-400 mt-1">Gerencie alertas, avisos e configurações operacionais.</p>
           </div>
           
           <div className="flex items-center gap-2">
@@ -102,8 +102,8 @@ export function NotificationsPage() {
         </div>
 
         {/* Categories / Tabs */}
-        <div className="bg-white p-2 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row gap-2">
-          <div className="flex p-1 bg-slate-100 rounded-xl flex-1 overflow-x-auto no-scrollbar">
+        <div className="bg-white dark:bg-slate-900 p-2 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col md:flex-row gap-2">
+          <div className="flex p-1 bg-slate-100 dark:bg-slate-800/50 rounded-xl flex-1 overflow-x-auto no-scrollbar">
             {[
               { id: 'all', label: 'Tudo', icon: <Bell className="w-4 h-4" /> },
               { id: 'unread', label: 'Não Lidas', icon: <Clock className="w-4 h-4" /> },
@@ -115,7 +115,7 @@ export function NotificationsPage() {
                 onClick={() => setFilter(tab.id as any)}
                 className={cn(
                   "flex items-center gap-2 px-6 py-2.5 text-sm font-bold rounded-lg transition-all whitespace-nowrap",
-                  filter === tab.id ? "bg-white text-emerald-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                  filter === tab.id ? "bg-white dark:bg-slate-900 text-emerald-600 shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-300"
                 )}
               >
                 {tab.icon}
@@ -131,7 +131,7 @@ export function NotificationsPage() {
               placeholder="Buscar notificações..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-none rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
             />
           </div>
         </div>
@@ -152,8 +152,8 @@ export function NotificationsPage() {
                     key={notification.id}
                     layout
                     className={cn(
-                      "group relative bg-white rounded-2xl p-4 sm:p-5 border transition-all hover:shadow-md",
-                      notification.read ? "border-slate-100 opacity-80" : "border-emerald-100 shadow-emerald-50/50"
+                      "group relative bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border transition-all hover:shadow-md",
+                      notification.read ? "border-slate-100 dark:border-slate-800 opacity-80" : "border-emerald-100 shadow-emerald-50/50"
                     )}
                   >
                     <div className="flex gap-4 sm:gap-6">
@@ -174,14 +174,14 @@ export function NotificationsPage() {
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2">
                           <div className="flex items-center gap-2">
                             <h3 className={cn(
-                              "font-bold text-slate-800",
+                              "font-bold text-slate-800 dark:text-slate-200",
                               !notification.read && "text-lg"
                             )}>
                               {notification.title}
                             </h3>
                             <span className={cn(
                               "text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider",
-                              notification.category === 'system' ? "bg-blue-50 text-blue-600" : "bg-slate-100 text-slate-500"
+                              notification.category === 'system' ? "bg-blue-50 text-blue-600" : "bg-slate-100 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400"
                             )}>
                               {notification.category}
                             </span>
@@ -192,7 +192,7 @@ export function NotificationsPage() {
                           </div>
                         </div>
                         
-                        <p className="text-slate-600 text-sm leading-relaxed mb-4">
+                        <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-4">
                           {notification.message}
                         </p>
 
@@ -244,11 +244,11 @@ export function NotificationsPage() {
                 ))
               ) : (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-6">
+                  <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800/50 rounded-full flex items-center justify-center mb-6">
                     <Bell className="w-10 h-10 text-slate-300" />
                   </div>
-                  <h3 className="text-xl font-bold text-slate-800">Tudo limpo por aqui!</h3>
-                  <p className="text-slate-500 max-w-xs mx-auto mt-2">
+                  <h3 className="text-xl font-bold text-slate-800 dark:text-slate-200">Tudo limpo por aqui!</h3>
+                  <p className="text-slate-500 dark:text-slate-400 max-w-xs mx-auto mt-2">
                     Sem notificações neste filtro.
                   </p>
                 </div>

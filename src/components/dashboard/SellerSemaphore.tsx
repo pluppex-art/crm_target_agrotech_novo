@@ -180,10 +180,10 @@ export function SellerSemaphore({ data, currentSellerName, isAdmin, companyReven
 
   if (data.length === 0) {
     return (
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-6">
         <div className="flex items-center gap-2 mb-4">
           <TrafficCone className="w-5 h-5 text-slate-400" />
-          <h3 className="font-bold text-slate-800">Semáforo de Receita</h3>
+          <h3 className="font-bold text-slate-800 dark:text-slate-200">Semáforo de Receita</h3>
         </div>
         <div className="flex flex-col items-center justify-center py-10 text-slate-300">
           <Target className="w-10 h-10 mb-2 opacity-30" />
@@ -196,7 +196,7 @@ export function SellerSemaphore({ data, currentSellerName, isAdmin, companyReven
   return (
     <div
       ref={containerRef}
-      className={`bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col relative transition-all duration-300 ${isFullscreen ? 'p-12 flex flex-col justify-center min-h-screen overflow-y-auto' : ''
+      className={`bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-6 flex flex-col relative transition-all duration-300 ${isFullscreen ? 'p-12 flex flex-col justify-center min-h-screen overflow-y-auto' : ''
         }`}
     >
       {isFullscreen && (
@@ -209,11 +209,11 @@ export function SellerSemaphore({ data, currentSellerName, isAdmin, companyReven
 
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
-        <h3 className={`font-bold text-slate-800 ${isFullscreen ? 'text-2xl' : ''}`}>Semáforo de Receita</h3>
+        <h3 className={`font-bold text-slate-800 dark:text-slate-200 ${isFullscreen ? 'text-2xl' : ''}`}>Semáforo de Receita</h3>
         <div className="flex items-center gap-2">
           <button
             onClick={handleToggleFullscreen}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 text-slate-700 rounded-lg hover:bg-slate-100 transition-colors text-xs font-bold border border-slate-200 shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-100 dark:bg-slate-800/50 transition-colors text-xs font-bold border border-slate-200 dark:border-slate-700 shadow-sm"
             title={isFullscreen ? "Sair do modo TV" : "Colocar semáforo em tela cheia na TV"}
           >
             {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
@@ -257,7 +257,7 @@ export function SellerSemaphore({ data, currentSellerName, isAdmin, companyReven
             <div
               key={s.label}
               className={`${isCompany
-                ? 'pb-4 mb-1 border-b border-slate-100'
+                ? 'pb-4 mb-1 border-b border-slate-100 dark:border-slate-800'
                 : isManager
                   ? 'p-3 rounded-xl bg-gradient-to-r from-amber-50/80 to-yellow-50/30 border border-amber-200/80 shadow-xs shadow-amber-100/50 my-1'
                   : 'py-1'
@@ -267,7 +267,7 @@ export function SellerSemaphore({ data, currentSellerName, isAdmin, companyReven
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-2 min-w-0">
                   {isCompany ? (
-                    <div className="w-6 h-6 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 flex-shrink-0">
+                    <div className="w-6 h-6 bg-slate-100 dark:bg-slate-800/50 rounded-full flex items-center justify-center text-slate-500 dark:text-slate-400 flex-shrink-0">
                       <TrendingUp className="w-3.5 h-3.5" />
                     </div>
                   ) : (
@@ -275,7 +275,7 @@ export function SellerSemaphore({ data, currentSellerName, isAdmin, companyReven
                       {i}
                     </div>
                   )}
-                  <span className={`text-sm font-bold truncate flex items-center gap-1.5 ${isCompany ? 'text-slate-800' : 'text-slate-700'}`} title={s.label}>
+                  <span className={`text-sm font-bold truncate flex items-center gap-1.5 ${isCompany ? 'text-slate-800 dark:text-slate-200' : 'text-slate-700 dark:text-slate-300'}`} title={s.label}>
                     {s.label}
                     {isManager && (
                       <span className="inline-flex items-center gap-0.5 text-[8px] bg-amber-100 text-amber-800 border border-amber-200/60 font-black px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 scale-95 origin-left">
@@ -321,14 +321,14 @@ export function SellerSemaphore({ data, currentSellerName, isAdmin, companyReven
                   <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">
                     R$ {fmt(s.received)} / R$ {fmt(s.revenue_goal)}
                   </span>
-                  <span className="text-[10px] font-bold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100 whitespace-nowrap">
+                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-100 dark:border-slate-800 whitespace-nowrap">
                     {s.count} {s.count === 1 ? 'ganho' : 'ganhos'}
                   </span>
                 </div>
               </div>
 
               {/* Bar */}
-              <div className={`relative h-3 rounded-full overflow-hidden ${isManager ? 'bg-amber-100/50' : 'bg-slate-100'}`}>
+              <div className={`relative h-3 rounded-full overflow-hidden ${isManager ? 'bg-amber-100/50' : 'bg-slate-100 dark:bg-slate-800/50'}`}>
                 <div
                   className="absolute left-0 top-0 h-full rounded-full transition-all duration-700 ease-out"
                   style={{
@@ -346,10 +346,10 @@ export function SellerSemaphore({ data, currentSellerName, isAdmin, companyReven
 
               {/* Nested Squads Card under Company Total */}
               {isCompany && squadRows.length > 0 && (
-                <div className="mt-4 bg-slate-50/60 rounded-xl p-4 border border-slate-100/80 shadow-xs">
+                <div className="mt-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl p-4 border border-slate-100 dark:border-slate-800/80 shadow-xs">
                   <div className="flex items-center gap-1.5 mb-3">
                     <Target className="w-3.5 h-3.5 text-slate-400" />
-                    <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Desempenho por Squad</h4>
+                    <h4 className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Desempenho por Squad</h4>
                   </div>
                   <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
                     {squadRows.map(sq => {
@@ -359,7 +359,7 @@ export function SellerSemaphore({ data, currentSellerName, isAdmin, companyReven
                       const sqCfg = STATUS_CONFIG[sq.color as keyof typeof STATUS_CONFIG];
                       const sqBarPct = sq.pct;
                       return (
-                        <div key={sq.label} className="bg-white p-4 rounded-[1.25rem] border border-slate-200 shadow-sm transition-all hover:shadow-md relative overflow-hidden flex flex-col">
+                        <div key={sq.label} className="bg-white dark:bg-slate-900 p-4 rounded-[1.25rem] border border-slate-200 dark:border-slate-700 shadow-sm transition-all hover:shadow-md relative overflow-hidden flex flex-col">
                           {/* Fundo colorido translúcido */}
                           <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundColor: baseColor }}></div>
 
@@ -382,7 +382,7 @@ export function SellerSemaphore({ data, currentSellerName, isAdmin, companyReven
                                 </span>
                               </div>
                               <div className="flex items-baseline gap-1.5 mt-0.5">
-                                <span className="text-[11px] text-slate-700 font-bold whitespace-nowrap">
+                                <span className="text-[11px] text-slate-700 dark:text-slate-300 font-bold whitespace-nowrap">
                                   R$ {fmt(sq.received)}
                                 </span>
                                 <span className="text-[9px] text-slate-400 whitespace-nowrap font-medium">
@@ -402,7 +402,7 @@ export function SellerSemaphore({ data, currentSellerName, isAdmin, companyReven
                           </div>
 
                           {/* Bar */}
-                          <div className="relative h-2 bg-slate-100 rounded-full overflow-hidden mb-2">
+                          <div className="relative h-2 bg-slate-100 dark:bg-slate-800/50 rounded-full overflow-hidden mb-2">
                             <div
                               className="absolute left-0 top-0 h-full rounded-full transition-all duration-700 ease-out"
                               style={{
@@ -439,7 +439,7 @@ export function SellerSemaphore({ data, currentSellerName, isAdmin, companyReven
                                   </div>
                                   <div className="flex flex-col min-w-0">
                                     <span className="text-[8px] font-black uppercase tracking-wider" style={{ color: baseColor }}>Gestor do Squad</span>
-                                    <span className="text-xs font-bold text-slate-800 truncate">{managerProfile.full_name || managerProfile.name}</span>
+                                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{managerProfile.full_name || managerProfile.name}</span>
                                   </div>
                                 </div>
 
@@ -458,7 +458,7 @@ export function SellerSemaphore({ data, currentSellerName, isAdmin, companyReven
                           })()}
 
                           {/* Members List */}
-                          <div className="border-t border-slate-100/80 pt-2.5 mt-2.5">
+                          <div className="border-t border-slate-100 dark:border-slate-800/80 pt-2.5 mt-2.5">
                             <div className="text-[8px] font-black text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
                               <Users className="w-3 h-3 text-slate-400" />
                               <span>Integrantes do Squad</span>
@@ -480,7 +480,7 @@ export function SellerSemaphore({ data, currentSellerName, isAdmin, companyReven
                                   return (
                                     <div
                                       key={m.label}
-                                      className={`p-3 rounded-2xl border transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md ${isManager ? 'shadow-sm' : 'bg-slate-50/40 border-slate-100/60 shadow-xs'}`}
+                                      className={`p-3 rounded-2xl border transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md ${isManager ? 'shadow-sm' : 'bg-slate-50 dark:bg-slate-800/40 border-slate-100 dark:border-slate-800/60 shadow-xs'}`}
                                       style={isManager ? { background: bgGradient, borderColor: `${baseColor}40` } : {}}
                                     >
                                       {/* Top row */}
@@ -493,7 +493,7 @@ export function SellerSemaphore({ data, currentSellerName, isAdmin, companyReven
                                             {overallRank}
                                           </div>
                                           <div className="flex flex-col min-w-0 gap-0.5">
-                                            <span className="text-[11px] font-bold text-slate-700 truncate flex items-center gap-1.5" title={m.label}>
+                                            <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 truncate flex items-center gap-1.5" title={m.label}>
                                               {m.label}
                                               {isManager && (
                                                 <span className="inline-flex items-center gap-0.5 text-[8px] font-black px-1.5 py-0.2 rounded-full uppercase tracking-wider shrink-0" style={{ color: baseColor, backgroundColor: `${baseColor}1A`, border: `1px solid ${baseColor}40` }}>
@@ -512,14 +512,14 @@ export function SellerSemaphore({ data, currentSellerName, isAdmin, companyReven
                                                 <span className={`w-1 h-1 rounded-full ${mCfg.dot}`} />
                                                 {m.pct}%
                                               </span>
-                                              <span className="text-[8px] font-bold text-slate-400 bg-white px-1.5 py-0.5 rounded-full border border-slate-100 shadow-xxs">
+                                              <span className="text-[8px] font-bold text-slate-400 bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded-full border border-slate-100 dark:border-slate-800 shadow-xxs">
                                                 {m.count} {m.count === 1 ? 'ganho' : 'ganhos'}
                                               </span>
                                             </div>
                                           </div>
                                         </div>
                                         <div className="flex flex-col items-end flex-shrink-0 ml-2">
-                                          <span className="text-[10px] text-slate-700 font-bold whitespace-nowrap">
+                                          <span className="text-[10px] text-slate-700 dark:text-slate-300 font-bold whitespace-nowrap">
                                             R$ {fmt(m.received)}
                                           </span>
                                           <span className="text-[8px] text-slate-400 font-medium whitespace-nowrap">

@@ -38,18 +38,18 @@ export const PipelineSelect: React.FC<PipelineSelectProps> = ({
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "flex items-center justify-between w-full px-4 py-2 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all group hover:border-gray-300",
+          "flex items-center justify-between w-full px-4 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all group hover:border-gray-300 dark:border-slate-600",
           buttonClassName
         )}
       >
-        <span className="font-bold text-gray-800 truncate">
+        <span className="font-bold text-gray-800 dark:text-slate-200 truncate">
           {currentPipeline?.name || 'Carregando pipelines...'}
         </span>
-        <ChevronDown className={cn("w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-transform duration-200", isOpen && "rotate-180")} />
+        <ChevronDown className={cn("w-4 h-4 text-gray-400 group-hover:text-gray-600 dark:text-slate-400 transition-transform duration-200", isOpen && "rotate-180")} />
       </button>
 
       {pipelines.length > 0 && (
-        <div className={cn("absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-50", !isOpen && "hidden")}>
+        <div className={cn("absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl shadow-xl z-50", !isOpen && "hidden")}>
           {pipelines.map(pipeline => (
             <button
               key={pipeline.id}
@@ -57,10 +57,10 @@ export const PipelineSelect: React.FC<PipelineSelectProps> = ({
                 onPipelineChange(pipeline.id);
                 setIsOpen(false);
               }}
-              className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors first:rounded-t-xl last:rounded-b-xl"
+              className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:bg-slate-800 transition-colors first:rounded-t-xl last:rounded-b-xl"
             >
-              <span className="font-bold text-gray-800">{pipeline.name}</span>
-              {pipeline.description && <p className="text-xs text-gray-500 mt-0.5">{pipeline.description}</p>}
+              <span className="font-bold text-gray-800 dark:text-slate-200">{pipeline.name}</span>
+              {pipeline.description && <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{pipeline.description}</p>}
             </button>
           ))}
         </div>

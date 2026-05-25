@@ -101,16 +101,16 @@ export function CashFlowTab({ startDate, endDate }: { startDate: string; endDate
   });
 
   const TabButton = ({ id, label, icon: Icon, count }: { id: typeof activeTab, label: string, icon: any, count?: number }) => (
-    <button onClick={() => setActiveTab(id)} className={cn('flex items-center gap-2 px-4 py-3 border-b-2 transition-all text-sm font-bold', activeTab === id ? 'border-emerald-500 text-emerald-700 bg-emerald-50/50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50')}>
-      <Icon size={16} />{label}{count !== undefined && count > 0 && <span className={cn('ml-1 px-1.5 py-0.5 rounded-full text-[10px]', activeTab === id ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500')}>{count}</span>}
+    <button onClick={() => setActiveTab(id)} className={cn('flex items-center gap-2 px-4 py-3 border-b-2 transition-all text-sm font-bold', activeTab === id ? 'border-emerald-500 text-emerald-700 bg-emerald-50/50' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:bg-slate-800')}>
+      <Icon size={16} />{label}{count !== undefined && count > 0 && <span className={cn('ml-1 px-1.5 py-0.5 rounded-full text-[10px]', activeTab === id ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400')}>{count}</span>}
     </button>
   );
 
   return (
     <div className="space-y-6">
       <KPIsGrid kpis={kpis} />
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="flex border-b border-slate-100 bg-slate-50/30">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+        <div className="flex border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30">
           <TabButton id="summary" label="Resumo" icon={Wallet} />
           <TabButton id="students" label="Entradas" icon={GraduationCap} count={pipelineTxs.length} />
           <TabButton id="movements" label="Despesas" icon={TrendingDown} count={otherTxs.length} />

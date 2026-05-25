@@ -121,9 +121,9 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
       transition={{ type: "spring", stiffness: 400, damping: 25 }}
       onDoubleClick={onDoubleClick}
       className={cn(
-        "bg-white p-4 rounded-2xl shadow-sm border border-slate-200 hover:shadow-lg transition-shadow group relative",
-        isDragging ? "shadow-xl border-emerald-500 rotate-2" : "",
-        isDanger ? "border-red-200 hover:border-red-300" : isWarning ? "border-amber-200 hover:border-amber-300" : "hover:border-emerald-200"
+        "bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-shadow group relative",
+        isDragging ? "shadow-xl border-emerald-500 dark:border-emerald-400 rotate-2" : "",
+        isDanger ? "border-red-200 hover:border-red-300 dark:border-red-900/50 dark:hover:border-red-800" : isWarning ? "border-amber-200 hover:border-amber-300 dark:border-amber-900/50 dark:hover:border-amber-800" : "hover:border-emerald-200 dark:hover:border-emerald-600/50"
       )}
     >
       {/* Card Header */}
@@ -132,14 +132,14 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
           <img
             src={lead.photo || 'https://via.placeholder.com/150'}
             alt={lead.name}
-            className="w-10 h-10 rounded-full object-cover border-2 border-slate-50 shadow-sm"
+            className="w-10 h-10 rounded-full object-cover border-2 border-slate-50 dark:border-slate-700 shadow-sm"
             referrerPolicy="no-referrer"
           />
           <div className="space-y-0.5">
-            <h4 className="font-bold text-slate-800 text-sm leading-tight">{lead.name}</h4>
+            <h4 className="font-bold text-slate-800 dark:text-slate-100 text-sm leading-tight">{lead.name}</h4>
             <div className="flex gap-0.5">
               {[...Array(5)].map((_, i) => (
-                <Flame key={i} size={12} className={cn(i < (lead.stars || 0) ? "fill-orange-500 text-orange-500" : "text-slate-200")} />
+                <Flame key={i} size={12} className={cn(i < (lead.stars || 0) ? "fill-orange-500 text-orange-500" : "text-slate-200 dark:text-slate-600 dark:text-slate-400")} />
               ))}
             </div>
           </div>
@@ -164,21 +164,21 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
 
       {/* Card Body */}
       <div className="space-y-1.5">
-        <div className="flex items-center gap-2 text-slate-500">
+        <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
           <Phone size={14} className="text-emerald-500" />
           <span className="text-xs font-medium">{lead.phone}</span>
         </div>
         <div className="space-y-1">
-          <div className="flex items-center gap-2 text-slate-500">
-            <Plus size={14} className="text-slate-300" />
+          <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+            <Plus size={14} className="text-slate-300 dark:text-slate-500 dark:text-slate-400" />
             <span className="text-xs font-medium truncate max-w-[150px]" title={product?.name || lead.product || ''} spellCheck={false}>
               {product?.name || lead.product}
             </span>
           </div>
           {lead.responsible && (
             <div className="flex items-center gap-2 pl-4">
-              <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                <div className="w-1.5 h-1.5 bg-slate-300 rounded-full" />
+              <div className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400">
+                <div className="w-1.5 h-1.5 bg-slate-300 dark:bg-slate-600 rounded-full" />
                 <span className="font-medium">{responsibleProfile?.name || lead.responsible}</span>
               </div>
             </div>
@@ -186,7 +186,7 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
 
           {/* Turma Concluída Tag */}
           {lead.subStatus === 'Turma Concluída' && (
-            <div className="mt-1.5 flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-lg w-fit border border-emerald-100 animate-in fade-in slide-in-from-top-1 duration-300">
+            <div className="mt-1.5 flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 rounded-lg w-fit border border-emerald-100 dark:border-emerald-500/20 animate-in fade-in slide-in-from-top-1 duration-300">
               <CheckSquare size={10} className="text-emerald-500" />
               <span className="text-[10px] font-bold uppercase tracking-tight">Turma Concluída</span>
             </div>
@@ -197,12 +197,12 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
           <div className="flex flex-col items-start gap-1">
             <span className={cn(
               "text-sm font-bold",
-              totalDisplayValue === 0 ? "text-slate-400" : "text-slate-800"
+              totalDisplayValue === 0 ? "text-slate-400 dark:text-slate-500 dark:text-slate-400" : "text-slate-800 dark:text-slate-100"
             )}>
               R$ {totalDisplayValue.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
             </span>
             {totalDisplayValue === 0 && (
-              <span className="text-[9px] font-black bg-amber-50 text-amber-600 border border-amber-100 px-1.5 py-0.5 rounded-md uppercase tracking-tighter">
+              <span className="text-[9px] font-black bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-500 border border-amber-100 dark:border-amber-500/20 px-1.5 py-0.5 rounded-md uppercase tracking-tighter">
                 Sem Valor
               </span>
             )}
@@ -251,7 +251,7 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
                 "text-[10px] font-bold px-2 py-1 rounded-full border transition-all",
                 lead.subStatus === sub.id
                   ? sub.color
-                  : "bg-white text-slate-400 border-slate-100 hover:border-slate-200"
+                  : "bg-white dark:bg-slate-900 text-slate-400 border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:border-slate-700"
               )}
             >
               {sub.label}

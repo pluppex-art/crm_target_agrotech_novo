@@ -22,8 +22,8 @@ export function TurmaCard({ turma, isSelected, onSelect, onEdit, onDelete }: Tur
     <div
       onClick={() => onSelect(turma)}
       className={cn(
-        'relative bg-white rounded-2xl p-5 border cursor-pointer transition-all shadow-sm hover:shadow-md group',
-        isSelected ? 'border-emerald-400 ring-2 ring-emerald-200' : 'border-slate-100 hover:border-emerald-200',
+        'relative bg-white dark:bg-slate-900 rounded-2xl p-5 border cursor-pointer transition-all shadow-sm hover:shadow-md group',
+        isSelected ? 'border-emerald-400 ring-2 ring-emerald-200' : 'border-slate-100 dark:border-slate-800 hover:border-emerald-200',
         turma.status === 'concluida' ? 'border-t-4 border-t-emerald-500' : ''
       )}
     >
@@ -35,22 +35,22 @@ export function TurmaCard({ turma, isSelected, onSelect, onEdit, onDelete }: Tur
           )}>
             {st.label}
           </span>
-          <h3 className="font-bold text-slate-800 mt-2 leading-tight">
+          <h3 className="font-bold text-slate-800 dark:text-slate-200 mt-2 leading-tight">
             {turma.name}
           </h3>
-          <p className="text-xs text-slate-500 mt-0.5">{turma.professor_name || 'Sem professor'}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{turma.professor_name || 'Sem professor'}</p>
         </div>
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             onClick={e => { e.stopPropagation(); onEdit(turma); }}
-            className="p-1.5 hover:bg-emerald-50 rounded-lg text-slate-400 hover:text-emerald-600 transition-colors bg-white/80 backdrop-blur-sm"
+            className="p-1.5 hover:bg-emerald-50 rounded-lg text-slate-400 hover:text-emerald-600 transition-colors bg-white dark:bg-slate-900/80 backdrop-blur-sm"
             title="Editar turma"
           >
             <Edit2 size={14} />
           </button>
           <button
             onClick={e => { e.stopPropagation(); onDelete(turma.id); }}
-            className="p-1.5 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-500 transition-colors bg-white/80 backdrop-blur-sm"
+            className="p-1.5 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-500 transition-colors bg-white dark:bg-slate-900/80 backdrop-blur-sm"
             title="Excluir turma"
           >
             <Trash2 size={14} />
@@ -58,7 +58,7 @@ export function TurmaCard({ turma, isSelected, onSelect, onEdit, onDelete }: Tur
         </div>
       </div>
 
-      <div className="space-y-1.5 text-xs text-slate-500">
+      <div className="space-y-1.5 text-xs text-slate-500 dark:text-slate-400">
         <div className="flex items-center gap-2">
           <Calendar size={12} className="text-emerald-500 shrink-0" />
           {turma.date 
@@ -80,7 +80,7 @@ export function TurmaCard({ turma, isSelected, onSelect, onEdit, onDelete }: Tur
       <div className="mt-4 pt-3 border-t border-slate-50 flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-xs">
           <Users size={12} className="text-slate-400" />
-          <span className="font-semibold text-slate-700">{confirmados}</span>
+          <span className="font-semibold text-slate-700 dark:text-slate-300">{confirmados}</span>
           <span className="text-slate-400">/ {turma.meta ?? '?'} meta</span>
         </div>
         <span className="text-xs font-bold text-emerald-700">
@@ -89,7 +89,7 @@ export function TurmaCard({ turma, isSelected, onSelect, onEdit, onDelete }: Tur
       </div>
 
       {/* Progress bar */}
-      <div className="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+      <div className="mt-2 h-1.5 bg-slate-100 dark:bg-slate-800/50 rounded-full overflow-hidden">
         <div
           className="h-full bg-emerald-500 rounded-full transition-all duration-500"
           style={{ width: (turma.meta && turma.meta > 0) ? `${Math.min((confirmados / turma.meta) * 100, 100)}%` : '0%' }}

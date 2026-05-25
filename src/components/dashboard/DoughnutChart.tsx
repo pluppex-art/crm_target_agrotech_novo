@@ -16,7 +16,7 @@ export function DoughnutChart({
 
   if (!hasData) {
     return (
-      <div className="flex flex-col items-center justify-center h-56 p-8 text-slate-300 rounded-3xl border-2 border-dashed border-slate-200 bg-slate-50/50">
+      <div className="flex flex-col items-center justify-center h-56 p-8 text-slate-300 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
         <Users className="w-12 h-12 mb-3 opacity-20" />
         <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">{emptyLabel}</p>
       </div>
@@ -46,7 +46,7 @@ export function DoughnutChart({
     <div className="flex flex-col items-center w-full gap-8 py-2">
       {/* Donut ring — centered */}
       <div className="relative w-52 h-52 flex-shrink-0 group">
-        <div className="absolute inset-0 bg-slate-100 rounded-full scale-95 blur-2xl opacity-20 group-hover:opacity-40 transition-opacity duration-700" />
+        <div className="absolute inset-0 bg-slate-100 dark:bg-slate-800/50 rounded-full scale-95 blur-2xl opacity-20 group-hover:opacity-40 transition-opacity duration-700" />
         
         <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="w-full h-full -rotate-90 relative z-10 drop-shadow-xl">
           <circle
@@ -75,8 +75,8 @@ export function DoughnutChart({
         </svg>
 
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-20">
-          <div className="w-24 h-24 bg-white rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-slate-50 flex flex-col items-center justify-center transition-transform duration-500 group-hover:scale-110">
-            <div className="text-3xl font-black text-slate-800 tracking-tighter leading-none">{total}</div>
+          <div className="w-24 h-24 bg-white dark:bg-slate-900 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-slate-50 flex flex-col items-center justify-center transition-transform duration-500 group-hover:scale-110">
+            <div className="text-3xl font-black text-slate-800 dark:text-slate-200 tracking-tighter leading-none">{total}</div>
             <div className="text-[9px] text-slate-400 uppercase tracking-[0.2em] font-black mt-1">
               {totalLabel}
             </div>
@@ -97,19 +97,19 @@ export function DoughnutChart({
                     className="w-3 h-3 rounded-full shadow-sm flex-shrink-0 group-hover/item:scale-125 transition-transform"
                     style={{ backgroundColor: d.color }}
                   />
-                  <span className="text-xs font-bold text-slate-700 truncate">
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">
                     {d.label}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-black text-slate-800 tabular-nums">{d.value}</span>
-                  <span className="text-[10px] font-bold text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded-md border border-slate-100">
+                  <span className="text-sm font-black text-slate-800 dark:text-slate-200 tabular-nums">{d.value}</span>
+                  <span className="text-[10px] font-bold text-slate-400 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 rounded-md border border-slate-100 dark:border-slate-800">
                     {pct}%
                   </span>
                 </div>
               </div>
               
-              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden relative">
+              <div className="h-1.5 bg-slate-100 dark:bg-slate-800/50 rounded-full overflow-hidden relative">
                 <div
                   className="absolute inset-y-0 left-0 rounded-full transition-all duration-1000 ease-in-out group-hover/item:brightness-110"
                   style={{ width: `${barW}%`, backgroundColor: d.color }}

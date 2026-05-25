@@ -58,10 +58,10 @@ export function SettingsLayout() {
             opacity: isSidebarOpen ? 1 : 0
           }}
           transition={{ duration: 0.3, ease: 'easeInOut' }}
-          className="flex-shrink-0 bg-white border-r border-slate-100 overflow-hidden flex flex-col h-full"
+          className="flex-shrink-0 bg-white dark:bg-slate-900 border-r border-slate-100 dark:border-slate-800 overflow-hidden flex flex-col h-full"
         >
           <div className="w-52 flex flex-col h-full">
-            <div className="px-4 py-4 border-b border-slate-100 shrink-0">
+            <div className="px-4 py-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
               <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Configurações</p>
             </div>
             <nav className="flex-1 px-2 py-2 space-y-0.5 overflow-y-auto custom-scrollbar">
@@ -73,7 +73,7 @@ export function SettingsLayout() {
                     'flex items-center gap-2.5 rounded-xl px-3 h-9 text-sm font-medium transition-all',
                     isActive
                       ? 'bg-emerald-50 text-emerald-700 shadow-sm border-emerald-100'
-                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border-transparent'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:bg-slate-800 hover:text-slate-900 dark:text-slate-100 border-transparent'
                   )}
                 >
                   <Icon className="w-4 h-4 flex-shrink-0" />
@@ -88,7 +88,7 @@ export function SettingsLayout() {
         <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
           className={cn(
-            "absolute top-4 -right-3 z-30 w-6 h-6 bg-white border border-slate-200 rounded-full flex items-center justify-center shadow-md hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-600 transition-all group",
+            "absolute top-4 -right-3 z-30 w-6 h-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full flex items-center justify-center shadow-md hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-600 transition-all group",
             !isSidebarOpen && "right-[-1.5rem] bg-emerald-500 text-white border-emerald-400 hover:bg-emerald-600"
           )}
           title={isSidebarOpen ? "Recolher menu" : "Expandir menu"}
@@ -102,14 +102,14 @@ export function SettingsLayout() {
       </div>
 
       {/* Content area */}
-      <div className="flex-1 overflow-y-auto bg-[#f3f6f9] relative">
+      <div className="flex-1 overflow-y-auto bg-[#f3f6f9] dark:bg-transparent relative">
         {!isSidebarOpen && (
           <div className="absolute top-4 left-4 z-10 lg:hidden">
             {/* Optional indicator for mobile if needed, but we keep the same toggle */}
           </div>
         )}
         <Suspense fallback={
-          <div className="absolute inset-0 flex items-center justify-center bg-[#f3f6f9]/80 backdrop-blur-sm z-10">
+          <div className="absolute inset-0 flex items-center justify-center bg-[#f3f6f9]/80 dark:bg-slate-900/80 backdrop-blur-sm z-10">
             <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
           </div>
         }>

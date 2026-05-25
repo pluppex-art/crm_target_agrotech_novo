@@ -40,7 +40,7 @@ export const LeadSalesFields: React.FC<LeadSalesFieldsProps> = ({
                 responsavel_usuario_id: e.target.value || null,
               });
             }}
-            className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"
+            className="w-full pl-10 pr-10 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"
           >
             <option value="">Selecione...</option>
             {responsibles?.map(r => {
@@ -67,7 +67,7 @@ export const LeadSalesFields: React.FC<LeadSalesFieldsProps> = ({
                   value: selectedProduct ? selectedProduct.price.toString() : formData.value,
                 });
               }}
-              className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"
+              className="w-full pl-10 pr-10 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"
             >
               <option value="">Selecione...</option>
               {formData.product && !products.find(p => p.id === formData.product) && (
@@ -84,7 +84,7 @@ export const LeadSalesFields: React.FC<LeadSalesFieldsProps> = ({
             type="text"
             value={parseBRNumber(formData.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             readOnly
-            className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none font-medium shadow-sm text-slate-500 cursor-not-allowed"
+            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-medium shadow-sm text-slate-500 dark:text-slate-400 cursor-not-allowed"
           />
           {currentProduct?.enrollment_fee ? (
             <div className="flex items-center gap-1.5 mt-0.5 px-1">
@@ -102,7 +102,7 @@ export const LeadSalesFields: React.FC<LeadSalesFieldsProps> = ({
             type="text"
             value={formData.city}
             onChange={(e) => updateFormField({ city: e.target.value })}
-            className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm"
+            className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm"
           />
         </div>
         <div className="flex flex-col gap-1.5">
@@ -111,7 +111,7 @@ export const LeadSalesFields: React.FC<LeadSalesFieldsProps> = ({
             type="text"
             value={formData.cnpj}
             onChange={(e) => updateFormField({ cnpj: formatCPFCNPJ(e.target.value) })}
-            className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm"
+            className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm"
             placeholder="000.000.000-00 ou 00.000.000/0000-00"
           />
         </div>
@@ -124,7 +124,7 @@ export const LeadSalesFields: React.FC<LeadSalesFieldsProps> = ({
             <select
               value={formData.seller_origin || 'target'}
               onChange={(e) => updateFormField({ seller_origin: e.target.value as any })}
-              className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"
+              className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"
             >
               <option value="target">Target</option>
               <option value="pluppex">Pluppex</option>
@@ -144,7 +144,7 @@ export const LeadSalesFields: React.FC<LeadSalesFieldsProps> = ({
                 toggleField?.('centro_custo_id', ccId);
                 if (cc) toggleField?.('cost_center', cc.nome);
               }}
-              className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"
+              className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none transition-all font-medium shadow-sm cursor-pointer"
             >
               <option value="">Selecione...</option>
               {centroCustos.map(cc => <option key={cc.id} value={cc.id}>{cc.nome}</option>)}

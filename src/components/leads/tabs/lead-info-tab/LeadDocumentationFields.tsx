@@ -30,7 +30,7 @@ export const LeadDocumentationFields: React.FC<LeadDocumentationFieldsProps> = (
   ALLOWED_EXT
 }) => {
   return (
-    <div className="pt-4 border-t border-slate-100">
+    <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
       <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
         <FileText size={12} className="text-emerald-500" /> Documentos para contrato
       </h4>
@@ -42,7 +42,7 @@ export const LeadDocumentationFields: React.FC<LeadDocumentationFieldsProps> = (
             type="text"
             value={formData.instagram || ''}
             onChange={(e) => updateFormField({ instagram: e.target.value })}
-            className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm text-sm"
+            className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm text-sm"
             placeholder="@usuario"
           />
         </div>
@@ -53,7 +53,7 @@ export const LeadDocumentationFields: React.FC<LeadDocumentationFieldsProps> = (
             type="text"
             value={formData.emergency_contact || ''}
             onChange={(e) => updateFormField({ emergency_contact: e.target.value })}
-            className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm text-sm"
+            className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm text-sm"
             placeholder="Ex: Maria (Esposa) - (66) 99999-9999"
           />
         </div>
@@ -64,7 +64,7 @@ export const LeadDocumentationFields: React.FC<LeadDocumentationFieldsProps> = (
             rows={2}
             value={formData.address || ''}
             onChange={(e) => updateFormField({ address: e.target.value })}
-            className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm text-sm resize-none"
+            className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium shadow-sm text-sm resize-none"
             placeholder="Rua, Número, Bairro, Cidade - UF, CEP"
           />
         </div>
@@ -72,7 +72,7 @@ export const LeadDocumentationFields: React.FC<LeadDocumentationFieldsProps> = (
         <div className="grid grid-cols-2 gap-3 md:col-span-2 mt-2">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Foto RG ou CNH</label>
-            <div className="flex items-center gap-2 bg-white p-1 pr-2 rounded-xl border border-slate-200 shadow-sm w-full">
+            <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-1 pr-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm w-full">
               <input
                 ref={rgInputRef}
                 type="file"
@@ -89,14 +89,14 @@ export const LeadDocumentationFields: React.FC<LeadDocumentationFieldsProps> = (
                 disabled={uploadingRG}
                 className={cn(
                   "flex-1 flex items-center gap-2 px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all",
-                  formData.rg_photo_url ? "bg-emerald-50 text-emerald-600" : "bg-slate-50 text-slate-500 hover:bg-slate-100"
+                  formData.rg_photo_url ? "bg-emerald-50 text-emerald-600" : "bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:bg-slate-800/50"
                 )}
               >
                 {uploadingRG ? <Loader2 size={12} className="animate-spin" /> : <ClipboardCheck size={12} />}
                 <span className="truncate">{formData.rg_photo_url ? 'RG Anexado' : 'Anexar RG/CNH'}</span>
               </button>
               {formData.rg_photo_url && (
-                <div className="flex items-center gap-0.5 border-l border-slate-100 ml-1 pl-1">
+                <div className="flex items-center gap-0.5 border-l border-slate-100 dark:border-slate-800 ml-1 pl-1">
                   <a href={formData.rg_photo_url} target="_blank" rel="noreferrer" className="p-1 text-slate-400 hover:text-emerald-500"><Eye size={14} /></a>
                   <button onClick={() => handleDeleteFile('rg_photo')} className="p-1 text-slate-400 hover:text-red-500"><XIcon size={14} /></button>
                 </div>
@@ -106,7 +106,7 @@ export const LeadDocumentationFields: React.FC<LeadDocumentationFieldsProps> = (
 
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Foto de Perfil</label>
-            <div className="flex items-center gap-2 bg-white p-1 pr-2 rounded-xl border border-slate-200 shadow-sm w-full">
+            <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-1 pr-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm w-full">
               <input
                 ref={profileInputRef}
                 type="file"
@@ -123,14 +123,14 @@ export const LeadDocumentationFields: React.FC<LeadDocumentationFieldsProps> = (
                 disabled={uploadingProfile}
                 className={cn(
                   "flex-1 flex items-center gap-2 px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all",
-                  formData.profile_photo_url ? "bg-emerald-50 text-emerald-600" : "bg-slate-50 text-slate-500 hover:bg-slate-100"
+                  formData.profile_photo_url ? "bg-emerald-50 text-emerald-600" : "bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:bg-slate-800/50"
                 )}
               >
                 {uploadingProfile ? <Loader2 size={12} className="animate-spin" /> : <User size={12} />}
                 <span className="truncate">{formData.profile_photo_url ? 'Foto Anexada' : 'Anexar Foto'}</span>
               </button>
               {formData.profile_photo_url && (
-                <div className="flex items-center gap-0.5 border-l border-slate-100 ml-1 pl-1">
+                <div className="flex items-center gap-0.5 border-l border-slate-100 dark:border-slate-800 ml-1 pl-1">
                   <a href={formData.profile_photo_url} target="_blank" rel="noreferrer" className="p-1 text-slate-400 hover:text-emerald-500"><Eye size={14} /></a>
                   <button onClick={() => handleDeleteFile('profile_photo')} className="p-1 text-slate-400 hover:text-red-500"><XIcon size={14} /></button>
                 </div>

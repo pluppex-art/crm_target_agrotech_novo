@@ -19,7 +19,7 @@ export const StudentRow: React.FC<{ tx: any }> = ({ tx }) => {
   const paidValue = isPaid ? Number(tx.amount) : 0;
 
   return (
-    <div className="flex items-center gap-4 px-6 py-3.5 hover:bg-slate-50/50 transition-colors">
+    <div className="flex items-center gap-4 px-6 py-3.5 hover:bg-slate-50 dark:bg-slate-800/50 transition-colors">
       <div className={cn(
         'w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-sm font-black',
         isPaid ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-50 text-amber-600 border border-amber-200'
@@ -28,10 +28,10 @@ export const StudentRow: React.FC<{ tx: any }> = ({ tx }) => {
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <p className="text-sm font-black text-slate-800 truncate tracking-tight">{leadName}</p>
+          <p className="text-sm font-black text-slate-800 dark:text-slate-200 truncate tracking-tight">{leadName}</p>
           <span className={cn(
             "text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter border",
-            tx.cost_center === 'cursos' ? "bg-indigo-50 text-indigo-700 border-indigo-100" : "bg-slate-50 text-slate-500 border-slate-200"
+            tx.cost_center === 'cursos' ? "bg-indigo-50 text-indigo-700 border-indigo-100" : "bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700"
           )}>{productName}</span>
         </div>
         <p className="text-[11px] text-slate-400 font-bold mt-0.5">

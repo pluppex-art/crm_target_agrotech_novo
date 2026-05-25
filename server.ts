@@ -253,16 +253,40 @@ async function startServer() {
       console.log('[submit-lead] Sellers encontrados:', (sellers || []).length,
         sellers?.map((s: any) => `${s.name} (${s.department}) [${s.id}]`));
 
-      const validSellers = (sellers || []).sort((a: any, b: any) =>
-        a.name.trim().localeCompare(b.name.trim(), 'pt-BR', { sensitivity: 'base' })
-      );
+      // 4. Fetch the product routing preferences
+      const { data: rrSettings } = await supabase
+        .from('crm_settings')
+        .select('value')
+        .eq('key', 'round_robin_products')
+        .maybeSingle();
+
+      const productRouting = (rrSettings?.value as Record<string, string[]>) || {};
+
+      const validSellers = (sellers || [])
+        .filter((s: any) => {
+          const allowedProducts = productRouting[s.id];
+          if (!allowedProducts || allowedProducts.length === 0) return true;
+          if (!product) return true;
+          return allowedProducts.some(p => 
+            product.toLowerCase().includes(p.toLowerCase()) || 
+            p.toLowerCase().includes(product.toLowerCase())
+          );
+        })
+        .sort((a: any, b: any) =>
+          a.name.trim().localeCompare(b.name.trim(), 'pt-BR', { sensitivity: 'base' })
+        );
 
       if (validSellers.length === 0) {
         return res.status(500).json({ error: 'Nenhum consultor disponível para atribuição. Verifique os cadastros.' });
       }
 
-      // Fallback: buscar último lead atribuído por ID
-      if (!lastSellerId) {
+      let lastIndex = lastSellerId
+        ? validSellers.findIndex((s: any) => s.id === lastSellerId)
+        : -1;
+
+      // Se o último vendedor geral não faz parte da lista deste produto (ex: pools separados),
+      // buscamos quem foi o último desta lista específica a receber um lead.
+      if (lastIndex === -1) {
         const { data: lastLead } = await supabase
           .from('leads')
           .select('responsavel_usuario_id')
@@ -270,13 +294,13 @@ async function startServer() {
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
-        lastSellerId = lastLead?.responsavel_usuario_id ?? null;
+          
+        if (lastLead?.responsavel_usuario_id) {
+          lastIndex = validSellers.findIndex((s: any) => s.id === lastLead.responsavel_usuario_id);
+        }
       }
 
-      const lastIndex = lastSellerId
-        ? validSellers.findIndex((s: any) => s.id === lastSellerId)
-        : -1;
-      const nextIndex = (lastIndex + 1) % validSellers.length;
+      const nextIndex = (lastIndex !== -1 ? lastIndex + 1 : 0) % validSellers.length;
       const assignedSeller = validSellers[nextIndex];
 
       console.log(`[submit-lead] Atribuindo a: ${assignedSeller.name} (${assignedSeller.department}) [${assignedSeller.id}]`);

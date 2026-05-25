@@ -53,8 +53,8 @@ export function PartnerRulesSection() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-bold text-slate-700">Regras de Parceria</p>
-          <p className="text-xs text-slate-500 mt-0.5">Define taxas de tecnologia e custos fixos por origem.</p>
+          <p className="text-sm font-bold text-slate-700 dark:text-slate-300">Regras de Parceria</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Define taxas de tecnologia e custos fixos por origem.</p>
         </div>
         <button onClick={() => setShowForm(!showForm)} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700">
           {showForm ? 'Fechar' : '+ Nova Regra'}
@@ -62,26 +62,26 @@ export function PartnerRulesSection() {
       </div>
 
       {showForm && (
-        <form onSubmit={handleCreate} className="bg-white p-5 rounded-xl border border-indigo-100 shadow-sm space-y-4">
+        <form onSubmit={handleCreate} className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-indigo-100 shadow-sm space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase">Origem</label>
-              <select value={form.origin_type} onChange={e => setForm(p => ({ ...p, origin_type: e.target.value as any }))} className="w-full px-3 py-2 bg-slate-50 border rounded-lg text-sm">
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Origem</label>
+              <select value={form.origin_type} onChange={e => setForm(p => ({ ...p, origin_type: e.target.value as any }))} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border rounded-lg text-sm">
                 <option value="PLUPPEX">PLUPPEX</option>
                 <option value="TARGET">TARGET</option>
               </select>
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase">Taxa Tec (%)</label>
-              <input type="number" step="0.01" value={form.technology_fee_percent} onChange={e => setForm(p => ({ ...p, technology_fee_percent: parseFloat(e.target.value) || 0 }))} className="w-full px-3 py-2 bg-slate-50 border rounded-lg text-sm" />
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Taxa Tec (%)</label>
+              <input type="number" step="0.01" value={form.technology_fee_percent} onChange={e => setForm(p => ({ ...p, technology_fee_percent: parseFloat(e.target.value) || 0 }))} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border rounded-lg text-sm" />
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase">Fixo (R$)</label>
-              <input type="number" step="0.01" value={form.fixed_fee} onChange={e => setForm(p => ({ ...p, fixed_fee: parseFloat(e.target.value) || 0 }))} className="w-full px-3 py-2 bg-slate-50 border rounded-lg text-sm" />
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Fixo (R$)</label>
+              <input type="number" step="0.01" value={form.fixed_fee} onChange={e => setForm(p => ({ ...p, fixed_fee: parseFloat(e.target.value) || 0 }))} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border rounded-lg text-sm" />
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase">Categoria</label>
-              <select value={form.category_id || ''} onChange={e => setForm(p => ({ ...p, category_id: e.target.value || null }))} className="w-full px-3 py-2 bg-slate-50 border rounded-lg text-sm">
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Categoria</label>
+              <select value={form.category_id || ''} onChange={e => setForm(p => ({ ...p, category_id: e.target.value || null }))} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border rounded-lg text-sm">
                 <option value="">Selecione...</option>
                 {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
@@ -91,10 +91,10 @@ export function PartnerRulesSection() {
         </form>
       )}
 
-      <div className="bg-white rounded-xl border overflow-hidden overflow-x-auto">
+      <div className="bg-white dark:bg-slate-900 rounded-xl border overflow-hidden overflow-x-auto">
         {isLoading ? <div className="p-10 text-center"><Loader2 className="animate-spin inline" /></div> : (
           <table className="w-full text-sm text-left">
-            <thead className="text-[10px] text-slate-500 uppercase bg-slate-50 border-b">
+            <thead className="text-[10px] text-slate-500 dark:text-slate-400 uppercase bg-slate-50 dark:bg-slate-800 border-b">
               <tr>
                 <th className="px-5 py-4">Origem</th>
                 <th className="px-5 py-4">Taxa Tec</th>
@@ -105,7 +105,7 @@ export function PartnerRulesSection() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {rules.map(r => (
-                <tr key={r.id} className={cn(!r.active && 'opacity-50 bg-slate-50')}>
+                <tr key={r.id} className={cn(!r.active && 'opacity-50 bg-slate-50 dark:bg-slate-800')}>
                   <td className="px-5 py-3 font-bold text-indigo-600">{r.origin_type}</td>
                   <td className="px-5 py-3">{r.technology_fee_percent}%</td>
                   <td className="px-5 py-3">R$ {r.fixed_fee.toFixed(2)}</td>

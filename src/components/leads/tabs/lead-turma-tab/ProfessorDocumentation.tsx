@@ -20,14 +20,14 @@ export const ProfessorDocumentation: React.FC<ProfessorDocumentationProps> = ({
   ALLOWED_EXT
 }) => {
   return (
-    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+    <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 space-y-3">
       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
         <FileText size={12} /> Documentação do Professor
       </p>
 
       <div className="flex items-center gap-3">
         <div className="flex-1 min-w-0">
-          <p className="text-[11px] font-bold text-slate-600 flex items-center gap-1.5">
+          <p className="text-[11px] font-bold text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
             <QrCode size={13} className="text-slate-400" /> Comprovante de Pagamento
             {formData?.professor_proof_url && (
               <span className="inline-flex items-center gap-0.5 text-[9px] font-black bg-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded-full">
@@ -75,7 +75,7 @@ export const ProfessorDocumentation: React.FC<ProfessorDocumentationProps> = ({
             className={cn(
               "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border shadow-sm",
               formData?.professor_proof_url
-                ? "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"
+                ? "bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:bg-slate-800"
                 : "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
             )}
           >

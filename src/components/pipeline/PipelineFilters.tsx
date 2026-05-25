@@ -52,14 +52,14 @@ export const PipelineFilters: React.FC<PipelineFiltersProps> = ({
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm transition-colors duration-300">
       {/* Header — clicável para minimizar */}
       <div
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors rounded-t-2xl cursor-pointer"
+        className="w-full flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-slate-800 hover:bg-gray-50 dark:bg-slate-800 dark:hover:bg-slate-800/50 transition-colors rounded-t-2xl cursor-pointer"
       >
-        <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-          <Filter size={16} className={activeFilterCount > 0 ? "text-emerald-600" : "text-gray-400"} />
+        <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-slate-200">
+          <Filter size={16} className={activeFilterCount > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-gray-400 dark:text-slate-500 dark:text-slate-400"} />
           Filtros
           {activeFilterCount > 0 && (
             <span className="flex items-center justify-center w-5 h-5 text-[10px] font-black bg-emerald-600 text-white rounded-full">
@@ -127,16 +127,16 @@ export const PipelineFilters: React.FC<PipelineFiltersProps> = ({
       >
         {/* Search */}
         <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 dark:text-slate-400" size={16} />
           <input
             type="text"
             placeholder="Buscar por nome, produto ou responsável..."
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-9 pr-9 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm"
+            className="w-full pl-9 pr-9 py-2 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm dark:text-slate-200 placeholder:text-gray-400 dark:placeholder:text-slate-500 dark:text-slate-400"
           />
           {searchTerm && (
-            <button onClick={() => onSearchChange('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+            <button onClick={() => onSearchChange('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 dark:text-slate-400 hover:text-gray-600 dark:text-slate-400 dark:hover:text-slate-300">
               <X size={14} />
             </button>
           )}
@@ -149,8 +149,8 @@ export const PipelineFilters: React.FC<PipelineFiltersProps> = ({
             value={selectedStatus}
             onChange={(e) => onStatusChange(e.target.value)}
             className={cn(
-              "w-full pl-9 pr-8 py-2 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none cursor-pointer text-sm font-medium transition-all text-ellipsis whitespace-nowrap overflow-hidden",
-              selectedStatus !== 'all' ? "border-purple-300 bg-purple-50 text-purple-700" : "border-gray-200 text-gray-700"
+              "w-full pl-9 pr-8 py-2 bg-gray-50 dark:bg-slate-800/50 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none cursor-pointer text-sm font-medium transition-all text-ellipsis whitespace-nowrap overflow-hidden dark:text-slate-200",
+              selectedStatus !== 'all' ? "border-purple-300 dark:border-purple-500/50 bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400" : "border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300"
             )}
           >
             <option value="all">Todos os estágios</option>
@@ -177,8 +177,8 @@ export const PipelineFilters: React.FC<PipelineFiltersProps> = ({
               }
             }}
             className={cn(
-              "w-full pl-9 pr-8 py-2 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none cursor-pointer text-sm font-medium transition-all text-ellipsis whitespace-nowrap overflow-hidden",
-              selectedProducts.length > 0 ? "border-amber-300 bg-amber-50 text-amber-700" : "border-gray-200 text-gray-700"
+              "w-full pl-9 pr-8 py-2 bg-gray-50 dark:bg-slate-800/50 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none cursor-pointer text-sm font-medium transition-all text-ellipsis whitespace-nowrap overflow-hidden dark:text-slate-200",
+              selectedProducts.length > 0 ? "border-amber-300 dark:border-amber-500/50 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400" : "border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300"
             )}
           >
             <option value="all">Todos os produtos</option>
@@ -202,8 +202,8 @@ export const PipelineFilters: React.FC<PipelineFiltersProps> = ({
               value={selectedResponsible}
               onChange={(e) => onResponsibleChange(e.target.value)}
               className={cn(
-                "w-full pl-9 pr-8 py-2 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none cursor-pointer text-sm font-medium transition-all text-ellipsis whitespace-nowrap overflow-hidden",
-                selectedResponsible !== 'all' ? "border-teal-300 bg-teal-50 text-teal-700" : "border-gray-200 text-gray-700"
+                "w-full pl-9 pr-8 py-2 bg-gray-50 dark:bg-slate-800/50 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none cursor-pointer text-sm font-medium transition-all text-ellipsis whitespace-nowrap overflow-hidden dark:text-slate-200",
+                selectedResponsible !== 'all' ? "border-teal-300 dark:border-teal-500/50 bg-teal-50 dark:bg-teal-500/10 text-teal-700 dark:text-teal-400" : "border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300"
               )}
             >
               <option value="all">Todos responsáveis</option>
@@ -222,8 +222,8 @@ export const PipelineFilters: React.FC<PipelineFiltersProps> = ({
             value={selectedSquad}
             onChange={(e) => onSquadChange(e.target.value)}
             className={cn(
-              "w-full pl-9 pr-8 py-2 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none cursor-pointer text-sm font-medium transition-all text-ellipsis whitespace-nowrap overflow-hidden",
-              selectedSquad !== 'all' ? "border-blue-300 bg-blue-50 text-blue-700" : "border-gray-200 text-gray-700"
+              "w-full pl-9 pr-8 py-2 bg-gray-50 dark:bg-slate-800/50 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none cursor-pointer text-sm font-medium transition-all text-ellipsis whitespace-nowrap overflow-hidden dark:text-slate-200",
+              selectedSquad !== 'all' ? "border-blue-300 dark:border-blue-500/50 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400" : "border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300"
             )}
           >
             <option value="all">Todos Squads</option>
@@ -236,8 +236,8 @@ export const PipelineFilters: React.FC<PipelineFiltersProps> = ({
 
 
         {/* Fire level filter (Flame) */}
-        <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 shrink-0">
-          <Flame size={16} className={cn("mr-1 transition-colors", selectedStars.length > 0 ? "text-orange-500" : "text-gray-400")} />
+        <div className="flex items-center gap-1 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 shrink-0">
+          <Flame size={16} className={cn("mr-1 transition-colors", selectedStars.length > 0 ? "text-orange-500" : "text-gray-400 dark:text-slate-500 dark:text-slate-400")} />
           {(['all', 1, 2, 3, 4, 5] as const).map((s) => {
             const isActive = s === 'all' ? selectedStars.length === 0 : selectedStars.includes(s);
             return (
@@ -257,7 +257,7 @@ export const PipelineFilters: React.FC<PipelineFiltersProps> = ({
                   "px-2 py-0.5 rounded-lg text-xs font-bold transition-all flex items-center gap-0.5",
                   isActive
                     ? "bg-orange-500 text-white shadow-sm"
-                    : "text-gray-400 hover:text-orange-500 hover:bg-orange-50"
+                    : "text-gray-400 dark:text-slate-500 dark:text-slate-400 hover:text-orange-500 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-500/10"
                 )}
               >
                 {s === 'all' ? 'Todos' : s}

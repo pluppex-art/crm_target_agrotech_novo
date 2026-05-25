@@ -34,14 +34,14 @@ export function TransferBanner({ leads, allLeads, onTransfer, onDismiss }: Trans
             </span>
             <select
               onChange={(e) => { if (e.target.value) onTransfer(lead.id, e.target.value); }}
-              className="text-xs border border-red-200 rounded-lg px-2 py-1 bg-white text-red-700 cursor-pointer"
+              className="text-xs border border-red-200 rounded-lg px-2 py-1 bg-white dark:bg-slate-900 text-red-700 cursor-pointer"
               defaultValue=""
             >
               <option value="">Selecionar...</option>
               {others.map((r) => <option key={r} value={r}>{r}</option>)}
               <option value="__dismiss__">Dispensar aviso</option>
             </select>
-            <button onClick={() => onDismiss(lead.id)} className="p-1 hover:bg-white/50 rounded-lg transition-colors">
+            <button onClick={() => onDismiss(lead.id)} className="p-1 hover:bg-white dark:bg-slate-900/50 rounded-lg transition-colors">
               <X size={14} />
             </button>
           </motion.div>

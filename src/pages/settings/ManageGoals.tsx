@@ -29,14 +29,14 @@ function SellerGoalsList({ sellers, sellerGoals, savingSeller, savedSeller, upda
         const isSaving = savingSeller === profile.id;
         const isSaved = savedSeller === profile.id;
         return (
-          <div key={profile.id} className="border border-slate-100 rounded-xl p-4">
+          <div key={profile.id} className="border border-slate-100 dark:border-slate-800 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-3">
-              <div className="w-7 h-7 bg-slate-100 rounded-full flex items-center justify-center text-xs font-bold text-slate-500">
+              <div className="w-7 h-7 bg-slate-100 dark:bg-slate-800/50 rounded-full flex items-center justify-center text-xs font-bold text-slate-500 dark:text-slate-400">
                 {name.charAt(0).toUpperCase()}
               </div>
-              <span className="font-semibold text-slate-700 text-sm">{name}</span>
+              <span className="font-semibold text-slate-700 dark:text-slate-300 text-sm">{name}</span>
               {profile.department && (
-                <span className="text-[10px] uppercase font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md">
+                <span className="text-[10px] uppercase font-bold text-slate-400 bg-slate-100 dark:bg-slate-800/50 px-1.5 py-0.5 rounded-md">
                   {profile.department}
                 </span>
               )}
@@ -96,7 +96,7 @@ function GoalInput({
 }) {
   return (
     <div className="space-y-1">
-      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+      <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
         {icon}
         {label}
       </label>
@@ -111,7 +111,7 @@ function GoalInput({
             const raw = e.target.value.replace(/\D/g, '');
             onChange(raw ? Number(raw).toLocaleString('pt-BR') : '');
           }}
-          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-slate-700 text-sm"
+          className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-slate-700 dark:text-slate-300 text-sm"
           style={{ paddingLeft: prefix ? '2.75rem' : undefined }}
           placeholder="0"
         />
@@ -212,18 +212,18 @@ export function ManageGoals() {
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <div>
-        <p className="text-sm text-slate-700 font-semibold">Metas Comerciais</p>
-        <p className="text-xs text-slate-500 mt-0.5">Defina metas de receita, leads fechados e ligações diárias para a empresa e para cada closer.</p>
+        <p className="text-sm text-slate-700 dark:text-slate-300 font-semibold">Metas Comerciais</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Defina metas de receita, leads fechados e ligações diárias para a empresa e para cada closer.</p>
       </div>
 
       {/* Company goals */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-6">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 mb-6">
         <div className="flex items-center gap-3 mb-5">
           <div className="w-9 h-9 bg-emerald-50 rounded-xl flex items-center justify-center">
             <Building2 className="w-5 h-5 text-emerald-600" />
           </div>
           <div>
-            <h2 className="font-bold text-slate-800">Meta da Empresa</h2>
+            <h2 className="font-bold text-slate-800 dark:text-slate-200">Meta da Empresa</h2>
             <p className="text-xs text-slate-400">Objetivo geral mensal do time comercial</p>
           </div>
         </div>
@@ -261,13 +261,13 @@ export function ManageGoals() {
       </div>
 
       {/* Seller goals */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6">
         <div className="flex items-center gap-3 mb-5">
           <div className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center">
             <User className="w-5 h-5 text-blue-600" />
           </div>
           <div>
-            <h2 className="font-bold text-slate-800">Metas por Closer</h2>
+            <h2 className="font-bold text-slate-800 dark:text-slate-200">Metas por Closer</h2>
             <p className="text-xs text-slate-400">Metas individuais mensais por colaborador</p>
           </div>
         </div>

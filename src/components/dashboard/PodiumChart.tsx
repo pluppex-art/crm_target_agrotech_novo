@@ -19,7 +19,7 @@ const PODIUM_CONFIG = [
     height: 'h-[110px]',
     topBg: 'bg-[#f1f5f9] border-[#cbd5e1]',
     bodyBg: 'from-[#cbd5e1] via-white to-white',
-    badgeStyle: 'bg-[#e2e8f0] text-slate-700 border-[#cbd5e1]',
+    badgeStyle: 'bg-[#e2e8f0] text-slate-700 dark:text-slate-300 border-[#cbd5e1]',
     borderColor: 'border-[#cbd5e1]',
     charHeight: 'h-[160px] -mb-7',
     zIndex: 'z-20',
@@ -128,7 +128,7 @@ export function PodiumChart({ top3 }: PodiumChartProps) {
           return (
             <div key={cfg.place} className={`flex-1 min-w-[80px] sm:min-w-[100px] flex flex-col items-center relative ${cfg.zIndex}`}>
               {/* Placement Text Above */}
-              <span className="text-[10px] sm:text-[11px] font-black text-slate-800 tracking-wider mb-1">
+              <span className="text-[10px] sm:text-[11px] font-black text-slate-800 dark:text-slate-200 tracking-wider mb-1">
                 {cfg.place}° LUGAR
               </span>
 
@@ -155,11 +155,11 @@ export function PodiumChart({ top3 }: PodiumChartProps) {
 
                 {/* Seller Name */}
                 <div className="text-center px-1 max-w-full">
-                  <p className="text-[10px] sm:text-xs font-black text-slate-800 tracking-tight leading-tight uppercase truncate" title={line1}>
+                  <p className="text-[10px] sm:text-xs font-black text-slate-800 dark:text-slate-200 tracking-tight leading-tight uppercase truncate" title={line1}>
                     {line1}
                   </p>
                   {line2 && (
-                    <p className="text-[9px] sm:text-[10px] font-bold text-slate-700 tracking-tight leading-tight uppercase truncate" title={line2}>
+                    <p className="text-[9px] sm:text-[10px] font-bold text-slate-700 dark:text-slate-300 tracking-tight leading-tight uppercase truncate" title={line2}>
                       {line2}
                     </p>
                   )}

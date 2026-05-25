@@ -23,7 +23,7 @@ export function FunnelChart({
 
   if (!hasData) {
     return (
-      <div className="flex flex-col items-center justify-center h-56 p-8 text-slate-300 rounded-2xl border-2 border-dashed border-slate-200 bg-gradient-to-b from-slate-50 to-slate-100">
+      <div className="flex flex-col items-center justify-center h-56 p-8 text-slate-300 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 bg-gradient-to-b from-slate-50 to-slate-100">
         <TrendingDown className="w-12 h-12 mb-3 opacity-30" />
         <p className="text-base font-medium text-slate-400 mb-1">{emptyLabel}</p>
         <p className="text-sm text-slate-400">Acompanhe leads em cada etapa</p>
@@ -99,7 +99,7 @@ export function FunnelChart({
       })}
 
       {conversionRate !== undefined && (
-        <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-center gap-2 py-2.5 bg-emerald-50/70 rounded-2xl">
+        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-center gap-2 py-2.5 bg-emerald-50/70 rounded-2xl">
           <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
           <span className="text-sm font-bold text-emerald-700">
             Conversão total: {conversionRate.toFixed(1)}%

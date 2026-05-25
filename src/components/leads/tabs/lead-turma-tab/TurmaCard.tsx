@@ -38,18 +38,18 @@ export const TurmaCard: React.FC<TurmaCardProps> = ({
   const hasSavedPayment = (attendee.valor_recebido ?? 0) > 0 || (attendee.taxa_matricula_recebido ?? 0) > 0;
 
   return (
-    <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-3">
+    <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-3">
       <div className="flex items-start justify-between">
         <div>
-          <h4 className="font-bold text-slate-800 text-base">{turma.name}</h4>
-          <p className="text-xs text-slate-500 mt-0.5">{turma.professor_name || 'Sem professor'}</p>
+          <h4 className="font-bold text-slate-800 dark:text-slate-200 text-base">{turma.name}</h4>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{turma.professor_name || 'Sem professor'}</p>
         </div>
         <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-blue-100 text-blue-700 capitalize">
           {attendee.status}
         </span>
       </div>
 
-      <div className="space-y-1.5 text-xs text-slate-500">
+      <div className="space-y-1.5 text-xs text-slate-500 dark:text-slate-400">
         <div className="flex items-center gap-2">
           <Calendar size={12} className="text-emerald-500 shrink-0" />
           {turma.date
@@ -64,12 +64,12 @@ export const TurmaCard: React.FC<TurmaCardProps> = ({
         </div>
       </div>
 
-      <div className="pt-3 border-t border-slate-100 space-y-2">
+      <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Resumo Financeiro</p>
 
         {(attendee.valor_recebido ?? 0) > 0 && (
           <div className="flex items-center justify-between text-xs">
-            <span className="text-slate-500 flex items-center gap-1">
+            <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1">
               <CheckSquare size={10} className="text-emerald-500" />
               Pago na turma
             </span>
@@ -81,7 +81,7 @@ export const TurmaCard: React.FC<TurmaCardProps> = ({
 
         {(attendee.taxa_matricula_recebido ?? 0) > 0 && (
           <div className="flex items-center justify-between text-xs">
-            <span className="text-slate-500 flex items-center gap-1">
+            <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1">
               <CheckSquare size={10} className="text-emerald-500" />
               Taxa de matrícula
             </span>
@@ -91,15 +91,15 @@ export const TurmaCard: React.FC<TurmaCardProps> = ({
           </div>
         )}
 
-        <div className="flex items-center justify-between text-xs border-t border-slate-100 pt-1">
-          <span className="font-bold text-slate-600">Total Pago</span>
+        <div className="flex items-center justify-between text-xs border-t border-slate-100 dark:border-slate-800 pt-1">
+          <span className="font-bold text-slate-600 dark:text-slate-400">Total Pago</span>
           <span className="font-bold text-emerald-700">
             R$ {valorPago.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </span>
         </div>
 
         <div className="flex items-center justify-between text-xs">
-          <span className="font-bold text-slate-500">A Receber</span>
+          <span className="font-bold text-slate-500 dark:text-slate-400">A Receber</span>
           <span className={cn('font-bold', valorAReceber <= 0 ? 'text-emerald-600' : 'text-orange-600')}>
             R$ {valorAReceber.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </span>
@@ -111,7 +111,7 @@ export const TurmaCard: React.FC<TurmaCardProps> = ({
       </div>
 
       {(valorAReceber ?? 0) > 0 && (
-        <div className="pt-3 border-t border-slate-100 space-y-3">
+        <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-3">
           <div className="flex items-center justify-between">
             <label className="flex items-center gap-3 cursor-pointer group">
               <div className="relative">
@@ -123,12 +123,12 @@ export const TurmaCard: React.FC<TurmaCardProps> = ({
                 />
                 <div className={cn(
                   'w-5 h-5 border-2 rounded-md transition-all flex items-center justify-center',
-                  payment.open ? 'bg-emerald-600 border-emerald-600' : 'bg-white border-slate-200 group-hover:border-emerald-200'
+                  payment.open ? 'bg-emerald-600 border-emerald-600' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 group-hover:border-emerald-200'
                 )}>
                   {payment.open && <CheckSquare size={12} className="text-white" />}
                 </div>
               </div>
-              <span className="text-sm font-bold text-slate-700">Registrar novo pagamento?</span>
+              <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Registrar novo pagamento?</span>
             </label>
 
             {payment.open && (
@@ -144,7 +144,7 @@ export const TurmaCard: React.FC<TurmaCardProps> = ({
           </div>
 
           {payment.open && (
-            <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-200">
+            <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Valor (R$)</label>
                 <input
@@ -154,7 +154,7 @@ export const TurmaCard: React.FC<TurmaCardProps> = ({
                   value={payment.entries[0].valor}
                   onChange={(e) => handleEntryChange(attendee.id, 0, 'valor', e.target.value)}
                   placeholder="0,00"
-                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-sm font-bold shadow-sm"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-sm font-bold shadow-sm"
                 />
               </div>
               <div className="space-y-1">
@@ -163,7 +163,7 @@ export const TurmaCard: React.FC<TurmaCardProps> = ({
                   <select
                     value={payment.entries[0].forma}
                     onChange={(e) => handleEntryChange(attendee.id, 0, 'forma', e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none text-sm font-bold shadow-sm cursor-pointer"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none text-sm font-bold shadow-sm cursor-pointer"
                   >
                     <option value="">Selecione...</option>
                     {FORMAS.map(f => <option key={f} value={f}>{f}</option>)}

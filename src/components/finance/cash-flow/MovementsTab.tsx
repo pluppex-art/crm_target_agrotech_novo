@@ -23,8 +23,8 @@ export const MovementsTab: React.FC<{ sortedDates: string[]; grouped: Record<str
         <div className="divide-y divide-slate-100">
           {sortedDates.map(date => (
             <div key={date}>
-              <div className="flex items-center justify-between px-6 py-2 bg-slate-50/50">
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{formatDate(date)}</span>
+              <div className="flex items-center justify-between px-6 py-2 bg-slate-50 dark:bg-slate-800/50">
+                <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">{formatDate(date)}</span>
                 <span className="text-[10px] font-black text-rose-600 uppercase">
                   Saídas: - R$ {fmt(grouped[date].filter(t => t.type === 'EXPENSE' && t.status === 'PAID').reduce((s, t) => s + Number(t.amount), 0))}
                 </span>

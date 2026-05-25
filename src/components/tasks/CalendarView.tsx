@@ -33,7 +33,7 @@ export function CalendarView({ tasks, onToggleStatus }: CalendarViewProps) {
   const days = [];
   // Fill empty slots for previous month
   for (let i = 0; i < firstDay; i++) {
-    days.push(<div key={`empty-${i}`} className="h-32 border border-slate-100 bg-slate-50/30" />);
+    days.push(<div key={`empty-${i}`} className="h-32 border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30" />);
   }
 
   // Fill days of the month
@@ -44,7 +44,7 @@ export function CalendarView({ tasks, onToggleStatus }: CalendarViewProps) {
 
     days.push(
       <div key={day} className={cn(
-        "h-32 border border-slate-100 p-2 overflow-y-auto hover:bg-slate-50 transition-colors",
+        "h-32 border border-slate-100 dark:border-slate-800 p-2 overflow-y-auto hover:bg-slate-50 dark:bg-slate-800 transition-colors",
         isToday && "bg-emerald-50/30"
       )}>
         <div className="flex justify-between items-center mb-1">
@@ -69,7 +69,7 @@ export function CalendarView({ tasks, onToggleStatus }: CalendarViewProps) {
                 className={cn(
                   "text-[10px] p-1 rounded border cursor-pointer transition-all",
                   task.status === 'completed'
-                    ? "bg-slate-100 border-slate-200 text-slate-400 line-through"
+                    ? "bg-slate-100 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-400 line-through"
                     : isActivity
                       ? "bg-blue-50 border-l-4 border-blue-500 text-blue-700"
                       : cn(
@@ -117,34 +117,34 @@ export function CalendarView({ tasks, onToggleStatus }: CalendarViewProps) {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-      <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-        <h2 className="text-lg font-bold text-slate-800">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+      <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
+        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">
           {monthNames[month]} {year}
         </h2>
         <div className="flex items-center gap-2">
           <button
             onClick={prevMonth}
-            className="p-2 hover:bg-white rounded-lg border border-transparent hover:border-slate-200 transition-all"
+            className="p-2 hover:bg-white dark:bg-slate-900 rounded-lg border border-transparent hover:border-slate-200 dark:border-slate-700 transition-all"
           >
-            <ChevronLeft className="w-5 h-5 text-slate-600" />
+            <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
           </button>
           <button
             onClick={() => setCurrentDate(new Date())}
-            className="px-3 py-1 text-xs font-bold text-slate-600 hover:bg-white rounded-lg border border-transparent hover:border-slate-200 transition-all"
+            className="px-3 py-1 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-white dark:bg-slate-900 rounded-lg border border-transparent hover:border-slate-200 dark:border-slate-700 transition-all"
           >
             Hoje
           </button>
           <button
             onClick={nextMonth}
-            className="p-2 hover:bg-white rounded-lg border border-transparent hover:border-slate-200 transition-all"
+            className="p-2 hover:bg-white dark:bg-slate-900 rounded-lg border border-transparent hover:border-slate-200 dark:border-slate-700 transition-all"
           >
-            <ChevronRight className="w-5 h-5 text-slate-600" />
+            <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-400" />
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-7 bg-slate-50 border-b border-slate-100">
+      <div className="grid grid-cols-7 bg-slate-50 dark:bg-slate-800 border-b border-slate-100 dark:border-slate-800">
         {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
           <div key={day} className="py-2 text-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
             {day}
@@ -157,7 +157,7 @@ export function CalendarView({ tasks, onToggleStatus }: CalendarViewProps) {
       </div>
 
       {/* Legend */}
-      <div className="p-3 border-t border-slate-100 bg-slate-50/50 flex items-center gap-4 text-[10px] font-bold text-slate-400 flex-wrap">
+      <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex items-center gap-4 text-[10px] font-bold text-slate-400 flex-wrap">
         <span className="flex items-center gap-1.5">
           <span className="w-3 h-3 rounded border-l-4 border-blue-500 bg-blue-50 inline-block" />
           Atividade

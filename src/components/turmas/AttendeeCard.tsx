@@ -78,7 +78,7 @@ function AttendeeCardUI({
       {...listeners}
       {...attributes}
       className={cn(
-        'bg-white rounded-xl border border-slate-100 p-3 flex flex-col gap-2 transition-all group/card mb-2',
+        'bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 p-3 flex flex-col gap-2 transition-all group/card mb-2',
         isOverlay 
           ? 'shadow-2xl border-emerald-300 rotate-2 cursor-grabbing scale-105 z-50' 
           : 'shadow-sm hover:border-emerald-200 cursor-grab',
@@ -92,7 +92,7 @@ function AttendeeCardUI({
             alt={attendee.name} 
             onClick={(e) => { e.stopPropagation(); onViewDetails?.(); }}
             className={cn(
-              'w-9 h-9 rounded-full object-cover border-2 border-slate-100 mt-0.5', 
+              'w-9 h-9 rounded-full object-cover border-2 border-slate-100 dark:border-slate-800 mt-0.5', 
               onViewDetails && 'cursor-pointer hover:opacity-80'
             )} 
             referrerPolicy="no-referrer" 
@@ -107,7 +107,7 @@ function AttendeeCardUI({
           className="flex-1 min-w-0"
           onClick={(e) => { e.stopPropagation(); onViewDetails?.(); }}
         >
-          <p className="text-xs font-bold text-slate-700 truncate leading-tight">{attendee.name}</p>
+          <p className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate leading-tight">{attendee.name}</p>
           <p className="text-[10px] text-slate-400 truncate mt-0.5">
             {attendee.responsible || 'Sem responsável'}
           </p>
@@ -139,7 +139,7 @@ function AttendeeCardUI({
                 <button
                   onPointerDown={(e) => e.stopPropagation()}
                   onClick={(e) => { e.stopPropagation(); setConfirmingRemove(false); }}
-                  className="px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors"
+                  className="px-2 py-0.5 text-[10px] font-bold bg-slate-100 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 rounded-lg hover:bg-slate-200 dark:bg-slate-700 transition-colors"
                 >
                   Não
                 </button>

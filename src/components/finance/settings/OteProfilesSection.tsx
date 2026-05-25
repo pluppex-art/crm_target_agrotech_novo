@@ -116,8 +116,8 @@ export function OteProfilesSection() {
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <p className="text-sm text-slate-700 font-semibold">Perfis de Compensação OTE</p>
-          <p className="text-xs text-slate-500 mt-0.5">Fonte oficial do nível de cada colaborador.</p>
+          <p className="text-sm text-slate-700 dark:text-slate-300 font-semibold">Perfis de Compensação OTE</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Fonte oficial do nível de cada colaborador.</p>
         </div>
         <button onClick={() => { setShowForm(v => !v); setSaveError(null); }} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700">
           {showForm ? <X size={15} /> : <Plus size={15} />} {showForm ? 'Fechar' : 'Novo Perfil'}
@@ -129,19 +129,19 @@ export function OteProfilesSection() {
       )}
 
       {showForm && (
-        <form onSubmit={handleCreate} className="bg-white rounded-xl border border-indigo-200 p-5 space-y-4">
-          <h3 className="font-bold text-slate-700 text-sm flex items-center gap-2"><Users2 size={16} className="text-indigo-600" /> Configurar Nível OTE</h3>
+        <form onSubmit={handleCreate} className="bg-white dark:bg-slate-900 rounded-xl border border-indigo-200 p-5 space-y-4">
+          <h3 className="font-bold text-slate-700 dark:text-slate-300 text-sm flex items-center gap-2"><Users2 size={16} className="text-indigo-600" /> Configurar Nível OTE</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <div className="sm:col-span-2 space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase">Colaborador</label>
-              <select required value={form.user_id} onChange={e => setForm(p => ({ ...p, user_id: e.target.value }))} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none">
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Colaborador</label>
+              <select required value={form.user_id} onChange={e => setForm(p => ({ ...p, user_id: e.target.value }))} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm outline-none">
                 <option value="">Selecione...</option>
                 {users.map(u => <option key={u.id} value={u.id}>{u.full_name || u.name || u.email}</option>)}
               </select>
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase">Função</label>
-              <select value={form.role_type} onChange={e => setForm(p => ({ ...p, role_type: e.target.value as RoleType, squad_id: '' }))} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none">
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Função</label>
+              <select value={form.role_type} onChange={e => setForm(p => ({ ...p, role_type: e.target.value as RoleType, squad_id: '' }))} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm outline-none">
                 <option value="CLOSER">CLOSER</option>
                 <option value="SDR">SDR</option>
                 <option value="MANAGER">MANAGER</option>
@@ -149,22 +149,22 @@ export function OteProfilesSection() {
             </div>
             {form.role_type === 'MANAGER' && (
               <div className="sm:col-span-2 space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase">Squad Gerenciado</label>
-                <select value={form.squad_id} onChange={e => setForm(p => ({ ...p, squad_id: e.target.value }))} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none">
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Squad Gerenciado</label>
+                <select value={form.squad_id} onChange={e => setForm(p => ({ ...p, squad_id: e.target.value }))} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm outline-none">
                   <option value="">Selecione o squad...</option>
                   {squads.filter(s => s.active).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
             )}
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase">Nível</label>
-              <select value={form.level} onChange={e => setForm(p => ({ ...p, level: e.target.value }))} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none">
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Nível</label>
+              <select value={form.level} onChange={e => setForm(p => ({ ...p, level: e.target.value }))} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm outline-none">
                 {VALID_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
               </select>
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase">Início</label>
-              <input type="date" value={form.start_date} onChange={e => setForm(p => ({ ...p, start_date: e.target.value }))} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none" />
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Início</label>
+              <input type="date" value={form.start_date} onChange={e => setForm(p => ({ ...p, start_date: e.target.value }))} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm outline-none" />
             </div>
           </div>
           <div className="flex justify-end">
@@ -175,12 +175,12 @@ export function OteProfilesSection() {
         </form>
       )}
 
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden overflow-x-auto">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden overflow-x-auto">
         {isLoading ? (
           <div className="flex items-center justify-center h-40"><Loader2 className="animate-spin text-indigo-500" /></div>
         ) : (
           <table className="w-full text-sm text-left">
-            <thead className="text-[10px] text-slate-500 uppercase bg-slate-50 border-b">
+            <thead className="text-[10px] text-slate-500 dark:text-slate-400 uppercase bg-slate-50 dark:bg-slate-800 border-b">
               <tr>
                 <th className="px-5 py-4">Colaborador</th>
                 <th className="px-5 py-4">Função</th>
@@ -196,11 +196,11 @@ export function OteProfilesSection() {
                 const isEditing = editing?.id === p.id;
                 const managerSquad = squads.find(s => s.manager_id === p.user_id);
                 return (
-                  <tr key={p.id} className={cn('transition-colors', !p.active && 'bg-slate-50/60 opacity-60')}>
-                    <td className="px-5 py-3 font-medium text-slate-800">{p.user_name}</td>
+                  <tr key={p.id} className={cn('transition-colors', !p.active && 'bg-slate-50 dark:bg-slate-800/60 opacity-60')}>
+                    <td className="px-5 py-3 font-medium text-slate-800 dark:text-slate-200">{p.user_name}</td>
                     <td className="px-5 py-3">
                       {isEditing ? (
-                        <select value={editing.role_type} onChange={e => setEditing(ed => ed && ({ ...ed, role_type: e.target.value as RoleType, squad_id: null }))} className="px-2 py-1 bg-slate-50 border border-indigo-300 rounded text-xs outline-none">
+                        <select value={editing.role_type} onChange={e => setEditing(ed => ed && ({ ...ed, role_type: e.target.value as RoleType, squad_id: null }))} className="px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-indigo-300 rounded text-xs outline-none">
                           <option value="CLOSER">CLOSER</option>
                           <option value="SDR">SDR</option>
                           <option value="MANAGER">MANAGER</option>
@@ -209,7 +209,7 @@ export function OteProfilesSection() {
                     </td>
                     <td className="px-5 py-3">
                       {isEditing && editing.role_type === 'MANAGER' ? (
-                        <select value={editing.squad_id || ''} onChange={e => setEditing(ed => ed && ({ ...ed, squad_id: e.target.value || null }))} className="px-2 py-1 bg-slate-50 border border-indigo-300 rounded text-xs outline-none">
+                        <select value={editing.squad_id || ''} onChange={e => setEditing(ed => ed && ({ ...ed, squad_id: e.target.value || null }))} className="px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-indigo-300 rounded text-xs outline-none">
                           <option value="">Sem squad</option>
                           {squads.filter(s => s.active).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                         </select>
@@ -223,16 +223,16 @@ export function OteProfilesSection() {
                     </td>
                     <td className="px-5 py-3">
                       {isEditing ? (
-                        <select value={editing.level} onChange={e => setEditing(ed => ed && ({ ...ed, level: e.target.value }))} className="px-2 py-1 bg-slate-50 border border-indigo-300 rounded text-xs outline-none">
+                        <select value={editing.level} onChange={e => setEditing(ed => ed && ({ ...ed, level: e.target.value }))} className="px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-indigo-300 rounded text-xs outline-none">
                           {VALID_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
                         </select>
-                      ) : <span className="font-bold text-slate-600">{p.level}</span>}
+                      ) : <span className="font-bold text-slate-600 dark:text-slate-400">{p.level}</span>}
                     </td>
-                    <td className="px-5 py-3 text-xs text-slate-500">
+                    <td className="px-5 py-3 text-xs text-slate-500 dark:text-slate-400">
                       {isEditing ? <input type="date" value={editing.start_date} onChange={e => setEditing(ed => ed && ({ ...ed, start_date: e.target.value }))} className="px-2 py-1 border rounded" /> : p.start_date}
                     </td>
                     <td className="px-5 py-3 text-center">
-                      <button onClick={() => handleToggle(p)} className={cn('px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest', p.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400')}>
+                      <button onClick={() => handleToggle(p)} className={cn('px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest', p.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 dark:bg-slate-800/50 text-slate-400')}>
                         {p.active ? 'Ativo' : 'Pausado'}
                       </button>
                     </td>

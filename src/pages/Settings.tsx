@@ -7,8 +7,8 @@ export function Settings() {
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-800">Configurações</h1>
-        <p className="text-sm text-slate-500">Personalize sua experiência no CRM Target Agrotech.</p>
+        <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Configurações</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400">Personalize sua experiência no CRM Target Agrotech.</p>
       </div>
 
       <SettingsSection navigate={navigate} />

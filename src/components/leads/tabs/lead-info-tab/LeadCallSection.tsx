@@ -103,9 +103,9 @@ export const LeadCallSection: React.FC<LeadCallSectionProps> = ({ leadId, isCall
     <div className="flex flex-row sm:flex-col items-center gap-4 sm:gap-2.5 shrink-0 w-full sm:w-auto justify-center">
       <div className="flex flex-col items-center shrink-0">
         <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tentativas</span>
-        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 rounded-full border border-slate-200">
-          <Phone size={10} className="text-slate-500" />
-          <span className="text-xs font-black text-slate-700 tabular-nums">{total}</span>
+        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 dark:bg-slate-800/50 rounded-full border border-slate-200 dark:border-slate-700">
+          <Phone size={10} className="text-slate-500 dark:text-slate-400" />
+          <span className="text-xs font-black text-slate-700 dark:text-slate-300 tabular-nums">{total}</span>
         </div>
       </div>
 
@@ -134,7 +134,7 @@ export const LeadCallSection: React.FC<LeadCallSectionProps> = ({ leadId, isCall
             <button
               onClick={(e) => { e.stopPropagation(); handleRemove('atendida'); }}
               disabled={!!loggingType}
-              className="absolute -top-1.5 -left-1.5 w-6 h-6 bg-white border-2 border-red-100 text-red-400 hover:text-red-600 hover:border-red-200 rounded-full flex items-center justify-center shadow-md transition-all hover:scale-110 active:scale-90"
+              className="absolute -top-1.5 -left-1.5 w-6 h-6 bg-white dark:bg-slate-900 border-2 border-red-100 text-red-400 hover:text-red-600 hover:border-red-200 rounded-full flex items-center justify-center shadow-md transition-all hover:scale-110 active:scale-90"
               title="Apagar último registro"
             >
               {isLoading('remove_atendida') ? <Loader2 size={10} className="animate-spin" /> : <Trash2 size={11} />}
@@ -166,7 +166,7 @@ export const LeadCallSection: React.FC<LeadCallSectionProps> = ({ leadId, isCall
             <button
               onClick={(e) => { e.stopPropagation(); handleRemove('nao_atendida'); }}
               disabled={!!loggingType}
-              className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-white border-2 border-red-100 text-red-400 hover:text-red-600 hover:border-red-200 rounded-full flex items-center justify-center shadow-md transition-all hover:scale-110 active:scale-90"
+              className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-white dark:bg-slate-900 border-2 border-red-100 text-red-400 hover:text-red-600 hover:border-red-200 rounded-full flex items-center justify-center shadow-md transition-all hover:scale-110 active:scale-90"
               title="Apagar último registro"
             >
               {isLoading('remove_nao_atendida') ? <Loader2 size={10} className="animate-spin" /> : <Trash2 size={11} />}

@@ -118,7 +118,7 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
     type?: string; placeholder?: string; icon?: React.ReactNode; required?: boolean;
   }) => (
     <div className="space-y-1.5">
-      <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">{label}</label>
+      <label className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wide">{label}</label>
       <div className="relative">
         <input
           type={opts?.type ?? 'text'}
@@ -130,7 +130,7 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
             else setFormData({ ...formData, [key]: val });
           }}
           placeholder={opts?.placeholder}
-          className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm"
+          className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm"
         />
         {opts?.icon && (
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
@@ -150,25 +150,25 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh] overflow-hidden"
+          className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh] overflow-hidden"
         >
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
               <div className="p-2 bg-emerald-100 rounded-lg text-emerald-600">
                 <GraduationCap size={20} />
               </div>
-              <h2 className="text-xl font-bold text-gray-800">
+              <h2 className="text-xl font-bold text-gray-800 dark:text-slate-200">
                 {initialData?.id ? 'Editar' : 'Nova'} Turma / Produto
               </h2>
             </div>
-            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 transition-colors">
+            <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:bg-slate-800/50 rounded-lg text-gray-400 transition-colors">
               <X size={20} />
             </button>
           </div>
 
           <form id="unified-form" onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-6">
             <div className="space-y-4">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2 flex items-center gap-2">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center gap-2">
                 <Package size={14} />
                 Dados Gerais
               </h3>
@@ -182,12 +182,12 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Categoria</label>
+                  <label className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wide">Categoria</label>
                   <div className="relative">
                     <select
                       value={formData.category}
                       onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm appearance-none"
+                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm appearance-none"
                     >
                       {categories.map(cat => (
                         <option key={cat.id} value={cat.name}>{cat.name}</option>
@@ -198,18 +198,18 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
                 </div>
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Descrição</label>
+                <label className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wide">Descrição</label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm min-h-[72px]"
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm min-h-[72px]"
                   placeholder="Detalhes sobre o produto..."
                 />
               </div>
             </div>
 
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4 pt-2">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2 flex items-center gap-2">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center gap-2">
                 <GraduationCap size={14} />
                 Informações da Turma
               </h3>
@@ -230,7 +230,7 @@ export const UnifiedTurmaProductForm: React.FC<UnifiedFormProps> = ({
             </motion.div>
 
             <div className="flex justify-end gap-3 pt-6 border-t border-gray-50 shrink-0">
-              <button type="button" onClick={onClose} className="px-6 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">
+              <button type="button" onClick={onClose} className="px-6 py-2.5 text-sm font-bold text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:bg-slate-800/50 rounded-xl transition-colors">
                 Cancelar
               </button>
               <button

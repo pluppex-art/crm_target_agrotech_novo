@@ -418,7 +418,7 @@ export const Pipeline: React.FC = () => {
   }, [products, turmas]);
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 bg-gray-50 flex-1 min-h-0 w-full flex flex-col overflow-hidden min-w-0 max-w-full">
+    <div className="p-4 sm:p-6 space-y-4 bg-transparent flex-1 min-h-0 w-full flex flex-col overflow-hidden min-w-0 max-w-full">
       <PipelineHeader
         caixaTotalValue={caixaTotalValue}
         competenciaTotalValue={competenciaTotalValue}
@@ -479,18 +479,18 @@ export const Pipeline: React.FC = () => {
           }}
         />
       ) : (
-        <div className="bg-white border border-slate-200 rounded-[32px] overflow-hidden shadow-sm flex-1 flex flex-col min-h-0">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-[32px] overflow-hidden shadow-sm flex-1 flex flex-col min-h-0">
           <div className="overflow-x-auto flex-1 custom-scrollbar">
             <table className="w-full text-sm border-separate border-spacing-0">
-              <thead className="sticky top-0 z-10 bg-slate-50 shadow-sm">
-                <tr className="text-slate-500 uppercase text-[10px] font-black tracking-widest">
-                  <th className="px-6 py-4 text-left border-b border-slate-100">Cliente</th>
-                  <th className="px-6 py-4 text-left border-b border-slate-100">Estágio</th>
-                  <th className="px-6 py-4 text-left border-b border-slate-100">Produto</th>
-                  <th className="px-6 py-4 text-left border-b border-slate-100">Squad / Responsável</th>
-                  <th className="px-6 py-4 text-center border-b border-slate-100">Temp.</th>
-                  <th className="px-6 py-4 text-right border-b border-slate-100">Valor Total</th>
-                  <th className="px-6 py-4 text-center border-b border-slate-100">Último Contato</th>
+              <thead className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-800 shadow-sm">
+                <tr className="text-slate-500 dark:text-slate-400 uppercase text-[10px] font-black tracking-widest">
+                  <th className="px-6 py-4 text-left border-b border-slate-100 dark:border-slate-800">Cliente</th>
+                  <th className="px-6 py-4 text-left border-b border-slate-100 dark:border-slate-800">Estágio</th>
+                  <th className="px-6 py-4 text-left border-b border-slate-100 dark:border-slate-800">Produto</th>
+                  <th className="px-6 py-4 text-left border-b border-slate-100 dark:border-slate-800">Squad / Responsável</th>
+                  <th className="px-6 py-4 text-center border-b border-slate-100 dark:border-slate-800">Temp.</th>
+                  <th className="px-6 py-4 text-right border-b border-slate-100 dark:border-slate-800">Valor Total</th>
+                  <th className="px-6 py-4 text-center border-b border-slate-100 dark:border-slate-800">Último Contato</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -514,11 +514,11 @@ export const Pipeline: React.FC = () => {
                         <div className="flex items-center gap-3">
                           <img
                             src={lead.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(lead.name)}&background=random`}
-                            className="w-8 h-8 rounded-full object-cover border border-slate-100 shadow-sm"
+                            className="w-8 h-8 rounded-full object-cover border border-slate-100 dark:border-slate-800 shadow-sm"
                             alt=""
                           />
                           <div>
-                            <div className="font-bold text-slate-800 group-hover:text-emerald-700 transition-colors">{lead.name}</div>
+                            <div className="font-bold text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 transition-colors">{lead.name}</div>
                             <div className="text-[11px] text-slate-400 font-medium">{lead.phone || lead.email || 'Sem contato'}</div>
                           </div>
                         </div>
@@ -533,7 +533,7 @@ export const Pipeline: React.FC = () => {
                               )}
                               style={{ backgroundColor: stage.color.startsWith('bg-') ? undefined : stage.color }}
                             />
-                            <span className="text-[11px] font-bold text-slate-600 uppercase tracking-tight">
+                            <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-tight">
                               {stage.title}
                             </span>
                           </div>
@@ -542,7 +542,7 @@ export const Pipeline: React.FC = () => {
                         )}
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-xs font-semibold text-slate-600 truncate max-w-[200px]" title={productObj?.name || lead.product || ''}>
+                        <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 truncate max-w-[200px]" title={productObj?.name || lead.product || ''}>
                           {productObj?.name || lead.product}
                         </div>
                       </td>
@@ -550,7 +550,7 @@ export const Pipeline: React.FC = () => {
                         <div className="flex flex-col gap-1">
                           <div className="flex items-center gap-2">
                             <div className="w-1.5 h-1.5 bg-slate-300 rounded-full" />
-                            <span className="text-xs font-medium text-slate-500">{responsibleProfile?.name || lead.responsible || 'Sem resp.'}</span>
+                            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{responsibleProfile?.name || lead.responsible || 'Sem resp.'}</span>
                           </div>
                           {squadInfo && (
                             <span
@@ -573,20 +573,20 @@ export const Pipeline: React.FC = () => {
                               key={i}
                               className={cn(
                                 "w-1 h-3 rounded-full",
-                                i < (lead.stars || 0) ? "bg-orange-400 shadow-[0_0_8px_rgba(251,146,60,0.5)]" : "bg-slate-100"
+                                i < (lead.stars || 0) ? "bg-orange-400 shadow-[0_0_8px_rgba(251,146,60,0.5)]" : "bg-slate-100 dark:bg-slate-800/50"
                               )}
                             />
                           ))}
                         </div>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <div className="font-black text-slate-800 tabular-nums">
+                        <div className="font-black text-slate-800 dark:text-slate-200 tabular-nums">
                           R$ {totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
                         </div>
                       </td>
                       <td className="px-6 py-4 text-center">
                         <div className="flex flex-col items-center">
-                          <span className="text-xs font-bold text-slate-500">
+                          <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
                             {lead.last_contact_at ? new Date(lead.last_contact_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '—'}
                           </span>
                           {lead.last_contact_at && (
@@ -601,7 +601,7 @@ export const Pipeline: React.FC = () => {
                 })}
                 {filters.filteredLeads.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-slate-400 italic bg-slate-50/20">
+                    <td colSpan={7} className="px-6 py-12 text-center text-slate-400 italic bg-slate-50 dark:bg-slate-800/20">
                       Nenhum lead encontrado com os filtros atuais.
                     </td>
                   </tr>
@@ -609,7 +609,7 @@ export const Pipeline: React.FC = () => {
               </tbody>
             </table>
           </div>
-          <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 text-[11px] font-bold text-slate-400 flex justify-between items-center">
+          <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800 border-t border-slate-100 dark:border-slate-800 text-[11px] font-bold text-slate-400 flex justify-between items-center">
             <span>{leadsInCurrentPipeline.length} LEADS FILTRADOS</span>
             <span className="uppercase tracking-widest">Target Agrotech CRM</span>
           </div>

@@ -62,12 +62,12 @@ export function CategoriesTab() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
         <div className="flex items-center gap-2">
           <Filter size={16} className="text-slate-400" />
           {(['ALL', 'INCOME', 'EXPENSE'] as FilterType[]).map(f => (
             <button key={f} onClick={() => setFilterType(f)}
-              className={cn('px-3 py-1.5 rounded-lg text-xs font-bold transition-all', filterType === f ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'text-slate-500 hover:bg-slate-50')}>
+              className={cn('px-3 py-1.5 rounded-lg text-xs font-bold transition-all', filterType === f ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:bg-slate-800')}>
               {f === 'ALL' ? 'Todas' : f === 'INCOME' ? 'Entradas' : 'Saídas'}
             </button>
           ))}
@@ -79,34 +79,34 @@ export function CategoriesTab() {
       </div>
 
       {showForm && (
-        <form onSubmit={handleCreate} className="bg-white rounded-xl border border-emerald-200 shadow-sm p-5 space-y-4">
-          <h3 className="font-bold text-slate-800 flex items-center gap-2"><Plus size={16} className="text-emerald-600" /> Nova Categoria Operacional</h3>
+        <form onSubmit={handleCreate} className="bg-white dark:bg-slate-900 rounded-xl border border-emerald-200 shadow-sm p-5 space-y-4">
+          <h3 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2"><Plus size={16} className="text-emerald-600" /> Nova Categoria Operacional</h3>
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-500 uppercase">Nome</label>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Nome</label>
               <input required value={formData.name} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                 placeholder="Ex: Software SaaS" />
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-500 uppercase">Tipo</label>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Tipo</label>
               <select value={formData.type} onChange={e => setFormData(p => ({ ...p, type: e.target.value as 'INCOME' | 'EXPENSE' }))}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
                 <option value="INCOME">Entrada (Receita)</option>
                 <option value="EXPENSE">Saída (Despesa)</option>
               </select>
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-500 uppercase">Grupo DRE</label>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Grupo DRE</label>
               <select value={formData.dre_group} onChange={e => setFormData(p => ({ ...p, dre_group: e.target.value }))}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
                 {Object.entries(DRE_GROUPS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
               </select>
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-500 uppercase">Centro de Custo</label>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Centro de Custo</label>
               <select value={formData.centro_custo_id} onChange={e => setFormData(p => ({ ...p, centro_custo_id: e.target.value }))}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
                 <option value="">Nenhum (Geral)</option>
                 {centroCustos.map(cc => (
                   <option key={cc.id} value={cc.id}>{cc.nome}</option>
@@ -122,16 +122,16 @@ export function CategoriesTab() {
         </form>
       )}
 
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden min-h-[300px]">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden min-h-[300px]">
         {isLoading ? (
           <div className="flex items-center justify-center h-48"><Loader2 className="w-8 h-8 text-emerald-500 animate-spin" /></div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center h-48"><AlertCircle className="w-10 h-10 text-rose-400 mb-3" /><p className="text-rose-600">{error}</p></div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48"><Tag className="w-14 h-14 text-slate-200 mb-3" /><p className="text-slate-500">Nenhuma categoria.</p></div>
+          <div className="flex flex-col items-center justify-center h-48"><Tag className="w-14 h-14 text-slate-200 mb-3" /><p className="text-slate-500 dark:text-slate-400">Nenhuma categoria.</p></div>
         ) : (
           <table className="w-full text-sm text-left">
-            <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-100">
+            <thead className="text-xs text-slate-500 dark:text-slate-400 uppercase bg-slate-50 dark:bg-slate-800 border-b border-slate-100 dark:border-slate-800">
               <tr>
                 <th className="px-5 py-4 font-bold tracking-wider">Nome</th>
                 <th className="px-5 py-4 font-bold tracking-wider">Tipo</th>
@@ -143,11 +143,11 @@ export function CategoriesTab() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filtered.map(cat => (
-                <tr key={cat.id} className="hover:bg-slate-50/60 transition-colors">
+                <tr key={cat.id} className="hover:bg-slate-50 dark:bg-slate-800/60 transition-colors">
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-2">
                       <div className={cn('w-2 h-2 rounded-full', cat.type === 'INCOME' ? 'bg-emerald-400' : 'bg-rose-400')} />
-                      <span className="font-medium text-slate-800">{cat.name}</span>
+                      <span className="font-medium text-slate-800 dark:text-slate-200">{cat.name}</span>
                     </div>
                   </td>
                   <td className="px-5 py-3.5">
@@ -155,7 +155,7 @@ export function CategoriesTab() {
                       {cat.type === 'INCOME' ? 'Entrada' : 'Saída'}
                     </span>
                   </td>
-                  <td className="px-5 py-3.5 text-slate-600 text-xs">{DRE_GROUPS[cat.dre_group] || cat.dre_group}</td>
+                  <td className="px-5 py-3.5 text-slate-600 dark:text-slate-400 text-xs">{DRE_GROUPS[cat.dre_group] || cat.dre_group}</td>
                   <td className="px-5 py-3.5 text-center">
                     {cat.centro_custo_id ? (
                       <span className="text-[10px] bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md font-black uppercase tracking-tighter border border-indigo-100">
@@ -167,7 +167,7 @@ export function CategoriesTab() {
                   </td>
                   <td className="px-5 py-3.5 text-center">
                     {cat.is_system
-                      ? <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 text-slate-500 rounded-full text-xs font-bold"><Lock size={11} /> Sistema</span>
+                      ? <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 rounded-full text-xs font-bold"><Lock size={11} /> Sistema</span>
                       : <span className="text-slate-300 text-xs">—</span>}
                   </td>
                   <td className="px-5 py-3.5 text-center">

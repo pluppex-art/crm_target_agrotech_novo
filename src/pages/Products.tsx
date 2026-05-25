@@ -90,7 +90,7 @@ export function Products() {
     return (
       <div className="p-6 flex flex-col items-center justify-center min-h-[500px] bg-gradient-to-br from-slate-50 to-slate-100">
         <Loader2 className="w-8 h-8 animate-spin text-emerald-600 mb-4" />
-        <p className="text-slate-500 text-lg">Carregando permissões...</p>
+        <p className="text-slate-500 dark:text-slate-400 text-lg">Carregando permissões...</p>
       </div>
     );
   }
@@ -101,8 +101,8 @@ export function Products() {
         <div className="w-24 h-24 bg-orange-200 rounded-2xl flex items-center justify-center mb-6 shadow-lg border-4 border-orange-300">
           <ShieldAlert className="w-12 h-12 text-orange-500" />
         </div>
-        <h2 className="text-2xl font-bold text-slate-800 mb-3">Catálogo Privado</h2>
-        <p className="text-slate-500 max-w-md mb-6 leading-relaxed">Você precisa da permissão <code className="bg-orange-100 px-2 py-1 rounded-lg text-sm font-mono text-orange-800 font-bold">products.view</code> para visualizar produtos.</p>
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200 mb-3">Catálogo Privado</h2>
+        <p className="text-slate-500 dark:text-slate-400 max-w-md mb-6 leading-relaxed">Você precisa da permissão <code className="bg-orange-100 px-2 py-1 rounded-lg text-sm font-mono text-orange-800 font-bold">products.view</code> para visualizar produtos.</p>
         <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Solicite ao administrador</p>
       </div>
     );
@@ -113,8 +113,8 @@ export function Products() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Produtos & Serviços</h1>
-          <p className="text-sm text-slate-500">Gerencie o catálogo de produtos da Target Agrotech.</p>
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Produtos & Serviços</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Gerencie o catálogo de produtos da Target Agrotech.</p>
         </div>
         {hasPermission('products.create') && (
           <button
@@ -167,17 +167,17 @@ export function Products() {
           ]}
         />
         <div className="flex items-center justify-end">
-          <div className="flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+          <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-sm">
             <button
               onClick={() => setViewMode('card')}
-              className={cn('p-2 transition-colors', viewMode === 'card' ? 'bg-emerald-50 text-emerald-600' : 'text-slate-400 hover:text-slate-600')}
+              className={cn('p-2 transition-colors', viewMode === 'card' ? 'bg-emerald-50 text-emerald-600' : 'text-slate-400 hover:text-slate-600 dark:text-slate-400')}
               title="Visualização em cards"
             >
               <LayoutGrid size={16} />
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={cn('p-2 transition-colors', viewMode === 'list' ? 'bg-emerald-50 text-emerald-600' : 'text-slate-400 hover:text-slate-600')}
+              className={cn('p-2 transition-colors', viewMode === 'list' ? 'bg-emerald-50 text-emerald-600' : 'text-slate-400 hover:text-slate-600 dark:text-slate-400')}
               title="Visualização em lista"
             >
               <List size={16} />
@@ -207,23 +207,23 @@ export function Products() {
           ))}
         </div>
       ) : (
-        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-100 bg-slate-50">
-                <th className="text-left px-5 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Nome</th>
-                <th className="text-left px-5 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Categoria</th>
-                <th className="text-right px-5 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Preço</th>
-                <th className="text-right px-5 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Taxa Matrícula</th>
-                <th className="text-right px-5 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Meta Alunos</th>
+              <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800">
+                <th className="text-left px-5 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Nome</th>
+                <th className="text-left px-5 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Categoria</th>
+                <th className="text-right px-5 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Preço</th>
+                <th className="text-right px-5 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Taxa Matrícula</th>
+                <th className="text-right px-5 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Meta Alunos</th>
                 <th className="px-5 py-3" />
               </tr>
             </thead>
             <tbody>
               {filteredProducts.map((product, i) => (
-                <tr key={product.id} className={cn('border-b border-slate-50 hover:bg-slate-50 transition-colors', i % 2 === 0 ? '' : 'bg-slate-50/40')}>
-                  <td className="px-5 py-3 font-semibold text-slate-800">{product.name}</td>
-                  <td className="px-5 py-3 text-slate-500">{product.category || '—'}</td>
+                <tr key={product.id} className={cn('border-b border-slate-50 hover:bg-slate-50 dark:bg-slate-800 transition-colors', i % 2 === 0 ? '' : 'bg-slate-50 dark:bg-slate-800/40')}>
+                  <td className="px-5 py-3 font-semibold text-slate-800 dark:text-slate-200">{product.name}</td>
+                  <td className="px-5 py-3 text-slate-500 dark:text-slate-400">{product.category || '—'}</td>
                   <td className="px-5 py-3 text-right font-semibold text-emerald-700">
                     R$ {Number(product.price ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </td>
@@ -232,7 +232,7 @@ export function Products() {
                       ? `R$ ${Number((product as any).enrollment_fee).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
                       : '—'}
                   </td>
-                  <td className="px-5 py-3 text-right font-semibold text-slate-700">
+                  <td className="px-5 py-3 text-right font-semibold text-slate-700 dark:text-slate-300">
                     {(product as any).student_goal != null
                       ? (product as any).student_goal
                       : '—'}

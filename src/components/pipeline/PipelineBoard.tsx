@@ -135,7 +135,7 @@ export const PipelineBoard: React.FC<PipelineBoardProps> = ({
 
   return (
 
-    <div className="bg-white rounded-[32px] border border-gray-200 shadow-sm overflow-hidden flex-1 min-h-0 min-w-0 flex flex-col w-full max-w-full">
+    <div className="bg-white dark:bg-slate-900 rounded-[32px] border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden flex-1 min-h-0 min-w-0 flex flex-col w-full max-w-full transition-colors duration-300">
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -169,7 +169,7 @@ export const PipelineBoard: React.FC<PipelineBoardProps> = ({
               <div
                 key={column.id}
                 className={cn(
-                  'flex flex-col bg-gray-50/50 rounded-2xl p-4 border border-gray-200/60 h-full max-h-full transition-all duration-300',
+                  'flex flex-col bg-gray-50 dark:bg-slate-800/50 dark:bg-slate-800/30 rounded-2xl p-4 border border-gray-200 dark:border-slate-700/60 dark:border-slate-700/60 h-full max-h-full transition-all duration-300',
                   isMinimized
                     ? 'min-w-[56px] w-[56px] p-2 items-center'
                     : 'min-w-[280px] sm:min-w-[320px] w-[280px] sm:w-[320px]'
@@ -191,12 +191,12 @@ export const PipelineBoard: React.FC<PipelineBoardProps> = ({
                       />
                       <div className="flex flex-col gap-0.5">
                         <h3
-                          className="font-bold text-gray-700 text-sm flex items-center gap-2 cursor-pointer hover:text-emerald-600 transition-colors"
+                          className="font-bold text-gray-700 dark:text-slate-200 text-sm flex items-center gap-2 cursor-pointer hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
                           onClick={() => toggleColumnMinimized(column.id)}
                         >
                           {column.title}
                         </h3>
-                        <p className="text-[10px] font-black text-emerald-600 uppercase tracking-wide">
+                        <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">
                           R${' '}
                           {columnSum.toLocaleString('pt-BR', {
                             minimumFractionDigits: 0,
@@ -205,12 +205,12 @@ export const PipelineBoard: React.FC<PipelineBoardProps> = ({
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
-                      <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                      <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-full">
                         {columnLeads.length}
                       </span>
                       <button
                         onClick={() => onAddLeadToColumn?.(column.id)}
-                        className="p-1.5 bg-white border border-gray-200 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-all shadow-sm"
+                        className="p-1.5 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all shadow-sm"
                         title={`Adicionar lead em ${column.title}`}
                       >
                         <svg
@@ -229,7 +229,7 @@ export const PipelineBoard: React.FC<PipelineBoardProps> = ({
                       </button>
                       <button
                         onClick={() => toggleColumnMinimized(column.id)}
-                        className="p-1.5 text-gray-400 hover:bg-white rounded-lg hover:shadow-sm border border-transparent hover:border-gray-200 transition-all"
+                        className="p-1.5 text-gray-400 dark:text-slate-500 dark:text-slate-400 hover:bg-white dark:bg-slate-900 dark:hover:bg-slate-800 rounded-lg hover:shadow-sm border border-transparent hover:border-gray-200 dark:border-slate-700 dark:hover:border-slate-700 transition-all"
                         title="Minimizar seção"
                       >
                         <svg
@@ -252,7 +252,7 @@ export const PipelineBoard: React.FC<PipelineBoardProps> = ({
                   <div className="flex flex-col items-center gap-3 shrink-0 h-full w-full py-2">
                     <button
                       onClick={() => toggleColumnMinimized(column.id)}
-                      className="p-1.5 bg-white border border-gray-200 rounded-lg text-gray-600 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 transition-all shadow-sm flex-shrink-0"
+                      className="p-1.5 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-gray-600 dark:text-slate-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-emerald-200 dark:hover:border-emerald-500/30 transition-all shadow-sm flex-shrink-0"
                       title="Expandir seção"
                     >
                       <svg
@@ -280,20 +280,20 @@ export const PipelineBoard: React.FC<PipelineBoardProps> = ({
                           : column.color,
                       }}
                     />
-                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full flex-shrink-0">
+                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-1.5 py-0.5 rounded-full flex-shrink-0">
                       {columnLeads.length}
                     </span>
                     <div className="mt-4 flex-1 flex justify-center w-full relative">
                       <div className="absolute top-0 flex items-center justify-center h-full">
                         <span
-                          className="text-xs font-bold text-gray-500 whitespace-nowrap flex items-center gap-2"
+                          className="text-xs font-bold text-gray-500 dark:text-slate-400 whitespace-nowrap flex items-center gap-2"
                           style={{
                             writingMode: 'vertical-rl',
                             transform: 'rotate(180deg)',
                           }}
                         >
                           {column.title}
-                          <span className="text-emerald-500 bg-emerald-50/50 px-1 rounded">
+                          <span className="text-emerald-500 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-500/10 px-1 rounded">
                             R${' '}
                             {columnSum.toLocaleString('pt-BR', {
                               minimumFractionDigits: 0,

@@ -28,33 +28,33 @@ export function ManageActivityCategories() {
     <div className="p-6 max-w-2xl mx-auto">
       <button
         onClick={() => navigate('/settings')}
-        className="flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors mb-6 text-sm font-medium"
+        className="flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200 transition-colors mb-6 text-sm font-medium"
       >
         <ArrowLeft size={16} />
         Voltar para Configurações
       </button>
 
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-100 rounded-xl text-blue-600">
               <Activity size={20} />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-800">Categorias de Atividade</h1>
-              <p className="text-sm text-slate-500">Gerencie os tipos de atividade disponíveis no sistema.</p>
+              <h1 className="text-xl font-bold text-slate-800 dark:text-slate-200">Categorias de Atividade</h1>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Gerencie os tipos de atividade disponíveis no sistema.</p>
             </div>
           </div>
         </div>
 
-        <form onSubmit={handleCreate} className="p-6 border-b border-slate-100">
+        <form onSubmit={handleCreate} className="p-6 border-b border-slate-100 dark:border-slate-800">
           <div className="flex gap-3">
             <input
               type="text"
               value={newCategory}
               onChange={(e) => setNewCategory(e.target.value)}
               placeholder="Ex: Visita, Ligação, Reunião..."
-              className="flex-1 px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+              className="flex-1 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
             />
             <button
               type="submit"
@@ -79,10 +79,10 @@ export function ManageActivityCategories() {
             </div>
           ) : (
             categories.map(cat => (
-              <div key={cat.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors group">
+              <div key={cat.id} className="p-4 flex items-center justify-between hover:bg-slate-50 dark:bg-slate-800 transition-colors group">
                 <div className="flex items-center gap-3">
                   <div className="w-2 h-2 rounded-full bg-blue-400" />
-                  <span className="font-medium text-slate-700">{cat.name}</span>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">{cat.name}</span>
                 </div>
                 <button
                   onClick={() => {

@@ -95,8 +95,8 @@ export function CommissionRulesSection() {
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <p className="text-sm text-slate-700 font-semibold">Regras de Comissão OTE</p>
-          <p className="text-xs text-slate-500 mt-0.5">Define fixo, variável, meta e acelerador por cargo + nível.</p>
+          <p className="text-sm text-slate-700 dark:text-slate-300 font-semibold">Regras de Comissão OTE</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Define fixo, variável, meta e acelerador por cargo + nível.</p>
         </div>
         <button onClick={() => { setShowForm(!showForm); setSaveError(null); }} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700">
           {showForm ? <X size={15} /> : <Plus size={15} />} {showForm ? 'Fechar' : 'Nova Regra'}
@@ -106,29 +106,29 @@ export function CommissionRulesSection() {
       {saveError && <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs">{saveError}</div>}
 
       {showForm && (
-        <form onSubmit={handleCreate} className="bg-white rounded-xl border border-indigo-200 p-5 space-y-4">
+        <form onSubmit={handleCreate} className="bg-white dark:bg-slate-900 rounded-xl border border-indigo-200 p-5 space-y-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase">Cargo</label>
-              <select value={form.role_type} onChange={e => setForm(p => ({ ...p, role_type: e.target.value as RoleType }))} className="w-full px-3 py-2 bg-slate-50 border rounded-lg text-sm">
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Cargo</label>
+              <select value={form.role_type} onChange={e => setForm(p => ({ ...p, role_type: e.target.value as RoleType }))} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border rounded-lg text-sm">
                 <option value="CLOSER">CLOSER</option>
                 <option value="SDR">SDR</option>
                 <option value="MANAGER">MANAGER</option>
               </select>
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase">Nível</label>
-              <select value={form.level} onChange={e => setForm(p => ({ ...p, level: e.target.value }))} className="w-full px-3 py-2 bg-slate-50 border rounded-lg text-sm">
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Nível</label>
+              <select value={form.level} onChange={e => setForm(p => ({ ...p, level: e.target.value }))} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border rounded-lg text-sm">
                 {VALID_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
               </select>
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase">Meta (R$)</label>
-              <input type="number" step="0.01" value={form.target_revenue} onChange={e => setForm(p => ({ ...p, target_revenue: parseFloat(e.target.value) || 0 }))} className="w-full px-3 py-2 bg-slate-50 border rounded-lg text-sm" />
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Meta (R$)</label>
+              <input type="number" step="0.01" value={form.target_revenue} onChange={e => setForm(p => ({ ...p, target_revenue: parseFloat(e.target.value) || 0 }))} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border rounded-lg text-sm" />
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase">Fixo (R$)</label>
-              <input type="number" step="0.01" value={form.fixed_amount} onChange={e => setForm(p => ({ ...p, fixed_amount: parseFloat(e.target.value) || 0 }))} className="w-full px-3 py-2 bg-slate-50 border rounded-lg text-sm" />
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Fixo (R$)</label>
+              <input type="number" step="0.01" value={form.fixed_amount} onChange={e => setForm(p => ({ ...p, fixed_amount: parseFloat(e.target.value) || 0 }))} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border rounded-lg text-sm" />
             </div>
           </div>
           <div className="flex justify-end">
@@ -145,12 +145,12 @@ export function CommissionRulesSection() {
             const roleRules = grouped[role];
             if (!roleRules?.length) return null;
             return (
-              <div key={role} className="bg-white rounded-xl border overflow-hidden overflow-x-auto">
-                <div className="px-5 py-3 bg-slate-50 border-b font-bold text-xs uppercase tracking-wider flex items-center gap-2">
+              <div key={role} className="bg-white dark:bg-slate-900 rounded-xl border overflow-hidden overflow-x-auto">
+                <div className="px-5 py-3 bg-slate-50 dark:bg-slate-800 border-b font-bold text-xs uppercase tracking-wider flex items-center gap-2">
                   <span className={cn('px-2 py-0.5 rounded-full', roleBadge[role])}>{role}</span>
                 </div>
                 <table className="w-full text-sm text-left">
-                  <thead className="text-[10px] text-slate-500 uppercase bg-slate-50/50">
+                  <thead className="text-[10px] text-slate-500 dark:text-slate-400 uppercase bg-slate-50 dark:bg-slate-800/50">
                     <tr>
                       <th className="px-4 py-3">Nível</th>
                       <th className="px-4 py-3 text-right">Meta</th>
@@ -165,7 +165,7 @@ export function CommissionRulesSection() {
                     {roleRules.map(r => {
                       const isEd = editing?.id === r.id;
                       return (
-                        <tr key={r.id} className={cn('transition-colors', !r.active && 'opacity-50 bg-slate-50/40')}>
+                        <tr key={r.id} className={cn('transition-colors', !r.active && 'opacity-50 bg-slate-50 dark:bg-slate-800/40')}>
                           <td className="px-4 py-3">{isEd ? <select value={editing.level} onChange={e => setEditing(ed => ed && ({ ...ed, level: e.target.value }))} className="text-xs border rounded p-1">{VALID_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}</select> : <span className="font-bold">{r.level}</span>}</td>
                           <td className="px-4 py-3 text-right">{isEd ? <input type="number" step="0.01" value={editing.target_revenue} onChange={e => setEditing(ed => ed && ({ ...ed, target_revenue: parseFloat(e.target.value) || 0 }))} className="text-xs border rounded p-1 text-right w-24" /> : fmt(r.target_revenue)}</td>
                           <td className="px-4 py-3 text-right">{isEd ? <input type="number" step="0.01" value={editing.fixed_amount} onChange={e => setEditing(ed => ed && ({ ...ed, fixed_amount: parseFloat(e.target.value) || 0 }))} className="text-xs border rounded p-1 text-right w-24" /> : fmt(r.fixed_amount)}</td>

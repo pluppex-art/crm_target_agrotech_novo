@@ -31,7 +31,7 @@ export function AlertBanner({ alerts, onDismiss }: AlertBannerProps) {
             <strong>{lead.name}</strong> está sem contato há <strong>{label}</strong>.
             Responsável: {lead.responsible || 'Não definido'} · {lead.phone}
           </span>
-          <button onClick={() => onDismiss(lead.id)} className="p-1 hover:bg-white/50 rounded-lg transition-colors">
+          <button onClick={() => onDismiss(lead.id)} className="p-1 hover:bg-white dark:bg-slate-900/50 rounded-lg transition-colors">
             <X size={14} />
           </button>
         </motion.div>

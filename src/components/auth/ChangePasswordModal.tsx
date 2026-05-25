@@ -49,20 +49,20 @@ export function ChangePasswordModal({ userId, onSuccess }: ChangePasswordModalPr
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-8">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md mx-4 p-8">
         <div className="flex flex-col items-center mb-6">
           <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mb-4">
             <ShieldCheck className="w-7 h-7 text-emerald-600" />
           </div>
-          <h2 className="text-xl font-bold text-slate-800">Crie sua senha</h2>
-          <p className="text-sm text-slate-500 mt-1 text-center">
+          <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">Crie sua senha</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 text-center">
             Este é seu primeiro acesso. Por segurança, defina uma senha pessoal.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nova senha</label>
+            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Nova senha</label>
             <div className="relative">
               <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
               <input
@@ -70,12 +70,12 @@ export function ChangePasswordModal({ userId, onSuccess }: ChangePasswordModalPr
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder="Mínimo 6 caracteres"
-                className="w-full pl-10 pr-10 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-medium"
+                className="w-full pl-10 pr-10 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-medium"
               />
               <button
                 type="button"
                 onClick={() => setShowPw(v => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:text-slate-400"
               >
                 {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
@@ -83,7 +83,7 @@ export function ChangePasswordModal({ userId, onSuccess }: ChangePasswordModalPr
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Confirmar senha</label>
+            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Confirmar senha</label>
             <div className="relative">
               <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
               <input
@@ -91,12 +91,12 @@ export function ChangePasswordModal({ userId, onSuccess }: ChangePasswordModalPr
                 value={confirm}
                 onChange={e => setConfirm(e.target.value)}
                 placeholder="Repita a nova senha"
-                className="w-full pl-10 pr-10 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-medium"
+                className="w-full pl-10 pr-10 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-medium"
               />
               <button
                 type="button"
                 onClick={() => setShowConfirm(v => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:text-slate-400"
               >
                 {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>

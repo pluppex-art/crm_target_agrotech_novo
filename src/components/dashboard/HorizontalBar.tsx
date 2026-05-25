@@ -42,7 +42,7 @@ export function HorizontalBar({ label, received, max, percentage: precomputedPct
         <div className="flex items-center gap-2 min-w-0 flex-1 mr-2">
           <span className="text-sm shrink-0 font-bold text-slate-400 w-6">{medal}</span>
           <div className="flex items-center gap-2 truncate">
-            <span className="text-sm font-bold text-slate-800 truncate">{label}</span>
+            <span className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{label}</span>
             {squad && (
               <span 
                 className="text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider shrink-0"
@@ -58,11 +58,11 @@ export function HorizontalBar({ label, received, max, percentage: precomputedPct
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {count !== undefined && (
-            <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md">
+            <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800/50 px-1.5 py-0.5 rounded-md">
               {count}{max > 0 ? ` / ${max}` : ''} {count === 1 && max <= 0 ? 'ganho' : 'ganhos'}
             </span>
           )}
-          <span className="text-xs font-bold text-slate-600">{percentage}%</span>
+          <span className="text-xs font-bold text-slate-600 dark:text-slate-400">{percentage}%</span>
         </div>
       </div>
 
@@ -91,15 +91,15 @@ export function HorizontalBar({ label, received, max, percentage: precomputedPct
 
       {/* Tooltip com lista de leads */}
       {leads && leads.length > 0 && (
-        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-72 bg-white text-slate-800 text-xs rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 p-3 border border-slate-200 cursor-default">
-          <div className="font-bold text-slate-800 mb-2 border-b border-slate-100 pb-1.5 flex justify-between items-center">
+        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-72 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 text-xs rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 p-3 border border-slate-200 dark:border-slate-700 cursor-default">
+          <div className="font-bold text-slate-800 dark:text-slate-200 mb-2 border-b border-slate-100 dark:border-slate-800 pb-1.5 flex justify-between items-center">
             <span>Leads Ganhos ({count})</span>
           </div>
           <div className="flex flex-col gap-2 max-h-80 overflow-y-auto custom-scrollbar pr-1">
             {leads.map((l, i) => (
               <div 
                 key={l.id || i} 
-                className="flex flex-col gap-0.5 pb-1.5 border-b border-slate-50 last:border-0 last:pb-0 cursor-pointer hover:bg-slate-50 p-1 -mx-1 rounded transition-colors select-none"
+                className="flex flex-col gap-0.5 pb-1.5 border-b border-slate-50 last:border-0 last:pb-0 cursor-pointer hover:bg-slate-50 dark:bg-slate-800 p-1 -mx-1 rounded transition-colors select-none"
                 onDoubleClick={(e) => {
                   e.stopPropagation();
                   e.preventDefault();
@@ -107,8 +107,8 @@ export function HorizontalBar({ label, received, max, percentage: precomputedPct
                 }}
                 title="Dê um duplo clique para ver os detalhes do lead"
               >
-                <span className="font-bold text-slate-700 truncate px-1">{l.name || 'Sem nome'}</span>
-                <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-medium">
+                <span className="font-bold text-slate-700 dark:text-slate-300 truncate px-1">{l.name || 'Sem nome'}</span>
+                <div className="flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400 font-medium">
                   {l.productName && <span className="truncate max-w-[120px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-sm">{l.productName}</span>}
                   {l.formattedWonAt && <span className="text-slate-400">📅 {l.formattedWonAt}</span>}
                 </div>
