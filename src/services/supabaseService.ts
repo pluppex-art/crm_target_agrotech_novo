@@ -6,30 +6,35 @@ export const supabaseService = {
     const supabase = getSupabaseClient();
     if (!supabase) throw new Error('Supabase client not available');
 
-    let query = supabase
-      .from('leads')
-      .select('*, lead_class_enrollments(*)')
-      .order('created_at', { ascending: false })
-      .limit(1000);
+    const PAGE_SIZE = 1000;
+    let allData: any[] = [];
+    let from = 0;
 
-    if (pipelineId) {
-      query = query.eq('pipeline_id', pipelineId);
+    while (true) {
+      let query = supabase
+        .from('leads')
+        .select('*, lead_class_enrollments(*)')
+        .order('created_at', { ascending: false })
+        .range(from, from + PAGE_SIZE - 1);
+
+      if (pipelineId) query = query.eq('pipeline_id', pipelineId);
+      if (startDate) query = query.gte('created_at', startDate);
+      if (endDate) query = query.lte('created_at', endDate + 'T23:59:59');
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error fetching leads:', error);
+        throw error;
+      }
+
+      if (!data || data.length === 0) break;
+      allData = allData.concat(data);
+      if (data.length < PAGE_SIZE) break;
+      from += PAGE_SIZE;
     }
 
-    if (startDate) {
-      query = query.gte('created_at', startDate);
-    }
-
-    if (endDate) {
-      query = query.lte('created_at', endDate + 'T23:59:59');
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      console.error('Error fetching leads:', error);
-      throw error;
-    }
+    const data = allData;
 
     return data.map((lead: any) => {
       const enrollments = lead.lead_class_enrollments || [];
