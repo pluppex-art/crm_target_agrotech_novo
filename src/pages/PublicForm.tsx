@@ -472,12 +472,6 @@ export function PublicForm() {
                       <AlertTriangle size={14} /> {error}
                     </p>
                   )}
-                  {!error && duplicateWarning && (
-                    <p className="text-emerald-300/80 text-sm flex items-start gap-2">
-                      <AlertTriangle size={14} className="mt-0.5 shrink-0 text-emerald-400" />
-                      Já temos um cadastro com esse dado. Pode continuar — vamos atualizar suas informações.
-                    </p>
-                  )}
                 </div>
 
                 {/* Botão continuar */}
