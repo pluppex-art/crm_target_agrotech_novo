@@ -50,7 +50,6 @@ export const PipelineFilters: React.FC<PipelineFiltersProps> = ({
   isVendedor = false,
 }) => {
   const [open, setOpen] = useState(false);
-  const [productDropdownOpen, setProductDropdownOpen] = useState(false);
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">
@@ -82,14 +81,12 @@ export const PipelineFilters: React.FC<PipelineFiltersProps> = ({
               <span role="button" onClick={e => { e.stopPropagation(); onStatusChange('all'); }} className="cursor-pointer hover:opacity-70"><X size={11} /></span>
             </span>
           )}
-          {selectedProducts.length > 0 && (
-            <span className="flex items-center gap-1 text-xs font-medium bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded-full">
-              {selectedProducts.length === 1 
-                ? (products.find(p => p.id === selectedProducts[0])?.name || selectedProducts[0]) 
-                : `${selectedProducts.length} produtos`}
-              <span role="button" onClick={e => { e.stopPropagation(); onProductsChange([]); }} className="cursor-pointer hover:opacity-70"><X size={11} /></span>
+          {selectedProducts.map(productId => (
+            <span key={productId} className="flex items-center gap-1 text-xs font-medium bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded-full">
+              {products.find(p => p.id === productId)?.name || productId}
+              <span role="button" onClick={e => { e.stopPropagation(); onProductsChange(selectedProducts.filter(id => id !== productId)); }} className="cursor-pointer hover:opacity-70"><X size={11} /></span>
             </span>
-          )}
+          ))}
           {selectedResponsible !== 'all' && (
             <span className="flex items-center gap-1 text-xs font-medium bg-teal-50 text-teal-700 border border-teal-100 px-2 py-0.5 rounded-full">
               {responsibles.find(r => r.id === selectedResponsible)?.name || selectedResponsible}
@@ -125,7 +122,8 @@ export const PipelineFilters: React.FC<PipelineFiltersProps> = ({
 
       {/* Filter inputs — colapsável */}
       {open && <div
-        className="flex flex-wrap items-center gap-3 p-4"
+        className="flex flex-nowrap items-center gap-3 p-4 overflow-x-auto"
+        style={{ scrollbarWidth: 'thin', scrollbarColor: '#e5e7eb transparent' }}
       >
         {/* Search */}
         <div className="relative flex-1 min-w-[200px]">
@@ -166,58 +164,34 @@ export const PipelineFilters: React.FC<PipelineFiltersProps> = ({
         {/* Product filter */}
         <div className="relative w-[180px] shrink-0">
           <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={15} />
-          <button
-            onClick={() => setProductDropdownOpen(!productDropdownOpen)}
+          <select
+            value={selectedProducts.length === 0 ? 'all' : selectedProducts.length === 1 ? selectedProducts[0] : 'multiple'}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val === 'all') {
+                onProductsChange([]);
+              } else if (val !== 'multiple') {
+                if (!selectedProducts.includes(val)) {
+                  onProductsChange([...selectedProducts, val]);
+                }
+              }
+            }}
             className={cn(
-              "w-full pl-9 pr-8 py-2 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none cursor-pointer text-sm font-medium transition-all text-left text-ellipsis whitespace-nowrap overflow-hidden",
+              "w-full pl-9 pr-8 py-2 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none cursor-pointer text-sm font-medium transition-all text-ellipsis whitespace-nowrap overflow-hidden",
               selectedProducts.length > 0 ? "border-amber-300 bg-amber-50 text-amber-700" : "border-gray-200 text-gray-700"
             )}
           >
-            {selectedProducts.length === 0 
-              ? "Todos os produtos" 
-              : selectedProducts.length === 1 
-                ? (products.find(p => p.id === selectedProducts[0])?.name || "1 produto")
-                : `${selectedProducts.length} produtos`}
-          </button>
+            <option value="all">Todos os produtos</option>
+            {selectedProducts.length > 1 && (
+              <option value="multiple">{selectedProducts.length} produtos selecionados</option>
+            )}
+            {products.map((p: any) => (
+              <option key={p.id} value={p.id}>
+                {selectedProducts.includes(p.id) ? `✓ ${p.name}` : p.name}
+              </option>
+            ))}
+          </select>
           <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
-
-          {productDropdownOpen && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setProductDropdownOpen(false)} />
-              <div className="absolute top-full left-0 mt-1 w-64 max-h-60 overflow-y-auto bg-white border border-gray-200 shadow-lg rounded-xl z-50 flex flex-col p-1">
-                <label className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={selectedProducts.length === 0}
-                    onChange={() => {
-                      onProductsChange([]);
-                      setProductDropdownOpen(false);
-                    }}
-                    className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
-                  />
-                  <span className="text-sm font-medium text-gray-700">Todos os produtos</span>
-                </label>
-                <div className="h-px bg-gray-100 my-1 mx-2" />
-                {products.map((p: any) => (
-                  <label key={p.id} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors">
-                    <input
-                      type="checkbox"
-                      checked={selectedProducts.includes(p.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          onProductsChange([...selectedProducts, p.id]);
-                        } else {
-                          onProductsChange(selectedProducts.filter(id => id !== p.id));
-                        }
-                      }}
-                      className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
-                    />
-                    <span className="text-sm text-gray-700 truncate">{p.name}</span>
-                  </label>
-                ))}
-              </div>
-            </>
-          )}
         </div>
 
         {/* Responsible filter — hidden for vendedores (they only see their own leads) */}
