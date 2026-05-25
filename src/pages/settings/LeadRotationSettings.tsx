@@ -14,6 +14,9 @@ export function LeadRotationSettings() {
   const [routingMap, setRoutingMap] = useState<Record<string, string[]>>({});
   const [settingsLoading, setSettingsLoading] = useState(true);
 
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
   useEffect(() => {
     fetchProfiles();
     fetchProducts();
@@ -54,7 +57,7 @@ export function LeadRotationSettings() {
     }
   };
 
-  const toggleProduct = async (profileId: string, productName: string) => {
+  const toggleProduct = (profileId: string, productName: string) => {
     const currentList = routingMap[profileId] || [];
     let newList;
     if (currentList.includes(productName)) {
@@ -63,18 +66,20 @@ export function LeadRotationSettings() {
       newList = [...currentList, productName];
     }
     
-    const newMap = { ...routingMap, [profileId]: newList };
-    
-    // Optimistic update
-    setRoutingMap(newMap);
-    
-    // Save to settings
+    setRoutingMap({ ...routingMap, [profileId]: newList });
+    setHasUnsavedChanges(true);
+  };
+
+  const handleSaveSettings = async () => {
+    setIsSaving(true);
     try {
-      await settingsService.updateSetting('round_robin_products', newMap);
+      await settingsService.updateSetting('round_robin_products', routingMap);
+      setHasUnsavedChanges(false);
     } catch (error) {
       console.error('Failed to save routing preferences', error);
-      // Revert if failed
-      setRoutingMap(routingMap);
+      alert('Erro ao salvar as alterações.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -89,6 +94,25 @@ export function LeadRotationSettings() {
             Rodízio de Leads
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">Gerencie quem participa da distribuição automática de novos leads do formulário.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleSaveSettings}
+            disabled={!hasUnsavedChanges || isSaving}
+            className={cn(
+              "px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all shadow-sm",
+              hasUnsavedChanges
+                ? "bg-emerald-600 text-white hover:bg-emerald-700 hover:shadow-md"
+                : "bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500 cursor-not-allowed"
+            )}
+          >
+            {isSaving ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <CheckCircle2 className="w-5 h-5" />
+            )}
+            Salvar Alterações
+          </button>
         </div>
       </div>
 
