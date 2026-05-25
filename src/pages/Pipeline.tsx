@@ -445,7 +445,7 @@ export const Pipeline: React.FC = () => {
       <PipelineFilters
         searchTerm={filters.searchTerm}
         selectedStatus={filters.selectedStatus}
-        selectedProduct={filters.selectedProduct}
+        selectedProducts={filters.selectedProducts}
         selectedResponsible={filters.selectedResponsible}
         selectedStars={filters.selectedStars}
         selectedSquad={filters.selectedSquad}
@@ -455,7 +455,7 @@ export const Pipeline: React.FC = () => {
         columns={COLUMNS}
         onSearchChange={filters.setSearchTerm}
         onStatusChange={filters.setSelectedStatus}
-        onProductChange={filters.setSelectedProduct}
+        onProductsChange={filters.setSelectedProducts}
         onResponsibleChange={filters.setSelectedResponsible}
         onStarsChange={filters.setSelectedStars}
         onSquadChange={filters.setSelectedSquad}

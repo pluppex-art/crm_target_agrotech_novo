@@ -16,7 +16,7 @@ export const usePipelineFilters = (
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedResponsible, setSelectedResponsible] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string | 'all'>('all');
-  const [selectedProduct, setSelectedProduct] = useState<string>('all');
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [selectedStars, setSelectedStars] = useState<number[]>([]);
   const [selectedSquad, setSelectedSquad] = useState<string>('all');
   const { members } = useSquadStore();
@@ -99,14 +99,17 @@ export const usePipelineFilters = (
         respName.trim().toLowerCase() === search;
     }
     
-    const selectedProductObj = products.find(p => p.id === selectedProduct);
-    const selectedProductName = selectedProductObj?.name.trim().toLowerCase() || '';
     const leadProductLower = prodName.trim().toLowerCase();
     
-    const matchesProduct = selectedProduct === 'all' ||
-      leadProductLower === selectedProductName ||
-      leadProductLower.includes(selectedProductName) ||
-      selectedProductName.includes(leadProductLower);
+    const matchesProduct = selectedProducts.length === 0 ||
+      selectedProducts.some(productId => {
+        const pObj = products.find(p => p.id === productId);
+        const pNameLower = pObj?.name.trim().toLowerCase() || '';
+        if (!pNameLower) return false;
+        return leadProductLower === pNameLower ||
+               leadProductLower.includes(pNameLower) ||
+               pNameLower.includes(leadProductLower);
+      });
     
     const matchesStars = selectedStars.length === 0 || selectedStars.includes(lead.stars || 0);
 
@@ -130,23 +133,23 @@ export const usePipelineFilters = (
     })();
 
     return matchesSearch && matchesResponsible && matchesProduct && matchesStars && matchesSquad;
-  }), [leads, searchTerm, selectedResponsible, selectedProduct, selectedStars, selectedSquad, profiles, products, members]);
+  }), [leads, searchTerm, selectedResponsible, selectedProducts, selectedStars, selectedSquad, profiles, products, members]);
 
 
   const activeFilterCount = useMemo(() => [
     selectedResponsible !== 'all',
-    selectedProduct !== 'all',
+    selectedProducts.length > 0,
     selectedStatus !== 'all',
     selectedStars.length > 0,
     selectedSquad !== 'all',
     searchTerm !== '',
-  ].filter(Boolean).length, [selectedResponsible, selectedProduct, selectedStatus, selectedStars, selectedSquad, searchTerm]);
+  ].filter(Boolean).length, [selectedResponsible, selectedProducts, selectedStatus, selectedStars, selectedSquad, searchTerm]);
 
 
   const clearAllFilters = () => {
     setSearchTerm('');
     setSelectedResponsible('all');
-    setSelectedProduct('all');
+    setSelectedProducts([]);
     setSelectedStatus('all');
     setSelectedStars([]);
     setSelectedSquad('all');
@@ -156,7 +159,7 @@ export const usePipelineFilters = (
   return {
     searchTerm,
     selectedStatus,
-    selectedProduct,
+    selectedProducts,
     selectedResponsible,
     selectedStars,
     selectedSquad,
@@ -167,7 +170,7 @@ export const usePipelineFilters = (
     clearAllFilters,
     setSearchTerm,
     setSelectedStatus,
-    setSelectedProduct,
+    setSelectedProducts,
     setSelectedResponsible,
     setSelectedStars,
     setSelectedSquad,
