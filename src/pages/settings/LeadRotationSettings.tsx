@@ -73,8 +73,13 @@ export function LeadRotationSettings() {
   const handleSaveSettings = async () => {
     setIsSaving(true);
     try {
-      await settingsService.updateSetting('round_robin_products', routingMap);
-      setHasUnsavedChanges(false);
+      const success = await settingsService.updateSetting('round_robin_products', routingMap);
+      if (success) {
+        setHasUnsavedChanges(false);
+        // Opcional: mostrar um toast de sucesso (vou deixar sem alert intrusivo por enquanto)
+      } else {
+        alert('Falha ao salvar. Verifique sua conexão.');
+      }
     } catch (error) {
       console.error('Failed to save routing preferences', error);
       alert('Erro ao salvar as alterações.');

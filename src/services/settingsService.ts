@@ -21,7 +21,7 @@ export const settingsService = {
 
     const { error } = await supabase
       .from('crm_settings')
-      .upsert({ key, value, updated_at: new Date().toISOString() });
+      .upsert({ key, value }, { onConflict: 'key' });
 
     if (error) {
       console.error('Error updating setting:', error);
