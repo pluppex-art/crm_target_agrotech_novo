@@ -22,23 +22,33 @@ export async function insertNotificationForUser(
     category: string;
     link?: string;
   }
-): Promise<void> {
+): Promise<boolean> {
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const { data: existing } = await supabase
+  let query = supabase
     .from('notifications')
     .select('id')
     .eq('user_id', userId)
     .eq('title', notification.title)
     .gte('created_at', since)
     .limit(1);
-  if (existing && existing.length > 0) return;
+
+  if (notification.link) {
+    query = query.eq('link', notification.link);
+  }
+
+  const { data: existing } = await query;
+  if (existing && existing.length > 0) return false;
 
   const { error } = await supabase.from('notifications').insert([{
     user_id: userId,
     read: false,
     ...notification,
   }]);
-  if (error) console.warn('Erro ao inserir notificação:', error);
+  if (error) {
+    console.warn('Erro ao inserir notificação:', error);
+    return false;
+  }
+  return true;
 }
 
 async function resolveProfileEmail(idOrName: string, profiles: UserProfile[]): Promise<{ id: string; name: string; email: string } | null> {
@@ -62,13 +72,15 @@ export async function notifyNewLead(lead: Lead, profiles: UserProfile[]): Promis
   const prodObj = financialCalculator.findProduct(lead.product || '', products);
   const prodName = prodObj?.name || lead.product || 'N/A';
 
-  await insertNotificationForUser(responsible.id, {
+  const inserted = await insertNotificationForUser(responsible.id, {
     title: `Novo lead: ${lead.name}`,
     message: `Você recebeu um novo lead. Produto: ${prodName}. Telefone: ${lead.phone}`,
     type: 'info',
     category: 'user',
     link: `/pipeline?lead=${lead.id}`,
   });
+
+  if (!inserted) return;
 
   try {
     await emailService.sendEmail({
@@ -133,13 +145,15 @@ export async function notifyLeadManualTransfer(
   const prodObj = financialCalculator.findProduct(lead.product || '', products);
   const prodName = prodObj?.name || lead.product || 'N/A';
 
-  await insertNotificationForUser(toResponsible.id, {
+  const inserted = await insertNotificationForUser(toResponsible.id, {
     title: `Lead transferido para você: ${lead.name}`,
     message: `${displayFromName} transferiu o lead ${lead.name} para você. Produto: ${prodName}`,
     type: 'info',
     category: 'user',
     link: `/pipeline?lead=${lead.id}`,
   });
+
+  if (!inserted) return;
 
   try {
     await emailService.sendEmail({
@@ -171,13 +185,15 @@ export async function notifyLeadAssignment(
   const prodObj = financialCalculator.findProduct(lead.product || '', products);
   const prodName = prodObj?.name || lead.product || 'N/A';
 
-  await insertNotificationForUser(responsible.id, {
+  const inserted = await insertNotificationForUser(responsible.id, {
     title: `Lead atribuído a você: ${lead.name}`,
     message: `Você é o novo responsável por ${lead.name}. Produto: ${prodName}`,
     type: 'info',
     category: 'user',
     link: `/pipeline?lead=${lead.id}`,
   });
+
+  if (!inserted) return;
 
   if (responsible.email) {
     try {
@@ -203,13 +219,15 @@ export async function notifyStageChange(
 export async function notifyNewTask(task: Task, creatorId: string): Promise<void> {
   if (!task.responsavel_usuario_id || task.responsavel_usuario_id === creatorId) return;
 
-  await insertNotificationForUser(task.responsavel_usuario_id, {
+  const inserted = await insertNotificationForUser(task.responsavel_usuario_id, {
     title: `Nova tarefa: ${task.title}`,
     message: `Você recebeu uma nova tarefa. Prazo: ${task.due_date ? new Date(task.due_date + 'T00:00:00').toLocaleDateString('pt-BR') : 'Sem data'}${task.lead_name ? ` | Lead: ${task.lead_name}` : ''}`,
     type: 'info',
     category: 'user',
     link: `/tasks?id=${task.id}`,
   });
+
+  if (!inserted) return;
 
   // Get user profile to send email
   const { data: profile } = await supabase
@@ -245,13 +263,15 @@ export async function notifyNewTask(task: Task, creatorId: string): Promise<void
 export async function notifyTaskReminder(task: Task): Promise<void> {
   if (!task.responsavel_usuario_id || task.status === 'completed') return;
 
-  await insertNotificationForUser(task.responsavel_usuario_id, {
+  const inserted = await insertNotificationForUser(task.responsavel_usuario_id, {
     title: `Lembrete: ${task.title}`,
     message: `Tarefa pendente para hoje ou atrasada. Prazo: ${task.due_date ? new Date(task.due_date + 'T00:00:00').toLocaleDateString('pt-BR') : 'Sem data'}`,
     type: 'urgent',
     category: 'alerts',
     link: `/tasks?id=${task.id}`,
   });
+
+  if (!inserted) return;
 
   // Get user profile to send email reminder
   const { data: profile } = await supabase

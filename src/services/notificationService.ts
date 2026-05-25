@@ -9,13 +9,19 @@ export const notificationService = {
 
     // Anti-loop/duplicate check: don't insert same title for same user in last 12 hours
     const since = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
-    const { data: existing } = await supabase
+    let query = supabase
       .from('notifications')
       .select('id')
       .eq('user_id', targetUserId)
       .eq('title', notification.title)
       .gte('created_at', since)
       .limit(1);
+
+    if (notification.link) {
+      query = query.eq('link', notification.link);
+    }
+
+    const { data: existing } = await query;
 
     if (existing && existing.length > 0) return;
 

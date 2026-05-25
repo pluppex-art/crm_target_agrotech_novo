@@ -23,6 +23,7 @@ import { useProductStore } from '../../store/useProductStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useProfileStore } from '../../store/useProfileStore';
 import { useNotificationStore } from '../../store/useNotificationStore';
+import { useTaskAlerts } from '../../hooks/useTaskAlerts';
 import { cn, formatRelativeTime } from '../../lib/utils';
 import { LogOut } from 'lucide-react';
 import { TimeClockHeaderWidget } from './TimeClockHeaderWidget';
@@ -60,6 +61,7 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
   const { profiles } = useProfileStore();
   const profile = profiles.find(p => p.id === user?.id);
 
+  useTaskAlerts();
 
   useEffect(() => {
     fetchLeads();
