@@ -113,43 +113,34 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
   }, [lead.id]);
 
 
-  // Sync specific real-time changes (toggles, values) from external sources without blowing away local typing
+  // Sync only boolean toggles and file URLs from external sources (real-time updates, toggleField calls).
+  // Do NOT sync text/numeric fields (value, valor_recebido, taxa_matricula_recebido, discount) here
+  // because that would overwrite what the user is currently typing whenever a toggle fires.
   useEffect(() => {
     setFormData(prev => {
       const incomingPix = lead.pix_completed ?? false;
       const incomingContract = lead.contract_signed ?? false;
       const incomingDiscountApplied = lead.discount_applied ?? !!lead.discount;
-      const incomingValue = lead.value.toString();
       const incomingProof = lead.payment_proof_url ?? null;
       const incomingContractUrl = lead.contract_url ?? null;
       const incomingProfProof = lead.professor_proof_url ?? null;
-      const incomingValorRecebido = lead.valor_recebido ?? null;
-      const incomingTaxaMatricula = lead.taxa_matricula_recebido ?? null;
 
       if (
         prev.pix_completed !== incomingPix ||
         prev.contract_signed !== incomingContract ||
-        prev.value !== incomingValue ||
         prev.discount_applied !== incomingDiscountApplied ||
         prev.payment_proof_url !== incomingProof ||
         prev.contract_url !== incomingContractUrl ||
-        prev.professor_proof_url !== incomingProfProof ||
-        prev.valor_recebido !== incomingValorRecebido ||
-        prev.taxa_matricula_recebido !== incomingTaxaMatricula
+        prev.professor_proof_url !== incomingProfProof
       ) {
         return {
           ...prev,
           pix_completed: incomingPix,
           contract_signed: incomingContract,
           discount_applied: incomingDiscountApplied,
-          discount: lead.discount || prev.discount,
-          discount_type: lead.discount_type || prev.discount_type,
-          value: incomingValue,
           payment_proof_url: incomingProof,
           contract_url: incomingContractUrl,
           professor_proof_url: incomingProfProof,
-          valor_recebido: incomingValorRecebido,
-          taxa_matricula_recebido: incomingTaxaMatricula,
         };
       }
       return prev;
