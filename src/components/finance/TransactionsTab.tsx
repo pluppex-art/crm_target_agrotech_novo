@@ -134,7 +134,8 @@ export function TransactionsTab({ startDate, endDate }: { startDate: string; end
               <p className="text-slate-500 dark:text-slate-400 font-medium">Nenhuma transação encontrada</p>
             </div>
           ) : (
-            <table className="w-full text-sm text-left">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
               <thead className="text-xs text-slate-500 dark:text-slate-400 uppercase bg-slate-50 dark:bg-slate-800 border-b border-slate-100 dark:border-slate-800">
                 <tr>
                   <th className="px-6 py-4 font-bold tracking-wider">Descrição / Categoria</th>
@@ -199,6 +200,7 @@ export function TransactionsTab({ startDate, endDate }: { startDate: string; end
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       </div>
