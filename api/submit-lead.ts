@@ -80,7 +80,7 @@ export default async function handler(req: any, res: any) {
   const productRouting = (rrSettings?.value as Record<string, string[]>) || {};
 
   // Ordena alfabeticamente em pt-BR e filtra por produto
-  const validSellers = (sellers || [])
+  let validSellers = (sellers || [])
     .filter(s => {
       const allowedProducts = productRouting[s.id];
       // Se não tem configuração, ou lista vazia, recebe tudo
@@ -95,7 +95,22 @@ export default async function handler(req: any, res: any) {
         p.toLowerCase().includes(product.toLowerCase())
       );
     })
-    .sort((a, b) => a.name.trim().localeCompare(b.name.trim(), 'pt-BR', { sensitivity: 'base' }));
+    .sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'pt-BR', { sensitivity: 'base' }));
+
+  // Fallback 1: se nenhum vendedor corresponde ao produto, tenta enviar para qualquer um do rodízio
+  if (validSellers.length === 0 && sellers && sellers.length > 0) {
+    validSellers = sellers.sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'pt-BR', { sensitivity: 'base' }));
+  }
+
+  // Fallback 2: se não há ninguém no rodízio, pega qualquer usuário ativo para não perder o lead
+  if (validSellers.length === 0) {
+    const { data: fallbackSellers } = await supabase.from('perfis').select('id, name, phone, department, role_id').eq('status', 'active').limit(1);
+    if (fallbackSellers && fallbackSellers.length > 0) {
+      validSellers = fallbackSellers as any[];
+    } else {
+      return res.status(500).json({ error: 'Nenhum consultor disponível para atribuição. Verifique os cadastros.' });
+    }
+  }
 
   let assignedResponsible = null;
   let assignedUserId = null;
@@ -179,15 +194,23 @@ export default async function handler(req: any, res: any) {
 
   // ── If lead already exists: UPDATE and return ────────────────────────────
   if (existingLeadId) {
+    const updatePayload: any = {
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+      phone: phone.trim(),
+      city: city?.trim() ?? null,
+      product: product?.trim() ?? null,
+    };
+
+    // Fix para leads antigos sem responsável que quebram a constraint NOT NULL no update
+    if (!existingUserId && assignedUserId) {
+      updatePayload.responsavel_usuario_id = assignedUserId;
+      updatePayload.responsible = assignedResponsible;
+    }
+
     const { error: updateError } = await supabase
       .from('leads')
-      .update({
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-        phone: phone.trim(),
-        city: city?.trim() ?? null,
-        product: product?.trim() ?? null,
-      })
+      .update(updatePayload)
       .eq('id', existingLeadId);
 
     if (updateError) {

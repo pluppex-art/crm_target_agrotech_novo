@@ -262,7 +262,7 @@ async function startServer() {
 
       const productRouting = (rrSettings?.value as Record<string, string[]>) || {};
 
-      const validSellers = (sellers || [])
+      let validSellers = (sellers || [])
         .filter((s: any) => {
           const allowedProducts = productRouting[s.id];
           if (!allowedProducts || allowedProducts.length === 0) return true;
@@ -273,11 +273,20 @@ async function startServer() {
           );
         })
         .sort((a: any, b: any) =>
-          a.name.trim().localeCompare(b.name.trim(), 'pt-BR', { sensitivity: 'base' })
+          (a.name || '').trim().localeCompare((b.name || '').trim(), 'pt-BR', { sensitivity: 'base' })
         );
 
+      if (validSellers.length === 0 && sellers && sellers.length > 0) {
+        validSellers = sellers.sort((a: any, b: any) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'pt-BR', { sensitivity: 'base' }));
+      }
+
       if (validSellers.length === 0) {
-        return res.status(500).json({ error: 'Nenhum consultor disponível para atribuição. Verifique os cadastros.' });
+        const { data: fallbackSellers } = await supabase.from('perfis').select('id, name, phone, department, role_id').eq('status', 'active').limit(1);
+        if (fallbackSellers && fallbackSellers.length > 0) {
+          validSellers = fallbackSellers as any[];
+        } else {
+          return res.status(500).json({ error: 'Nenhum consultor disponível para atribuição. Verifique os cadastros.' });
+        }
       }
 
       let lastIndex = lastSellerId
@@ -322,6 +331,75 @@ async function startServer() {
         interest ? `Área de Interesse: ${interest}` : null,
         extraNotes ? `Notas: ${extraNotes}` : null
       ].filter(Boolean).join('\n');
+
+
+      // ── Upsert: check for existing lead by phone or email ────────────────────
+      const normalizedPhoneForCheck = phone.trim().replace(/\D/g, '');
+      let existingLeadId = null;
+      let existingResponsible = null;
+      let existingUserId = null;
+
+      if (normalizedPhoneForCheck.length >= 10) {
+        const { data: byPhone } = await supabase
+          .from('leads')
+          .select('id, responsible, responsavel_usuario_id')
+          .or(`phone.ilike.%${normalizedPhoneForCheck}%,phone.eq.${phone.trim()}`)
+          .limit(1)
+          .maybeSingle();
+        if (byPhone) {
+          existingLeadId = byPhone.id;
+          existingResponsible = byPhone.responsible;
+          existingUserId = byPhone.responsavel_usuario_id;
+        }
+      }
+
+      if (!existingLeadId && email.trim()) {
+        const { data: byEmail } = await supabase
+          .from('leads')
+          .select('id, responsible, responsavel_usuario_id')
+          .ilike('email', email.trim())
+          .limit(1)
+          .maybeSingle();
+        if (byEmail) {
+          existingLeadId = byEmail.id;
+          existingResponsible = byEmail.responsible;
+          existingUserId = byEmail.responsavel_usuario_id;
+        }
+      }
+
+      // ── If lead already exists: UPDATE and return ────────────────────────────
+      if (existingLeadId) {
+        const updatePayload: any = {
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          phone: phone.trim(),
+          city: city?.trim() ?? null,
+          product: product?.trim() ?? null,
+        };
+
+        if (!existingUserId && assignedUserId) {
+          updatePayload.responsavel_usuario_id = assignedUserId;
+          updatePayload.responsible = assignedResponsible;
+        }
+
+        const { error: updateError } = await supabase
+          .from('leads')
+          .update(updatePayload)
+          .eq('id', existingLeadId);
+
+        if (updateError) throw updateError;
+        
+        if (notesContent) {
+          await supabase.from('notes').insert([{
+            content: `[Atualização via Formulário]\n${notesContent}`,
+            lead_id: existingLeadId,
+            author_name: 'Sistema',
+          }]);
+        }
+        
+        return res.json({ success: true, id: existingLeadId, responsibleName: existingResponsible || assignedResponsible, responsiblePhone: null });
+      }
+
 
       const leadPayload: Record<string, any> = {
         name: name.trim(),
