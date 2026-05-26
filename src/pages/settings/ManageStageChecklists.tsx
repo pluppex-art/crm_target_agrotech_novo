@@ -35,7 +35,7 @@ function StageChecklist({ stageId, stageName, checklists, onAddChecklist, onDele
 
   return (
     <div className="border border-slate-200 dark:border-slate-700 rounded-xl p-4 bg-white dark:bg-slate-900 shadow-sm mb-4">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
         <h3 className="font-bold text-slate-800 dark:text-slate-200 text-sm uppercase tracking-wide">{stageName}</h3>
         {!showAdd && (
           <button
@@ -83,7 +83,7 @@ function StageChecklist({ stageId, stageName, checklists, onAddChecklist, onDele
           <p className="text-xs text-slate-400 text-center py-4">Nenhum item de checklist</p>
         ) : (
           checklists.map((item) => (
-            <div key={item.id} className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800 rounded-lg group">
+            <div key={item.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-2 bg-slate-50 dark:bg-slate-800 rounded-lg group">
               <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{item.name}</span>
               <button
                 onClick={() => onDeleteChecklist(item.id)}
@@ -162,7 +162,7 @@ export function ManageStageChecklists() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Checklists de Aprovação</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Configure itens obrigatórios para cada etapa do pipeline.</p>

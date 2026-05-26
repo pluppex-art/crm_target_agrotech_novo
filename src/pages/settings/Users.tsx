@@ -335,7 +335,7 @@ export function Users() {
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in duration-200">
-            <div className="sticky top-0 z-10 px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/95 backdrop-blur-sm">
+            <div className="sticky top-0 z-10 px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-50 dark:bg-slate-800/95 backdrop-blur-sm">
               <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">{editingId ? 'Editar Usuário' : 'Novo Usuário'}</h2>
               <button
                 onClick={handleCloseModal}

@@ -45,12 +45,12 @@ export function SettingsLayout() {
     ? settingsNav.filter(item => item.label === 'Perfil' || item.label === 'Usuários')
     : settingsNav;
 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => typeof window !== "undefined" ? window.innerWidth > 768 : true);
 
   return (
     <div className="flex h-full overflow-hidden relative">
       {/* Sub-sidebar container */}
-      <div className="relative flex flex-shrink-0 z-20">
+      <div className="absolute md:relative h-full flex flex-shrink-0 z-30">
         <motion.aside
           initial={false}
           animate={{ 

@@ -92,7 +92,7 @@ export function LeadRotationSettings() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
             <RefreshCcw className="w-6 h-6 text-emerald-600" />
@@ -147,7 +147,7 @@ export function LeadRotationSettings() {
 
               return (
                 <div key={profile.id} className="p-4 flex flex-col gap-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800/50 flex items-center justify-center text-slate-400">
                         {profile.avatar_url ? (

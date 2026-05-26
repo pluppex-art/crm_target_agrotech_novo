@@ -148,7 +148,7 @@ export function Notifications() {
             <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Preferências Pessoais</h3>
           </div>
           <div className="p-6 space-y-5">
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 gap-4">
               <div className="flex items-start gap-3">
                 <div className="p-1.5 bg-blue-50 rounded-lg mt-0.5">
                   <Megaphone size={14} className="text-blue-600" />
@@ -190,7 +190,7 @@ export function Notifications() {
               </div>
               <div className="p-6 space-y-5">
                 {NOTIFICATION_ITEMS.map(({ key, icon: Icon, label, description }) => (
-                  <div key={key} className="flex items-center justify-between gap-4">
+                  <div key={key} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 gap-4">
                     <div className="flex items-start gap-3">
                       <div className="p-1.5 bg-slate-100 dark:bg-slate-800/50 rounded-lg mt-0.5">
                         <Icon size={14} className="text-slate-600 dark:text-slate-400" />
@@ -261,7 +261,7 @@ export function Notifications() {
               </div>
               <div className="p-6 space-y-4">
                 <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center justify-between gap-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 gap-4">
                     <div className="flex-1">
                       <p className="text-sm font-bold text-slate-800 dark:text-slate-200">Horas até transferência</p>
                       <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">

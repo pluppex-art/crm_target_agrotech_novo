@@ -40,7 +40,7 @@ export function Security() {
 
           <div className="space-y-6 pt-6 border-t border-slate-100 dark:border-slate-800">
             <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest">Autenticação de Dois Fatores (2FA)</h3>
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 gap-4">
               <div>
                 <p className="text-sm font-bold text-slate-800 dark:text-slate-200">Ativar 2FA</p>
                 <p className="text-xs text-slate-500 dark:text-slate-400">Adicione uma camada extra de segurança à sua conta.</p>

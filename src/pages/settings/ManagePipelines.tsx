@@ -126,7 +126,7 @@ function StageColumn({ stage, onUpdate, onDelete, dragHandleProps }: StageColumn
           </div>
 
           {/* Toggle para iniciar fechado */}
-          <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-slate-100 dark:border-slate-800 mt-1">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 gap-2 pt-2.5 border-t border-slate-100 dark:border-slate-800 mt-1">
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Iniciar minimizado</span>
             <button
               type="button"
@@ -311,7 +311,7 @@ export function ManagePipelines() {
   return (
     <div className="p-8 min-h-screen bg-slate-50 dark:bg-slate-800/50 flex flex-col gap-6">
       {/* Page header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Gerenciar Pipelines</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Configure as etapas de cada pipeline de vendas.</p>
@@ -363,7 +363,7 @@ export function ManagePipelines() {
           {activePipeline && (
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm overflow-hidden flex-1">
               {/* Pipeline header */}
-              <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 {editingPipelineId === activePipeline.id ? (
                   <div className="flex items-center gap-2">
                     <input
@@ -493,7 +493,7 @@ export function ManagePipelines() {
 {isCreateOpen && createPortal(
         <div key="create-pipeline-modal" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md p-6">
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-5">
               <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">Novo Pipeline</h3>
               <button onClick={() => setIsCreateOpen(false)} className="p-2 hover:bg-slate-100 dark:bg-slate-800/50 rounded-xl text-slate-400 transition-colors">
                 <X size={18} />

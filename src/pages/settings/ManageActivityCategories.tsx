@@ -79,7 +79,7 @@ export function ManageActivityCategories() {
             </div>
           ) : (
             categories.map(cat => (
-              <div key={cat.id} className="p-4 flex items-center justify-between hover:bg-slate-50 dark:bg-slate-800 transition-colors group">
+              <div key={cat.id} className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-slate-50 dark:bg-slate-800 transition-colors group">
                 <div className="flex items-center gap-3">
                   <div className="w-2 h-2 rounded-full bg-blue-400" />
                   <span className="font-medium text-slate-700 dark:text-slate-300">{cat.name}</span>
