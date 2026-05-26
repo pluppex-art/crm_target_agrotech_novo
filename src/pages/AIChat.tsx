@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Search, MoreVertical, MessageCircle, Send, Phone, Video, Paperclip, Smile, ArrowLeft, User, ExternalLink, Activity, CheckSquare, Calendar, StickyNote } from 'lucide-react';
+import { Search, MoreVertical, MessageCircle, Send, Phone, Video, Paperclip, Smile, ArrowLeft, User, ExternalLink, Activity, CheckSquare, Calendar, StickyNote, X, File, Image } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useLeadStore } from '../store/useLeadStore';
 import { usePipelineStore } from '../store/usePipelineStore';
@@ -9,6 +9,11 @@ import { useAuthStore } from '../store/useAuthStore';
 import { noteService } from '../services/noteService';
 import type { Lead, LeadStatus } from '../types/leads';
 
+// Emojis populares
+const EMOJIS = [
+  '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥸', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🫣', '🤭', '🫢', '🤫', '🤥', '😶', '😐', '😑', '😬', '🫠', '🫨', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😮‍💨', '😵', '😵‍💫', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈', '👿', '👹', '👺', '🤡', '💩', '👻', '💀', '☠️', '👽', '👾', '🤖', '🎃', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾', '👋', '🤚', '🖐️', '✋', '🖖', '👌', '🤌', '🤏', '✌️', '🤞', '🫰', '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👍', '👎', '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🤝', '🙏', '💅', '🤳', '💪', '❤️', '💖', '✨', '🔥', '🚀', '🎉', '✅', '❌', '⚠️', '💡'
+];
+
 // Tipos simulados
 type Platform = 'whatsapp' | 'instagram' | 'email';
 interface Message {
@@ -17,6 +22,11 @@ interface Message {
   content: string;
   timestamp: string;
   isNote?: boolean;
+  file?: {
+    name: string;
+    type: string;
+    url: string;
+  };
 }
 interface Chat {
   id: number;
@@ -58,12 +68,23 @@ export function AIChat() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [isNotesMode, setIsNotesMode] = useState(false);
   
+  // Emojis and Attachment state
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [attachedFile, setAttachedFile] = useState<{ name: string; type: string; url: string } | null>(null);
+  const [emojisList, setEmojisList] = useState<string[]>(EMOJIS);
+
   // Real Lead Integration state
   const [selectedLeadForModal, setSelectedLeadForModal] = useState<Lead | null>(null);
   const [modalInitialTab, setModalInitialTab] = useState<'info' | 'history' | 'notes' | 'tasks' | 'turma' | 'checklist'>('info');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const chatMessagesRef = useRef<HTMLDivElement>(null);
+
+  const activeChat = chats.find(c => c.id === activeChatId);
+  const activeMessages = activeChatId ? (messages[activeChatId] || []) : [];
 
   // Sync with Stores
   const { leads, fetchLeads, updateLeadStage, updateLead } = useLeadStore();
@@ -81,11 +102,40 @@ export function AIChat() {
     if (profiles.length === 0) {
       fetchProfiles();
     }
+
+    // Load Emojis dynamically from GitHub Gemoji DB
+    async function loadEmojis() {
+      try {
+        const response = await fetch('https://raw.githubusercontent.com/github/gemoji/master/db/emoji.json');
+        if (!response.ok) return;
+        const data = await response.json();
+        if (Array.isArray(data)) {
+          const list = data.map((item: any) => item.emoji).filter(Boolean);
+          if (list.length > 0) {
+            setEmojisList(list);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching emojis:', err);
+      }
+    }
+    loadEmojis();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const activeChat = chats.find(c => c.id === activeChatId);
-  const activeMessages = activeChatId ? (messages[activeChatId] || []) : [];
+  // Parse Twemojis in Messages Feed
+  useEffect(() => {
+    if (chatMessagesRef.current && (window as any).twemoji) {
+      (window as any).twemoji.parse(chatMessagesRef.current);
+    }
+  }, [activeMessages, activeChatId]);
+
+  // Parse Twemojis in Emoji Picker
+  useEffect(() => {
+    if (emojiPickerRef.current && (window as any).twemoji) {
+      (window as any).twemoji.parse(emojiPickerRef.current);
+    }
+  }, [showEmojiPicker]);
 
   // Match active mock chat with a real lead
   const matchedRealLead = useMemo(() => {
@@ -125,11 +175,14 @@ export function AIChat() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activeMessages]);
 
-  // Close dropdown on click outside
+  // Close dropdown and emoji picker on click outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setShowDropdown(false);
+      }
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
+        setShowEmojiPicker(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -142,18 +195,25 @@ export function AIChat() {
     setActiveChatId(chatId);
     setShowDropdown(false);
     setIsNotesMode(false);
+    setShowEmojiPicker(false);
+    setAttachedFile(null);
     // Limpar unread quando abre a conversa
     setChats(prev => prev.map(c => c.id === chatId ? { ...c, unread: 0 } : c));
   };
 
   const handleSendMessageOrSaveNote = async () => {
-    if (!inputValue.trim() || !activeChatId) return;
+    if ((!inputValue.trim() && !attachedFile) || !activeChatId) return;
+
+    let finalContent = inputValue;
+    if (attachedFile && !finalContent.trim()) {
+      finalContent = `Enviou o arquivo: ${attachedFile.name}`;
+    }
 
     if (isNotesMode && matchedRealLead && user) {
       const authorName = profiles.find(p => p.id === user.id)?.name || user.email || 'Vendedor';
       // Real Supabase Lead Note Creation
       await noteService.createNote({
-        content: inputValue,
+        content: finalContent,
         lead_id: matchedRealLead.id,
         author_id: user.id,
         author_name: authorName
@@ -166,9 +226,10 @@ export function AIChat() {
     const newMessage: Message = {
       id: Date.now().toString(),
       sender: 'me',
-      content: inputValue,
+      content: finalContent,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isNote: isNotesMode
+      isNote: isNotesMode,
+      file: attachedFile || undefined
     };
 
     setMessages(prev => ({
@@ -178,11 +239,12 @@ export function AIChat() {
 
     setChats(prev => prev.map(c => 
       c.id === activeChatId 
-        ? { ...c, lastMessage: isNotesMode ? `[Anotação] ${inputValue}` : inputValue, time: newMessage.timestamp } 
+        ? { ...c, lastMessage: isNotesMode ? `[Anotação] ${finalContent}` : finalContent, time: newMessage.timestamp } 
         : c
     ));
 
     setInputValue('');
+    setAttachedFile(null);
     setIsNotesMode(false);
   };
 
@@ -191,6 +253,26 @@ export function AIChat() {
       e.preventDefault();
       handleSendMessageOrSaveNote();
     }
+  };
+
+  const handleAddEmoji = (emoji: string) => {
+    setInputValue(prev => prev + emoji);
+  };
+
+  const handleFileClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const fileUrl = URL.createObjectURL(file);
+    setAttachedFile({
+      name: file.name,
+      type: file.type,
+      url: fileUrl
+    });
   };
 
   const handleOpenLeadModal = (tab: 'info' | 'history' | 'notes' | 'tasks' | 'turma' | 'checklist' = 'info') => {
@@ -408,7 +490,7 @@ export function AIChat() {
           </div>
 
           {/* Chat Messages */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-4 z-0 custom-scrollbar">
+          <div ref={chatMessagesRef} className="flex-1 overflow-y-auto p-6 space-y-4 z-0 custom-scrollbar">
             {activeMessages.length === 0 ? (
               <div className="text-center mt-10">
                 <span className="bg-white/80 dark:bg-slate-800/80 px-4 py-2 rounded-lg text-xs font-medium text-slate-500 shadow-sm">
@@ -426,6 +508,25 @@ export function AIChat() {
                           <span className="text-[11px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-400">Anotação Interna (Salva)</span>
                           <span className="text-[9px] text-amber-500/80">{msg.timestamp}</span>
                         </div>
+                        {msg.file && msg.file.type.startsWith('image/') && (
+                          <div className="mb-2 rounded-xl overflow-hidden max-w-full shadow-inner border border-amber-200">
+                            <img src={msg.file.url} alt={msg.file.name} className="max-h-60 object-cover w-full cursor-pointer hover:opacity-95 transition-opacity" onClick={() => window.open(msg.file?.url, '_blank')} />
+                          </div>
+                        )}
+                        {msg.file && !msg.file.type.startsWith('image/') && (
+                          <a 
+                            href={msg.file.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="mb-2 p-3 bg-white/60 dark:bg-slate-850 rounded-xl flex items-center gap-3 border border-amber-200 hover:bg-white transition-all text-amber-900 dark:text-amber-200"
+                          >
+                            <Paperclip className="w-5 h-5 text-amber-600" />
+                            <div className="text-left min-w-0 flex-1">
+                              <div className="text-xs font-bold truncate max-w-[180px]">{msg.file.name}</div>
+                              <div className="text-[10px] text-amber-500 font-medium uppercase">{msg.file.type.split('/')[1] || 'DOC'}</div>
+                            </div>
+                          </a>
+                        )}
                         <p className="text-[13px] font-semibold leading-relaxed text-left">{msg.content}</p>
                       </div>
                     </div>
@@ -438,6 +539,25 @@ export function AIChat() {
                         ? "bg-emerald-600 text-white rounded-tr-sm" 
                         : "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-tl-sm border border-slate-100 dark:border-slate-800 shadow-sm"
                     )}>
+                      {msg.file && msg.file.type.startsWith('image/') && (
+                        <div className="mb-2 rounded-xl overflow-hidden max-w-full shadow-inner border border-slate-100 dark:border-slate-800">
+                          <img src={msg.file.url} alt={msg.file.name} className="max-h-60 object-cover w-full cursor-pointer hover:opacity-95 transition-opacity" onClick={() => window.open(msg.file?.url, '_blank')} />
+                        </div>
+                      )}
+                      {msg.file && !msg.file.type.startsWith('image/') && (
+                        <a 
+                          href={msg.file.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="mb-2 p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl flex items-center gap-3 border border-slate-150 dark:border-slate-700/60 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all text-slate-700 dark:text-slate-200"
+                        >
+                          <Paperclip className="w-5 h-5 text-emerald-500" />
+                          <div className="text-left min-w-0 flex-1">
+                            <div className="text-xs font-bold truncate max-w-[180px]">{msg.file.name}</div>
+                            <div className="text-[10px] text-slate-400 font-medium uppercase">{msg.file.type.split('/')[1] || 'DOC'}</div>
+                          </div>
+                        </a>
+                      )}
                       <p className="text-[13.5px] font-medium leading-relaxed">{msg.content}</p>
                       <div className="flex justify-end items-center gap-1 mt-1 opacity-70">
                         <span className={cn("text-[9px]", msg.sender === 'me' ? "text-emerald-100" : "text-slate-405")}>
@@ -453,11 +573,91 @@ export function AIChat() {
           </div>
 
           {/* Chat Input */}
-          <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-850 z-10 shrink-0 flex items-end gap-2.5">
-            <button className="p-3 text-slate-400 hover:text-emerald-650 dark:hover:text-emerald-450 transition-colors rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 shrink-0">
+          <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-850 z-20 shrink-0 flex items-end gap-2.5 relative">
+            
+            {/* Hidden File Input */}
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleFileChange} 
+              className="hidden" 
+            />
+
+            {/* Emoji Picker Popup */}
+            {showEmojiPicker && (
+              <div 
+                ref={emojiPickerRef}
+                className="absolute bottom-20 left-4 w-72 h-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl z-50 flex flex-col p-3 animate-in fade-in slide-in-from-bottom-2 duration-150"
+              >
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/60 pb-2 mb-2">
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Emojis</span>
+                  <button 
+                    onClick={() => setShowEmojiPicker(false)}
+                    className="text-slate-400 hover:text-rose-500 transition-colors p-1"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+                <div className="flex-1 overflow-y-auto grid grid-cols-6 gap-2 p-1 custom-scrollbar">
+                  {emojisList.map((emoji, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleAddEmoji(emoji)}
+                      className="text-2xl hover:bg-slate-100 dark:hover:bg-slate-800 p-1.5 rounded-xl transition-all active:scale-90"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Attachment Preview Chip */}
+            {attachedFile && (
+              <div className="absolute bottom-20 left-4 right-4 bg-white dark:bg-slate-900 border border-emerald-150 dark:border-emerald-900/40 rounded-2xl shadow-xl z-50 p-4 flex items-center justify-between animate-in fade-in slide-in-from-bottom-2 duration-150 border-l-4 border-l-emerald-600">
+                <div className="flex items-center gap-3 min-w-0">
+                  {attachedFile.type.startsWith('image/') ? (
+                    <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-slate-100 dark:border-slate-800">
+                      <img src={attachedFile.url} alt={attachedFile.name} className="w-full h-full object-cover" />
+                    </div>
+                  ) : (
+                    <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center shrink-0 text-emerald-600">
+                      <File size={20} />
+                    </div>
+                  )}
+                  <div className="text-left min-w-0">
+                    <div className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate max-w-[200px]">{attachedFile.name}</div>
+                    <div className="text-[10px] text-slate-400 uppercase tracking-tight">{attachedFile.type.split('/')[1] || 'Arquivo'}</div>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setAttachedFile(null)}
+                  className="p-1.5 bg-slate-50 dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-slate-400 hover:text-rose-500 rounded-full transition-colors border border-slate-100 dark:border-slate-700/60"
+                  title="Remover anexo"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            )}
+
+            <button 
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              className={cn(
+                "p-3 rounded-full transition-colors shrink-0 hover:bg-slate-50 dark:hover:bg-slate-800",
+                showEmojiPicker ? "text-emerald-600" : "text-slate-400 hover:text-emerald-650"
+              )}
+              title="Inserir Emojis"
+            >
               <Smile size={22} />
             </button>
-            <button className="p-3 text-slate-400 hover:text-emerald-650 dark:hover:text-emerald-450 transition-colors rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 shrink-0">
+            <button 
+              onClick={handleFileClick}
+              className={cn(
+                "p-3 rounded-full transition-colors shrink-0 hover:bg-slate-50 dark:hover:bg-slate-800",
+                attachedFile ? "text-emerald-600" : "text-slate-400 hover:text-emerald-650"
+              )}
+              title="Anexar Arquivo"
+            >
               <Paperclip size={22} />
             </button>
             
@@ -490,7 +690,7 @@ export function AIChat() {
                 rows={1}
               />
             </div>
-            {inputValue.trim() ? (
+            {(inputValue.trim() || attachedFile) ? (
               <button 
                 onClick={handleSendMessageOrSaveNote}
                 className={cn(
