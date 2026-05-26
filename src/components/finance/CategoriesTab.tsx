@@ -130,7 +130,8 @@ export function CategoriesTab() {
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48"><Tag className="w-14 h-14 text-slate-200 mb-3" /><p className="text-slate-500 dark:text-slate-400">Nenhuma categoria.</p></div>
         ) : (
-          <div className="overflow-x-auto">\n          <table className="w-full text-sm text-left">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
             <thead className="text-xs text-slate-500 dark:text-slate-400 uppercase bg-slate-50 dark:bg-slate-800 border-b border-slate-100 dark:border-slate-800">
               <tr>
                 <th className="px-5 py-4 font-bold tracking-wider">Nome</th>
@@ -181,6 +182,7 @@ export function CategoriesTab() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>
