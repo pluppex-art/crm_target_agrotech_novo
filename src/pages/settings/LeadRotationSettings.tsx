@@ -228,16 +228,17 @@ export function LeadRotationSettings() {
                               key={prod.id}
                               onClick={() => toggleProduct(profile.id, prod.name)}
                               className={cn(
-                                "text-xs px-3 py-1.5 rounded-lg border transition-all duration-200 select-none flex items-center gap-1.5",
+                                "text-xs px-3 py-1.5 rounded-lg border transition-all duration-200 select-none flex items-center gap-1.5 font-medium",
                                 isSelected 
-                                  ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/30 dark:text-emerald-400" 
-                                  : "bg-white border-slate-200 text-slate-500 hover:border-slate-300 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-400 dark:hover:border-slate-600"
+                                  ? "bg-emerald-600 border-emerald-600 text-white shadow-sm dark:bg-emerald-500 dark:border-emerald-500" 
+                                  : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50 hover:border-slate-300 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-700"
                               )}
                             >
-                              <div className={cn(
-                                "w-2 h-2 rounded-full",
-                                isSelected ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-600"
-                              )} />
+                              {isSelected ? (
+                                <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                              ) : (
+                                <div className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
+                              )}
                               {prod.name}
                             </button>
                           );
