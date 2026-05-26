@@ -76,7 +76,7 @@ export const LeadTasksTab: React.FC<LeadTasksTabProps> = ({
                     )}
                     {task.due_date && (
                       <span className="text-[10px] text-slate-400">
-                        {new Date(task.due_date).toLocaleDateString('pt-BR')}
+                        {new Date(task.due_date + 'T12:00:00').toLocaleDateString('pt-BR')}
                         {task.scheduled_time && ` às ${task.scheduled_time}`}
                       </span>
                     )}

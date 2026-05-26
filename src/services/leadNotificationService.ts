@@ -221,7 +221,7 @@ export async function notifyNewTask(task: Task, creatorId: string): Promise<void
 
   const inserted = await insertNotificationForUser(task.responsavel_usuario_id, {
     title: `Nova tarefa: ${task.title}`,
-    message: `Você recebeu uma nova tarefa. Prazo: ${task.due_date ? new Date(task.due_date + 'T00:00:00').toLocaleDateString('pt-BR') : 'Sem data'}${task.lead_name ? ` | Lead: ${task.lead_name}` : ''}`,
+    message: `Você recebeu uma nova tarefa. Prazo: ${task.due_date ? new Date(task.due_date + 'T12:00:00').toLocaleDateString('pt-BR') : 'Sem data'}${task.lead_name ? ` | Lead: ${task.lead_name}` : ''}`,
     type: 'info',
     category: 'user',
     link: `/tasks?id=${task.id}`,
@@ -249,7 +249,7 @@ export async function notifyNewTask(task: Task, creatorId: string): Promise<void
         html: emailTemplates.taskAssignment(
           profile.name || '',
           task.title,
-          task.due_date ? new Date(task.due_date + 'T00:00:00').toLocaleDateString('pt-BR') : 'Sem data',
+          task.due_date ? new Date(task.due_date + 'T12:00:00').toLocaleDateString('pt-BR') : 'Sem data',
           task.lead_name,
           leadPhone
         )
@@ -265,7 +265,7 @@ export async function notifyTaskReminder(task: Task): Promise<void> {
 
   const inserted = await insertNotificationForUser(task.responsavel_usuario_id, {
     title: `Lembrete: ${task.title}`,
-    message: `Tarefa pendente para hoje ou atrasada. Prazo: ${task.due_date ? new Date(task.due_date + 'T00:00:00').toLocaleDateString('pt-BR') : 'Sem data'}`,
+    message: `Tarefa pendente para hoje ou atrasada. Prazo: ${task.due_date ? new Date(task.due_date + 'T12:00:00').toLocaleDateString('pt-BR') : 'Sem data'}`,
     type: 'urgent',
     category: 'alerts',
     link: `/tasks?id=${task.id}`,
@@ -293,7 +293,7 @@ export async function notifyTaskReminder(task: Task): Promise<void> {
         html: emailTemplates.taskAssignment(
           profile.name || '',
           `LEMBRETE: ${task.title}`,
-          task.due_date ? new Date(task.due_date + 'T00:00:00').toLocaleDateString('pt-BR') : 'Sem data',
+          task.due_date ? new Date(task.due_date + 'T12:00:00').toLocaleDateString('pt-BR') : 'Sem data',
           task.lead_name,
           leadPhone
         )

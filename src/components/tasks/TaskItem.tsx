@@ -52,7 +52,7 @@ export function TaskItem({ task, onToggleStatus, onDelete, onEdit }: TaskItemPro
             {task.due_date && (
               <span className="flex items-center gap-1 text-[10px] text-slate-400 font-bold uppercase">
                 <Clock className="w-3 h-3" />
-                {new Date(task.due_date).toLocaleDateString('pt-BR')}
+                {new Date(task.due_date + 'T12:00:00').toLocaleDateString('pt-BR')}
                 {task.scheduled_time && (
                   <span className="ml-0.5">às {task.scheduled_time}</span>
                 )}
