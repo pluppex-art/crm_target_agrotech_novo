@@ -164,7 +164,7 @@ export function DashboardTab({ startDate, endDate }: { startDate: string; endDat
   // --- Premium UI Components ---
   const MiniCard = ({ title, value, color, icon: Icon, sub }: any) => (
     <div className="flex flex-col p-5 rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm transition-all hover:shadow-md group relative overflow-hidden">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
         <div className={cn(
           "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-500",
           color === 'emerald' ? 'bg-emerald-50 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white group-hover:rotate-12' : 
@@ -192,7 +192,7 @@ export function DashboardTab({ startDate, endDate }: { startDate: string; endDat
         <MiniCard title="Despesas Totais" value={kpis?.despesa_total} color="rose" icon={TrendingDown} sub="Operacional + Fixos" />
         
         {/* Profit Highlight Card */}
-        <div className="lg:col-span-2 p-5 rounded-2xl bg-slate-900 text-white flex items-center justify-between shadow-xl relative overflow-hidden group">
+        <div className="lg:col-span-2 p-5 rounded-2xl bg-slate-900 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/20 rounded-full blur-3xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-1000" />
           <div className="relative z-10 flex flex-col justify-between h-full">
             <div>
@@ -225,7 +225,7 @@ export function DashboardTab({ startDate, endDate }: { startDate: string; endDat
         {/* Main Fluxo Chart */}
         <div className="lg:col-span-3 space-y-6">
           <div className="bg-white dark:bg-slate-900 p-7 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm relative overflow-hidden">
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
               <div>
                 <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest flex items-center gap-2">
                   <Activity size={16} className="text-emerald-500" />
@@ -283,7 +283,7 @@ export function DashboardTab({ startDate, endDate }: { startDate: string; endDat
 
           {/* Turma Desempenho Section */}
           <div className="bg-white dark:bg-slate-900 p-7 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm relative overflow-hidden">
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
               <div>
                 <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest flex items-center gap-2">
                   <GraduationCap size={16} className="text-indigo-500" />
@@ -364,7 +364,7 @@ export function DashboardTab({ startDate, endDate }: { startDate: string; endDat
                 <div className="w-full h-1.5 bg-slate-50 dark:bg-slate-800 rounded-full overflow-hidden">
                   <div className="h-full bg-emerald-500 rounded-full" style={{ width: '85%' }} />
                 </div>
-                <div className="mt-2 flex items-center justify-between text-[8px] font-bold text-slate-400 uppercase">
+                <div className="mt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-[8px] font-bold text-slate-400 uppercase">
                   <span>Matrículas: R$ {fmt(kpis?.contas_receber_matriculas || 0)}</span>
                   <span>Manual: R$ {fmt(kpis?.contas_receber_manual || 0)}</span>
                 </div>

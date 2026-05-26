@@ -11,7 +11,7 @@ export function TransactionTable({ filteredTransactions }: TransactionTableProps
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-      <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
+      <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-50 dark:bg-slate-800/50">
         <h3 className="font-bold text-slate-800 dark:text-slate-200">Últimas Movimentações</h3>
         <button className="p-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 hover:bg-slate-50 dark:bg-slate-800 transition-colors">
           <Filter className="w-4 h-4 text-slate-400" />

@@ -52,7 +52,7 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
   // --- Metric Item (Compact) ---
   const MetricItem = ({ title, value, color, icon: Icon, sub }: any) => (
     <div className="flex flex-col p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm transition-all hover:shadow-md group">
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-2">
         <div className={cn(
           "w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
           color === 'green' ? 'bg-emerald-50 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white' : 
@@ -87,7 +87,7 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
     <div className="space-y-6 w-full pb-12 animate-in fade-in duration-500 px-4">
       
       {/* Header Premium */}
-      <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-6">
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-100">
             <Handshake size={20} className="text-white" />
@@ -138,7 +138,7 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="md:col-span-2 p-6 rounded-2xl bg-emerald-600 text-white flex flex-col justify-between shadow-xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-48 h-48 bg-white dark:bg-slate-900/10 rounded-full blur-3xl -mr-24 -mt-24" />
-          <div className="relative flex items-center justify-between mb-6">
+          <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded-md bg-white dark:bg-slate-900/20 flex items-center justify-center">
                 <DollarSign size={14} className="text-white" />
@@ -157,7 +157,7 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
         </div>
 
         <div className="p-6 rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Margem Real</span>
             <ShieldCheck size={14} className="text-emerald-500/30" />
           </div>
@@ -178,7 +178,7 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
         <div className="lg:col-span-3 space-y-6">
           {/* Evolução Chart */}
           <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Evolução Comparativa</h3>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-1.5">
@@ -222,7 +222,7 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
 
           {/* Turmas Table */}
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-slate-50 flex items-center justify-between">
+            <div className="p-6 border-b border-slate-50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Performance por Turma (BPO)</h3>
               <span className="px-2 py-1 bg-slate-50 dark:bg-slate-800 text-slate-400 text-[8px] font-black rounded uppercase">
                 {safeR.turmas?.length || 0} Turmas Ativas
@@ -291,7 +291,7 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
 
           <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl p-4 shadow-sm space-y-3">
             <div>
-              <div className="flex items-center justify-between mb-1">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-1">
                 <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Fee Fixo</span>
                 <span className="text-xs font-black text-indigo-500 tracking-tighter">R$ {fmt(safeR.fixed_fee_total || 0)}</span>
               </div>
@@ -301,7 +301,7 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-1">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-1">
                 <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Target Fee</span>
                 <span className="text-xs font-black text-emerald-500 tracking-tighter">R$ {fmt(safeR.target_fee || 0)}</span>
               </div>
@@ -311,7 +311,7 @@ export function PartnerTab({ startDate, endDate }: { startDate: string; endDate:
             </div>
             
             <div>
-              <div className="flex items-center justify-between mb-1">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-1">
                 <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Pluppex Fee</span>
                 <span className="text-xs font-black text-violet-500 tracking-tighter">R$ {fmt(safeR.pluppex_fee || 0)}</span>
               </div>

@@ -11,7 +11,7 @@ export function FinanceMetrics({ totalIncome, totalExpense, balance }: FinanceMe
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
       <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
           <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center">
             <TrendingUp className="w-5 h-5 text-emerald-600" />
           </div>
@@ -22,7 +22,7 @@ export function FinanceMetrics({ totalIncome, totalExpense, balance }: FinanceMe
       </div>
 
       <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
           <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center">
             <TrendingDown className="w-5 h-5 text-red-600" />
           </div>
@@ -33,7 +33,7 @@ export function FinanceMetrics({ totalIncome, totalExpense, balance }: FinanceMe
       </div>
 
       <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
           <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
             <DollarSign className="w-5 h-5 text-blue-600" />
           </div>

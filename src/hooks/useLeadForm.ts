@@ -182,9 +182,9 @@ export const useLeadForm = ({ lead, onClose }: UseLeadFormProps) => {
           phone: dupes.phone ? 'Telefone já cadastrado' : undefined,
           email: dupes.email ? 'E-mail já cadastrado' : undefined,
         });
-        
+
         if (dupes.cnpj) alert('Já existe um lead cadastrado com este CPF/CNPJ.');
-        
+
         setIsSaving(false);
         return;
       }

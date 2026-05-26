@@ -109,7 +109,7 @@ export const NewTransactionModal: React.FC<NewTransactionModalProps> = ({ isOpen
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col"
         >
-          <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900">
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900">
             <h2 className="text-xl font-bold text-gray-800 dark:text-slate-200">Nova Transação</h2>
             <button 
               onClick={onClose}

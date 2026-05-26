@@ -48,7 +48,7 @@ export function DreTab({ startDate, endDate }: { startDate: string; endDate: str
       {/* ─── FLUXO E RECEITA BRUTA PRIMEIRO ─── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Main Revenue Card */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-700 p-6 flex items-center justify-between shadow-sm border-l-4 border-l-indigo-500">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-700 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm border-l-4 border-l-indigo-500">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center border border-indigo-100 shadow-sm">
               <TrendingUp className="w-6 h-6 text-indigo-600" />
@@ -63,7 +63,7 @@ export function DreTab({ startDate, endDate }: { startDate: string; endDate: str
         </div>
 
         {/* Net Profit Card */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-700 p-6 flex items-center justify-between shadow-sm border-l-4 border-l-emerald-500">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-700 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm border-l-4 border-l-emerald-500">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center border border-emerald-100 shadow-sm">
               <PiggyBank className="w-6 h-6 text-emerald-600" />
@@ -81,7 +81,7 @@ export function DreTab({ startDate, endDate }: { startDate: string; endDate: str
         </div>
 
         {/* Performance (Margem Líquida) */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-700 p-6 flex items-center justify-between shadow-sm border-l-4 border-l-violet-500">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-700 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm border-l-4 border-l-violet-500">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-violet-50 flex items-center justify-center border border-violet-100 shadow-sm">
               <Target className="w-6 h-6 text-violet-600" />
@@ -99,7 +99,7 @@ export function DreTab({ startDate, endDate }: { startDate: string; endDate: str
       {/* ─── PERFORMANCES E MARGENS DETALHADAS ─── */}
       {report && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm border-l-4 border-l-emerald-500 flex items-center justify-between">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm border-l-4 border-l-emerald-500 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center border border-emerald-100 shadow-sm">
                 <BarChart3 className="w-6 h-6 text-emerald-600" />
@@ -111,7 +111,7 @@ export function DreTab({ startDate, endDate }: { startDate: string; endDate: str
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm border-l-4 border-l-indigo-500 flex items-center justify-between">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm border-l-4 border-l-indigo-500 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center border border-indigo-100 shadow-sm">
                 <BarChart3 className="w-6 h-6 text-indigo-600" />
@@ -127,7 +127,7 @@ export function DreTab({ startDate, endDate }: { startDate: string; endDate: str
 
       {/* ─── TABELA DE RESULTADOS ─── */}
       <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-700 shadow-xl shadow-slate-100/50 overflow-hidden">
-        <div className="flex items-center justify-between px-8 py-6 border-b border-slate-100 dark:border-slate-800">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-8 py-6 border-b border-slate-100 dark:border-slate-800">
           <div>
             <h2 className="text-xl font-black text-slate-800 dark:text-slate-200 tracking-tight">DRE Gerencial</h2>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Fluxo detalhado de transações <span className="font-bold text-emerald-600">PAGAS</span> no período.</p>

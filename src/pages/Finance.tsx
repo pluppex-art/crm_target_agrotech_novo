@@ -40,7 +40,7 @@ export function Finance() {
   const { hasPermission } = usePermissions();
   const [activeTab, setActiveTab] = useState<TabId>('dashboard');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => typeof window !== "undefined" ? window.innerWidth > 768 : true);
   
   // Date States
   const today = new Date();
@@ -91,7 +91,7 @@ export function Finance() {
   return (
     <div className="flex h-full bg-slate-50 dark:bg-slate-800/50 relative overflow-hidden">
       {/* Sidebar - Redesigned to match the more premium feel */}
-      <div className="relative flex flex-shrink-0 z-20 h-full">
+      <div className="absolute md:relative h-full flex flex-shrink-0 z-30">
         <motion.div
           initial={false}
           animate={{ 
@@ -144,7 +144,7 @@ export function Finance() {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
-        <div className="h-20 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 px-8 flex items-center justify-between">
+        <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 px-4 sm:px-8 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-xl font-black text-slate-800 dark:text-slate-200 tracking-tight">Centro Financeiro</h1>
             <p className="text-xs text-slate-400 font-medium">Gestão de resultados e automação financeira do CRM.</p>
