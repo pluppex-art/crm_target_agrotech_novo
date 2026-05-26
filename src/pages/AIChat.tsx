@@ -1,6 +1,13 @@
-import { useState, useRef, useEffect } from 'react';
-import { Search, MoreVertical, MessageCircle, Send, Phone, Video, Paperclip, Smile, ArrowLeft } from 'lucide-react';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { Search, MoreVertical, MessageCircle, Send, Phone, Video, Paperclip, Smile, ArrowLeft, User, ExternalLink, Activity, CheckSquare, Calendar, StickyNote } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useLeadStore } from '../store/useLeadStore';
+import { usePipelineStore } from '../store/usePipelineStore';
+import { useProfileStore } from '../store/useProfileStore';
+import { LeadDetailsModal } from '../components/leads/LeadDetailsModal';
+import { useAuthStore } from '../store/useAuthStore';
+import { noteService } from '../services/noteService';
+import type { Lead, LeadStatus } from '../types/leads';
 
 // Tipos simulados
 type Platform = 'whatsapp' | 'instagram' | 'email';
@@ -9,6 +16,7 @@ interface Message {
   sender: 'me' | 'contact';
   content: string;
   timestamp: string;
+  isNote?: boolean;
 }
 interface Chat {
   id: number;
@@ -19,14 +27,15 @@ interface Chat {
   unread: number;
   platform: Platform;
   color: string;
+  phone: string;
 }
 
 const INITIAL_CHATS: Chat[] = [
-  { id: 1, initials: 'JS', name: 'João Silva', lastMessage: 'Obrigado! Aguardo o retorno.', time: '10:30', unread: 2, platform: 'whatsapp', color: 'bg-emerald-500' },
-  { id: 2, initials: 'MO', name: 'Maria Oliveira', lastMessage: 'Qual o valor do frete?', time: '09:15', unread: 1, platform: 'whatsapp', color: 'bg-emerald-500' },
-  { id: 3, initials: 'CE', name: 'Carlos Empresa', lastMessage: 'Segue em anexo a nota fiscal.', time: 'Ontem', unread: 0, platform: 'whatsapp', color: 'bg-emerald-500' },
-  { id: 4, initials: 'AS', name: 'Ana Souza', lastMessage: 'Sim, concordo.', time: 'Ontem', unread: 0, platform: 'whatsapp', color: 'bg-emerald-500' },
-  { id: 5, initials: 'MP', name: 'Marcos Pereira', lastMessage: 'Pode me enviar o catálogo?', time: 'Segunda', unread: 0, platform: 'whatsapp', color: 'bg-emerald-500' },
+  { id: 1, initials: 'JS', name: 'João Silva', lastMessage: 'Obrigado! Aguardo o retorno.', time: '10:30', unread: 2, platform: 'whatsapp', color: 'from-emerald-500 to-teal-600', phone: '+55 11 99999-9999' },
+  { id: 2, initials: 'MO', name: 'Maria Oliveira', lastMessage: 'Qual o valor do frete?', time: '09:15', unread: 1, platform: 'whatsapp', color: 'from-violet-500 to-purple-600', phone: '+55 11 98888-8888' },
+  { id: 3, initials: 'CE', name: 'Carlos Empresa', lastMessage: 'Segue em anexo a nota fiscal.', time: 'Ontem', unread: 0, platform: 'whatsapp', color: 'from-pink-500 to-rose-600', phone: '+55 11 97777-7777' },
+  { id: 4, initials: 'AS', name: 'Ana Souza', lastMessage: 'Sim, concordo.', time: 'Ontem', unread: 0, platform: 'whatsapp', color: 'from-amber-500 to-orange-600', phone: '+55 11 96666-6666' },
+  { id: 5, initials: 'MP', name: 'Marcos Pereira', lastMessage: 'Pode me enviar o catálogo?', time: 'Segunda', unread: 0, platform: 'whatsapp', color: 'from-teal-500 to-emerald-600', phone: '+55 11 95555-5555' },
 ];
 
 const INITIAL_MESSAGES: Record<number, Message[]> = {
@@ -46,29 +55,120 @@ export function AIChat() {
   const [messages, setMessages] = useState(INITIAL_MESSAGES);
   const [activeChatId, setActiveChatId] = useState<number | null>(null);
   const [inputValue, setInputValue] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [isNotesMode, setIsNotesMode] = useState(false);
+  
+  // Real Lead Integration state
+  const [selectedLeadForModal, setSelectedLeadForModal] = useState<Lead | null>(null);
+  const [modalInitialTab, setModalInitialTab] = useState<'info' | 'history' | 'notes' | 'tasks' | 'turma' | 'checklist'>('info');
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Sync with Stores
+  const { leads, fetchLeads, updateLeadStage, updateLead } = useLeadStore();
+  const { pipelines, fetchPipelines } = usePipelineStore();
+  const { profiles, fetchProfiles } = useProfileStore();
+  const { user } = useAuthStore();
+
+  useEffect(() => {
+    if (leads.length === 0) {
+      fetchLeads();
+    }
+    if (pipelines.length === 0) {
+      fetchPipelines();
+    }
+    if (profiles.length === 0) {
+      fetchProfiles();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const activeChat = chats.find(c => c.id === activeChatId);
   const activeMessages = activeChatId ? (messages[activeChatId] || []) : [];
+
+  // Match active mock chat with a real lead
+  const matchedRealLead = useMemo(() => {
+    if (!activeChat) return null;
+    
+    // Attempt matching by name
+    const found = leads.find(l => 
+      l.name.toLowerCase().includes(activeChat.name.toLowerCase()) || 
+      activeChat.name.toLowerCase().includes(l.name.toLowerCase())
+    );
+    
+    if (found) return found;
+    
+    // Fallback: If any leads exist, return the first one so the details modal works
+    if (leads.length > 0) return leads[0];
+    
+    return null;
+  }, [activeChat, leads]);
+
+  const currentPipeline = pipelines[0];
+  const COLUMNS = useMemo(() => {
+    return currentPipeline?.stages.map(s => ({
+      id: s.id,
+      title: s.name,
+      color: s.color || 'bg-blue-500'
+    })) || [];
+  }, [currentPipeline]);
+
+  const responsiblesList = useMemo(() => {
+    return profiles.map(p => ({
+      id: p.id,
+      name: p.name || p.email || 'Sem nome'
+    }));
+  }, [profiles]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activeMessages]);
 
+  // Close dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   const handleSelectChat = (chatId: number) => {
     setActiveChatId(chatId);
+    setShowDropdown(false);
+    setIsNotesMode(false);
     // Limpar unread quando abre a conversa
     setChats(prev => prev.map(c => c.id === chatId ? { ...c, unread: 0 } : c));
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessageOrSaveNote = async () => {
     if (!inputValue.trim() || !activeChatId) return;
+
+    if (isNotesMode && matchedRealLead && user) {
+      const authorName = profiles.find(p => p.id === user.id)?.name || user.email || 'Vendedor';
+      // Real Supabase Lead Note Creation
+      await noteService.createNote({
+        content: inputValue,
+        lead_id: matchedRealLead.id,
+        author_id: user.id,
+        author_name: authorName
+      });
+      
+      // Dispatch event to sync notes in the rest of the application
+      window.dispatchEvent(new CustomEvent('refresh-lead-notes', { detail: { leadId: matchedRealLead.id } }));
+    }
 
     const newMessage: Message = {
       id: Date.now().toString(),
       sender: 'me',
       content: inputValue,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isNote: isNotesMode
     };
 
     setMessages(prev => ({
@@ -78,49 +178,63 @@ export function AIChat() {
 
     setChats(prev => prev.map(c => 
       c.id === activeChatId 
-        ? { ...c, lastMessage: inputValue, time: newMessage.timestamp } 
+        ? { ...c, lastMessage: isNotesMode ? `[Anotação] ${inputValue}` : inputValue, time: newMessage.timestamp } 
         : c
     ));
 
     setInputValue('');
+    setIsNotesMode(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage();
+      handleSendMessageOrSaveNote();
+    }
+  };
+
+  const handleOpenLeadModal = (tab: 'info' | 'history' | 'notes' | 'tasks' | 'turma' | 'checklist' = 'info') => {
+    if (matchedRealLead) {
+      setModalInitialTab(tab);
+      setSelectedLeadForModal(matchedRealLead);
+      setShowDropdown(false);
+    } else {
+      alert("Nenhum Lead correspondente encontrado no sistema para abrir os detalhes.");
     }
   };
 
   return (
-    <div className="flex h-[calc(100vh-64px)] bg-[#f3f6f9] dark:bg-transparent text-slate-800 dark:text-slate-200 font-sans overflow-hidden border-t border-slate-200 dark:border-slate-800">
+    <div className="flex h-[calc(100vh-64px)] bg-[#f8fafc] dark:bg-slate-950 text-slate-800 dark:text-slate-200 font-sans overflow-hidden border-t border-slate-200 dark:border-slate-800/80">
       
       {/* Sidebar - Contatos */}
       <div className={cn(
-        "w-full md:w-[340px] lg:w-[380px] flex-shrink-0 border-r border-slate-200 dark:border-slate-800/60 flex-col bg-white dark:bg-slate-900",
+        "w-full md:w-[340px] lg:w-[380px] flex-shrink-0 border-r border-slate-200 dark:border-slate-800/60 flex flex-col bg-white dark:bg-slate-900 shadow-sm",
         activeChatId ? "hidden md:flex" : "flex"
       )}>
         
         {/* Header da Sidebar */}
         <div className="p-5 flex items-center justify-between border-b border-slate-100 dark:border-slate-800/50">
-          <h1 className="text-xl font-bold text-slate-800 dark:text-white">Mensagens</h1>
-          <div className="flex items-center gap-4 text-slate-400">
-            <button className="hover:text-emerald-600 transition-colors"><Search size={18} /></button>
-            <button className="hover:text-emerald-600 transition-colors"><MoreVertical size={18} /></button>
+          <h1 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+            <MessageCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            Central de Chats
+          </h1>
+          <div className="flex items-center gap-3 text-slate-400">
+            <button className="hover:text-emerald-650 dark:hover:text-emerald-450 transition-colors p-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg"><Search size={18} /></button>
+            <button className="hover:text-emerald-650 dark:hover:text-emerald-450 transition-colors p-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg"><MoreVertical size={18} /></button>
           </div>
         </div>
 
         {/* Filtros em Pílulas */}
-        <div className="px-4 py-4 flex items-center gap-2 overflow-x-auto custom-scrollbar border-b border-slate-100 dark:border-slate-800/50">
+        <div className="px-4 py-3 flex items-center gap-2 overflow-x-auto custom-scrollbar border-b border-slate-100 dark:border-slate-800/50">
           {['Todas', 'Não lidas', 'WhatsApp', 'Instagram'].map(filter => (
             <button
               key={filter}
               onClick={() => setActiveFilter(filter)}
               className={cn(
-                "px-4 py-1.5 rounded-full text-[13px] font-semibold whitespace-nowrap transition-colors border",
+                "px-3.5 py-1.5 rounded-full text-[12px] font-bold whitespace-nowrap transition-all border",
                 activeFilter === filter 
-                  ? "bg-emerald-600 text-white border-emerald-500" 
-                  : "bg-slate-50 dark:bg-slate-800/30 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-800/50 hover:bg-slate-100 hover:dark:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-300"
+                  ? "bg-emerald-600 text-white border-emerald-500 shadow-sm shadow-emerald-500/20" 
+                  : "bg-slate-50 dark:bg-slate-800/30 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-300"
               )}
             >
               {filter}
@@ -134,8 +248,8 @@ export function AIChat() {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input 
               type="text" 
-              placeholder="Buscar por nome ou tag..." 
-              className="w-full bg-slate-50 dark:bg-slate-800/50 text-[13px] font-medium text-slate-800 dark:text-slate-200 rounded-xl pl-10 pr-4 py-2.5 outline-none focus:ring-1 focus:ring-emerald-500 border border-slate-200 dark:border-slate-700 placeholder:text-slate-400 transition-all shadow-inner"
+              placeholder="Buscar contatos..." 
+              className="w-full bg-slate-50 dark:bg-slate-800/50 text-[13px] font-semibold text-slate-800 dark:text-slate-200 rounded-xl pl-10 pr-4 py-2.5 outline-none focus:ring-1 focus:ring-emerald-500 border border-slate-200 dark:border-slate-700 placeholder:text-slate-400 transition-all shadow-inner"
             />
           </div>
         </div>
@@ -147,19 +261,19 @@ export function AIChat() {
               key={chat.id} 
               onClick={() => handleSelectChat(chat.id)}
               className={cn(
-                "flex items-center gap-3.5 px-5 py-4 cursor-pointer border-b border-slate-100 dark:border-slate-800/40 transition-colors",
+                "flex items-center gap-3.5 px-5 py-4 cursor-pointer border-b border-slate-100 dark:border-slate-800/30 transition-all relative",
                 activeChatId === chat.id 
-                  ? "bg-emerald-50 dark:bg-emerald-900/10" 
-                  : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                  ? "bg-emerald-50/40 dark:bg-emerald-950/10 border-l-4 border-l-emerald-600" 
+                  : "hover:bg-slate-50 dark:hover:bg-slate-800/30 border-l-4 border-l-transparent"
               )}
             >
               <div className="relative shrink-0">
-                <div className={cn("w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-sm", chat.color)}>
+                <div className={cn("w-11 h-11 rounded-full flex items-center justify-center text-white font-black text-[15px] shadow-sm bg-gradient-to-br", chat.color)}>
                   {chat.initials}
                 </div>
                 {chat.platform === 'whatsapp' && (
                   <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center">
-                    <div className="w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center shadow-sm">
+                    <div className="w-4 h-4 bg-emerald-600 rounded-full flex items-center justify-center shadow-sm">
                       <MessageCircle className="w-[10px] h-[10px] text-white" fill="currentColor" strokeWidth={0} />
                     </div>
                   </div>
@@ -167,17 +281,17 @@ export function AIChat() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-1">
-                  <h3 className="text-[15px] font-bold text-slate-800 dark:text-slate-200 truncate">{chat.name}</h3>
-                  <span className={cn("text-[11px] whitespace-nowrap", chat.unread > 0 ? "text-emerald-600 dark:text-emerald-500 font-bold" : "text-slate-400 font-medium")}>
+                  <h3 className="text-[14px] font-bold text-slate-800 dark:text-slate-200 truncate">{chat.name}</h3>
+                  <span className={cn("text-[10px] whitespace-nowrap", chat.unread > 0 ? "text-emerald-600 dark:text-emerald-405 font-bold" : "text-slate-400 font-medium")}>
                     {chat.time}
                   </span>
                 </div>
                 <div className="flex items-center justify-between gap-3">
-                  <p className={cn("text-[13px] truncate", chat.unread > 0 ? "text-slate-700 dark:text-slate-300 font-bold" : "text-slate-500 dark:text-slate-400")}>
+                  <p className={cn("text-[12px] truncate", chat.unread > 0 ? "text-slate-800 dark:text-slate-200 font-bold" : "text-slate-500 dark:text-slate-400")}>
                     {chat.lastMessage}
                   </p>
                   {chat.unread > 0 && (
-                    <div className="w-5 h-5 rounded-full bg-emerald-600 flex items-center justify-center text-[11px] font-bold text-white shrink-0 shadow-sm">
+                    <div className="w-5 h-5 rounded-full bg-emerald-600 flex items-center justify-center text-[10px] font-black text-white shrink-0 shadow-sm shadow-emerald-500/25">
                       {chat.unread}
                     </div>
                   )}
@@ -191,15 +305,20 @@ export function AIChat() {
       {/* Main Panel - Area de Chat ou Estado Vazio */}
       {activeChatId && activeChat ? (
         <div className={cn(
-          "flex-1 flex-col bg-[#e5ddd5] dark:bg-[#0B1120] relative",
+          "flex-1 flex flex-col bg-slate-50/50 dark:bg-slate-950/40 relative h-full",
           activeChatId ? "flex" : "hidden md:flex"
         )}>
           
-          {/* Fundo estilo WhatsApp / textura */}
-          <div className="absolute inset-0 opacity-40 dark:opacity-5 pointer-events-none" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/cubes.png")' }} />
+          {/* Fundo elegante estilo CRM grid */}
+          <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.03] pointer-events-none" 
+            style={{ 
+              backgroundImage: 'radial-gradient(circle, #10b981 1.5px, transparent 1.5px)',
+              backgroundSize: '24px 24px'
+            }} 
+          />
 
           {/* Chat Header */}
-          <div className="h-[76px] px-4 sm:px-6 flex items-center justify-between bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 z-10 shrink-0">
+          <div className="h-[76px] px-4 sm:px-6 flex items-center justify-between bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800/80 z-20 shrink-0 shadow-sm">
             <div className="flex items-center gap-3 sm:gap-4">
               <button 
                 onClick={() => setActiveChatId(null)}
@@ -207,24 +326,89 @@ export function AIChat() {
               >
                 <ArrowLeft size={24} />
               </button>
-              <div className={cn("w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shadow-sm", activeChat.color)}>
+              <div className={cn("w-10 h-10 rounded-full flex items-center justify-center text-white font-bold bg-gradient-to-br shadow-sm", activeChat.color)}>
                 {activeChat.initials}
               </div>
               <div>
-                <h2 className="font-bold text-slate-800 dark:text-slate-100">{activeChat.name}</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Origem: {activeChat.platform === 'whatsapp' ? 'WhatsApp' : 'Instagram'}</p>
+                <div className="flex items-center gap-2">
+                  <h2 className="font-bold text-[15px] text-slate-800 dark:text-slate-100">{activeChat.name}</h2>
+                  {matchedRealLead && (
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black tracking-wider uppercase bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/40">
+                      {matchedRealLead.status === 'new' ? 'Novo' : 
+                       matchedRealLead.status === 'qualified' ? 'Qualificado' :
+                       matchedRealLead.status === 'proposal' ? 'Proposta' :
+                       matchedRealLead.status === 'closed' ? 'Ganho' :
+                       matchedRealLead.status === 'lost' ? 'Perdido' : matchedRealLead.status}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Canal: {activeChat.platform === 'whatsapp' ? 'WhatsApp' : 'Instagram'} • {activeChat.phone}</p>
               </div>
             </div>
-            <div className="flex items-center gap-4 text-slate-400">
-              <button className="hover:text-emerald-600 transition-colors"><Search size={20} /></button>
-              <button className="hover:text-emerald-600 transition-colors"><Phone size={20} /></button>
-              <button className="hover:text-emerald-600 transition-colors"><Video size={20} /></button>
-              <button className="hover:text-emerald-600 transition-colors"><MoreVertical size={20} /></button>
+            
+            <div className="flex items-center gap-3 sm:gap-4 text-slate-400 relative">
+              {matchedRealLead && (
+                <button 
+                  onClick={() => handleOpenLeadModal('info')}
+                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 rounded-xl transition-all border border-emerald-100 dark:border-emerald-900/30"
+                >
+                  <User size={13} className="stroke-[2.5]" />
+                  Ver Lead
+                </button>
+              )}
+              <button className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg"><Search size={18} /></button>
+              <button className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg"><Phone size={18} /></button>
+              <button 
+                onClick={() => setShowDropdown(!showDropdown)}
+                className={cn("transition-colors p-2 rounded-lg", showDropdown ? "text-emerald-600 bg-emerald-50 dark:bg-slate-800" : "hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-800")}
+              >
+                <MoreVertical size={18} />
+              </button>
+
+              {/* Floating Options Dropdown Menu */}
+              {showDropdown && (
+                <div 
+                  ref={dropdownRef} 
+                  className="absolute right-0 top-12 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-50 py-2.5 animate-in fade-in slide-in-from-top-2 duration-150"
+                >
+                  <div className="px-3 py-1.5 text-[10px] font-black text-slate-400 tracking-wider uppercase border-b border-slate-100 dark:border-slate-800/60 mb-1.5">
+                    Ações do Lead
+                  </div>
+                  <button 
+                    onClick={() => handleOpenLeadModal('info')}
+                    className="w-full px-4 py-2 text-left text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors flex items-center gap-2.5"
+                  >
+                    <User size={15} className="text-slate-400" />
+                    Abrir Cadastro do Lead
+                  </button>
+                  <button 
+                    onClick={() => handleOpenLeadModal('tasks')}
+                    className="w-full px-4 py-2 text-left text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors flex items-center gap-2.5"
+                  >
+                    <CheckSquare size={15} className="text-slate-400" />
+                    Ver Tarefas / Agendar
+                  </button>
+                  <button 
+                    onClick={() => handleOpenLeadModal('notes')}
+                    className="w-full px-4 py-2 text-left text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors flex items-center gap-2.5"
+                  >
+                    <Activity size={15} className="text-slate-400" />
+                    Anotações e Histórico
+                  </button>
+                  <button 
+                    onClick={() => handleOpenLeadModal('turma')}
+                    className="w-full px-4 py-2 text-left text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors flex items-center gap-2.5"
+                  >
+                    <Calendar size={15} className="text-slate-400" />
+                    Matrícula e Turmas
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Chat Messages */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-4 z-10 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto p-6 space-y-4 z-0 custom-scrollbar">
             {activeMessages.length === 0 ? (
               <div className="text-center mt-10">
                 <span className="bg-white/80 dark:bg-slate-800/80 px-4 py-2 rounded-lg text-xs font-medium text-slate-500 shadow-sm">
@@ -233,76 +417,139 @@ export function AIChat() {
               </div>
             ) : (
               activeMessages.map(msg => (
-                <div key={msg.id} className={cn("flex", msg.sender === 'me' ? "justify-end" : "justify-start")}>
-                  <div className={cn(
-                    "max-w-[75%] rounded-2xl px-4 py-2.5 shadow-sm relative group",
-                    msg.sender === 'me' 
-                      ? "bg-emerald-600 text-white rounded-tr-sm" 
-                      : "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-tl-sm border border-slate-100 dark:border-slate-700"
-                  )}>
-                    <p className="text-[14px] leading-relaxed">{msg.content}</p>
-                    <div className="flex justify-end items-center gap-1 mt-1 opacity-70">
-                      <span className={cn("text-[10px]", msg.sender === 'me' ? "text-emerald-100" : "text-slate-400")}>
-                        {msg.timestamp}
-                      </span>
+                msg.isNote ? (
+                  <div key={msg.id} className="flex justify-center my-3">
+                    <div className="max-w-[85%] bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-250 border border-amber-200/80 dark:border-amber-900/50 rounded-2xl px-5 py-3 shadow-sm flex items-start gap-3">
+                      <StickyNote className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-[11px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-400">Anotação Interna (Salva)</span>
+                          <span className="text-[9px] text-amber-500/80">{msg.timestamp}</span>
+                        </div>
+                        <p className="text-[13px] font-semibold leading-relaxed text-left">{msg.content}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <div key={msg.id} className={cn("flex", msg.sender === 'me' ? "justify-end" : "justify-start")}>
+                    <div className={cn(
+                      "max-w-[75%] rounded-2xl px-4 py-2.5 shadow-sm relative group transition-all duration-150 hover:shadow",
+                      msg.sender === 'me' 
+                        ? "bg-emerald-600 text-white rounded-tr-sm" 
+                        : "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-tl-sm border border-slate-100 dark:border-slate-800 shadow-sm"
+                    )}>
+                      <p className="text-[13.5px] font-medium leading-relaxed">{msg.content}</p>
+                      <div className="flex justify-end items-center gap-1 mt-1 opacity-70">
+                        <span className={cn("text-[9px]", msg.sender === 'me' ? "text-emerald-100" : "text-slate-405")}>
+                          {msg.timestamp}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )
               ))
             )}
             <div ref={messagesEndRef} />
           </div>
 
           {/* Chat Input */}
-          <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 z-10 shrink-0 flex items-end gap-2">
-            <button className="p-3 text-slate-400 hover:text-emerald-600 transition-colors rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 shrink-0">
-              <Smile size={24} />
+          <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-850 z-10 shrink-0 flex items-end gap-2.5">
+            <button className="p-3 text-slate-400 hover:text-emerald-650 dark:hover:text-emerald-450 transition-colors rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 shrink-0">
+              <Smile size={22} />
             </button>
-            <button className="p-3 text-slate-400 hover:text-emerald-600 transition-colors rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 shrink-0">
-              <Paperclip size={24} />
+            <button className="p-3 text-slate-400 hover:text-emerald-650 dark:hover:text-emerald-450 transition-colors rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 shrink-0">
+              <Paperclip size={22} />
             </button>
-            <div className="flex-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl flex items-end shadow-inner">
+            
+            {/* Botão de Anotação Interna / Notas */}
+            <button 
+              onClick={() => setIsNotesMode(!isNotesMode)}
+              className={cn(
+                "p-3 rounded-full transition-all shrink-0 active:scale-95 border",
+                isNotesMode 
+                  ? "bg-amber-100 border-amber-300 text-amber-700 hover:bg-amber-200 dark:bg-amber-950/40 dark:border-amber-900/60 dark:text-amber-400" 
+                  : "text-slate-400 border-transparent hover:text-amber-600 hover:bg-slate-50 dark:hover:bg-slate-800"
+              )}
+              title="Salvar como Anotação Interna"
+            >
+              <StickyNote size={22} />
+            </button>
+
+            <div className={cn(
+              "flex-1 border rounded-2xl flex items-end shadow-inner transition-all duration-200",
+              isNotesMode 
+                ? "bg-amber-50/50 border-amber-300 dark:bg-amber-950/10 dark:border-amber-900/70" 
+                : "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/80"
+            )}>
               <textarea
                 value={inputValue}
                 onChange={e => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Digite uma mensagem..."
-                className="w-full bg-transparent text-sm text-slate-800 dark:text-slate-200 px-4 py-3.5 outline-none resize-none max-h-32 min-h-[50px] custom-scrollbar"
+                placeholder={isNotesMode ? "Escreva uma anotação interna para o lead..." : "Digite sua mensagem..."}
+                className="w-full bg-transparent text-sm text-slate-800 dark:text-slate-200 px-4 py-3 outline-none resize-none max-h-32 min-h-[46px] custom-scrollbar font-medium"
                 rows={1}
               />
             </div>
             {inputValue.trim() ? (
               <button 
-                onClick={handleSendMessage}
-                className="p-3 bg-emerald-600 text-white rounded-full hover:bg-emerald-700 transition-colors shadow-md shrink-0 mb-1"
+                onClick={handleSendMessageOrSaveNote}
+                className={cn(
+                  "p-3 text-white rounded-full transition-all shrink-0 mb-1 active:scale-95 shadow-md",
+                  isNotesMode 
+                    ? "bg-amber-600 hover:bg-amber-700 shadow-amber-500/20" 
+                    : "bg-emerald-600 hover:bg-emerald-705 shadow-emerald-500/20"
+                )}
+                title={isNotesMode ? "Salvar Anotação" : "Enviar Mensagem"}
               >
-                <Send size={20} />
+                <Send size={18} />
               </button>
             ) : (
-              <button className="p-3 text-slate-400 hover:text-emerald-600 transition-colors rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 shrink-0 mb-1">
-                <MessageCircle size={24} />
+              <button className={cn(
+                "p-3 transition-colors rounded-full shrink-0 mb-1",
+                isNotesMode ? "text-amber-500" : "text-slate-400"
+              )}>
+                <MessageCircle size={22} />
               </button>
             )}
           </div>
         </div>
       ) : (
         /* Empty State */
-        <div className="hidden md:flex flex-1 flex-col items-center justify-center bg-slate-50 dark:bg-[#0B1120] relative overflow-hidden">
+        <div className="hidden md:flex flex-1 flex-col items-center justify-center bg-slate-50/50 dark:bg-slate-950/20 relative overflow-hidden">
           {/* Glow suave ao fundo */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-emerald-600/5 rounded-full blur-3xl pointer-events-none" />
           
-          <div className="flex flex-col items-center text-center max-w-[420px] relative z-10">
-            <div className="w-28 h-28 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-[2rem] transform rotate-12 flex items-center justify-center mb-8 shadow-2xl shadow-emerald-900/20">
+          <div className="flex flex-col items-center text-center max-w-[420px] relative z-10 px-4">
+            <div className="w-24 h-24 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-[2rem] transform rotate-12 flex items-center justify-center mb-8 shadow-xl shadow-emerald-900/10">
               <div className="transform -rotate-12">
-                <MessageCircle className="w-12 h-12 text-white" fill="transparent" strokeWidth={2.5} />
+                <MessageCircle className="w-10 h-10 text-white" fill="transparent" strokeWidth={2.5} />
               </div>
             </div>
-            <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-4 tracking-tight">Central de Mensagens</h2>
-            <p className="text-[15px] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
-              Omnichannel inteligente. Gerencie WhatsApp, Instagram e E-mail em um só lugar. Selecione uma conversa ao lado para começar.
+            <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-3 tracking-tight">Selecione uma Conversa</h2>
+            <p className="text-[14px] text-slate-500 dark:text-slate-400 leading-relaxed font-semibold">
+              Gerencie contatos e mensagens integradas ao CRM. Abra uma conversa na barra lateral para começar a enviar mensagens e visualizar as informações completas do lead.
             </p>
           </div>
         </div>
+      )}
+
+      {/* Render LeadDetailsModal */}
+      {selectedLeadForModal && (
+        <LeadDetailsModal
+          key={`lead-modal-${selectedLeadForModal.id}`}
+          isOpen={!!selectedLeadForModal}
+          onClose={() => setSelectedLeadForModal(null)}
+          lead={leads.find(l => l.id === selectedLeadForModal.id) || selectedLeadForModal}
+          pipelineStages={COLUMNS}
+          currentStageId={selectedLeadForModal.stage_id || COLUMNS[0]?.id}
+          responsibles={responsiblesList}
+          initialTab={modalInitialTab}
+          onStageChange={async (stageId: string) => {
+            const targetStage = currentPipeline?.stages.find(s => s.id === stageId);
+            await updateLeadStage(selectedLeadForModal.id, stageId);
+            await updateLead(selectedLeadForModal.id, { status: (targetStage?.name ?? '') as LeadStatus });
+          }}
+        />
       )}
     </div>
   );
