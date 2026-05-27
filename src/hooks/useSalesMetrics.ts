@@ -435,7 +435,7 @@ export function useSalesMetrics({
 
   return {
     totalGanhos, myGanhos, teamGanhos,
-    leadsCount: filteredLeads.length,
+    leadsCount,
     closedLeadsCount, conversionRate, averageSalesCycle, inactiveLeadsCount,
     totalSalesValue, occupancyData, vendedorProfiles,
     allSellersRanking, otherSellersRanking, sellerSemaphoreData,
