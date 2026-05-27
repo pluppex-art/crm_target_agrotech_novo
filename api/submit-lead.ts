@@ -40,35 +40,14 @@ export default async function handler(req: any, res: any) {
     .single();
 
   let lastSellerId: string | null = rrState?.last_seller_id ?? null;
-  let targetRoleId: string | null = null;
 
-  if (lastSellerId) {
-    // 2. Busca o perfil do último vendedor do rodízio para obter seu role_id
-    const { data: lastProfile } = await supabase
-      .from('perfis')
-      .select('role_id')
-      .eq('id', lastSellerId)
-      .single();
-    if (lastProfile?.role_id) {
-      targetRoleId = lastProfile.role_id;
-    }
-  }
-
-  // 3. Busca todos os vendedores ativos que pertencem a esse cargo ou que estão no rodízio
-  let sellersQuery = supabase
+  // 3. Busca todos os vendedores ativos no departamento comercial e no rodízio
+  const { data: sellers } = await supabase
     .from('perfis')
     .select('id, name, phone, department, role_id')
     .eq('status', 'active')
+    .ilike('department', 'comercial')
     .neq('in_round_robin', false);
-
-  if (targetRoleId) {
-    sellersQuery = sellersQuery.eq('role_id', targetRoleId);
-  } else {
-    // Fallback robusto se for primeira execução ou sem last_seller_id
-    sellersQuery = sellersQuery.or('department.ilike.%comercial%,in_round_robin.eq.true');
-  }
-
-  const { data: sellers } = await sellersQuery;
 
   // 4. Fetch the product routing preferences
   const { data: rrSettings } = await supabase
@@ -88,10 +67,10 @@ export default async function handler(req: any, res: any) {
       // Se lead não tem produto, mas vendedor tem restrição, ele pode receber? 
       // É melhor não bloquear se lead não tem produto para evitar perder o lead
       if (!product) return true;
-      
+
       // Verifica se o produto do form corresponde a algum na lista do vendedor
-      return allowedProducts.some(p => 
-        product.toLowerCase().includes(p.toLowerCase()) || 
+      return allowedProducts.some(p =>
+        product.toLowerCase().includes(p.toLowerCase()) ||
         p.toLowerCase().includes(product.toLowerCase())
       );
     })
@@ -132,7 +111,7 @@ export default async function handler(req: any, res: any) {
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
-        
+
       if (lastLead?.responsavel_usuario_id) {
         lastIndex = validSellers.findIndex((s: any) => s.id === lastLead.responsavel_usuario_id);
       }
@@ -206,6 +185,16 @@ export default async function handler(req: any, res: any) {
     if (!existingUserId && assignedUserId) {
       updatePayload.responsavel_usuario_id = assignedUserId;
       updatePayload.responsible = assignedResponsible;
+
+      const { data: squadData } = await supabase
+        .from('squad_members')
+        .select('squad_id, squads(company)')
+        .eq('user_id', assignedUserId)
+        .maybeSingle();
+      const comp = (squadData?.squads as any)?.company;
+      if (comp === 'pluppex' || comp === 'target') {
+        updatePayload.seller_origin = comp;
+      }
     }
 
     const { error: updateError } = await supabase
@@ -246,6 +235,19 @@ export default async function handler(req: any, res: any) {
     });
   }
 
+  let sellerOrigin: 'target' | 'pluppex' = 'target';
+  if (assignedUserId) {
+    const { data: squadData } = await supabase
+      .from('squad_members')
+      .select('squad_id, squads(company)')
+      .eq('user_id', assignedUserId)
+      .maybeSingle();
+    const comp = (squadData?.squads as any)?.company;
+    if (comp === 'pluppex' || comp === 'target') {
+      sellerOrigin = comp;
+    }
+  }
+
   // ── Insert new lead ──────────────────────────────────────────────────────
   const { data: leadData, error: leadError } = await supabase
     .from('leads')
@@ -261,10 +263,10 @@ export default async function handler(req: any, res: any) {
       responsible: assignedResponsible,
       responsavel_usuario_id: assignedUserId,
       stars: 1,
-      value: Number(value) || 0,
+      value: Number(value) || 197,
       substatus: 'qualified',
       photo: `https://ui-avatars.com/api/?name=${encodeURIComponent(name.trim())}&background=059669&color=fff&size=128`,
-      seller_origin: 'target',
+      seller_origin: sellerOrigin,
       cost_center: 'cursos',
       centro_custo_id: centroCustoId
     }])
@@ -280,11 +282,11 @@ export default async function handler(req: any, res: any) {
   if (assignedUserId) {
     await supabase
       .from('round_robin_state')
-      .upsert({ 
-        id: 'form_leads', 
-        last_seller_id: assignedUserId, 
-        last_seller_name: assignedResponsible, 
-        updated_at: new Date().toISOString() 
+      .upsert({
+        id: 'form_leads',
+        last_seller_id: assignedUserId,
+        last_seller_name: assignedResponsible,
+        updated_at: new Date().toISOString()
       });
   }
 
@@ -354,17 +356,17 @@ export default async function handler(req: any, res: any) {
         lead_id: leadData.id,
         author_name: 'Sistema',
       }]);
-    
+
     if (noteError) {
       console.error('Error creating note:', noteError);
       // Not a fatal error, we already created the lead
     }
   }
 
-  return res.status(200).json({ 
-    success: true, 
-    id: leadData.id, 
-    responsibleName: assignedResponsible, 
-    responsiblePhone: assignedPhone 
+  return res.status(200).json({
+    success: true,
+    id: leadData.id,
+    responsibleName: assignedResponsible,
+    responsiblePhone: assignedPhone
   });
 }

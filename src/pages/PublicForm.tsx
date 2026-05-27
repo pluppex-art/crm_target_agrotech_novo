@@ -23,7 +23,7 @@ interface Step {
 }
 
 const productPrices: Record<string, number> = {
-  'Curso de Inseminação Artificial em Bovinos': 1500,
+  'Curso de Inseminação Artificial em Bovinos': 197,
   'Curso de Piloto de Drone Agrícola': 197,
 };
 
@@ -130,10 +130,10 @@ export function PublicForm() {
     {
       id: 'interest',
       question: 'Quais áreas você tem mais interesse?',
-      hint: 'Pode selecionar uma opção (Não obrigatório).',
+      hint: 'Selecione uma das opções abaixo.',
       type: 'select',
       options: ['Curso de Inseminação Artificial em Bovinos', 'Curso de Piloto de Drone Agrícola'],
-      required: false,
+      required: true,
     },
   ];
 
@@ -233,7 +233,7 @@ export function PublicForm() {
     setSubmitting(true);
     setError(null);
     try {
-      const productValue = data.interest ? (productPrices[data.interest] ?? 0) : 0;
+      const productValue = data.interest ? (productPrices[data.interest] ?? 197) : 197;
       const notes = data.interest ? `Interesse principal: ${data.interest}` : '';
 
       const resp = await fetch('/api/submit-lead', {

@@ -255,35 +255,14 @@ async function startServer() {
         .single();
 
       let lastSellerId: string | null = rrState?.last_seller_id ?? null;
-      let targetRoleId: string | null = null;
 
-      if (lastSellerId) {
-        // 2. Busca o perfil do último vendedor do rodízio para obter seu role_id
-        const { data: lastProfile } = await supabase
-          .from('perfis')
-          .select('role_id')
-          .eq('id', lastSellerId)
-          .single();
-        if (lastProfile?.role_id) {
-          targetRoleId = lastProfile.role_id;
-        }
-      }
-
-      // 3. Busca todos os vendedores ativos que pertencem a esse cargo ou que estão no rodízio
-      let sellersQuery = supabase
+      // 3. Busca todos os vendedores ativos no departamento comercial e no rodízio
+      const { data: sellers, error: sellersErr } = await supabase
         .from('perfis')
         .select('id, name, phone, department, role_id')
         .eq('status', 'active')
+        .ilike('department', 'comercial')
         .neq('in_round_robin', false);
-
-      if (targetRoleId) {
-        sellersQuery = sellersQuery.eq('role_id', targetRoleId);
-      } else {
-        // Fallback robusto se for primeira execução ou sem last_seller_id
-        sellersQuery = sellersQuery.or('department.ilike.%comercial%,in_round_robin.eq.true');
-      }
-
-      const { data: sellers, error: sellersErr } = await sellersQuery;
 
       if (sellersErr) console.error('[submit-lead] Erro ao buscar sellers:', sellersErr.message);
       console.log('[submit-lead] Sellers encontrados:', (sellers || []).length,
@@ -416,6 +395,16 @@ async function startServer() {
         if (!existingUserId && assignedUserId) {
           updatePayload.responsavel_usuario_id = assignedUserId;
           updatePayload.responsible = assignedResponsible;
+
+          const { data: squadData } = await supabase
+            .from('squad_members')
+            .select('squad_id, squads(company)')
+            .eq('user_id', assignedUserId)
+            .maybeSingle();
+          const comp = (squadData?.squads as any)?.company;
+          if (comp === 'pluppex' || comp === 'target') {
+            updatePayload.seller_origin = comp;
+          }
         }
 
         const { error: updateError } = await supabase
@@ -437,6 +426,19 @@ async function startServer() {
       }
 
 
+      let sellerOrigin: 'target' | 'pluppex' = 'target';
+      if (assignedUserId) {
+        const { data: squadData } = await supabase
+          .from('squad_members')
+          .select('squad_id, squads(company)')
+          .eq('user_id', assignedUserId)
+          .maybeSingle();
+        const comp = (squadData?.squads as any)?.company;
+        if (comp === 'pluppex' || comp === 'target') {
+          sellerOrigin = comp;
+        }
+      }
+
       const leadPayload: Record<string, any> = {
         name: name.trim(),
         email: email.trim().toLowerCase(),
@@ -449,10 +451,10 @@ async function startServer() {
         responsible: assignedResponsible,
         responsavel_usuario_id: assignedUserId,
         stars: 1,
-        value: Number(value) || 0,
+        value: Number(value) || 197,
         substatus: 'qualified',
         photo: `https://ui-avatars.com/api/?name=${encodeURIComponent(name.trim())}&background=059669&color=fff&size=128`,
-        seller_origin: 'target',
+        seller_origin: sellerOrigin,
         cost_center: 'cursos',
         centro_custo_id: centroCustoId
       };
