@@ -35,22 +35,22 @@ export function FinanceOverview({ finance, netProfit, margin }: FinanceOverviewP
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-6">
           <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-4">Receitas Mensais</h3>
-          <ImprovedCSSBarChart data={finance.monthlyIncome} color="hsl(142, 71%, 45%)" gradient showValues />
+          <ImprovedCSSBarChart data={finance.monthlyIncome} color="hsl(142, 71%, 45%)" showValues />
         </div>
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-6">
           <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-4">Despesas Mensais</h3>
-          <ImprovedCSSBarChart data={finance.monthlyExpense} color="hsl(0, 84%, 60%)" gradient showValues />
+          <ImprovedCSSBarChart data={finance.monthlyExpense} color="hsl(0, 84%, 60%)" showValues />
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-6">
           <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-4">Receita por Categoria</h3>
-          <ImprovedCSSBarChart data={finance.incomeByCategory.slice(0, 6)} color="hsl(162, 74%, 47%)" gradient showValues />
+          <ImprovedCSSBarChart data={finance.incomeByCategory.slice(0, 6)} color="hsl(162, 74%, 47%)" showValues />
         </div>
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-6">
           <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-4">Despesa por Categoria</h3>
-          <ImprovedCSSBarChart data={finance.expenseByCategory.slice(0, 6)} color="hsl(25, 90%, 55%)" gradient showValues />
+          <ImprovedCSSBarChart data={finance.expenseByCategory.slice(0, 6)} color="hsl(25, 90%, 55%)" showValues />
         </div>
       </div>
     </>

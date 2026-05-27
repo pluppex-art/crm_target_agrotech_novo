@@ -199,6 +199,42 @@ async function startServer() {
     }
   });
 
+  app.post("/api/check-lead", async (req, res) => {
+    const { phone, email } = req.body ?? {};
+    try {
+      const supabase = getSupabaseAdmin() as any;
+      let exists = false;
+
+      if (phone) {
+        const normalizedPhone = phone.trim().replace(/\D/g, '');
+        if (normalizedPhone.length >= 10) {
+          const { data } = await supabase
+            .from('leads')
+            .select('id')
+            .or(`phone.ilike.%${normalizedPhone}%,phone.eq.${phone.trim()}`)
+            .limit(1)
+            .maybeSingle();
+          if (data) exists = true;
+        }
+      }
+
+      if (!exists && email && email.trim()) {
+        const { data } = await supabase
+          .from('leads')
+          .select('id')
+          .ilike('email', email.trim())
+          .limit(1)
+          .maybeSingle();
+        if (data) exists = true;
+      }
+
+      return res.json({ exists });
+    } catch (err: any) {
+      console.error('Check lead error:', err);
+      return res.json({ exists: false });
+    }
+  });
+
   app.post("/api/submit-lead", async (req, res) => {
     const { name, email, phone, city, product, value, interest, notes: extraNotes } = req.body ?? {};
 
@@ -267,8 +303,8 @@ async function startServer() {
           const allowedProducts = productRouting[s.id];
           if (!allowedProducts || allowedProducts.length === 0) return true;
           if (!product) return true;
-          return allowedProducts.some(p => 
-            product.toLowerCase().includes(p.toLowerCase()) || 
+          return allowedProducts.some(p =>
+            product.toLowerCase().includes(p.toLowerCase()) ||
             p.toLowerCase().includes(product.toLowerCase())
           );
         })
@@ -303,7 +339,7 @@ async function startServer() {
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
-          
+
         if (lastLead?.responsavel_usuario_id) {
           lastIndex = validSellers.findIndex((s: any) => s.id === lastLead.responsavel_usuario_id);
         }
@@ -388,7 +424,7 @@ async function startServer() {
           .eq('id', existingLeadId);
 
         if (updateError) throw updateError;
-        
+
         if (notesContent) {
           await supabase.from('notes').insert([{
             content: `[Atualização via Formulário]\n${notesContent}`,
@@ -396,7 +432,7 @@ async function startServer() {
             author_name: 'Sistema',
           }]);
         }
-        
+
         return res.json({ success: true, id: existingLeadId, responsibleName: existingResponsible || assignedResponsible, responsiblePhone: null });
       }
 
@@ -484,9 +520,9 @@ async function startServer() {
           `;
           const emailRes = await fetch('https://api.resend.com/emails', {
             method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json', 
-              'Authorization': `Bearer ${resendKey}` 
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${resendKey}`
             },
             body: JSON.stringify({
               from: "Target Agrotech <crm@notificacoes.targetagrotech.com.br>",

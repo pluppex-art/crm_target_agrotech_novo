@@ -256,7 +256,7 @@ export function Products() {
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         mode="unified"
-        initialData={modalInitialData}
+        initialData={modalInitialData as any}
       />
     </div>
   );
