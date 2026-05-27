@@ -393,6 +393,22 @@ export const Pipeline: React.FC = () => {
     return mapping;
   }, [turmas]);
 
+  // Obter o total de leads no pipeline atual excluindo as etapas desnecessárias
+  const leadsCountFiltered = useMemo(() => {
+    const stageMap = new Map((currentPipeline?.stages ?? []).map(s => [s.id, s.name]));
+    return leadsInCurrentPipeline.filter(l => {
+      const stageName = l.stage_id ? stageMap.get(l.stage_id) : '';
+      if (!stageName) return true;
+      const normalized = stageName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+      return ![
+        "nao compareceu a turma",
+        "desqualificado",
+        "aquecimento",
+        "perdido"
+      ].includes(normalized);
+    }).length;
+  }, [leadsInCurrentPipeline, currentPipeline]);
+
   // ─── PAGO e PENDENTE ─────────────────────────────────────────────────────────
   // Lógica isolada em src/calculations/pipelineMetrics.ts para sincronizar com o Dashboard
   const { pago: caixaTotalValue, pendente: competenciaTotalValue } = useMemo(
@@ -422,7 +438,7 @@ export const Pipeline: React.FC = () => {
       <PipelineHeader
         caixaTotalValue={caixaTotalValue}
         competenciaTotalValue={competenciaTotalValue}
-        leadsCount={filters.filteredLeads.length}
+        leadsCount={leadsCountFiltered}
         currentPipelineId={currentPipelineId ?? null}
         pipelines={pipelines}
         onPipelineChange={(id) => {
@@ -610,7 +626,7 @@ export const Pipeline: React.FC = () => {
             </table>
           </div>
           <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800 border-t border-slate-100 dark:border-slate-800 text-[11px] font-bold text-slate-400 flex justify-between items-center">
-            <span>{leadsInCurrentPipeline.length} LEADS FILTRADOS</span>
+            <span>{leadsCountFiltered} LEADS FILTRADOS</span>
             <span className="uppercase tracking-widest">Target Agrotech CRM</span>
           </div>
         </div>

@@ -231,8 +231,22 @@ export function useSalesMetrics({
     };
   }, [filteredLeads, stageMap, startDate, endDate, products, leadToTurma]);
 
+  const leadsCount = useMemo(() => {
+    return filteredLeads.filter(l => {
+      const stageName = l.stage_id ? stageMap.get(l.stage_id) : '';
+      if (!stageName) return true;
+      const normalized = stageName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+      return ![
+        "nao compareceu a turma",
+        "desqualificado",
+        "aquecimento",
+        "perdido"
+      ].includes(normalized);
+    }).length;
+  }, [filteredLeads, stageMap]);
+
   const closedLeadsCount = closedLeadsFiltered.length;
-  const conversionRate = calcConversionRate(closedLeadsCount, filteredLeads.length);
+  const conversionRate = calcConversionRate(closedLeadsCount, leadsCount);
 
   const averageSalesCycle = useMemo(
     () => calcAverageSalesCycle(closedLeadsFiltered),
