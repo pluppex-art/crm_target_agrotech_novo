@@ -14,7 +14,7 @@ export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   // ── Extraction & Validation ─────────────────────────────────────────────
-  const { name, email, phone, city, product, value, interest, notes: extraNotes } = req.body ?? {};
+  const { name, email, phone, city, product: rawProduct, value, interest, notes: extraNotes } = req.body ?? {};
 
   if (!name || !email || !phone) {
     return res.status(400).json({ error: 'Campos obrigatórios: Nome, E-mail e Telefone.' });
@@ -30,6 +30,15 @@ export default async function handler(req: any, res: any) {
   const supabase = createClient(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
+
+  let product = rawProduct;
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (product && typeof product === 'string' && uuidRegex.test(product)) {
+    const { data: prodData } = await supabase.from('turmas').select('name').eq('id', product).maybeSingle();
+    if (prodData?.name) {
+      product = prodData.name;
+    }
+  }
 
   // ── Round Robin (Rodízio) Logic ──────────────────────────────────────────
   // 1. Obter o estado atual do rodízio para ler o last_seller_id
@@ -68,10 +77,12 @@ export default async function handler(req: any, res: any) {
       // É melhor não bloquear se lead não tem produto para evitar perder o lead
       if (!product) return true;
 
+      const productStr = String(product).toLowerCase();
+
       // Verifica se o produto do form corresponde a algum na lista do vendedor
       return allowedProducts.some(p =>
-        product.toLowerCase().includes(p.toLowerCase()) ||
-        p.toLowerCase().includes(product.toLowerCase())
+        productStr.includes(p.toLowerCase()) ||
+        p.toLowerCase().includes(productStr)
       );
     })
     .sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'pt-BR', { sensitivity: 'base' }));

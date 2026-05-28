@@ -236,7 +236,7 @@ async function startServer() {
   });
 
   app.post("/api/submit-lead", async (req, res) => {
-    const { name, email, phone, city, product, value, interest, notes: extraNotes } = req.body ?? {};
+    const { name, email, phone, city, product: rawProduct, value, interest, notes: extraNotes } = req.body ?? {};
 
     if (!name || !email || !phone) {
       return res.status(400).json({ error: 'Campos obrigatórios: Nome, E-mail e Telefone.' });
@@ -244,6 +244,16 @@ async function startServer() {
 
     try {
       const supabase = getSupabaseAdmin() as any;
+
+      let product = rawProduct;
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (product && typeof product === 'string' && uuidRegex.test(product)) {
+        const { data: prodData } = await supabase.from('turmas').select('name').eq('id', product).maybeSingle();
+        if (prodData?.name) {
+          product = prodData.name;
+        }
+      }
+
       const PIPELINE_ID = '31f2fdbb-7b19-4973-8f70-7bb629697f11';
       const STAGE_ID = '36f5f922-ac1d-4742-a2b5-43a9af25b37d';
 
@@ -282,9 +292,12 @@ async function startServer() {
           const allowedProducts = productRouting[s.id];
           if (!allowedProducts || allowedProducts.length === 0) return true;
           if (!product) return true;
+          
+          const productStr = String(product).toLowerCase();
+          
           return allowedProducts.some(p =>
-            product.toLowerCase().includes(p.toLowerCase()) ||
-            p.toLowerCase().includes(product.toLowerCase())
+            productStr.includes(p.toLowerCase()) ||
+            p.toLowerCase().includes(productStr)
           );
         })
         .sort((a: any, b: any) =>
