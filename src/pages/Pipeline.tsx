@@ -337,6 +337,19 @@ export const Pipeline: React.FC = () => {
         vendas: financialCalculator.getTotalContracted(enrollLead, products),
         seller_origin: enrollLead.seller_origin,
         cost_center: enrollLead.cost_center as any,
+        pix_completed: enrollLead.pix_completed,
+        contract_signed: enrollLead.contract_signed,
+        payment_proof_url: enrollLead.payment_proof_url,
+        contract_url: enrollLead.contract_url,
+        professor_proof_url: enrollLead.professor_proof_url,
+        discount: enrollLead.discount?.toString() ?? null,
+        discount_applied: enrollLead.discount_applied,
+        discount_type: enrollLead.discount_type as any,
+        valor_recebido: enrollLead.valor_recebido,
+        forma_pagamento: enrollLead.forma_pagamento,
+        taxa_matricula_recebido: enrollLead.taxa_matricula_recebido,
+        taxa_matricula_paid_at: enrollLead.taxa_matricula_paid_at,
+        valor_recebido_paid_at: enrollLead.valor_recebido_paid_at,
       });
 
       if (result) {

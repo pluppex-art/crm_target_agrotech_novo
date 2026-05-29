@@ -18,6 +18,14 @@ export interface TurmaAttendee {
   valor_recebido_paid_at?: string | null;
   seller_origin?: 'target' | 'pluppex' | null;
   cost_center?: 'cursos' | 'servico_drone' | 'administrativo' | null;
+  pix_completed?: boolean;
+  contract_signed?: boolean;
+  payment_proof_url?: string | null;
+  contract_url?: string | null;
+  professor_proof_url?: string | null;
+  discount?: string | null;
+  discount_applied?: boolean;
+  discount_type?: 'percent' | 'fixed';
 }
 
 export interface Turma {
@@ -55,6 +63,14 @@ function mapEnrollmentToAttendee(e: any): TurmaAttendee {
     valor_recebido_paid_at: e.valor_recebido_paid_at ?? null,
     seller_origin: e.seller_origin ?? null,
     cost_center: e.cost_center ?? null,
+    pix_completed: e.pix_completed ?? false,
+    contract_signed: e.contract_signed ?? false,
+    payment_proof_url: e.payment_proof_url ?? null,
+    contract_url: e.contract_url ?? null,
+    professor_proof_url: e.professor_proof_url ?? null,
+    discount: e.discount ?? null,
+    discount_applied: e.discount_applied ?? false,
+    discount_type: e.discount_type ?? 'percent',
   };
 }
 
@@ -184,6 +200,19 @@ export const turmaService = {
         vendas: Number(attendee.vendas) || 0,
         seller_origin: attendee.seller_origin || null,
         cost_center: attendee.cost_center || null,
+        pix_completed: attendee.pix_completed ?? false,
+        contract_signed: attendee.contract_signed ?? false,
+        payment_proof_url: attendee.payment_proof_url ?? null,
+        contract_url: attendee.contract_url ?? null,
+        professor_proof_url: attendee.professor_proof_url ?? null,
+        discount: attendee.discount ?? null,
+        discount_applied: attendee.discount_applied ?? false,
+        discount_type: attendee.discount_type ?? 'percent',
+        valor_recebido: attendee.valor_recebido ?? null,
+        forma_pagamento: attendee.forma_pagamento ?? null,
+        taxa_matricula_recebido: attendee.taxa_matricula_recebido ?? null,
+        taxa_matricula_paid_at: attendee.taxa_matricula_paid_at ?? null,
+        valor_recebido_paid_at: attendee.valor_recebido_paid_at ?? null,
       }])
       .select()
       .single();
