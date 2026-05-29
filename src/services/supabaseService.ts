@@ -404,10 +404,22 @@ export const supabaseService = {
     const supabase = getSupabaseClient();
     if (!supabase) return false;
 
-    // Cancel all class enrollments for this lead
+    // Delete financial transactions
+    await supabase
+      .from('financial_transactions')
+      .delete()
+      .eq('lead_id', leadId);
+
+    // Delete call logs
+    await (supabase as any)
+      .from('call_logs')
+      .delete()
+      .eq('lead_id', leadId);
+
+    // Delete class enrollments for this lead
     await supabase
       .from('lead_class_enrollments')
-      .update({ status: 'CANCELLED', removed_at: new Date().toISOString() })
+      .delete()
       .eq('lead_id', leadId);
 
     // Delete associated tasks
