@@ -208,11 +208,10 @@ export const turmaService = {
         discount: attendee.discount || null,
         discount_applied: attendee.discount_applied ?? false,
         discount_type: attendee.discount_type ?? 'percent',
-        valor_recebido: attendee.valor_recebido ?? null,
+        valor_recebido: (attendee.valor_recebido as any) === '' ? null : (attendee.valor_recebido ?? null),
         forma_pagamento: attendee.forma_pagamento || null,
-        taxa_matricula_recebido: attendee.taxa_matricula_recebido === '' ? null : (attendee.taxa_matricula_recebido ?? null),
+        taxa_matricula_recebido: (attendee.taxa_matricula_recebido as any) === '' ? null : (attendee.taxa_matricula_recebido ?? null),
         taxa_matricula_paid_at: attendee.taxa_matricula_recebido ? (attendee.taxa_matricula_paid_at || new Date().toISOString()) : null,
-        valor_recebido: attendee.valor_recebido === '' ? null : (attendee.valor_recebido ?? null),
         valor_recebido_paid_at: attendee.valor_recebido ? (attendee.valor_recebido_paid_at || new Date().toISOString()) : null,
       }])
       .select()

@@ -434,6 +434,18 @@ export const supabaseService = {
       .delete()
       .eq('lead_id', leadId);
 
+    // Delete from vendas
+    await supabase
+      .from('vendas')
+      .delete()
+      .eq('lead_id', leadId);
+
+    // Delete from matriculas
+    await supabase
+      .from('matriculas')
+      .delete()
+      .eq('lead_id', leadId);
+
     // contracts table no longer exists — skip that deletion step
 
     const { error } = await supabase
