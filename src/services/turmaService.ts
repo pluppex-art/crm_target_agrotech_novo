@@ -210,9 +210,10 @@ export const turmaService = {
         discount_type: attendee.discount_type ?? 'percent',
         valor_recebido: attendee.valor_recebido ?? null,
         forma_pagamento: attendee.forma_pagamento || null,
-        taxa_matricula_recebido: attendee.taxa_matricula_recebido ?? null,
-        taxa_matricula_paid_at: attendee.taxa_matricula_paid_at || (attendee.taxa_matricula_recebido ? new Date().toISOString() : null),
-        valor_recebido_paid_at: attendee.valor_recebido_paid_at || (attendee.valor_recebido ? new Date().toISOString() : null),
+        taxa_matricula_recebido: attendee.taxa_matricula_recebido === '' ? null : (attendee.taxa_matricula_recebido ?? null),
+        taxa_matricula_paid_at: attendee.taxa_matricula_recebido ? (attendee.taxa_matricula_paid_at || new Date().toISOString()) : null,
+        valor_recebido: attendee.valor_recebido === '' ? null : (attendee.valor_recebido ?? null),
+        valor_recebido_paid_at: attendee.valor_recebido ? (attendee.valor_recebido_paid_at || new Date().toISOString()) : null,
       }])
       .select()
       .single();
@@ -589,10 +590,10 @@ export const turmaService = {
         discount_type: leadData.discount_type || 'percent',
         pix_completed: leadData.pix_completed || false,
         contract_signed: leadData.contract_signed || false,
-        taxa_matricula_recebido: leadData.taxa_matricula_recebido || null,
-        taxa_matricula_paid_at: leadData.taxa_matricula_paid_at || (leadData.taxa_matricula_recebido ? new Date().toISOString() : null),
-        valor_recebido: leadData.valor_recebido || null,
-        valor_recebido_paid_at: leadData.valor_recebido_paid_at || (leadData.valor_recebido ? new Date().toISOString() : null),
+        taxa_matricula_recebido: leadData.taxa_matricula_recebido === '' ? null : (leadData.taxa_matricula_recebido ?? null),
+        taxa_matricula_paid_at: leadData.taxa_matricula_recebido ? (leadData.taxa_matricula_paid_at || new Date().toISOString()) : null,
+        valor_recebido: leadData.valor_recebido === '' ? null : (leadData.valor_recebido ?? null),
+        valor_recebido_paid_at: leadData.valor_recebido ? (leadData.valor_recebido_paid_at || new Date().toISOString()) : null,
         forma_pagamento: leadData.forma_pagamento || null,
         payment_proof_url: leadData.payment_proof_url || null,
         contract_url: leadData.contract_url || null,
