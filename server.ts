@@ -295,10 +295,17 @@ async function startServer() {
           
           const productStr = String(product).toLowerCase();
           
-          return allowedProducts.some(p =>
-            productStr.includes(p.toLowerCase()) ||
-            p.toLowerCase().includes(productStr)
-          );
+          return allowedProducts.some(p => {
+            const pStr = p.toLowerCase();
+            if (productStr.includes(pStr) || pStr.includes(productStr)) return true;
+            
+            // Keyword matching to bridge "Curso de Drone" with "🚁 Drone, Altamira..."
+            if (pStr.includes('drone') && productStr.includes('drone')) return true;
+            if ((pStr.includes('ia') || pStr.includes('inseminação') || pStr.includes('inseminacao')) && 
+                (productStr.includes('ia') || productStr.includes('inseminação') || productStr.includes('inseminacao'))) return true;
+
+            return false;
+          });
         })
         .sort((a: any, b: any) =>
           (a.name || '').trim().localeCompare((b.name || '').trim(), 'pt-BR', { sensitivity: 'base' })
