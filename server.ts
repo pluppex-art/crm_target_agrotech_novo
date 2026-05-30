@@ -673,6 +673,48 @@ async function startServer() {
     }
   });
 
+  // Delete lead with cascade (requires service role)
+  app.post("/api/delete-lead", async (req, res) => {
+    const { id } = req.body;
+    try {
+      if (!id) {
+        return res.status(400).json({ error: "id é obrigatório." });
+      }
+      const supabaseAdmin = getSupabaseAdmin() as any;
+
+      const { data: matriculas } = await supabaseAdmin.from('matriculas').select('id').eq('lead_id', id);
+      if (matriculas && matriculas.length > 0) {
+        const matriculaIds = matriculas.map((m: any) => m.id);
+        await supabaseAdmin.from('pagamentos_matriculas').delete().in('matricula_id', matriculaIds);
+      }
+
+      // Execute independent deletes in parallel to save time
+      await Promise.all([
+        supabaseAdmin.from('vendas').delete().eq('lead_id', id),
+        supabaseAdmin.from('financial_transactions').delete().eq('lead_id', id),
+        supabaseAdmin.from('call_logs').delete().eq('lead_id', id),
+        supabaseAdmin.from('tasks').delete().eq('lead_id', id),
+        supabaseAdmin.from('notes').delete().eq('lead_id', id)
+      ]);
+
+      // Delete the tables that are referenced by other things, in safe order
+      await supabaseAdmin.from('matriculas').delete().eq('lead_id', id);
+      await supabaseAdmin.from('lead_class_enrollments').delete().eq('lead_id', id);
+
+      const { error } = await supabaseAdmin.from('leads').delete().eq('id', id);
+
+      if (error) {
+        console.error("[delete-lead] Erro ao apagar lead:", error.message);
+        return res.status(400).json({ error: error.message });
+      }
+
+      return res.json({ success: true });
+    } catch (err: any) {
+      console.error("[delete-lead] Erro fatal:", err.message);
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
   const distPath = path.join(process.cwd(), "dist");
   app.use(express.static(distPath));
 

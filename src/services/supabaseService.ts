@@ -1,4 +1,4 @@
-import { getSupabaseClient } from '../lib/supabase';
+import { getSupabaseClient, getServiceSupabaseClient } from '../lib/supabase';
 import { Lead, LeadStatus, LeadSubStatus } from '../types/leads';
 
 export const supabaseService = {
@@ -401,63 +401,25 @@ export const supabaseService = {
   },
 
   async deleteLead(leadId: string): Promise<boolean> {
-    const supabase = getSupabaseClient();
-    if (!supabase) return false;
+    try {
+      const response = await fetch('/api/delete-lead', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: leadId }),
+      });
 
-    // Delete financial transactions
-    await supabase
-      .from('financial_transactions')
-      .delete()
-      .eq('lead_id', leadId);
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Failed to delete lead via API:', errorData);
+        throw new Error(errorData.error || 'Unknown error from API');
+      }
 
-    // Delete call logs
-    await (supabase as any)
-      .from('call_logs')
-      .delete()
-      .eq('lead_id', leadId);
-
-    // Delete class enrollments for this lead
-    await supabase
-      .from('lead_class_enrollments')
-      .delete()
-      .eq('lead_id', leadId);
-
-    // Delete associated tasks
-    await supabase
-      .from('tasks')
-      .delete()
-      .eq('lead_id', leadId);
-
-    // Delete associated notes
-    await supabase
-      .from('notes')
-      .delete()
-      .eq('lead_id', leadId);
-
-    // Delete from vendas
-    await supabase
-      .from('vendas')
-      .delete()
-      .eq('lead_id', leadId);
-
-    // Delete from matriculas
-    await supabase
-      .from('matriculas')
-      .delete()
-      .eq('lead_id', leadId);
-
-    // contracts table no longer exists — skip that deletion step
-
-    const { error } = await supabase
-      .from('leads')
-      .delete()
-      .eq('id', leadId);
-
-    if (error) {
-      console.error('Error deleting lead:', error);
+      return true;
+    } catch (err: any) {
+      console.error('deleteLead failed:', err);
       return false;
     }
-
-    return true;
   }
 };
