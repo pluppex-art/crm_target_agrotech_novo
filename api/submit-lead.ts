@@ -80,10 +80,17 @@ export default async function handler(req: any, res: any) {
       const productStr = String(product).toLowerCase();
 
       // Verifica se o produto do form corresponde a algum na lista do vendedor
-      return allowedProducts.some(p =>
-        productStr.includes(p.toLowerCase()) ||
-        p.toLowerCase().includes(productStr)
-      );
+      return allowedProducts.some(p => {
+        const pStr = p.toLowerCase();
+        if (productStr.includes(pStr) || pStr.includes(productStr)) return true;
+        
+        // Keyword matching to bridge "Curso de Drone" with "🚁 Drone, Altamira..."
+        if (pStr.includes('drone') && productStr.includes('drone')) return true;
+        if ((pStr.includes('ia') || pStr.includes('inseminação') || pStr.includes('inseminacao')) && 
+            (productStr.includes('ia') || productStr.includes('inseminação') || productStr.includes('inseminacao'))) return true;
+
+        return false;
+      });
     })
     .sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'pt-BR', { sensitivity: 'base' }));
 
