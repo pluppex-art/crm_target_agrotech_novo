@@ -160,20 +160,34 @@ export const pipelineService = {
     const supabase = getSupabaseClient();
     if (!supabase) return false;
 
-    // Update each stage position individually (upsert requires all required fields)
-    const results = await Promise.all(
+    // Phase 1: move all to large temp positions to avoid unique constraint conflicts
+    // (pipeline_id, position) has a UNIQUE constraint, so positions must not collide mid-update
+    const tempResults = await Promise.all(
       stageIds.map((id, index) =>
         supabase
           .from('pipeline_stages')
-          .update({ position: index })
+          .update({ position: 10000 + index })
           .eq('id', id)
       )
     );
 
-    const firstError = results.find(r => r.error)?.error;
-    if (firstError) {
-      console.error('Error reordering stages:', firstError);
+    const tempError = tempResults.find(r => r.error)?.error;
+    if (tempError) {
+      console.error('Error reordering stages (phase 1):', tempError);
       return false;
+    }
+
+    // Phase 2: set final positions sequentially
+    for (let i = 0; i < stageIds.length; i++) {
+      const { error } = await supabase
+        .from('pipeline_stages')
+        .update({ position: i })
+        .eq('id', stageIds[i]);
+
+      if (error) {
+        console.error('Error reordering stages (phase 2):', error);
+        return false;
+      }
     }
 
     return true;

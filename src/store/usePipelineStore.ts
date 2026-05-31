@@ -148,7 +148,13 @@ export const usePipelineStore = create<PipelineState>((set, get) => ({
         set((state) => ({
           pipelines: state.pipelines.map(p =>
             p.id === pipelineId
-              ? { ...p, stages: stageIds.map(id => p.stages.find(s => s.id === id)! ) }
+              ? { 
+                  ...p, 
+                  stages: stageIds.map((id, index) => {
+                    const s = p.stages.find(s => s.id === id)!;
+                    return { ...s, position: index };
+                  }) 
+                }
               : p
           )
         }));

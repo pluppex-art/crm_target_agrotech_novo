@@ -4,8 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx --watch server.ts & vite",
-    "dev:server": "tsx --watch server.ts",
+    "dev": "node --import tsx/esm --watch server.ts & vite",
+    "dev:server": "node --import tsx/esm --watch server.ts",
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
