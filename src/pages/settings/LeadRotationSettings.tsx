@@ -27,6 +27,7 @@ export function LeadRotationSettings() {
   }, [fetchProfiles, fetchProducts]);
 
   const commercialProfiles = profiles.filter(p => {
+    if (p.status === 'inactive') return false;
     const isComercial = p.department?.toLowerCase() === 'comercial';
     const cargoLower = (p.cargos?.name || '').toLowerCase();
     const isCloser = cargoLower.includes('closer');

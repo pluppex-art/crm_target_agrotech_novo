@@ -52,7 +52,7 @@ export function SquadsSection() {
         profileService.getProfiles(),
       ]);
       setSquads(s);
-      setUsers(u);
+      setUsers(u.filter((user: any) => user.status === 'active'));
     } finally { setIsLoading(false); }
   }, []);
 

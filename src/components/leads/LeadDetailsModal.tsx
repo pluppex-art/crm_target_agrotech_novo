@@ -21,7 +21,7 @@ import { X, Trophy, ThumbsDown, Sparkles, Phone, PhoneOff, Loader2 } from 'lucid
 import { useState, useMemo, useEffect } from 'react';
 import { LeadDetailsModalProps, TabType } from './types';
 import { cn } from '@/lib/utils';
-import { getSupabaseClient } from '@/lib/supabase';
+import { useLeadStore } from '../../store/useLeadStore';
 import { emailService } from '../../services/emailService';
 import { emailTemplates } from '../../services/emailTemplates';
 import { callService } from '../../services/callService';
@@ -57,6 +57,7 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
   const [isLoggingCall, setIsLoggingCall] = useState<string | null>(null);
 
   const { user } = useAuthStore();
+  const { deleteLead } = useLeadStore();
 
   const handleClose = () => {
     if (isCallInProgress) {
@@ -227,14 +228,7 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
 
   const handleDelete = async () => {
     if (!confirm('Tem certeza que deseja excluir este lead? Esta ação não pode ser desfeita.')) return;
-    const supabase = getSupabaseClient();
-    if (!supabase) return;
-    const { error } = await supabase.from('leads').delete().eq('id', lead.id);
-    if (error) {
-      console.error('Error deleting lead:', error);
-      alert('Erro ao excluir lead');
-      return;
-    }
+    await deleteLead(lead.id);
     handleClose();
   };
 

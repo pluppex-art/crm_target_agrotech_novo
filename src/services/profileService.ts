@@ -88,20 +88,24 @@ export const profileService = {
       return { data: null, error: perfisError };
     }
 
-    // Update auth user email/password via API
+    // Update auth user email/password via API (with timeout to prevent modal hanging)
     if (email || password) {
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
         const resp = await fetch('/api/update-user', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id, email, password }),
+          signal: controller.signal,
         });
+        clearTimeout(timeoutId);
         if (!resp.ok) {
           const err = await resp.json();
           console.warn('Auth update via API failed:', err);
         }
       } catch (err) {
-        console.warn('Auth update via API failed (network):', err);
+        console.warn('Auth update via API failed (network/timeout):', err);
       }
     }
 

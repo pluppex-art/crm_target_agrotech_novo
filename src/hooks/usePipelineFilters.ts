@@ -56,10 +56,11 @@ export const usePipelineFilters = (
       })
       .map(p => ({ id: p.id, name: p.name as string }));
 
-    // Add responsible from leads that might not be in active profiles
+    // Add responsible from leads for users not in active profiles (excludes known inactive users)
     const seen = new Set<string>(fromProfiles.map(r => r.id));
+    const inactiveIds = new Set(profiles.filter(p => p.status === 'inactive').map(p => p.id));
     leads.forEach(l => {
-      if (l.responsavel_usuario_id && !seen.has(l.responsavel_usuario_id) && l.responsible) {
+      if (l.responsavel_usuario_id && !seen.has(l.responsavel_usuario_id) && l.responsible && !inactiveIds.has(l.responsavel_usuario_id)) {
         fromProfiles.push({ id: l.responsavel_usuario_id, name: l.responsible });
         seen.add(l.responsavel_usuario_id);
       }

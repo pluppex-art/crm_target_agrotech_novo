@@ -89,7 +89,7 @@ export function useSalesMetrics({
   const { tasks } = useTaskStore();
   const { products } = useProductStore();
 
-  const vendedorProfiles = useMemo(() => profiles.filter(isVendedor), [profiles]);
+  const vendedorProfiles = useMemo(() => profiles.filter(p => p.status === 'active' && isVendedor(p)), [profiles]);
 
   // ─── Available filter options ───────────────────────────────────────────────
   const availableProducts = useMemo(() => {
@@ -99,8 +99,11 @@ export function useSalesMetrics({
   }, [leads]);
 
   const availableResponsibles = useMemo(() => {
+    const inactiveIds = new Set(profiles.filter(p => p.status === 'inactive').map(p => p.id));
     const seen = new Set<string>();
-    leads.forEach((l: any) => { if (l.responsavel_usuario_id) seen.add(l.responsavel_usuario_id); });
+    leads.forEach((l: any) => {
+      if (l.responsavel_usuario_id && !inactiveIds.has(l.responsavel_usuario_id)) seen.add(l.responsavel_usuario_id);
+    });
     return Array.from(seen).sort().map(id => {
       const profile = profiles.find(p => p.id === id);
       return { value: id, label: profile?.name || 'Sem Nome' };

@@ -740,7 +740,7 @@ export function Dashboard() {
             return (pipeline?.stages || []).map(s => ({ ...s, title: s.name }));
           })()}
           currentStageId={selectedLeadModal.stage_id}
-          responsibles={profiles.map(p => ({ id: p.id, name: p.name }))}
+          responsibles={profiles.filter(p => p.status === 'active').map(p => ({ id: p.id, name: p.name }))}
           onStageChange={(stageId) => {
             useLeadStore.getState().updateLeadStage(selectedLeadModal.id, stageId);
             useLeadStore.getState().updateLead(selectedLeadModal.id, { 

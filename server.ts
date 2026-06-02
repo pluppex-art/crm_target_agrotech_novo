@@ -680,6 +680,75 @@ async function startServer() {
     }
   });
 
+  // Deactivate user: sets status inactive, removes from round-robin, redistributes open leads
+  app.post("/api/deactivate-user", async (req, res) => {
+    const { id } = req.body;
+    try {
+      if (!id) {
+        return res.status(400).json({ error: "id é obrigatório." });
+      }
+      const supabaseAdmin = getSupabaseAdmin() as any;
+
+      // 1. Remove user from round-robin
+      await supabaseAdmin
+        .from('perfis')
+        .update({ in_round_robin: false })
+        .eq('id', id);
+
+      // 2. Get all open leads assigned to this user (not won/lost/cancelled)
+      const TERMINAL_STATUSES = ['ganho', 'perdido', 'cancelado', 'fechado', 'won', 'lost'];
+      const { data: openLeads } = await supabaseAdmin
+        .from('leads')
+        .select('id, name, product')
+        .eq('responsavel_usuario_id', id)
+        .not('status', 'in', `(${TERMINAL_STATUSES.map(s => `"${s}"`).join(',')})`);
+
+      if (!openLeads || openLeads.length === 0) {
+        return res.json({ success: true, redistributed: 0 });
+      }
+
+      // 3. Get active sellers in round-robin (excluding deactivated user)
+      const { data: sellers } = await supabaseAdmin
+        .from('perfis')
+        .select('id, name')
+        .eq('status', 'active')
+        .neq('in_round_robin', false)
+        .neq('id', id);
+
+      if (!sellers || sellers.length === 0) {
+        return res.json({ success: true, redistributed: 0, warning: 'Nenhum vendedor disponível para redistribuição.' });
+      }
+
+      // 4. Distribute leads round-robin style
+      let sellerIndex = 0;
+      for (const lead of openLeads) {
+        const seller = sellers[sellerIndex % sellers.length];
+        sellerIndex++;
+
+        await supabaseAdmin
+          .from('leads')
+          .update({ responsavel_usuario_id: seller.id, responsible: seller.name })
+          .eq('id', lead.id);
+
+        await supabaseAdmin.from('notifications').insert({
+          user_id: seller.id,
+          read: false,
+          title: `Lead redistribuído: ${lead.name}`,
+          message: `O lead foi redistribuído para você após desativação do responsável anterior.`,
+          type: 'info',
+          category: 'user',
+          link: `/pipeline?lead=${lead.id}`,
+        });
+      }
+
+      console.log(`[deactivate-user] ${openLeads.length} leads redistribuídos de ${id} para ${sellers.length} vendedores.`);
+      return res.json({ success: true, redistributed: openLeads.length });
+    } catch (err: any) {
+      console.error("[deactivate-user] Erro fatal:", err.message);
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
   // Delete lead with cascade (requires service role)
   app.post("/api/delete-lead", async (req, res) => {
     const { id } = req.body;
@@ -708,11 +777,40 @@ async function startServer() {
       await supabaseAdmin.from('matriculas').delete().eq('lead_id', id);
       await supabaseAdmin.from('lead_class_enrollments').delete().eq('lead_id', id);
 
-      const { error } = await supabaseAdmin.from('leads').delete().eq('id', id);
+      const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 
-      if (error) {
-        console.error("[delete-lead] Erro ao apagar lead:", error.message);
-        return res.status(400).json({ error: error.message });
+      const deleteResp = await fetch(`${supabaseUrl}/rest/v1/leads?id=eq.${id}`, {
+        method: 'DELETE',
+        headers: {
+          'apikey': serviceKey!,
+          'Authorization': `Bearer ${serviceKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation',
+        },
+      });
+
+      if (!deleteResp.ok) {
+        const errBody = await deleteResp.text();
+        console.error(`[delete-lead] REST API error ${deleteResp.status}:`, errBody);
+        return res.status(400).json({ error: `Erro ao excluir lead (HTTP ${deleteResp.status}): ${errBody}` });
+      }
+
+      const deletedRows = await deleteResp.json();
+      console.log(`[delete-lead] id=${id} | deletedRows=${JSON.stringify(deletedRows)}`);
+
+      if (!Array.isArray(deletedRows) || deletedRows.length === 0) {
+        const checkResp = await fetch(`${supabaseUrl}/rest/v1/leads?id=eq.${id}&select=id`, {
+          headers: {
+            'apikey': serviceKey!,
+            'Authorization': `Bearer ${serviceKey}`,
+          },
+        });
+        const checkData = await checkResp.json();
+        if (Array.isArray(checkData) && checkData.length > 0) {
+          console.error("[delete-lead] Lead ainda existe após DELETE — bloqueio inesperado.");
+          return res.status(500).json({ error: "Lead não pôde ser excluído. Possível bloqueio de RLS no banco de dados." });
+        }
       }
 
       return res.json({ success: true });

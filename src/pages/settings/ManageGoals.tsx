@@ -273,7 +273,7 @@ export function ManageGoals() {
         </div>
 
         <SellerGoalsList
-          sellers={profiles.filter(p => p.cargos?.name?.toLowerCase().includes('closer'))}
+          sellers={profiles.filter(p => p.status === 'active' && p.cargos?.name?.toLowerCase().includes('closer'))}
           sellerGoals={sellerGoals}
           savingSeller={savingSeller}
           savedSeller={savedSeller}

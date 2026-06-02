@@ -263,8 +263,8 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
       const deletedLead = previousLeads.find(l => l.id === leadId);
       const success = await supabaseService.deleteLead(leadId);
       if (!success) {
-        // Revert on failure
         set({ leads: previousLeads, error: 'Failed to delete lead in Supabase' });
+        alert('Erro ao excluir lead. Verifique se o servidor está rodando e tente novamente.');
       } else if (deletedLead) {
         const user = useAuthStore.getState().user;
         if (user) {
@@ -281,6 +281,7 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
       }
     } catch (err) {
       set({ leads: previousLeads, error: 'Failed to delete lead in Supabase' });
+      alert('Erro ao excluir lead. Verifique se o servidor está rodando e tente novamente.');
     }
   },
 

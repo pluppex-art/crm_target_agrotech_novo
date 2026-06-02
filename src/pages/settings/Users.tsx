@@ -152,8 +152,30 @@ export function Users() {
     setFormError(null);
     try {
       if (editingId) {
-        const { password, nivel, squad_id, ...updateData } = formData;
+        const { password, nivel, squad_id, email: formEmail, ...restData } = formData;
+        const oldProfile = profiles.find(p => p.id === editingId);
+        const goingInactive = formData.status === 'inactive' && oldProfile?.status === 'active';
+        // Only include email if it actually changed — avoids slow auth API call on every edit
+        const updateData = formEmail !== oldProfile?.email ? { ...restData, email: formEmail } : restData;
+
         await updateProfile(editingId, updateData);
+
+        if (goingInactive) {
+          try {
+            const res = await fetch('/api/deactivate-user', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: editingId }),
+            });
+            const result = await res.json();
+            if (result.redistributed > 0) {
+              alert(`Usuário desativado. ${result.redistributed} lead(s) foram redistribuídos automaticamente via rodízio.`);
+            }
+          } catch (err) {
+            console.warn('[deactivate-user] Falha ao redistribuir leads:', err);
+          }
+        }
+
         await saveCompensationAndSquad(editingId);
         fetchProfiles();
         loadUserExtras();

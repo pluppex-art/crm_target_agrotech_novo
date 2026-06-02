@@ -42,8 +42,9 @@ export function OteProfilesSection() {
         profileService.getProfiles(),
         compensationProfileService.getSquads(),
       ]);
-      setProfiles(p);
-      setUsers(u);
+      const activeUserIds = new Set(u.filter((user: any) => user.status === 'active').map((user: any) => user.id));
+      setProfiles(p.filter((profile: any) => activeUserIds.has(profile.user_id)));
+      setUsers(u.filter((user: any) => user.status === 'active'));
       setSquads(s);
     } finally { setIsLoading(false); }
   }, []);

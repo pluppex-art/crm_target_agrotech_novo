@@ -193,6 +193,7 @@ export function calcAllSellersRanking(
     if (!sellerId) return;
 
     const profile = profiles.find(p => p.id === sellerId);
+    if (profile?.status === 'inactive') return;
     const isOfficialVendedor = profile ? isVendedor(profile) : false;
     const hasIndividualGoal = individualGoalIds.has(sellerId);
 
