@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { X, Upload, Paperclip, Trash2, FileText, Image, Loader2, ExternalLink } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { X, Upload, Paperclip, Trash2, FileText, Loader2, ExternalLink } from 'lucide-react';
 import { TurmaFile, getTurmaFiles, uploadTurmaFile, deleteTurmaFile } from '../../services/turmaFilesService';
 import { useAuthStore } from '../../store/useAuthStore';
 import { cn } from '../../lib/utils';
@@ -54,7 +55,7 @@ export function TurmaFilesModal({ turmaId, turmaName, onClose }: TurmaFilesModal
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[85vh]">
         {/* Header */}
@@ -177,6 +178,7 @@ export function TurmaFilesModal({ turmaId, turmaName, onClose }: TurmaFilesModal
           </p>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
