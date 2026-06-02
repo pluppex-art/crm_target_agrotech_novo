@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Calendar,
@@ -12,7 +12,9 @@ import {
   UserX,
   BadgeCheck,
   Users,
+  Paperclip,
 } from 'lucide-react';
+import { TurmaFilesModal } from './TurmaFilesModal';
 import { DndContext, useSensors, useSensor, PointerSensor, closestCenter, DragOverlay, DragStartEvent, DragEndEvent } from '@dnd-kit/core';
 import { TurmaColumn } from './TurmaColumn';
 import { AttendeeCard } from './AttendeeCard';
@@ -49,6 +51,8 @@ export function TurmasRightPanel({
   handleCheckIn,
   handleNoShow,
 }: TurmasRightPanelProps) {
+  const [isFilesModalOpen, setIsFilesModalOpen] = useState(false);
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -78,6 +82,14 @@ export function TurmasRightPanel({
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => setIsFilesModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700"
+            title="Arquivos da turma"
+          >
+            <Paperclip size={14} />
+            <span className="hidden sm:inline">Arquivos</span>
+          </button>
           <button
             onClick={handleToggleConcluida}
             className={cn(
@@ -246,6 +258,14 @@ export function TurmasRightPanel({
           </>
         )}
       </div>
+
+      {isFilesModalOpen && (
+        <TurmaFilesModal
+          turmaId={liveSelectedTurma.id}
+          turmaName={liveSelectedTurma.name}
+          onClose={() => setIsFilesModalOpen(false)}
+        />
+      )}
     </motion.div>
   );
 }
