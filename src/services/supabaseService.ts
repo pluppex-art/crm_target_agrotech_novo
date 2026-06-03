@@ -411,9 +411,15 @@ export const supabaseService = {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Failed to delete lead via API:', errorData);
-        throw new Error(errorData.error || 'Unknown error from API');
+        const text = await response.text();
+        let errorData: any = null;
+        try {
+          errorData = text ? JSON.parse(text) : null;
+        } catch {
+          // ignore parse error
+        }
+        console.error('Failed to delete lead via API:', { status: response.status, text, errorData });
+        throw new Error(errorData?.error || `Unknown error from API (HTTP ${response.status})`);
       }
 
       return true;
