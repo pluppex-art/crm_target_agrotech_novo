@@ -1,4 +1,4 @@
-import { getSupabaseClient, getServiceSupabaseClient } from '../lib/supabase';
+import { supabase, getSupabaseClient } from '../lib/supabase';
 import { Lead, LeadStatus, LeadSubStatus } from '../types/leads';
 
 export const supabaseService = {
@@ -402,24 +402,13 @@ export const supabaseService = {
 
   async deleteLead(leadId: string): Promise<boolean> {
     try {
-      const response = await fetch('/api/delete-lead', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ id: leadId }),
+      const { error } = await supabase.functions.invoke('delete-lead', {
+        body: { id: leadId },
       });
 
-      if (!response.ok) {
-        const text = await response.text();
-        let errorData: any = null;
-        try {
-          errorData = text ? JSON.parse(text) : null;
-        } catch {
-          // ignore parse error
-        }
-        console.error('Failed to delete lead via API:', { status: response.status, text, errorData });
-        throw new Error(errorData?.error || `Unknown error from API (HTTP ${response.status})`);
+      if (error) {
+        console.error('deleteLead failed:', error);
+        return false;
       }
 
       return true;
