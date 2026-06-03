@@ -155,19 +155,22 @@ export function calcSalesByResponsible(
       }
     }
 
-    // B) Valor Restante: Mês da Conclusão ou da Turma
+    // B) Valor da Turma: mês do pagamento real → data da turma → data do ganho
     if (isClosed) {
       const valorRecebido = Number(attendee?.valor_recebido || l.valor_recebido || 0);
-      const remaining = valorRecebido;
 
-      if (remaining > 0) {
-        // Prioridade: Data da Turma -> Data do Ganho -> Data de Criação
-        // Add time to avoid UTC-3 shift to previous day
-        const conclusionDateStr = tInfo?.date ? `${tInfo.date}T12:00:00` : (winDate || l.created_at);
+      if (valorRecebido > 0) {
+        // Prioridade: data real do pagamento → data da turma → won_at/created_at
+        const paidAt = attendee?.valor_recebido_paid_at || l.valor_recebido_paid_at;
+        const conclusionDateStr = paidAt
+          ? paidAt
+          : tInfo?.date
+            ? `${tInfo.date}T12:00:00`
+            : (winDate || l.created_at);
         const conclusionDate = new Date(conclusionDateStr);
 
         if ((!start || conclusionDate >= start) && (!end || conclusionDate <= end)) {
-          result[rawKey].received += remaining;
+          result[rawKey].received += valorRecebido;
         }
       }
     }
