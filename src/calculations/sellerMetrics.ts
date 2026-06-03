@@ -135,6 +135,14 @@ export function calcSalesByResponsible(
 
     // 2. Receita Fatiada (Semáforo)
     const tInfo = leadToTurma[l.id];
+
+    // Se o lead está num estágio "conclu" mas não tem turma mapeada, não é possível
+    // verificar o mês da turma → ignora received para evitar contabilizar meses anteriores.
+    const stageNameForLead = l.stage_id
+      ? pipelines.flatMap(p => p.stages).find(s => s.id === l.stage_id)?.name || ''
+      : '';
+    if (!tInfo && stageNameForLead.toLowerCase().includes('conclu')) return;
+
     const attendee = tInfo?.attendee;
     const feeVal = Number(attendee?.taxa_matricula_recebido || l.taxa_matricula_recebido || 0);
     const feePaidAt = attendee?.taxa_matricula_paid_at || l.taxa_matricula_paid_at;

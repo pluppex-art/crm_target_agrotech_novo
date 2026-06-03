@@ -269,6 +269,11 @@ export function useSalesMetrics({
   const totalConversionRate = activeLeadsCount > 0 ? (closedLeadsCount / activeLeadsCount) * 100 : 0;
 
   // ─── Financial totals ───────────────────────────────────────────────────────
+  const concluStageIds = useMemo(
+    () => new Set(Array.from(stageMap.entries()).filter(([_, name]) => name.toLowerCase().includes('conclu')).map(([id]) => id)),
+    [stageMap],
+  );
+
   const { pago: totalPago, pendente: totalPendente } = useMemo(
     () => calcPipelinePayments(
       filteredLeads,
@@ -276,8 +281,9 @@ export function useSalesMetrics({
       leadToTurma,
       products,
       new Date(), // Referência para o mês atual
+      concluStageIds,
     ),
-    [filteredLeads, stageMap, leadToTurma, products],
+    [filteredLeads, stageMap, leadToTurma, products, concluStageIds],
   );
 
   const totalGanhos = totalPago;
