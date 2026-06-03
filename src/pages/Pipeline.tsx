@@ -384,6 +384,15 @@ export const Pipeline: React.FC = () => {
     );
   }, [currentPipeline]);
 
+  // IDs especificamente de etapas "Turma Concluido" — usados para evitar somar pagamentos de meses anteriores
+  const concluStageIds = useMemo(() => {
+    return new Set(
+      (currentPipeline?.stages ?? [])
+        .filter(s => s.name.toLowerCase().includes('conclu'))
+        .map(s => s.id)
+    );
+  }, [currentPipeline]);
+
   // Leads na etapa Ganho: segue TODOS os filtros ativos (search, product, responsible, stars)
   const leadsInCurrentPipeline = useMemo(() => {
     if (!currentPipelineId) return filters.filteredLeads;
@@ -430,8 +439,10 @@ export const Pipeline: React.FC = () => {
       ganhoStageIds,
       leadToTurma,
       products,
+      new Date(),
+      concluStageIds,
     ),
-    [filters.filteredLeads, ganhoStageIds, leadToTurma, products],
+    [filters.filteredLeads, ganhoStageIds, leadToTurma, products, concluStageIds],
   );
 
   // Filtra produtos para não mostrar os de Turmas já Concluídas no dropdown

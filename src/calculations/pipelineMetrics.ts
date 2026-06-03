@@ -45,8 +45,9 @@ export interface PipelinePaymentResult {
  * Regras:
  *  1. Só conta leads no estágio "Ganho" (ganhoStageIds)
  *  2. Se o lead está numa turma CONCLUÍDA → só conta se for do MÊS ATUAL
- *  3. PAGO    = valor_recebido do attendee + taxa_matricula_recebido
- *  4. PENDENTE = total contratado − pago (nunca negativo)
+ *  3. Se o lead está num estágio "Turma Concluido" (concluStageIds) e não tem turma mapeada → ignora
+ *  4. PAGO    = valor_recebido do attendee + taxa_matricula_recebido
+ *  5. PENDENTE = total contratado − pago (nunca negativo)
  */
 export function calcPipelinePayments(
   leads: Lead[],
@@ -54,12 +55,10 @@ export function calcPipelinePayments(
   leadToTurma: Record<string, TurmaInfo>,
   products: Product[],
   referenceDate: Date = new Date(),
+  concluStageIds: Set<string> = new Set(),
 ): PipelinePaymentResult {
   let pago = 0;
   let pendente = 0;
-
-  const currentMonth = referenceDate.getMonth();
-  const currentYear = referenceDate.getFullYear();
 
   const processedLeads = new Set<string>();
 
@@ -74,7 +73,11 @@ export function calcPipelinePayments(
 
     const tInfo = leadToTurma[lead.id];
 
-    // 2. Se a turma já foi concluída, só considera se for do mês atual para efeitos de PAGO.
+    // 2. Se o lead está num estágio "Turma Concluido" mas não tem turma mapeada no store,
+    //    não é possível verificar o mês — ignora para evitar somar pagamentos de meses anteriores.
+    if (!tInfo && concluStageIds.has(lead.stage_id ?? '')) return;
+
+    // 3. Se a turma já foi concluída, só considera se for do mês atual para efeitos de PAGO.
     // Para PENDENTE, turmas concluídas nunca entram.
     if (tInfo?.status === 'concluida') {
       if (!tInfo.date) return;
