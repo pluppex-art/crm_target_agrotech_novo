@@ -30,6 +30,7 @@ export interface SalesMetrics {
   totalPendente: number;
   leadsCount: number;
   closedLeadsCount: number;
+  ganhoStageLeadsCount: number;
   conversionRate: number;
   averageSalesCycle: number;
   inactiveLeadsCount: number;
@@ -251,6 +252,19 @@ export function useSalesMetrics({
   const closedLeadsCount = closedLeadsFiltered.length;
   const conversionRate = calcConversionRate(closedLeadsCount, leadsCount);
 
+  // Leads atualmente na etapa "Ganho" (excluindo "Turma Concluido") — snapshot atual, sem filtro de data
+  const ganhoStageLeadsCount = useMemo(() => {
+    const pureGanhoIds = new Set(
+      Array.from(stageMap.entries())
+        .filter(([_, name]) => {
+          const n = name.toLowerCase();
+          return (n.includes('ganho') || n.includes('aprovado') || n.includes('fechado')) && !n.includes('conclu');
+        })
+        .map(([id]) => id)
+    );
+    return (leads as any[]).filter(l => l.stage_id && pureGanhoIds.has(l.stage_id)).length;
+  }, [leads, stageMap]);
+
   const averageSalesCycle = useMemo(
     () => calcAverageSalesCycle(closedLeadsFiltered),
     [closedLeadsFiltered],
@@ -445,7 +459,7 @@ export function useSalesMetrics({
   return {
     totalGanhos, myGanhos, teamGanhos,
     leadsCount,
-    closedLeadsCount, conversionRate, averageSalesCycle, inactiveLeadsCount,
+    closedLeadsCount, ganhoStageLeadsCount, conversionRate, averageSalesCycle, inactiveLeadsCount,
     totalSalesValue, occupancyData, vendedorProfiles,
     allSellersRanking, otherSellersRanking, sellerSemaphoreData,
     totalReceivedValue, totalPendente,

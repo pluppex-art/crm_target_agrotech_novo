@@ -16,13 +16,13 @@ export interface TurmaFile {
 export async function getTurmaFiles(turmaId: string): Promise<TurmaFile[]> {
   const supabase = getSupabaseClient();
   if (!supabase) return [];
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('turma_files')
     .select('*')
     .eq('turma_id', turmaId)
     .order('created_at', { ascending: false });
   if (error) { console.error('Error fetching turma files:', error); return []; }
-  return data ?? [];
+  return (data ?? []) as TurmaFile[];
 }
 
 export async function uploadTurmaFile(
@@ -48,7 +48,7 @@ export async function uploadTurmaFile(
 
   const fileType: 'image' | 'pdf' = file.type === 'application/pdf' ? 'pdf' : 'image';
 
-  const { data, error: insertError } = await supabase
+  const { data, error: insertError } = await (supabase as any)
     .from('turma_files')
     .insert({
       turma_id: turmaId,
@@ -62,7 +62,7 @@ export async function uploadTurmaFile(
     .single();
 
   if (insertError) { console.error('Error saving turma file metadata:', insertError); return null; }
-  return data;
+  return data as TurmaFile;
 }
 
 export async function deleteTurmaFile(fileId: string, url: string): Promise<void> {
@@ -76,5 +76,5 @@ export async function deleteTurmaFile(fileId: string, url: string): Promise<void
     await supabase.storage.from(BUCKET).remove([path]);
   }
 
-  await supabase.from('turma_files').delete().eq('id', fileId);
+  await (supabase as any).from('turma_files').delete().eq('id', fileId);
 }

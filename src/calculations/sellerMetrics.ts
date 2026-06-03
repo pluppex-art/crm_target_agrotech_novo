@@ -145,33 +145,32 @@ export function calcSalesByResponsible(
 
     const attendee = tInfo?.attendee;
     const feeVal = Number(attendee?.taxa_matricula_recebido || l.taxa_matricula_recebido || 0);
-    const feePaidAt = attendee?.taxa_matricula_paid_at || l.taxa_matricula_paid_at;
 
-    // A) Taxa de Matrícula: Mês do pagamento (ou mês da venda se não houver data da taxa)
+    const isConcluStage = stageNameForLead.toLowerCase().includes('conclu');
+
+    // Data de referência para receita:
+    // - Turma concluída: tInfo.date (data da turma é autoritativa — paid_at é auto-timestamp de entrada)
+    // - Ganho ativo: won_at (quando o lead foi ganho — único timestamp confiável para ganhos sem turma)
+    const revenueDate = (isConcluStage && tInfo?.date)
+      ? new Date(`${tInfo.date}T12:00:00`)
+      : l.won_at
+        ? new Date(l.won_at)
+        : null;
+
+    if (!revenueDate) return;
+    const inRevenueRange = (!start || revenueDate >= start) && (!end || revenueDate <= end);
+    if (!inRevenueRange) return;
+
+    // A) Taxa de Matrícula
     if (feeVal > 0) {
-      const tDate = feePaidAt ? new Date(feePaidAt) : cWinDate;
-      if ((!start || tDate >= start) && (!end || tDate <= end)) {
-        result[rawKey].received += feeVal;
-      }
+      result[rawKey].received += feeVal;
     }
 
-    // B) Valor da Turma: mês do pagamento real → data da turma → data do ganho
+    // B) Valor da Turma
     if (isClosed) {
       const valorRecebido = Number(attendee?.valor_recebido || l.valor_recebido || 0);
-
       if (valorRecebido > 0) {
-        // Prioridade: data real do pagamento → data da turma → won_at/created_at
-        const paidAt = attendee?.valor_recebido_paid_at || l.valor_recebido_paid_at;
-        const conclusionDateStr = paidAt
-          ? paidAt
-          : tInfo?.date
-            ? `${tInfo.date}T12:00:00`
-            : (winDate || l.created_at);
-        const conclusionDate = new Date(conclusionDateStr);
-
-        if ((!start || conclusionDate >= start) && (!end || conclusionDate <= end)) {
-          result[rawKey].received += valorRecebido;
-        }
+        result[rawKey].received += valorRecebido;
       }
     }
   });

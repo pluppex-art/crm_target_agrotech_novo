@@ -505,7 +505,7 @@ export function Dashboard() {
       {/* KPI Metrics */}
       <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
         <MetricCard label="Total de Leads" value={String(globalSalesMetrics.leadsCount)} icon={Users} color="bg-emerald-50 text-emerald-600" />
-        <MetricCard label="Ganhos" value={String(salesMetrics.closedLeadsCount)} icon={Users} color="bg-emerald-50 text-emerald-600" />
+        <MetricCard label="Ganhos" value={String(globalSalesMetrics.ganhoStageLeadsCount)} icon={Users} color="bg-emerald-50 text-emerald-600" />
         <MetricCard label="Conversão" value={`${salesMetrics.conversionRate.toFixed(1)}%`} icon={Users} color="bg-purple-50 text-purple-600" />
         <MetricCard label="Ciclo Médio (Dias)" value={String(salesMetrics.averageSalesCycle)} icon={Clock} color="bg-rose-50 text-rose-600" />
         <MetricCard label="Sem Atividade (>2 dias)" value={String(salesMetrics.inactiveLeadsCount)} icon={AlertCircle} color="bg-amber-50 text-amber-600" />
@@ -527,6 +527,18 @@ export function Dashboard() {
             }
           `}</style>
         )}
+
+        {/* Cards de métricas — visíveis apenas no modo TV */}
+        {isFullscreen && (
+          <div className="grid grid-cols-5 gap-6 mb-10">
+            <MetricCard label="Total de Leads" value={String(globalSalesMetrics.leadsCount)} icon={Users} color="bg-emerald-50 text-emerald-600" />
+            <MetricCard label="Ganhos" value={String(globalSalesMetrics.ganhoStageLeadsCount)} icon={Users} color="bg-emerald-50 text-emerald-600" />
+            <MetricCard label="Conversão" value={`${salesMetrics.conversionRate.toFixed(1)}%`} icon={Users} color="bg-purple-50 text-purple-600" />
+            <MetricCard label="Ciclo Médio (Dias)" value={String(salesMetrics.averageSalesCycle)} icon={Clock} color="bg-rose-50 text-rose-600" />
+            <MetricCard label="Sem Atividade (>2 dias)" value={String(salesMetrics.inactiveLeadsCount)} icon={AlertCircle} color="bg-amber-50 text-amber-600" />
+          </div>
+        )}
+
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Ranking list */}
           <div className="flex-[1.2] min-w-0">
