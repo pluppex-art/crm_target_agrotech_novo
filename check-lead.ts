@@ -1,4 +1,3 @@
-import { getSupabaseAdmin } from './src/lib/supabase'; // Wait, server.ts has getSupabaseAdmin
 import { createClient } from '@supabase/supabase-js';
 import dotenv from "dotenv";
 

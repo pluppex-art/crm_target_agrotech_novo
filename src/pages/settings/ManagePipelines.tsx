@@ -447,7 +447,7 @@ export function ManagePipelines() {
                       <div
                         ref={provided.innerRef}
                         {...provided.droppableProps}
-                        className="flex gap-4 min-h-[240px]"
+                        className="inline-flex min-h-[240px]"
                       >
                         {activePipeline.stages
                           .slice()
@@ -462,6 +462,10 @@ export function ManagePipelines() {
                                     ...provided.draggableProps.style,
                                     opacity: snapshot.isDragging ? 0.85 : 1,
                                   }}
+                                  className={cn(
+                                    "flex-shrink-0 w-56 select-none mr-4",
+                                    snapshot.isDragging && "shadow-xl ring-2 ring-emerald-500/30 scale-[1.02] rounded-2xl"
+                                  )}
                                 >
                                   <StageColumn
                                     stage={stage}
