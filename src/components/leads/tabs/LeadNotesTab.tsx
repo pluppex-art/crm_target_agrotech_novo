@@ -28,6 +28,8 @@ export const LeadNotesTab: React.FC<LeadNotesTabProps> = ({
   const recognitionRef = useRef<any>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const finalTranscriptRef = useRef('');
+  const lastDisplayedRef = useRef('');
+  const manualPrefixRef = useRef('');
 
   const startRecording = () => {
     setVoiceError(null);
@@ -44,7 +46,9 @@ export const LeadNotesTab: React.FC<LeadNotesTabProps> = ({
     rec.lang = 'pt-BR';
     rec.continuous = true;
     rec.interimResults = true;
+    manualPrefixRef.current = newNote.trim();
     finalTranscriptRef.current = '';
+    lastDisplayedRef.current = '';
 
     rec.onresult = (event: any) => {
       let interim = '';
@@ -55,7 +59,10 @@ export const LeadNotesTab: React.FC<LeadNotesTabProps> = ({
           interim += event.results[i][0].transcript;
         }
       }
-      setNewNote((finalTranscriptRef.current + interim).trim());
+      const voicePart = (finalTranscriptRef.current + interim).trim();
+      const display = [manualPrefixRef.current, voicePart].filter(Boolean).join(' ');
+      lastDisplayedRef.current = display;
+      setNewNote(display);
     };
 
     rec.onerror = (event: any) => {
@@ -68,7 +75,7 @@ export const LeadNotesTab: React.FC<LeadNotesTabProps> = ({
       if (timerRef.current) clearInterval(timerRef.current);
       setRecordingSeconds(0);
 
-      const raw = finalTranscriptRef.current.trim();
+      const raw = lastDisplayedRef.current || finalTranscriptRef.current.trim() || manualPrefixRef.current;
       if (!raw) {
         setRecordingState('idle');
         return;
@@ -77,6 +84,9 @@ export const LeadNotesTab: React.FC<LeadNotesTabProps> = ({
       setRecordingState('correcting');
       const corrected = await voiceTranscriptionService.correctText(raw);
       setNewNote(corrected);
+      lastDisplayedRef.current = '';
+      finalTranscriptRef.current = '';
+      manualPrefixRef.current = '';
       setRecordingState('idle');
     };
 

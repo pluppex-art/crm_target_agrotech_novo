@@ -55,5 +55,6 @@ export interface LeadInfoTabProps {
   onPaymentProofUploaded?: () => Promise<void>;
   isCallInProgress?: boolean;
   setIsCallInProgress?: (v: boolean) => void;
+  canDelete?: boolean;
 }
 

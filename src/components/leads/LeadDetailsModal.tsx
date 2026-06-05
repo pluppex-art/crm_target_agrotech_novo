@@ -156,6 +156,12 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
     });
   }, [products, lead.product, form.formData.product]);
 
+  const currentUserProfile = profiles.find(p => p.id === user?.id);
+  const isAdmin =
+    currentUserProfile?.cargos?.name?.toLowerCase() === 'administrador' ||
+    (currentUserProfile?.cargos?.permissions || []).includes('admin.all') ||
+    (currentUserProfile?.cargos?.permissions || []).includes('leads.delete');
+
   const isTurmaMode = !!turmaAttendee;
   const stages = isTurmaMode ? TURMA_STAGES : pipelineStages;
   const currentStageData = stages?.find(s => s.id === currentStageId);
@@ -411,6 +417,7 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
                 isSaving={form.isSaving}
                 onDelete={handleDelete}
                 onCancel={handleClose}
+                canDelete={isAdmin}
                 isCallInProgress={isCallInProgress}
                 setIsCallInProgress={setIsCallInProgress}
                 currentStageName={currentStageName}

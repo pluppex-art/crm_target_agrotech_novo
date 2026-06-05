@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { User, GraduationCap, Briefcase, ChevronDown, Pencil, X } from 'lucide-react';
+import { User, GraduationCap, Briefcase, ChevronDown, Pencil, X, Save, Loader2, Trash2 } from 'lucide-react';
 import { useProfileStore } from '../../../store/useProfileStore';
 import { useSquadStore } from '../../../store/useSquadStore';
 import { parseBRNumber, formatCPFCNPJ } from '../../../lib/utils';
@@ -14,7 +14,6 @@ import { ContractConfirmations } from './lead-info-tab/ContractConfirmations';
 import { LeadBasicFields } from './lead-info-tab/LeadBasicFields';
 import { LeadDocumentationFields } from './lead-info-tab/LeadDocumentationFields';
 import { DiscountSection } from './lead-info-tab/DiscountSection';
-import { ActionButtons } from './lead-info-tab/ActionButtons';
 
 const SectionBlock = ({
   title,
@@ -47,7 +46,7 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = (props) => {
   const {
     lead, formData, products, fieldErrors, whatsappUrl, calculateFinalValue,
     hoverStars, setHoverStars, updateFormField, toggleField, handleSave,
-    isSaving, onDelete, showConfirmations, responsibles,
+    isSaving, onDelete, showConfirmations, responsibles, canDelete,
     pixCompleted, contractSigned, onPixComplete, onContractSign, onPaymentProofUploaded,
     isCallInProgress, setIsCallInProgress,
   } = props;
@@ -172,17 +171,35 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = (props) => {
       )}
 
       {isEditing && (
-        <div className="flex items-center justify-between px-1">
-          <span className="text-[10px] font-black text-emerald-600 uppercase tracking-wider flex items-center gap-1.5">
+        <div className="flex items-center justify-between gap-2 px-1 py-1 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900">
+          <span className="text-[10px] font-black text-emerald-600 uppercase tracking-wider flex items-center gap-1.5 pl-2">
             <Pencil size={11} />
             Modo edição
           </span>
-          <button
-            onClick={() => setIsEditing(false)}
-            className="flex items-center gap-1 text-[10px] font-bold text-slate-400 hover:text-slate-600 transition-colors"
-          >
-            <X size={12} /> Cancelar edição
-          </button>
+          <div className="flex items-center gap-1.5">
+            {canDelete && (
+              <button
+                onClick={onDelete}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-red-200 dark:border-red-900 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-all text-[10px] font-bold uppercase tracking-wider"
+              >
+                <Trash2 size={11} /> Excluir
+              </button>
+            )}
+            <button
+              onClick={() => setIsEditing(false)}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all text-[10px] font-bold uppercase tracking-wider"
+            >
+              <X size={11} /> Cancelar
+            </button>
+            <button
+              onClick={handleSaveAndExit}
+              disabled={isSaving}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white transition-all text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
+            >
+              {isSaving ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />}
+              Salvar
+            </button>
+          </div>
         </div>
       )}
 
@@ -406,14 +423,6 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = (props) => {
         )}
       </SectionBlock>
 
-      {isEditing && (
-        <ActionButtons
-          onDelete={onDelete}
-          onCancel={() => setIsEditing(false)}
-          handleSave={handleSaveAndExit}
-          isSaving={isSaving}
-        />
-      )}
     </div>
   );
 };
