@@ -243,6 +243,7 @@ export function Products() {
                 <th className="text-right px-5 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Taxa Matrícula</th>
                 <th className="text-right px-5 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Meta Alunos</th>
                 <th className="text-left px-5 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Data da Turma</th>
+                <th className="text-left px-5 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
                 <th className="px-5 py-3" />
               </tr>
             </thead>
@@ -273,6 +274,19 @@ export function Products() {
                     ) : (
                       <span className="text-slate-400">—</span>
                     )}
+                  </td>
+                  <td className="px-5 py-3">
+                    {(() => {
+                      const s = getProductStatus(product);
+                      if (!s) return <span className="text-slate-400">—</span>;
+                      const map = {
+                        ativo: { label: 'Ativo', cls: 'text-sky-700 bg-sky-50 border-sky-200' },
+                        concluida: { label: 'Concluída', cls: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
+                        cancelada: { label: 'Cancelada', cls: 'text-red-600 bg-red-50 border-red-200' },
+                      };
+                      const { label, cls } = map[s];
+                      return <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border uppercase tracking-wider ${cls}`}>{label}</span>;
+                    })()}
                   </td>
                   <td className="px-5 py-3 text-right">
                     <button
