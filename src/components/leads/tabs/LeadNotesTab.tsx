@@ -1,6 +1,7 @@
-import React from 'react';
-import { Plus, Trash2, Loader2, MessageSquare } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Plus, Trash2, Loader2, MessageSquare, Mic, MicOff } from 'lucide-react';
 import { cn } from '../../../lib/utils';
+import { voiceTranscriptionService } from '../../../services/voiceTranscriptionService';
 
 interface LeadNotesTabProps {
   notes: any[];
@@ -11,6 +12,8 @@ interface LeadNotesTabProps {
   handleDeleteNote: (noteId: string) => Promise<void>;
 }
 
+type RecordingState = 'idle' | 'recording' | 'correcting';
+
 export const LeadNotesTab: React.FC<LeadNotesTabProps> = ({
   notes,
   newNote,
@@ -19,20 +22,143 @@ export const LeadNotesTab: React.FC<LeadNotesTabProps> = ({
   handleAddNote,
   handleDeleteNote,
 }) => {
+  const [recordingState, setRecordingState] = useState<RecordingState>('idle');
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+  const recognitionRef = useRef<any>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const finalTranscriptRef = useRef('');
+
+  const startRecording = () => {
+    setVoiceError(null);
+
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      setVoiceError('Reconhecimento de voz não disponível. Use o Chrome.');
+      return;
+    }
+
+    const rec = new SpeechRecognition();
+    rec.lang = 'pt-BR';
+    rec.continuous = true;
+    rec.interimResults = true;
+    finalTranscriptRef.current = '';
+
+    rec.onresult = (event: any) => {
+      let interim = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          finalTranscriptRef.current += event.results[i][0].transcript + ' ';
+        } else {
+          interim += event.results[i][0].transcript;
+        }
+      }
+      setNewNote((finalTranscriptRef.current + interim).trim());
+    };
+
+    rec.onerror = (event: any) => {
+      if (event.error === 'no-speech') return;
+      setVoiceError(`Erro no microfone: ${event.error}`);
+      stopRecording();
+    };
+
+    rec.onend = async () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      setRecordingSeconds(0);
+
+      const raw = finalTranscriptRef.current.trim();
+      if (!raw) {
+        setRecordingState('idle');
+        return;
+      }
+
+      setRecordingState('correcting');
+      const corrected = await voiceTranscriptionService.correctText(raw);
+      setNewNote(corrected);
+      setRecordingState('idle');
+    };
+
+    rec.start();
+    recognitionRef.current = rec;
+    setRecordingState('recording');
+    setRecordingSeconds(0);
+    timerRef.current = setInterval(() => setRecordingSeconds((s) => s + 1), 1000);
+  };
+
+  const stopRecording = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    recognitionRef.current?.stop();
+    recognitionRef.current = null;
+  };
+
+  const formatTime = (s: number) =>
+    `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+
   return (
     <div className="p-8 space-y-6">
       <div className="flex flex-col gap-3">
-        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Nova Nota</label>
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Nova Nota</label>
+
+          {recordingState === 'idle' && (
+            <button
+              onClick={startRecording}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-emerald-400 hover:text-emerald-600 transition-all text-[10px] font-bold uppercase tracking-wider"
+            >
+              <Mic size={12} />
+              Gravar Voz
+            </button>
+          )}
+
+          {recordingState === 'recording' && (
+            <button
+              onClick={stopRecording}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-red-300 bg-red-50 text-red-600 hover:bg-red-100 transition-all text-[10px] font-bold uppercase tracking-wider"
+            >
+              <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+              {formatTime(recordingSeconds)}
+              <span className="ml-0.5">· Parar</span>
+            </button>
+          )}
+
+          {recordingState === 'correcting' && (
+            <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-600">
+              <Loader2 size={12} className="animate-spin" />
+              Corrigindo com IA...
+            </span>
+          )}
+        </div>
+
+        {voiceError && (
+          <p className="text-xs text-red-500 font-medium flex items-center gap-1">
+            <MicOff size={12} /> {voiceError}
+          </p>
+        )}
+
         <div className="relative">
           <textarea
             value={newNote}
             onChange={(e) => setNewNote(e.target.value)}
-            placeholder="Adicione uma observação sobre este lead..."
-            className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm min-h-[100px] resize-none shadow-sm"
+            placeholder={
+              recordingState === 'recording'
+                ? 'Fale agora... o texto aparece aqui em tempo real'
+                : recordingState === 'correcting'
+                  ? 'Corrigindo texto com IA...'
+                  : 'Adicione uma observação sobre este lead...'
+            }
+            disabled={recordingState === 'correcting'}
+            className={cn(
+              'w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm min-h-[100px] resize-none shadow-sm',
+              recordingState === 'recording' && 'border-red-300 bg-red-50/20 dark:border-red-900',
+              recordingState === 'correcting' && 'border-emerald-300 bg-emerald-50/20'
+            )}
           />
           <button
             onClick={handleAddNote}
-            className="absolute bottom-3 right-3 p-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all"
+            disabled={!newNote.trim() || recordingState !== 'idle'}
+            className="absolute bottom-3 right-3 p-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Plus size={18} />
           </button>
@@ -49,11 +175,12 @@ export const LeadNotesTab: React.FC<LeadNotesTabProps> = ({
             const noteDate = new Date(note.created_at);
             const dateStr = noteDate.toLocaleDateString('pt-BR');
             const timeStr = noteDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-            
-            const isVendaFechadaOriginal = note.content.includes('🎉 Lead') && note.content.includes('entrou em Ganho na data de');
+
+            const isVendaFechadaOriginal =
+              note.content.includes('🎉 Lead') && note.content.includes('entrou em Ganho na data de');
             const isVendaFechadaNova = note.content.includes('🏆 Venda Fechada!');
             const isVendaFechada = isVendaFechadaOriginal || isVendaFechadaNova;
-            
+
             let displayContent = note.content;
             if (isVendaFechadaOriginal) {
               displayContent = note.content.replace(
@@ -63,24 +190,36 @@ export const LeadNotesTab: React.FC<LeadNotesTabProps> = ({
             }
 
             return (
-              <div key={note.id} className={cn(
-                "border rounded-2xl p-4 relative group transition-all",
-                isVendaFechada
-                  ? "bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200 shadow-md"
-                  : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 shadow-sm"
-              )}>
+              <div
+                key={note.id}
+                className={cn(
+                  'border rounded-2xl p-4 relative group transition-all',
+                  isVendaFechada
+                    ? 'bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200 shadow-md'
+                    : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 shadow-sm'
+                )}
+              >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-2">
-                      <span className={cn(
-                        "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase",
-                        isVendaFechada ? "text-emerald-700 bg-emerald-100" : "text-emerald-600 bg-emerald-50"
-                      )}>
+                      <span
+                        className={cn(
+                          'text-[10px] font-bold px-2 py-0.5 rounded-full uppercase',
+                          isVendaFechada
+                            ? 'text-emerald-700 bg-emerald-100'
+                            : 'text-emerald-600 bg-emerald-50'
+                        )}
+                      >
                         {dateStr} às {timeStr}
                       </span>
                     </div>
                     {note.author_name && (
-                      <span className={cn("text-[10px] font-semibold px-1", isVendaFechada ? "text-emerald-600" : "text-slate-500 dark:text-slate-400")}>
+                      <span
+                        className={cn(
+                          'text-[10px] font-semibold px-1',
+                          isVendaFechada ? 'text-emerald-600' : 'text-slate-500 dark:text-slate-400'
+                        )}
+                      >
                         por {note.author_name}
                       </span>
                     )}
@@ -92,10 +231,14 @@ export const LeadNotesTab: React.FC<LeadNotesTabProps> = ({
                     <Trash2 size={14} />
                   </button>
                 </div>
-                <p className={cn(
-                  "leading-relaxed",
-                  isVendaFechada ? "text-sm md:text-base font-bold text-emerald-800" : "text-sm text-slate-700 dark:text-slate-300"
-                )}>
+                <p
+                  className={cn(
+                    'leading-relaxed',
+                    isVendaFechada
+                      ? 'text-sm md:text-base font-bold text-emerald-800'
+                      : 'text-sm text-slate-700 dark:text-slate-300'
+                  )}
+                >
                   {displayContent}
                 </p>
               </div>
@@ -111,4 +254,3 @@ export const LeadNotesTab: React.FC<LeadNotesTabProps> = ({
     </div>
   );
 };
-

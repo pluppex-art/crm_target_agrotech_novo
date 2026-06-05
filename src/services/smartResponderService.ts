@@ -1,5 +1,4 @@
 import { supabase } from '../lib/supabase';
-import { GoogleGenAI } from '@google/genai';
 
 export interface SmartResponderRequest {
   leadId: string;
@@ -13,14 +12,11 @@ export interface SmartResponderResponse {
 }
 
 export const smartResponderService = {
-  /**
-   * Utiliza a API do Gemini localmente para gerar a sugestão
-   */
   async generateResponse(leadId: string, context?: string): Promise<SmartResponderResponse> {
     try {
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      const apiKey = import.meta.env.VITE_GROQ_API_KEY as string | undefined;
       if (!apiKey) {
-        return { response: '', success: false, error: 'Chave do Gemini (VITE_GEMINI_API_KEY) não configurada.' };
+        return { response: '', success: false, error: 'Chave do Groq (VITE_GROQ_API_KEY) não configurada.' };
       }
 
       const { data: lead, error } = await supabase
@@ -33,11 +29,7 @@ export const smartResponderService = {
         return { response: '', success: false, error: 'Lead não encontrado.' };
       }
 
-      // Inicializa o SDK
-      const ai = new GoogleGenAI({ apiKey });
-
-      const prompt = `
-Você é um consultor de vendas sênior da Target Agrotech, uma empresa focada no agronegócio (cursos de drones, serviços agrícolas, etc.).
+      const prompt = `Você é um consultor de vendas sênior da Target Agrotech, uma empresa focada no agronegócio (cursos de drones, serviços agrícolas, etc.).
 Você precisa gerar uma resposta de WhatsApp amigável, persuasiva e profissional para o lead abaixo.
 
 DADOS DO LEAD:
@@ -54,21 +46,33 @@ REGRAS DA RESPOSTA:
 1. Seja natural e não muito longo (adequado para WhatsApp).
 2. Tente fazer uma pergunta no final para instigar a resposta do cliente.
 3. Não invente preços ou prazos que não estejam no contexto.
-4. Use emojis moderadamente.
-`;
+4. Use emojis moderadamente.`;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          temperature: 0.7,
+          messages: [{ role: 'user', content: prompt }],
+        }),
       });
 
-      return {
-        response: response.text || '',
-        success: true
-      };
+      if (!res.ok) {
+        const errText = await res.text();
+        return { response: '', success: false, error: `Groq error ${res.status}: ${errText}` };
+      }
+
+      const data = await res.json();
+      const text = data?.choices?.[0]?.message?.content?.trim() || '';
+
+      return { response: text, success: true };
     } catch (err: any) {
-      console.error('Falha na geração de resposta pelo Gemini:', err);
+      console.error('Falha na geração de resposta pelo Groq:', err);
       return { response: '', success: false, error: err.message };
     }
-  }
+  },
 };
