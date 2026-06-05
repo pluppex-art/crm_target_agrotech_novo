@@ -56,5 +56,7 @@ export interface LeadInfoTabProps {
   isCallInProgress?: boolean;
   setIsCallInProgress?: (v: boolean) => void;
   canDelete?: boolean;
+  isEditing?: boolean;
+  onToggleEdit?: (v: boolean) => void;
 }
 

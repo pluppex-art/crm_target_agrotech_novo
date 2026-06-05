@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Calendar,
   Clock,
@@ -13,6 +13,8 @@ import {
   BadgeCheck,
   Users,
   Paperclip,
+  Ban,
+  AlertTriangle,
 } from 'lucide-react';
 import { TurmaFilesModal } from './TurmaFilesModal';
 import { DndContext, useSensors, useSensor, PointerSensor, closestCenter, DragOverlay, DragStartEvent, DragEndEvent } from '@dnd-kit/core';
@@ -28,6 +30,7 @@ interface TurmasRightPanelProps {
   setViewMode: (mode: 'kanban' | 'lista') => void;
   setSelectedTurma: (turma: Turma | null) => void;
   handleToggleConcluida: () => void;
+  handleToggleCancelada: () => void;
   activeId: string | null;
   onDragStart: (event: DragStartEvent) => void;
   onDragEnd: (event: DragEndEvent) => void;
@@ -43,6 +46,7 @@ export function TurmasRightPanel({
   setViewMode,
   setSelectedTurma,
   handleToggleConcluida,
+  handleToggleCancelada,
   activeId,
   onDragStart,
   onDragEnd,
@@ -52,6 +56,24 @@ export function TurmasRightPanel({
   handleNoShow,
 }: TurmasRightPanelProps) {
   const [isFilesModalOpen, setIsFilesModalOpen] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+
+  const activeAttendees = (liveSelectedTurma.attendees || []).filter(
+    a => a.status === 'matriculado' || a.status === 'indeciso' || a.status === 'confirmado'
+  );
+
+  const handleCancelClick = () => {
+    if (liveSelectedTurma.status === 'cancelada') {
+      handleToggleCancelada();
+      return;
+    }
+    setShowCancelConfirm(true);
+  };
+
+  const confirmCancel = () => {
+    setShowCancelConfirm(false);
+    handleToggleCancelada();
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -100,17 +122,25 @@ export function TurmasRightPanel({
             )}
             title={liveSelectedTurma.status === 'concluida' ? "Reabrir turma" : "Marcar turma como concluída"}
           >
-            {liveSelectedTurma.status === 'concluida' ? (
-              <>
-                <CheckCheck size={14} />
-                <span className="hidden sm:inline">Turma Concluída</span>
-              </>
-            ) : (
-              <>
-                <CheckCheck size={14} />
-                <span className="hidden sm:inline">Concluir Turma</span>
-              </>
+            <CheckCheck size={14} />
+            <span className="hidden sm:inline">
+              {liveSelectedTurma.status === 'concluida' ? 'Turma Concluída' : 'Concluir Turma'}
+            </span>
+          </button>
+          <button
+            onClick={handleCancelClick}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all",
+              liveSelectedTurma.status === 'cancelada'
+                ? "bg-red-600 border border-red-700 text-white hover:bg-red-700 shadow-sm"
+                : "bg-red-50 border border-red-200 text-red-600 hover:bg-red-100"
             )}
+            title={liveSelectedTurma.status === 'cancelada' ? "Reabrir turma" : "Cancelar turma"}
+          >
+            <Ban size={14} />
+            <span className="hidden sm:inline">
+              {liveSelectedTurma.status === 'cancelada' ? 'Turma Cancelada' : 'Cancelar Turma'}
+            </span>
           </button>
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/50 rounded-lg p-0.5">
             <button
@@ -266,6 +296,88 @@ export function TurmasRightPanel({
           onClose={() => setIsFilesModalOpen(false)}
         />
       )}
+
+      <AnimatePresence>
+        {showCancelConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-6 mx-4 max-w-sm w-full border border-slate-100 dark:border-slate-800"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center shrink-0">
+                  <AlertTriangle size={20} className="text-red-600" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800 dark:text-slate-200 text-sm">Cancelar Turma</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{liveSelectedTurma.name}</p>
+                </div>
+              </div>
+
+              {activeAttendees.length > 0 ? (
+                <>
+                  <div className="mb-5 p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-xl">
+                    <p className="text-xs font-bold text-red-700 dark:text-red-400 mb-2 flex items-center gap-1.5">
+                      <AlertTriangle size={12} /> {activeAttendees.length} aluno{activeAttendees.length > 1 ? 's' : ''} precisam ser remanejados
+                    </p>
+                    <p className="text-xs text-red-600 dark:text-red-400 mb-3">
+                      Remaneie todos os alunos abaixo para outra turma antes de cancelar. Enquanto houver alunos em status ativo, o cancelamento não é permitido.
+                    </p>
+                    <div className="space-y-1.5 max-h-36 overflow-y-auto">
+                      {activeAttendees.map(a => {
+                        const statusLabel = a.status === 'matriculado' ? 'Matriculado' : a.status === 'indeciso' ? 'Indeciso' : 'Confirmado';
+                        const statusColor = a.status === 'matriculado' ? 'text-blue-700 bg-blue-50 border-blue-100' : a.status === 'indeciso' ? 'text-amber-700 bg-amber-50 border-amber-100' : 'text-emerald-700 bg-emerald-50 border-emerald-100';
+                        return (
+                          <div key={a.id} className="flex items-center gap-2 text-xs bg-white dark:bg-slate-900 border border-red-100 dark:border-red-900 rounded-lg px-2 py-1">
+                            <img src={a.photo} alt={a.name} className="w-5 h-5 rounded-full object-cover shrink-0" referrerPolicy="no-referrer" />
+                            <span className="flex-1 truncate font-semibold text-slate-700 dark:text-slate-300">{a.name}</span>
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${statusColor}`}>{statusLabel}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => setShowCancelConfirm(false)}
+                      className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm font-semibold transition-colors"
+                    >
+                      Entendido, vou remanejar
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-5">
+                    Tem certeza que deseja cancelar esta turma?
+                  </p>
+                  <div className="flex gap-2 justify-end">
+                    <button
+                      onClick={() => setShowCancelConfirm(false)}
+                      className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm font-semibold transition-colors"
+                    >
+                      Voltar
+                    </button>
+                    <button
+                      onClick={confirmCancel}
+                      className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-bold transition-colors shadow-sm"
+                    >
+                      Confirmar cancelamento
+                    </button>
+                  </div>
+                </>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

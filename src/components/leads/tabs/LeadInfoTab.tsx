@@ -5,6 +5,7 @@ import { useSquadStore } from '../../../store/useSquadStore';
 import { parseBRNumber, formatCPFCNPJ } from '../../../lib/utils';
 import type { LeadInfoTabProps } from '../types';
 import { uploadLeadFile, deleteLeadFile } from '../../../services/leadFilesService';
+import { NewActivityModal } from '../../tasks/NewActivityModal';
 import { financialCalculator } from '../../../services/financialCalculator';
 import { transactionService } from '../../../services/transactionService';
 import { CentroCusto } from '../../../types/finance_v2';
@@ -54,6 +55,7 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = (props) => {
   const { profiles } = useProfileStore();
   const { getSquadInfoForUser } = useSquadStore();
   const [isEditing, setIsEditing] = useState(false);
+  const [showTaskModal, setShowTaskModal] = useState(false);
   const [uploadingProof, setUploadingProof] = useState(false);
   const [uploadingContract, setUploadingContract] = useState(false);
   const [uploadingRG, setUploadingRG] = useState(false);
@@ -123,13 +125,14 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = (props) => {
         squadInfo={squadInfo}
         hoverStars={hoverStars}
         setHoverStars={setHoverStars}
-        handleStarClick={(stars) => updateFormField({ stars })}
+        handleStarClick={(stars) => toggleField?.('stars', stars)}
         hasDiscount={hasDiscount}
         baseValue={baseValue}
         totalWithFee={totalWithFee}
         leadId={lead.id}
         isCallInProgress={isCallInProgress}
         setIsCallInProgress={setIsCallInProgress}
+        onNaoAtendida={() => setShowTaskModal(true)}
       />
 
       {/* Confirmações sempre em primeiro lugar */}
@@ -423,6 +426,12 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = (props) => {
         )}
       </SectionBlock>
 
+      <NewActivityModal
+        isOpen={showTaskModal}
+        onClose={() => setShowTaskModal(false)}
+        leadId={lead.id}
+        leadName={formData.name}
+      />
     </div>
   );
 };

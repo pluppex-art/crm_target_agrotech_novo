@@ -64,7 +64,7 @@ export function Turmas() {
   const [isNewTurmaOpen, setIsNewTurmaOpen] = useState(false);
   const [editingTurma, setEditingTurma] = useState<Turma | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('agendada');
   const [filterProduct, setFilterProduct] = useState('all');
   const [filterProfessor, setFilterProfessor] = useState('all');
   const { products, fetchProducts } = useProductStore();
@@ -185,6 +185,13 @@ export function Turmas() {
     if (!liveSelectedTurma) return;
     const store = useTurmaStore.getState();
     const newStatus = liveSelectedTurma.status === 'concluida' ? 'agendada' : 'concluida';
+    store.updateTurma(liveSelectedTurma.id, { status: newStatus });
+  };
+
+  const handleToggleCancelada = () => {
+    if (!liveSelectedTurma) return;
+    const store = useTurmaStore.getState();
+    const newStatus = liveSelectedTurma.status === 'cancelada' ? 'agendada' : 'cancelada';
     store.updateTurma(liveSelectedTurma.id, { status: newStatus });
   };
 
@@ -397,6 +404,7 @@ export function Turmas() {
                   setViewMode={setViewMode}
                   setSelectedTurma={setSelectedTurma}
                   handleToggleConcluida={handleToggleConcluida}
+                  handleToggleCancelada={handleToggleCancelada}
                   activeId={activeId}
                   onDragStart={onDragStart}
                   onDragEnd={onDragEnd}

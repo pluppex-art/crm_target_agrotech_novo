@@ -1,31 +1,37 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Plus, Loader2, Package, ShieldAlert, Search, LayoutGrid, List, Edit2 } from 'lucide-react';
+import { Plus, Loader2, Package, ShieldAlert, LayoutGrid, List, Edit2, Calendar } from 'lucide-react';
 import { usePermissions } from '../hooks/usePermissions';
 import { useProductStore } from '../store/useProductStore';
-import { useTurmaStore } from '../store/useTurmaStore';
 import { UnifiedTurmaProductForm } from '../components/forms/UnifiedTurmaProductForm';
 import { Product } from '../services/productService';
 import { ProductCard } from '../components/products/ProductCard';
 import { PageFilters } from '../components/ui/PageFilters';
 import { Filter, GraduationCap } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { TURMA_STATUS_LABELS } from '../lib/turmas';
+
+// Products and turmas share the same `turmas` table in the database.
+// All product-level calculations use the product's own fields directly.
+const getProductStatus = (product: Product): 'ativo' | 'concluida' | 'cancelada' | null => {
+  if (product.status === 'agendada' || product.status === 'em_andamento') return 'ativo';
+  if (product.status === 'concluida') return 'concluida';
+  if (product.status === 'cancelada') return 'cancelada';
+  return null;
+};
 
 export function Products() {
   const { hasPermission, loading: permissionsLoading } = usePermissions();
   const { products, loading, fetchProducts, subscribe } = useProductStore();
-  const { turmas, fetchTurmas } = useTurmaStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterTurmaStatus, setFilterTurmaStatus] = useState('ativo');
+  const [filterMonth, setFilterMonth] = useState('all');
   const [viewMode, setViewMode] = useState<'card' | 'list'>('list');
 
   useEffect(() => {
     fetchProducts();
-    fetchTurmas();
-  }, [fetchProducts, fetchTurmas]);
+  }, [fetchProducts]);
 
   useEffect(() => {
     const unsubscribe = subscribe();
@@ -46,17 +52,18 @@ export function Products() {
     return editingProduct ?? undefined;
   }, [editingProduct]);
 
-  const getProductTurmaStatus = (product: Product) => {
-    const productTurmas = turmas.filter(t => t.id === product.id);
-    if (productTurmas.length === 0) return null;
-    const hasActive = productTurmas.some(t => t.status === 'agendada' || t.status === 'em_andamento');
-    if (hasActive) return 'ativo';
-    const hasConcluida = productTurmas.some(t => t.status === 'concluida');
-    if (hasConcluida) return 'concluida';
-    const hasCancelada = productTurmas.some(t => t.status === 'cancelada');
-    if (hasCancelada) return 'cancelada';
-    return null;
-  };
+  const availableMonths = useMemo(() => {
+    const months = new Set<string>();
+    products.forEach(p => {
+      if ((p as any).date) months.add((p as any).date.slice(0, 7));
+    });
+    return Array.from(months).sort();
+  }, [products]);
+
+  const turmasInFilteredMonth = useMemo(() => {
+    if (filterMonth === 'all') return null;
+    return products.filter(p => (p as any).date?.startsWith(filterMonth)).length;
+  }, [filterMonth, products]);
 
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
@@ -71,20 +78,18 @@ export function Products() {
       if (filterCategory !== 'all' && p.category !== filterCategory) {
         return false;
       }
-      // 3. Turma status
+      // 3. Status filter — product IS the turma, use its own status directly
       if (filterTurmaStatus !== 'all') {
-        const productStatus = getProductTurmaStatus(p);
-        if (filterTurmaStatus === 'ativo') {
-          if (productStatus !== 'ativo') return false;
-        } else if (filterTurmaStatus === 'concluida') {
-          if (productStatus !== 'concluida') return false;
-        } else if (filterTurmaStatus === 'cancelada') {
-          if (productStatus !== 'cancelada') return false;
-        }
+        const s = getProductStatus(p);
+        if (s !== filterTurmaStatus) return false;
+      }
+      // 4. Month filter — check product's own date
+      if (filterMonth !== 'all') {
+        if (!(p as any).date?.startsWith(filterMonth)) return false;
       }
       return true;
     });
-  }, [products, searchTerm, filterCategory, filterTurmaStatus, turmas]);
+  }, [products, searchTerm, filterCategory, filterTurmaStatus, filterMonth]);
 
   if (permissionsLoading) {
     return (
@@ -137,6 +142,7 @@ export function Products() {
             setSearchTerm('');
             setFilterCategory('all');
             setFilterTurmaStatus('ativo');
+            setFilterMonth('all');
           }}
           filters={[
             {
@@ -163,10 +169,30 @@ export function Products() {
                 { value: 'cancelada', label: 'Cancelada' },
                 { value: 'all', label: 'Todos' },
               ]
+            },
+            {
+              id: 'month',
+              type: 'select',
+              icon: Calendar,
+              placeholder: 'Todos os Meses',
+              value: filterMonth,
+              onChange: setFilterMonth,
+              activeColorClass: 'bg-sky-50 text-sky-700 border-sky-100',
+              options: availableMonths.map(m => {
+                const [year, month] = m.split('-');
+                const label = new Date(Number(year), Number(month) - 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+                return { value: m, label: label.charAt(0).toUpperCase() + label.slice(1) };
+              })
             }
           ]}
         />
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-between mt-2">
+          {turmasInFilteredMonth !== null ? (
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-sky-700 bg-sky-50 border border-sky-100 px-3 py-1.5 rounded-xl">
+              <Calendar size={13} className="text-sky-500" />
+              {turmasInFilteredMonth} turma{turmasInFilteredMonth !== 1 ? 's' : ''} neste mês
+            </span>
+          ) : <span />}
           <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-sm">
             <button
               onClick={() => setViewMode('card')}
@@ -202,7 +228,7 @@ export function Products() {
               key={product.id}
               product={product}
               onEdit={handleEdit}
-              turmaStatus={getProductTurmaStatus(product)}
+              turmaStatus={getProductStatus(product)}
             />
           ))}
         </div>
@@ -216,6 +242,7 @@ export function Products() {
                 <th className="text-right px-5 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Preço</th>
                 <th className="text-right px-5 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Taxa Matrícula</th>
                 <th className="text-right px-5 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Meta Alunos</th>
+                <th className="text-left px-5 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Data da Turma</th>
                 <th className="px-5 py-3" />
               </tr>
             </thead>
@@ -236,6 +263,16 @@ export function Products() {
                     {(product as any).student_goal != null
                       ? (product as any).student_goal
                       : '—'}
+                  </td>
+                  <td className="px-5 py-3">
+                    {(product as any).date ? (
+                      <span className="flex items-center gap-1 text-slate-600 dark:text-slate-400 text-xs font-semibold">
+                        <Calendar size={12} className="text-emerald-500" />
+                        {new Date(((product as any).date as string).replace(/-/g, '/')).toLocaleDateString('pt-BR')}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">—</span>
+                    )}
                   </td>
                   <td className="px-5 py-3 text-right">
                     <button

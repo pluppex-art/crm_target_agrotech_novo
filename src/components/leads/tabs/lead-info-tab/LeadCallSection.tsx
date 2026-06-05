@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Phone, PhoneOff, Loader2, Minus, Trash2 } from 'lucide-react';
+import { Phone, PhoneOff, Loader2, Trash2 } from 'lucide-react';
 import { callService } from '../../../../services/callService';
 import { noteService } from '../../../../services/noteService';
 import { useAuthStore } from '../../../../store/useAuthStore';
@@ -10,9 +10,10 @@ interface LeadCallSectionProps {
   leadId: string;
   isCallInProgress?: boolean;
   setIsCallInProgress?: (v: boolean) => void;
+  onNaoAtendida?: () => void;
 }
 
-export const LeadCallSection: React.FC<LeadCallSectionProps> = ({ leadId, isCallInProgress, setIsCallInProgress }) => {
+export const LeadCallSection: React.FC<LeadCallSectionProps> = ({ leadId, isCallInProgress, setIsCallInProgress, onNaoAtendida }) => {
   const { user } = useAuthStore();
   const { profiles } = useProfileStore();
   const [atendidas, setAtendidas] = useState(0);
@@ -57,8 +58,11 @@ export const LeadCallSection: React.FC<LeadCallSectionProps> = ({ leadId, isCall
       });
 
       if (type === 'atendida') setAtendidas(v => v + 1);
-      else setNaoAtendidas(v => v + 1);
-      
+      else {
+        setNaoAtendidas(v => v + 1);
+        onNaoAtendida?.();
+      }
+
       setIsCallInProgress?.(false);
       refreshNotes();
     } finally {

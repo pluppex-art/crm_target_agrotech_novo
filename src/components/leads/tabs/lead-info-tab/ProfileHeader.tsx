@@ -16,6 +16,7 @@ interface ProfileHeaderProps {
   leadId: string;
   isCallInProgress?: boolean;
   setIsCallInProgress?: (v: boolean) => void;
+  onNaoAtendida?: () => void;
 }
 
 export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
@@ -31,6 +32,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   leadId,
   isCallInProgress,
   setIsCallInProgress,
+  onNaoAtendida,
 }) => {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100 dark:border-slate-800">
@@ -113,10 +115,11 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       </div>
 
       <div className="w-full sm:w-auto flex justify-center sm:justify-end shrink-0 border-t border-slate-50 pt-4 sm:border-t-0 sm:pt-0">
-        <LeadCallSection 
-          leadId={leadId} 
+        <LeadCallSection
+          leadId={leadId}
           isCallInProgress={isCallInProgress}
           setIsCallInProgress={setIsCallInProgress}
+          onNaoAtendida={onNaoAtendida}
         />
       </div>
     </div>
