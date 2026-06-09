@@ -278,7 +278,7 @@ export function SquadsSection() {
                     if (!managerProfile) return null;
                     return (
                       <div
-                        className="flex items-center justify-between px-3 py-2 border rounded-lg shadow-sm transition-all duration-300"
+                        className="flex items-center justify-between px-3 py-2 border rounded-lg shadow-sm transition-all duration-300 group"
                         style={{
                           backgroundColor: `${currentSquad?.color || '#6366f1'}0a`,
                           borderColor: `${currentSquad?.color || '#6366f1'}25`,
@@ -320,7 +320,8 @@ export function SquadsSection() {
                                 onClick={async () => {
                                   if (confirm(`Remover gestor do squad "${currentSquad.name}"?`)) {
                                     await compensationProfileService.updateSquad(selectedSquadId, { manager_id: null });
-                                    await load();
+                                    await loadAndSync();
+                                    await loadMembers(selectedSquadId);
                                   }
                                 }}
                                 className="p-1 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-md transition-colors"
@@ -372,7 +373,7 @@ export function SquadsSection() {
                               <Pencil size={14} />
                             </button>
                             <button
-                              onClick={async () => { await compensationProfileService.removeMemberFromSquad(selectedSquadId, m.user_id); loadMembers(selectedSquadId); }}
+                              onClick={async () => { await compensationProfileService.removeMemberFromSquad(selectedSquadId, m.user_id); await loadAndSync(); await loadMembers(selectedSquadId); }}
                               className="p-1 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-md transition-colors"
                               title="Remover"
                             >

@@ -324,19 +324,18 @@ export function useSalesMetrics({
   );
 
   const otherSellersRanking = useMemo(() => {
-    const individualGoalIds = new Set(goals.filter(g => g.type === 'seller').map(g => g.seller_id).filter(Boolean));
     return salesByResponsible
       .filter(s => {
         const sellerId = s.id;
         if (!sellerId || s.count === 0) return false;
         const profile = profiles.find(p => p.id === sellerId);
-        const isOfficial = profile ? isVendedor(profile) : false;
-        const hasGoal = individualGoalIds.has(sellerId);
-        return !isOfficial && !hasGoal;
+        if (profile?.status === 'inactive') return false;
+        // Apenas quem NÃO é closer/vendedor vai para "Outros Ganhos"
+        return profile ? !isVendedor(profile) : true;
       })
       .map(s => ({ id: s.id, label: s.label.trim(), value: s.value, received: s.received, count: s.count }))
       .sort((a, b) => b.count - a.count);
-  }, [salesByResponsible, profiles, goals]);
+  }, [salesByResponsible, profiles]);
 
   const sellerSemaphoreData = useMemo(
     () => calcSellerSemaphore(allSellersRanking, otherSellersRanking, goals),

@@ -43,12 +43,12 @@ export function HorizontalBar({ label, received, max, percentage: precomputedPct
           <span className="text-sm shrink-0 font-bold text-slate-400 w-6">{medal}</span>
           <div className="flex items-center gap-2 truncate">
             <span className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{label}</span>
-            {squad && (
-              <span 
+            {squad && squad.name !== '—' && squad.color && (
+              <span
                 className="text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider shrink-0"
-                style={{ 
-                  backgroundColor: squad.color ? `${squad.color}20` : '#f0fdf4',
-                  color: squad.color || '#16a34a'
+                style={{
+                  backgroundColor: `${squad.color}20`,
+                  color: squad.color
                 }}
               >
                 {squad.name}

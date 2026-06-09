@@ -42,6 +42,13 @@ export const useSquadStore = create<SquadState>((set, get) => ({
           userSquadColorMap[m.user_id] = squadColorMap[m.squad_id];
         }
       });
+      // Also map managers (stored in squads.manager_id, not in squad_members)
+      squads.forEach(s => {
+        if (s.manager_id) {
+          userSquadMap[s.manager_id] = s.name;
+          userSquadColorMap[s.manager_id] = s.color || '#3b82f6';
+        }
+      });
 
       set({ squads, members, userSquadMap, userSquadColorMap, loading: false });
     } catch (error) {
@@ -52,7 +59,7 @@ export const useSquadStore = create<SquadState>((set, get) => ({
 
   getSquadInfoForUser: (userId: string, userName?: string, profiles: any[] = []) => {
     const { userSquadMap, userSquadColorMap } = get();
-    
+
     // 1. Try direct map (userId)
     if (userSquadMap[userId]) {
       return { name: userSquadMap[userId], color: userSquadColorMap[userId] };
@@ -66,17 +73,8 @@ export const useSquadStore = create<SquadState>((set, get) => ({
       }
     }
 
-    // 3. Fallback to profile department
-    if (profiles.length > 0) {
-      const profile = profiles.find(p => p.id === userId || (userName && p.name === userName));
-      if (profile?.department) {
-        const dept = profile.department.toLowerCase();
-        if (dept === 'pluppex') return { name: 'PLUPPEX', color: '#8b5cf6' };
-        return { name: 'TARGET', color: '#3b82f6' };
-      }
-    }
-
-    return { name: 'TARGET', color: '#3b82f6' }; // Final fallback
+    // No explicit squad assignment found
+    return { name: '—', color: '' };
   }
 
 }));

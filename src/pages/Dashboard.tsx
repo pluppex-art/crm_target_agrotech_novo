@@ -587,15 +587,17 @@ export function Dashboard() {
                       <div key={s.label} className="flex items-center justify-between text-sm py-1.5 border-b border-slate-50 last:border-0">
                         <div className="flex items-center gap-2">
                           <span className="text-slate-700 dark:text-slate-300 font-bold">{s.label}</span>
-                          <span
-                            className="text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider"
-                            style={{
-                              backgroundColor: sq.color ? `${sq.color}20` : '#f0fdf4',
-                              color: sq.color || '#16a34a'
-                            }}
-                          >
-                            {sq.name}
-                          </span>
+                          {sq.name !== '—' && sq.color && (
+                            <span
+                              className="text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider"
+                              style={{
+                                backgroundColor: `${sq.color}20`,
+                                color: sq.color
+                              }}
+                            >
+                              {sq.name}
+                            </span>
+                          )}
                         </div>
                         <span className="text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-100 dark:border-slate-800 text-[10px] font-bold">{s.count} {s.count === 1 ? 'ganho' : 'ganhos'}</span>
                       </div>

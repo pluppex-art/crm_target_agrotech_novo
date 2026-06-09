@@ -189,33 +189,29 @@ export function calcAllSellersRanking(
 ): SellerRankingItem[] {
   const byId: Record<string, SellerRankingItem & { profileId?: string; id?: string }> = {};
 
-  const individualGoalIds = new Set(goals.filter(g => g.type === 'seller').map(g => g.seller_id).filter(Boolean));
-
   const sellerGoalMap = goals.reduce<Record<string, { leads_goal: number; revenue_goal: number }>>((acc, g) => {
     const data = { leads_goal: g.leads_goal || 0, revenue_goal: g.revenue_goal || 0 };
     if (g.seller_id) acc[g.seller_id.trim()] = data;
     return acc;
   }, {});
 
-  // 1. Quem vendeu
+  // 1. Closers/vendedores que venderam no período
   salesByResponsible.forEach((s) => {
     const sellerId = s.id;
     if (!sellerId) return;
 
     const profile = profiles.find(p => p.id === sellerId);
-    if (profile?.status === 'inactive') return;
-    const isOfficialVendedor = profile ? isVendedor(profile) : false;
-    const hasIndividualGoal = individualGoalIds.has(sellerId);
+    if (!profile || profile.status === 'inactive') return;
+    // Somente quem É closer/vendedor entra no ranking principal
+    if (!isVendedor(profile)) return;
 
-    if (isOfficialVendedor || hasIndividualGoal) {
-      byId[sellerId] = {
-        ...s,
-        label: profile?.name || s.label || 'Sem Nome',
-        percentage: 0,
-        leads_goal: 0,
-        profileId: sellerId,
-      };
-    }
+    byId[sellerId] = {
+      ...s,
+      label: profile.name || s.label || 'Sem Nome',
+      percentage: 0,
+      leads_goal: 0,
+      profileId: sellerId,
+    };
   });
 
   // 2. Vendedores sem venda

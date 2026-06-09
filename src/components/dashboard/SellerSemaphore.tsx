@@ -129,10 +129,15 @@ export function SellerSemaphore({ data, currentSellerName, isAdmin, companyReven
       };
     });
 
+    const validSquadNames = new Set(squads.map(s => s.name.toUpperCase()));
+
     data.forEach(s => {
       const p = profiles?.find(pr => (pr.name || '').trim() === s.label.trim());
       const sq = p && getSquadInfoForUser ? getSquadInfoForUser(p.id, s.label, profiles) : null;
-      const squadName = sq && sq.name && sq.name !== '—' ? sq.name : 'Outros';
+      // Only assign to squad if it actually exists in the store — prevents phantom cards from fallback values
+      const squadName = (sq && sq.name && sq.name !== '—' && validSquadNames.has(sq.name.toUpperCase()))
+        ? sq.name
+        : 'Outros';
 
       if (!squadsMap[squadName]) {
         squadsMap[squadName] = {
