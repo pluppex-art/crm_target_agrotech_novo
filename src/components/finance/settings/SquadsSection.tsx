@@ -3,6 +3,7 @@ import { Users2, X, Loader2, Save, Pencil, ToggleRight, ToggleLeft, Trash2, User
 import { getSupabaseClient } from '../../../lib/supabase';
 import { compensationProfileService } from '../../../services/compensationProfileService';
 import { profileService, UserProfile } from '../../../services/profileService';
+import { useSquadStore } from '../../../store/useSquadStore';
 import { cn } from '../../../lib/utils';
 
 type Squad = { id: string; name: string; manager_id: string | null; active: boolean; color?: string; logo_url?: string; company?: string };
@@ -21,6 +22,7 @@ const PRESET_COLORS = [
 ];
 
 export function SquadsSection() {
+  const refreshGlobalSquads = useSquadStore(s => s.fetchSquads);
   const [squads, setSquads] = useState<Squad[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -56,6 +58,12 @@ export function SquadsSection() {
     } finally { setIsLoading(false); }
   }, []);
 
+  // Refreshes both local state and the global store used by Dashboard/SellerSemaphore
+  const loadAndSync = useCallback(async () => {
+    await load();
+    refreshGlobalSquads();
+  }, [load, refreshGlobalSquads]);
+
   useEffect(() => { load(); }, [load]);
 
   const openCreate = () => { setModalForm(EMPTY_FORM); setModalMode('create'); };
@@ -85,24 +93,35 @@ export function SquadsSection() {
     try {
       if (modalMode === 'create') {
         await compensationProfileService.createSquad(modalForm.name, modalForm.color, modalForm.logo_url, modalForm.manager_id, modalForm.company);
+        // If a manager was set on creation, make sure they're not duplicated as a member
+        if (modalForm.manager_id) {
+          const supabase = getSupabaseClient();
+          await supabase?.from('squad_members').delete().eq('user_id', modalForm.manager_id);
+        }
       } else if (modalMode) {
+        const prev = squads.find(s => s.id === modalMode);
         await compensationProfileService.updateSquad(modalMode, modalForm);
+        // If manager changed, remove new manager from squad_members to avoid duplicate display
+        if (modalForm.manager_id && modalForm.manager_id !== prev?.manager_id) {
+          const supabase = getSupabaseClient();
+          await supabase?.from('squad_members').delete().eq('user_id', modalForm.manager_id);
+        }
       }
       closeModal();
-      await load();
+      await loadAndSync();
     } finally { setIsSaving(false); }
   };
 
   const handleToggle = async (id: string, active: boolean) => {
     await compensationProfileService.updateSquad(id, { active: !active });
-    await load();
+    await loadAndSync();
   };
 
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`Excluir squad "${name}"?`)) return;
     await compensationProfileService.deleteSquad(id);
     if (selectedSquadId === id) setSelectedSquadId(null);
-    await load();
+    await loadAndSync();
   };
 
   const loadMembers = async (squadId: string) => {
@@ -128,7 +147,7 @@ export function SquadsSection() {
         await compensationProfileService.addMemberToSquad(selectedSquadId, userId, editRoleValue as 'membro' | 'capitao');
       }
       setEditingMemberId(null);
-      await load();
+      await loadAndSync();
       await loadMembers(selectedSquadId);
     } finally {
       setIsMembersLoading(false);
@@ -407,12 +426,15 @@ export function SquadsSection() {
                         try {
                           if (selectedRoleToAdd === 'gestor') {
                             await compensationProfileService.updateSquad(selectedSquadId, { manager_id: selectedUserToAdd });
+                            // Remove new manager from squad_members to avoid appearing twice
+                            const supabase = getSupabaseClient();
+                            await supabase?.from('squad_members').delete().eq('user_id', selectedUserToAdd);
                           } else {
                             await compensationProfileService.addMemberToSquad(selectedSquadId, selectedUserToAdd, selectedRoleToAdd);
                           }
                           setSelectedUserToAdd('');
                           setSelectedRoleToAdd('membro');
-                          await load();
+                          await loadAndSync();
                           await loadMembers(selectedSquadId);
                         } finally {
                           setIsMembersLoading(false);
