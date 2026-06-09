@@ -97,12 +97,12 @@ function OccupancyCard({ occupancyData }: { occupancyData: OccupancyItem[] }) {
         data={filtered.map(d => ({
           label: d.name,
           value: d.alunos,
+          max: d.capacity,
           sublabel: `${d.alunos}/${d.capacity}`,
           color: d.level === 'green' ? '#10b981' : d.level === 'yellow' ? '#f59e0b' : '#ef4444',
         }))}
         emptyLabel="Nenhuma turma cadastrada"
-        minBarWidth={72}
-        chartHeight={240}
+        variant="cards"
       />
     </div>
   );

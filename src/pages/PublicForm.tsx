@@ -247,7 +247,8 @@ export function PublicForm() {
           product: data.interest || 'Interesse Geral',
           value: productValue,
           interest: data.interest,
-          notes: notes
+          notes: notes,
+          form_key: 'drone',
         }),
       });
       const result = await resp.json();

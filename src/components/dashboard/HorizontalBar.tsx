@@ -91,7 +91,7 @@ export function HorizontalBar({ label, received, max, percentage: precomputedPct
 
       {/* Tooltip com lista de leads */}
       {leads && leads.length > 0 && (
-        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-72 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 text-xs rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 p-3 border border-slate-200 dark:border-slate-700 cursor-default">
+        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-80 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 text-xs rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 p-3 border border-slate-200 dark:border-slate-700 cursor-default">
           <div className="font-bold text-slate-800 dark:text-slate-200 mb-2 border-b border-slate-100 dark:border-slate-800 pb-1.5 flex justify-between items-center">
             <span>Leads Ganhos ({count})</span>
           </div>
@@ -107,10 +107,10 @@ export function HorizontalBar({ label, received, max, percentage: precomputedPct
                 }}
                 title="Dê um duplo clique para ver os detalhes do lead"
               >
-                <span className="font-bold text-slate-700 dark:text-slate-300 truncate px-1">{l.name || 'Sem nome'}</span>
-                <div className="flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                  {l.productName && <span className="truncate max-w-[120px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-sm">{l.productName}</span>}
-                  {l.formattedWonAt && <span className="text-slate-400">📅 {l.formattedWonAt}</span>}
+                <span className="font-bold text-slate-700 dark:text-slate-300 px-1">{l.name || 'Sem nome'}</span>
+                <div className="flex items-start gap-1.5 text-[10px] text-slate-500 dark:text-slate-400 font-medium flex-wrap px-1">
+                  {l.productName && <span className="text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded-sm leading-tight">{l.productName}</span>}
+                  {l.formattedWonAt && <span className="text-slate-400 shrink-0">📅 {l.formattedWonAt}</span>}
                 </div>
               </div>
             ))}

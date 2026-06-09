@@ -14,7 +14,7 @@ export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   // ── Extraction & Validation ─────────────────────────────────────────────
-  const { name, email, phone, city, product: rawProduct, value, interest, notes: extraNotes } = req.body ?? {};
+  const { name, email, phone, city, product: rawProduct, value, interest, notes: extraNotes, form_key } = req.body ?? {};
 
   if (!name || !email || !phone) {
     return res.status(400).json({ error: 'Campos obrigatórios: Nome, E-mail e Telefone.' });
@@ -41,11 +41,14 @@ export default async function handler(req: any, res: any) {
   }
 
   // ── Round Robin (Rodízio) Logic ──────────────────────────────────────────
-  // 1. Obter o estado atual do rodízio para ler o last_seller_id
+  // Each form key has its own independent round-robin state so IA and Drone
+  // pools don't pollute each other's last_seller_id counter.
+  const rrStateId = form_key ? `form_leads_${form_key}` : 'form_leads';
+
   const { data: rrState } = await supabase
     .from('round_robin_state')
     .select('last_seller_id')
-    .eq('id', 'form_leads')
+    .eq('id', rrStateId)
     .single();
 
   let lastSellerId: string | null = rrState?.last_seller_id ?? null;
@@ -301,7 +304,7 @@ export default async function handler(req: any, res: any) {
     await supabase
       .from('round_robin_state')
       .upsert({
-        id: 'form_leads',
+        id: rrStateId,
         last_seller_id: assignedUserId,
         last_seller_name: assignedResponsible,
         updated_at: new Date().toISOString()

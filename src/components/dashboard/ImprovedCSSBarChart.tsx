@@ -3,6 +3,7 @@ import { BarChart2 } from 'lucide-react';
 interface BarItem {
   label: string;
   value: number;
+  max?: number;
   color?: string;
   sublabel?: string;
 }
@@ -14,6 +15,7 @@ interface ImprovedCSSBarChartProps {
   emptyLabel?: string;
   minBarWidth?: number;
   chartHeight?: number;
+  variant?: 'bars' | 'cards';
 }
 
 export function ImprovedCSSBarChart({
@@ -23,6 +25,7 @@ export function ImprovedCSSBarChart({
   emptyLabel = 'Sem dados ainda',
   minBarWidth = 0,
   chartHeight = 220,
+  variant = 'bars',
 }: ImprovedCSSBarChartProps) {
   const max = Math.max(...data.map(d => d.value), 1);
   const hasData = data.length > 0;
@@ -44,6 +47,56 @@ export function ImprovedCSSBarChart({
     : n >= 1_000 ? `${(n / 1_000).toFixed(0)}k`
     : String(n);
 
+  if (variant === 'cards') {
+    return (
+      <div className="flex flex-col gap-2 w-full">
+        {data.map((d, i) => {
+          const barColor = d.color ?? color;
+          const cardMax = d.max ?? 1;
+          const pct = cardMax > 0 ? Math.min((d.value / cardMax) * 100, 100) : 0;
+
+          return (
+            <div
+              key={i}
+              className="rounded-xl overflow-hidden bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 hover:shadow-md hover:-translate-y-px transition-all duration-200"
+              style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
+            >
+              {/* main row */}
+              <div className="flex items-center gap-3 px-3 py-2.5">
+                {/* colored indicator dot */}
+                <span
+                  className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm"
+                  style={{ backgroundColor: barColor, boxShadow: `0 0 6px ${barColor}88` }}
+                />
+                {/* name */}
+                <span className="flex-1 text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">
+                  {d.label}
+                </span>
+                {/* value + pct */}
+                <div className="flex items-baseline gap-2 shrink-0">
+                  <span className="text-sm font-black tabular-nums" style={{ color: barColor }}>
+                    {d.sublabel ?? fmt(d.value)}
+                  </span>
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 tabular-nums w-7 text-right">
+                    {Math.round(pct)}%
+                  </span>
+                </div>
+              </div>
+
+              {/* progress track */}
+              <div className="h-1 bg-slate-100 dark:bg-slate-700/60 mx-3 mb-2.5 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-700 ease-out"
+                  style={{ width: `${pct}%`, backgroundColor: barColor, opacity: 0.85 }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
   const totalMinWidth = minBarWidth > 0 ? data.length * minBarWidth : undefined;
 
   const colStyle = (): React.CSSProperties =>
@@ -52,13 +105,13 @@ export function ImprovedCSSBarChart({
       : { flex: '1 1 0', minWidth: 48 };
 
   // Label area height below baseline
-  const LABEL_HEIGHT = 80;
+  const LABEL_HEIGHT = 140;
 
   return (
     <div className="w-full overflow-x-auto pb-2 scrollbar-hide">
       <div style={{ minWidth: totalMinWidth }}>
         {/* Bar area */}
-        <div className="flex items-end gap-3 px-4" style={{ height: chartHeight }}>
+        <div className="flex items-end gap-5 px-4" style={{ height: chartHeight }}>
           {data.map((d, i) => {
             const barHeightPct = max > 0 ? (d.value / max) * 100 : 0;
             const barHeightPx = Math.max((barHeightPct * (chartHeight - 32)) / 100, d.value > 0 ? 8 : 0);
@@ -98,12 +151,12 @@ export function ImprovedCSSBarChart({
         <div className="mx-4 h-[2px] bg-gradient-to-r from-transparent via-slate-200 to-transparent rounded-full" />
 
         {/* Labels below baseline */}
-        <div className="flex gap-3 px-4" style={{ height: LABEL_HEIGHT }}>
+        <div className="flex gap-5 px-4" style={{ height: LABEL_HEIGHT }}>
           {data.map((d, i) => (
             <div
               key={`label-${i}`}
-              style={{ ...colStyle(), overflow: 'hidden' }}
-              className="flex items-start justify-center pt-2"
+              style={{ ...colStyle() }}
+              className="flex items-start justify-center pt-2 overflow-hidden"
             >
               <span
                 title={d.label}
@@ -117,7 +170,7 @@ export function ImprovedCSSBarChart({
                   color: '#94a3b8',
                   letterSpacing: '-0.02em',
                   textTransform: 'uppercase',
-                  maxHeight: LABEL_HEIGHT - 8,
+                  maxHeight: LABEL_HEIGHT - 12,
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                 }}

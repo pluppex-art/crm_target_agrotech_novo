@@ -204,6 +204,7 @@ export function PublicFormIA() {
           value: 197,
           interest: 'Curso de Inseminação Artificial em Bovinos',
           notes: 'Interesse principal: Curso de Inseminação Artificial em Bovinos',
+          form_key: 'ia',
         }),
       });
       const result = await resp.json();
