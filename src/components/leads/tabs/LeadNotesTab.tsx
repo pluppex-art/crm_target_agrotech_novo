@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
-import { Plus, Trash2, Loader2, MessageSquare, Mic, MicOff, CalendarPlus, X, Clock } from 'lucide-react';
+import { Plus, Trash2, Loader2, MessageSquare, Mic, MicOff, CalendarPlus, X, Clock, Phone } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { voiceTranscriptionService, DetectedTask } from '../../../services/voiceTranscriptionService';
+import { LiveCallTranscriber } from '../LiveCallTranscriber';
 
 interface LeadNotesTabProps {
   notes: any[];
@@ -30,6 +31,7 @@ export const LeadNotesTab: React.FC<LeadNotesTabProps> = ({
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [detectedTask, setDetectedTask] = useState<DetectedTask | null>(null);
+  const [showLiveCall, setShowLiveCall] = useState(false);
   const recognitionRef = useRef<any>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const finalTranscriptRef = useRef('');
@@ -122,13 +124,27 @@ export const LeadNotesTab: React.FC<LeadNotesTabProps> = ({
           <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Nova Nota</label>
 
           {recordingState === 'idle' && (
-            <button
-              onClick={startRecording}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-emerald-400 hover:text-emerald-600 transition-all text-[10px] font-bold uppercase tracking-wider"
-            >
-              <Mic size={12} />
-              Gravar Voz
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setShowLiveCall((v) => !v)}
+                className={cn(
+                  'flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider transition-all',
+                  showLiveCall
+                    ? 'border-emerald-400 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                    : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-emerald-400 hover:text-emerald-600'
+                )}
+              >
+                <Phone size={12} />
+                Chamada ao Vivo
+              </button>
+              <button
+                onClick={startRecording}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-emerald-400 hover:text-emerald-600 transition-all text-[10px] font-bold uppercase tracking-wider"
+              >
+                <Mic size={12} />
+                Gravar Voz
+              </button>
+            </div>
           )}
 
           {recordingState === 'recording' && (
@@ -149,6 +165,17 @@ export const LeadNotesTab: React.FC<LeadNotesTabProps> = ({
             </span>
           )}
         </div>
+
+        {showLiveCall && (
+          <LiveCallTranscriber
+            leadName={leadName ?? ''}
+            onTranscriptComplete={(text) => {
+              setNewNote(text);
+              setShowLiveCall(false);
+            }}
+            onClose={() => setShowLiveCall(false)}
+          />
+        )}
 
         {voiceError && (
           <p className="text-xs text-red-500 font-medium flex items-center gap-1">
