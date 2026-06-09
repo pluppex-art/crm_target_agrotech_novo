@@ -70,31 +70,33 @@ export default async function handler(req: any, res: any) {
 
   const productRouting = (rrSettings?.value as Record<string, string[]>) || {};
 
-  // Ordena alfabeticamente em pt-BR e filtra por produto
-  let validSellers = (sellers || [])
-    .filter(s => {
-      const allowedProducts = productRouting[s.id];
-      // Se não tem configuração, ou lista vazia, recebe tudo
-      if (!allowedProducts || allowedProducts.length === 0) return true;
-      // Se lead não tem produto, mas vendedor tem restrição, ele pode receber? 
-      // É melhor não bloquear se lead não tem produto para evitar perder o lead
-      if (!product) return true;
+  const productStr = product ? String(product).toLowerCase() : '';
 
-      const productStr = String(product).toLowerCase();
+  const matchesProduct = (allowedProducts: string[]) =>
+    allowedProducts.some(p => {
+      const pStr = p.toLowerCase();
+      if (productStr.includes(pStr) || pStr.includes(productStr)) return true;
+      if (pStr.includes('drone') && productStr.includes('drone')) return true;
+      if ((pStr.includes('ia') || pStr.includes('inseminação') || pStr.includes('inseminacao')) &&
+          (productStr.includes('ia') || productStr.includes('inseminação') || productStr.includes('inseminacao'))) return true;
+      return false;
+    });
 
-      // Verifica se o produto do form corresponde a algum na lista do vendedor
-      return allowedProducts.some(p => {
-        const pStr = p.toLowerCase();
-        if (productStr.includes(pStr) || pStr.includes(productStr)) return true;
-        
-        // Keyword matching to bridge "Curso de Drone" with "🚁 Drone, Altamira..."
-        if (pStr.includes('drone') && productStr.includes('drone')) return true;
-        if ((pStr.includes('ia') || pStr.includes('inseminação') || pStr.includes('inseminacao')) && 
-            (productStr.includes('ia') || productStr.includes('inseminação') || productStr.includes('inseminacao'))) return true;
+  // Sellers com tag explícita para este produto têm prioridade.
+  // Só usa "recebe tudo" (sem tag) se nenhum seller específico existir.
+  const specificSellers = productStr
+    ? (sellers || []).filter(s => {
+        const ap = productRouting[s.id];
+        return ap && ap.length > 0 && matchesProduct(ap);
+      })
+    : [];
 
-        return false;
-      });
-    })
+  const catchAllSellers = (sellers || []).filter(s => {
+    const ap = productRouting[s.id];
+    return !ap || ap.length === 0;
+  });
+
+  let validSellers = (specificSellers.length > 0 ? specificSellers : catchAllSellers)
     .sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'pt-BR', { sensitivity: 'base' }));
 
   // Fallback 1: se nenhum vendedor corresponde ao produto, tenta enviar para qualquer um do rodízio
