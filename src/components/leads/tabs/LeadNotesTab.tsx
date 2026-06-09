@@ -1,15 +1,17 @@
 import React, { useState, useRef } from 'react';
-import { Plus, Trash2, Loader2, MessageSquare, Mic, MicOff } from 'lucide-react';
+import { Plus, Trash2, Loader2, MessageSquare, Mic, MicOff, CalendarPlus, X, Clock } from 'lucide-react';
 import { cn } from '../../../lib/utils';
-import { voiceTranscriptionService } from '../../../services/voiceTranscriptionService';
+import { voiceTranscriptionService, DetectedTask } from '../../../services/voiceTranscriptionService';
 
 interface LeadNotesTabProps {
   notes: any[];
   newNote: string;
   loadingNotes: boolean;
+  leadName?: string;
   setNewNote: (note: string) => void;
   handleAddNote: () => Promise<void>;
   handleDeleteNote: (noteId: string) => Promise<void>;
+  onVoiceTaskDetected?: (task: DetectedTask) => void;
 }
 
 type RecordingState = 'idle' | 'recording' | 'correcting';
@@ -18,13 +20,16 @@ export const LeadNotesTab: React.FC<LeadNotesTabProps> = ({
   notes,
   newNote,
   loadingNotes,
+  leadName,
   setNewNote,
   handleAddNote,
   handleDeleteNote,
+  onVoiceTaskDetected,
 }) => {
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [detectedTask, setDetectedTask] = useState<DetectedTask | null>(null);
   const recognitionRef = useRef<any>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const finalTranscriptRef = useRef('');
@@ -82,8 +87,12 @@ export const LeadNotesTab: React.FC<LeadNotesTabProps> = ({
       }
 
       setRecordingState('correcting');
-      const corrected = await voiceTranscriptionService.correctText(raw);
+      const [corrected, task] = await Promise.all([
+        voiceTranscriptionService.correctText(raw),
+        voiceTranscriptionService.detectTaskIntent(raw, leadName),
+      ]);
       setNewNote(corrected);
+      if (task) setDetectedTask(task);
       lastDisplayedRef.current = '';
       finalTranscriptRef.current = '';
       manualPrefixRef.current = '';
@@ -174,6 +183,35 @@ export const LeadNotesTab: React.FC<LeadNotesTabProps> = ({
           </button>
         </div>
       </div>
+
+      {detectedTask && (
+        <div className="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-2xl">
+          <CalendarPlus className="text-amber-600 mt-0.5 flex-shrink-0" size={16} />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-0.5">Tarefa detectada na nota</p>
+            <p className="text-sm text-amber-800 dark:text-amber-300 font-medium truncate">{detectedTask.title}</p>
+            <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5 flex items-center gap-1">
+              <Clock size={11} />
+              {new Date(detectedTask.due_date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })}
+              {detectedTask.scheduled_time && ` às ${detectedTask.scheduled_time}`}
+            </p>
+          </div>
+          <div className="flex gap-1.5 flex-shrink-0">
+            <button
+              onClick={() => { onVoiceTaskDetected?.(detectedTask); setDetectedTask(null); }}
+              className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
+            >
+              Criar
+            </button>
+            <button
+              onClick={() => setDetectedTask(null)}
+              className="p-1 text-amber-500 hover:text-amber-700 transition-colors"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-4">
         {loadingNotes ? (

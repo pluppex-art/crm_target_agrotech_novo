@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { Notification } from '../types/notifications';
 import { supabase } from '../lib/supabase';
+import { useToastStore } from './useToastStore';
 
 interface NotificationState {
   notifications: Notification[];
@@ -72,6 +73,16 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
                   notifications: newNotifications,
                   unreadCount: newNotifications.filter(n => !n.read).length
                 };
+              });
+              const toastType = newNotif.type === 'urgent' ? 'urgent'
+                : newNotif.type === 'success' ? 'success'
+                : newNotif.type === 'pending' ? 'warning'
+                : 'info';
+              useToastStore.getState().show({
+                title: newNotif.title,
+                message: newNotif.message,
+                type: toastType,
+                link: newNotif.link,
               });
             } else if (payload.eventType === 'UPDATE') {
               const updated = payload.new as Notification;

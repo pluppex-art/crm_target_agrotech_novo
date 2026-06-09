@@ -19,6 +19,7 @@ import { useCategoryStore } from '../../store/useCategoryStore';
 import { useNotificationStore } from '../../store/useNotificationStore';
 import { useSquadStore } from '../../store/useSquadStore';
 import { TaskReminderWatcher } from '../tasks/TaskReminderWatcher';
+import { ToastContainer } from '../ui/ToastContainer';
 
 
 export function Layout() {
@@ -71,6 +72,7 @@ export function Layout() {
   return (
     <div className="flex h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 overflow-hidden transition-colors duration-300">
       <TaskReminderWatcher />
+      <ToastContainer />
       {/* Sidebar - Hidden on mobile/tablet, shown as overlay, always visible on desktop (lg) */}
       <aside className={cn(
         "fixed inset-y-0 left-0 z-50 lg:relative lg:flex h-screen flex-shrink-0 transition-all duration-300 ease-out bg-white dark:bg-slate-900/90 dark:bg-slate-900/90 backdrop-blur-md border-r border-slate-100 dark:border-slate-800/50 dark:border-slate-800/50 shadow-2xl overflow-hidden",

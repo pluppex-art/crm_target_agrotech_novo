@@ -47,6 +47,55 @@ export type Database = {
         }
         Relationships: []
       }
+      call_logs: {
+        Row: {
+          called_at: string
+          created_at: string
+          id: string
+          lead_id: string | null
+          type: string | null
+          user_id: string
+        }
+        Insert: {
+          called_at?: string
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          type?: string | null
+          user_id: string
+        }
+        Update: {
+          called_at?: string
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          type?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_logs_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_logs_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_completo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "perfis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cargos: {
         Row: {
           created_at: string
@@ -272,6 +321,63 @@ export type Database = {
         }
         Relationships: []
       }
+      copilot_sessions: {
+        Row: {
+          bant: Json
+          commercial: Json
+          created_at: string
+          id: string
+          lead_id: string
+          objections: Json
+          suggestions: Json
+          summary: string | null
+          transcript: Json
+          urgent_alert: string | null
+          user_id: string | null
+        }
+        Insert: {
+          bant?: Json
+          commercial?: Json
+          created_at?: string
+          id?: string
+          lead_id: string
+          objections?: Json
+          suggestions?: Json
+          summary?: string | null
+          transcript?: Json
+          urgent_alert?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          bant?: Json
+          commercial?: Json
+          created_at?: string
+          id?: string
+          lead_id?: string
+          objections?: Json
+          suggestions?: Json
+          summary?: string | null
+          transcript?: Json
+          urgent_alert?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "copilot_sessions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "copilot_sessions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_completo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_settings: {
         Row: {
           created_at: string
@@ -340,6 +446,7 @@ export type Database = {
           category_id: string | null
           centro_custo_id: string | null
           class_id: string | null
+          cost_center: string | null
           created_at: string | null
           created_by: string | null
           deletado_em: string | null
@@ -367,6 +474,7 @@ export type Database = {
           category_id?: string | null
           centro_custo_id?: string | null
           class_id?: string | null
+          cost_center?: string | null
           created_at?: string | null
           created_by?: string | null
           deletado_em?: string | null
@@ -394,6 +502,7 @@ export type Database = {
           category_id?: string | null
           centro_custo_id?: string | null
           class_id?: string | null
+          cost_center?: string | null
           created_at?: string | null
           created_by?: string | null
           deletado_em?: string | null
@@ -458,10 +567,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "financial_transactions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_completo"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "financial_transactions_source_transaction_id_fkey"
             columns: ["source_transaction_id"]
             isOneToOne: false
             referencedRelation: "financial_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_transactions_source_transaction_id_fkey"
+            columns: ["source_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_dre_despesas"
             referencedColumns: ["id"]
           },
           {
@@ -480,8 +603,42 @@ export type Database = {
           },
         ]
       }
+      form_configs: {
+        Row: {
+          active: boolean
+          badge_label: string
+          form_key: string
+          price: number
+          product: string
+          title: string
+          updated_at: string
+          whatsapp_number: string
+        }
+        Insert: {
+          active?: boolean
+          badge_label?: string
+          form_key: string
+          price?: number
+          product: string
+          title: string
+          updated_at?: string
+          whatsapp_number?: string
+        }
+        Update: {
+          active?: boolean
+          badge_label?: string
+          form_key?: string
+          price?: number
+          product?: string
+          title?: string
+          updated_at?: string
+          whatsapp_number?: string
+        }
+        Relationships: []
+      }
       goals: {
         Row: {
+          calls_goal: number | null
           created_at: string | null
           id: string
           leads_goal: number
@@ -492,6 +649,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          calls_goal?: number | null
           created_at?: string | null
           id?: string
           leads_goal?: number
@@ -502,6 +660,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          calls_goal?: number | null
           created_at?: string | null
           id?: string
           leads_goal?: number
@@ -558,12 +717,14 @@ export type Database = {
         Row: {
           board_status: string
           cancellation_reason: string | null
+          centro_custo_id: string | null
           class_id: string
           completed_at: string | null
           confirmed_at: string | null
           contract_signed: boolean | null
           contract_url: string | null
           contracted_amount: number | null
+          cost_center: string | null
           created_at: string
           created_by: string | null
           discount: string | null
@@ -580,10 +741,14 @@ export type Database = {
           photo: string | null
           pix_completed: boolean | null
           professor_proof_url: string | null
+          profile_photo_url: string | null
           refund_status: string
           removed_at: string | null
           responsavel_usuario_id: string
           responsible: string | null
+          responsible_id: string | null
+          rg_photo_url: string | null
+          seller_origin: string | null
           status: string
           taxa_matricula_paid_at: string | null
           taxa_matricula_recebido: number | null
@@ -597,12 +762,14 @@ export type Database = {
         Insert: {
           board_status?: string
           cancellation_reason?: string | null
+          centro_custo_id?: string | null
           class_id: string
           completed_at?: string | null
           confirmed_at?: string | null
           contract_signed?: boolean | null
           contract_url?: string | null
           contracted_amount?: number | null
+          cost_center?: string | null
           created_at?: string
           created_by?: string | null
           discount?: string | null
@@ -619,10 +786,14 @@ export type Database = {
           photo?: string | null
           pix_completed?: boolean | null
           professor_proof_url?: string | null
+          profile_photo_url?: string | null
           refund_status?: string
           removed_at?: string | null
           responsavel_usuario_id: string
           responsible?: string | null
+          responsible_id?: string | null
+          rg_photo_url?: string | null
+          seller_origin?: string | null
           status?: string
           taxa_matricula_paid_at?: string | null
           taxa_matricula_recebido?: number | null
@@ -636,12 +807,14 @@ export type Database = {
         Update: {
           board_status?: string
           cancellation_reason?: string | null
+          centro_custo_id?: string | null
           class_id?: string
           completed_at?: string | null
           confirmed_at?: string | null
           contract_signed?: boolean | null
           contract_url?: string | null
           contracted_amount?: number | null
+          cost_center?: string | null
           created_at?: string
           created_by?: string | null
           discount?: string | null
@@ -658,10 +831,14 @@ export type Database = {
           photo?: string | null
           pix_completed?: boolean | null
           professor_proof_url?: string | null
+          profile_photo_url?: string | null
           refund_status?: string
           removed_at?: string | null
           responsavel_usuario_id?: string
           responsible?: string | null
+          responsible_id?: string | null
+          rg_photo_url?: string | null
+          seller_origin?: string | null
           status?: string
           taxa_matricula_paid_at?: string | null
           taxa_matricula_recebido?: number | null
@@ -673,6 +850,20 @@ export type Database = {
           vendas?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "lead_class_enrollments_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "centro_custos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_class_enrollments_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_financeiro_padrao"
+            referencedColumns: ["centro_custo_id"]
+          },
           {
             foreignKeyName: "lead_class_enrollments_class_id_fkey"
             columns: ["class_id"]
@@ -691,6 +882,13 @@ export type Database = {
             foreignKeyName: "lead_class_enrollments_income_transaction_id_fkey"
             columns: ["income_transaction_id"]
             isOneToOne: false
+            referencedRelation: "v_dre_despesas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_class_enrollments_income_transaction_id_fkey"
+            columns: ["income_transaction_id"]
+            isOneToOne: false
             referencedRelation: "vw_financeiro_padrao"
             referencedColumns: ["transacao_id"]
           },
@@ -702,8 +900,22 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "lead_class_enrollments_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_completo"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "lead_class_enrollments_responsavel_usuario_id_fkey"
             columns: ["responsavel_usuario_id"]
+            isOneToOne: false
+            referencedRelation: "perfis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_class_enrollments_responsible_id_fkey"
+            columns: ["responsible_id"]
             isOneToOne: false
             referencedRelation: "perfis"
             referencedColumns: ["id"]
@@ -719,84 +931,167 @@ export type Database = {
       }
       leads: {
         Row: {
+          address: string | null
+          centro_custo_id: string | null
           city: string | null
           cnpj: string | null
           company_id: string | null
+          contract_signed: boolean | null
+          contract_url: string | null
+          cost_center: string | null
+          cpf: string | null
           created_at: string | null
           deletado_em: string | null
           deletado_por: string | null
+          discount_applied: boolean | null
+          discount_type: string | null
           email: string | null
+          emergency_contact: string | null
+          guardian_cpf: string | null
+          guardian_name: string | null
+          guardian_phone: string | null
           id: string
+          instagram: string | null
+          is_minor: boolean | null
           last_contact_at: string | null
           lead_source: string | null
           motivo_perda: string | null
           name: string
+          payment_proof_url: string | null
           phone: string | null
           photo: string | null
           pipeline_id: string | null
+          pix_completed: boolean | null
           product: string | null
+          professor_proof_url: string | null
+          profile_photo_url: string | null
           responsavel_usuario_id: string
           responsible: string | null
+          rg_photo_url: string | null
+          seller_origin: string | null
           stage_id: string | null
           stars: number | null
           status: string | null
           substatus: string | null
+          taxa_matricula_paid_at: string | null
           updated_at: string | null
+          valor_recebido_paid_at: string | null
           value: number | null
+          won_at: string | null
         }
         Insert: {
+          address?: string | null
+          centro_custo_id?: string | null
           city?: string | null
           cnpj?: string | null
           company_id?: string | null
+          contract_signed?: boolean | null
+          contract_url?: string | null
+          cost_center?: string | null
+          cpf?: string | null
           created_at?: string | null
           deletado_em?: string | null
           deletado_por?: string | null
+          discount_applied?: boolean | null
+          discount_type?: string | null
           email?: string | null
+          emergency_contact?: string | null
+          guardian_cpf?: string | null
+          guardian_name?: string | null
+          guardian_phone?: string | null
           id?: string
+          instagram?: string | null
+          is_minor?: boolean | null
           last_contact_at?: string | null
           lead_source?: string | null
           motivo_perda?: string | null
           name: string
+          payment_proof_url?: string | null
           phone?: string | null
           photo?: string | null
           pipeline_id?: string | null
+          pix_completed?: boolean | null
           product?: string | null
+          professor_proof_url?: string | null
+          profile_photo_url?: string | null
           responsavel_usuario_id: string
           responsible?: string | null
+          rg_photo_url?: string | null
+          seller_origin?: string | null
           stage_id?: string | null
           stars?: number | null
           status?: string | null
           substatus?: string | null
+          taxa_matricula_paid_at?: string | null
           updated_at?: string | null
+          valor_recebido_paid_at?: string | null
           value?: number | null
+          won_at?: string | null
         }
         Update: {
+          address?: string | null
+          centro_custo_id?: string | null
           city?: string | null
           cnpj?: string | null
           company_id?: string | null
+          contract_signed?: boolean | null
+          contract_url?: string | null
+          cost_center?: string | null
+          cpf?: string | null
           created_at?: string | null
           deletado_em?: string | null
           deletado_por?: string | null
+          discount_applied?: boolean | null
+          discount_type?: string | null
           email?: string | null
+          emergency_contact?: string | null
+          guardian_cpf?: string | null
+          guardian_name?: string | null
+          guardian_phone?: string | null
           id?: string
+          instagram?: string | null
+          is_minor?: boolean | null
           last_contact_at?: string | null
           lead_source?: string | null
           motivo_perda?: string | null
           name?: string
+          payment_proof_url?: string | null
           phone?: string | null
           photo?: string | null
           pipeline_id?: string | null
+          pix_completed?: boolean | null
           product?: string | null
+          professor_proof_url?: string | null
+          profile_photo_url?: string | null
           responsavel_usuario_id?: string
           responsible?: string | null
+          rg_photo_url?: string | null
+          seller_origin?: string | null
           stage_id?: string | null
           stars?: number | null
           status?: string | null
           substatus?: string | null
+          taxa_matricula_paid_at?: string | null
           updated_at?: string | null
+          valor_recebido_paid_at?: string | null
           value?: number | null
+          won_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "leads_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "centro_custos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_financeiro_padrao"
+            referencedColumns: ["centro_custo_id"]
+          },
           {
             foreignKeyName: "leads_pipeline_id_fkey"
             columns: ["pipeline_id"]
@@ -910,6 +1205,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "matriculas_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_completo"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "matriculas_turma_id_fkey"
             columns: ["turma_id"]
             isOneToOne: false
@@ -952,6 +1254,13 @@ export type Database = {
             columns: ["transacao_financeira_id"]
             isOneToOne: false
             referencedRelation: "financial_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_financeiras_transacao_financeira_id_fkey"
+            columns: ["transacao_financeira_id"]
+            isOneToOne: false
+            referencedRelation: "v_dre_despesas"
             referencedColumns: ["id"]
           },
           {
@@ -1038,6 +1347,7 @@ export type Database = {
         Row: {
           category: string | null
           created_at: string
+          created_on: string | null
           id: string
           link: string | null
           message: string
@@ -1050,6 +1360,7 @@ export type Database = {
         Insert: {
           category?: string | null
           created_at?: string
+          created_on?: string | null
           id?: string
           link?: string | null
           message: string
@@ -1062,6 +1373,7 @@ export type Database = {
         Update: {
           category?: string | null
           created_at?: string
+          created_on?: string | null
           id?: string
           link?: string | null
           message?: string
@@ -1136,6 +1448,13 @@ export type Database = {
             foreignKeyName: "pagamentos_matriculas_transacao_financeira_id_fkey"
             columns: ["transacao_financeira_id"]
             isOneToOne: false
+            referencedRelation: "v_dre_despesas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_matriculas_transacao_financeira_id_fkey"
+            columns: ["transacao_financeira_id"]
+            isOneToOne: false
             referencedRelation: "vw_financeiro_padrao"
             referencedColumns: ["transacao_id"]
           },
@@ -1197,6 +1516,7 @@ export type Database = {
       }
       perfis: {
         Row: {
+          allowed_products: string[] | null
           avatar_url: string | null
           cpf: string | null
           created_at: string
@@ -1206,11 +1526,13 @@ export type Database = {
           in_round_robin: boolean | null
           must_change_password: boolean
           name: string | null
+          permissions_cache: Json | null
           phone: string | null
           role_id: string | null
           status: string | null
         }
         Insert: {
+          allowed_products?: string[] | null
           avatar_url?: string | null
           cpf?: string | null
           created_at?: string
@@ -1220,11 +1542,13 @@ export type Database = {
           in_round_robin?: boolean | null
           must_change_password?: boolean
           name?: string | null
+          permissions_cache?: Json | null
           phone?: string | null
           role_id?: string | null
           status?: string | null
         }
         Update: {
+          allowed_products?: string[] | null
           avatar_url?: string | null
           cpf?: string | null
           created_at?: string
@@ -1234,6 +1558,7 @@ export type Database = {
           in_round_robin?: boolean | null
           must_change_password?: boolean
           name?: string | null
+          permissions_cache?: Json | null
           phone?: string | null
           role_id?: string | null
           status?: string | null
@@ -1252,6 +1577,7 @@ export type Database = {
         Row: {
           color: string | null
           created_at: string | null
+          default_collapsed: boolean | null
           description: string | null
           id: string
           is_active: boolean | null
@@ -1262,6 +1588,7 @@ export type Database = {
         Insert: {
           color?: string | null
           created_at?: string | null
+          default_collapsed?: boolean | null
           description?: string | null
           id?: string
           is_active?: boolean | null
@@ -1272,6 +1599,7 @@ export type Database = {
         Update: {
           color?: string | null
           created_at?: string | null
+          default_collapsed?: boolean | null
           description?: string | null
           id?: string
           is_active?: boolean | null
@@ -1328,6 +1656,35 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      round_robin_state: {
+        Row: {
+          id: string
+          last_seller_id: string | null
+          last_seller_name: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id: string
+          last_seller_id?: string | null
+          last_seller_name?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          last_seller_id?: string | null
+          last_seller_name?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "round_robin_state_last_seller_id_fkey"
+            columns: ["last_seller_id"]
+            isOneToOne: false
+            referencedRelation: "perfis"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       squad_members: {
         Row: {
@@ -1390,6 +1747,7 @@ export type Database = {
         Row: {
           active: boolean | null
           color: string | null
+          company: string | null
           created_at: string | null
           created_by: string | null
           id: string
@@ -1402,6 +1760,7 @@ export type Database = {
         Insert: {
           active?: boolean | null
           color?: string | null
+          company?: string | null
           created_at?: string | null
           created_by?: string | null
           id?: string
@@ -1414,6 +1773,7 @@ export type Database = {
         Update: {
           active?: boolean | null
           color?: string | null
+          company?: string | null
           created_at?: string | null
           created_by?: string | null
           id?: string
@@ -1425,12 +1785,49 @@ export type Database = {
         }
         Relationships: []
       }
+      system_audit_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          details: Json | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          ip_address: string | null
+          user_id: string | null
+          user_name: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          details?: Json | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          ip_address?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          details?: Json | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          ip_address?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
           category: string | null
           created_at: string
           description: string | null
           due_date: string | null
+          google_event_id: string | null
           id: string
           lead_id: string | null
           priority: string | null
@@ -1444,6 +1841,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           due_date?: string | null
+          google_event_id?: string | null
           id?: string
           lead_id?: string | null
           priority?: string | null
@@ -1457,6 +1855,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           due_date?: string | null
+          google_event_id?: string | null
           id?: string
           lead_id?: string | null
           priority?: string | null
@@ -1474,8 +1873,143 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_completo"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "tasks_responsavel_usuario_id_fkey"
             columns: ["responsavel_usuario_id"]
+            isOneToOne: false
+            referencedRelation: "perfis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      time_clock_records: {
+        Row: {
+          created_at: string
+          id: string
+          location: string | null
+          notes: string | null
+          timestamp: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          location?: string | null
+          notes?: string | null
+          timestamp?: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          location?: string | null
+          notes?: string | null
+          timestamp?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_clock_records_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "perfis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      time_logs: {
+        Row: {
+          created_at: string | null
+          device_info: string | null
+          id: string
+          ip_address: string | null
+          location_address: string | null
+          location_lat: number | null
+          location_lng: number | null
+          notes: string | null
+          timestamp: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          device_info?: string | null
+          id?: string
+          ip_address?: string | null
+          location_address?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          notes?: string | null
+          timestamp?: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          device_info?: string | null
+          id?: string
+          ip_address?: string | null
+          location_address?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          notes?: string | null
+          timestamp?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      turma_files: {
+        Row: {
+          created_at: string
+          file_type: string
+          id: string
+          name: string
+          size_bytes: number | null
+          turma_id: string
+          uploaded_by: string | null
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          file_type: string
+          id?: string
+          name: string
+          size_bytes?: number | null
+          turma_id: string
+          uploaded_by?: string | null
+          url: string
+        }
+        Update: {
+          created_at?: string
+          file_type?: string
+          id?: string
+          name?: string
+          size_bytes?: number | null
+          turma_id?: string
+          uploaded_by?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "turma_files_turma_id_fkey"
+            columns: ["turma_id"]
+            isOneToOne: false
+            referencedRelation: "turmas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "turma_files_uploaded_by_fkey"
+            columns: ["uploaded_by"]
             isOneToOne: false
             referencedRelation: "perfis"
             referencedColumns: ["id"]
@@ -1485,16 +2019,22 @@ export type Database = {
       turmas: {
         Row: {
           category: string | null
+          category_id: string | null
+          centro_custo_id: string | null
+          cost_center: string | null
           created_at: string
           date: string | null
           description: string | null
           enrollment_fee: number | null
           id: string
           image_url: string | null
+          instructor_cost: number | null
+          is_processed_finance: boolean | null
           location: string | null
           name: string
           price: number | null
           professor_email: string | null
+          professor_id: string | null
           professor_name: string | null
           status: string | null
           student_goal: number | null
@@ -1502,16 +2042,22 @@ export type Database = {
         }
         Insert: {
           category?: string | null
+          category_id?: string | null
+          centro_custo_id?: string | null
+          cost_center?: string | null
           created_at?: string
           date?: string | null
           description?: string | null
           enrollment_fee?: number | null
           id?: string
           image_url?: string | null
+          instructor_cost?: number | null
+          is_processed_finance?: boolean | null
           location?: string | null
           name: string
           price?: number | null
           professor_email?: string | null
+          professor_id?: string | null
           professor_name?: string | null
           status?: string | null
           student_goal?: number | null
@@ -1519,22 +2065,57 @@ export type Database = {
         }
         Update: {
           category?: string | null
+          category_id?: string | null
+          centro_custo_id?: string | null
+          cost_center?: string | null
           created_at?: string
           date?: string | null
           description?: string | null
           enrollment_fee?: number | null
           id?: string
           image_url?: string | null
+          instructor_cost?: number | null
+          is_processed_finance?: boolean | null
           location?: string | null
           name?: string
           price?: number | null
           professor_email?: string | null
+          professor_id?: string | null
           professor_name?: string | null
           status?: string | null
           student_goal?: number | null
           time?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "turmas_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "turmas_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "centro_custos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "turmas_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_financeiro_padrao"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
+            foreignKeyName: "turmas_professor_id_fkey"
+            columns: ["professor_id"]
+            isOneToOne: false
+            referencedRelation: "perfis"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_compensation_profiles: {
         Row: {
@@ -1615,6 +2196,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "vendas_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_completo"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "vendas_matricula_id_fkey"
             columns: ["matricula_id"]
             isOneToOne: false
@@ -1651,6 +2239,223 @@ export type Database = {
           total_value: number | null
         }
         Relationships: []
+      }
+      v_bpo_pluppex: {
+        Row: {
+          bpo_pluppex_18pct: number | null
+          bpo_target_8pct: number | null
+          class_id: string | null
+          total_bpo: number | null
+          turma: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_class_enrollments_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "turmas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_cashflow_by_cost_center: {
+        Row: {
+          cost_center: string | null
+          status: string | null
+          total: number | null
+          type: string | null
+        }
+        Relationships: []
+      }
+      v_dre_despesas: {
+        Row: {
+          amount: number | null
+          category_id: string | null
+          category_name: string | null
+          class_id: string | null
+          cost_center: string | null
+          data: string | null
+          description: string | null
+          dre_group: string | null
+          id: string | null
+          lead_id: string | null
+          origin_type: string | null
+          status: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_transactions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "financial_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_transactions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "vw_financeiro_padrao"
+            referencedColumns: ["categoria_id"]
+          },
+          {
+            foreignKeyName: "financial_transactions_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "turmas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_transactions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_transactions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_completo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_dre_receita: {
+        Row: {
+          categoria: string | null
+          cost_center: string | null
+          data: string | null
+          origem: string | null
+          valor: number | null
+        }
+        Relationships: []
+      }
+      v_leads_completo: {
+        Row: {
+          address: string | null
+          centro_custo_id: string | null
+          centro_custo_nome: string | null
+          city: string | null
+          cnpj: string | null
+          company_id: string | null
+          cost_center: string | null
+          cpf: string | null
+          created_at: string | null
+          deletado_em: string | null
+          deletado_por: string | null
+          email: string | null
+          emergency_contact: string | null
+          id: string | null
+          instagram: string | null
+          last_contact_at: string | null
+          lead_source: string | null
+          motivo_perda: string | null
+          name: string | null
+          phone: string | null
+          photo: string | null
+          pipeline_id: string | null
+          product: string | null
+          profile_photo_url: string | null
+          responsavel_nome: string | null
+          responsavel_usuario_id: string | null
+          responsible: string | null
+          responsible_id: string | null
+          rg_photo_url: string | null
+          seller_origin: string | null
+          stage_id: string | null
+          stars: number | null
+          status: string | null
+          substatus: string | null
+          updated_at: string | null
+          value: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "centro_custos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_financeiro_padrao"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
+            foreignKeyName: "leads_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_leads_summary"
+            referencedColumns: ["pipeline_id"]
+          },
+          {
+            foreignKeyName: "leads_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "pipelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_responsavel_usuario_id_fkey"
+            columns: ["responsible_id"]
+            isOneToOne: false
+            referencedRelation: "perfis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_responsavel_usuario_id_fkey"
+            columns: ["responsavel_usuario_id"]
+            isOneToOne: false
+            referencedRelation: "perfis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_leads_summary"
+            referencedColumns: ["stage_id"]
+          },
+          {
+            foreignKeyName: "leads_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_leads_duplicados: {
+        Row: {
+          email: string | null
+          ids: string[] | null
+          nomes: string[] | null
+          total: number | null
+        }
+        Relationships: []
+      }
+      v_pluppex_bpo_by_class: {
+        Row: {
+          bpo_pluppex: number | null
+          bpo_target: number | null
+          class_id: string | null
+          matriculas_pluppex: number | null
+          matriculas_target: number | null
+          total_bpo: number | null
+          turma_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_class_enrollments_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "turmas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vw_financeiro_kpis_mensal: {
         Row: {
@@ -1717,6 +2522,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "financial_transactions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_completo"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "financial_transactions_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -1754,6 +2566,25 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_time_logs_summary: {
+        Row: {
+          created_at: string | null
+          device_info: string | null
+          id: string | null
+          ip_address: string | null
+          location_address: string | null
+          location_lat: number | null
+          location_lng: number | null
+          notes: string | null
+          timestamp: string | null
+          type: string | null
+          user_department: string | null
+          user_email: string | null
+          user_id: string | null
+          user_name: string | null
+        }
+        Relationships: []
+      }
       vw_vendas: {
         Row: {
           cliente: string | null
@@ -1770,10 +2601,32 @@ export type Database = {
     }
     Functions: {
       calculate_ote_period: { Args: { p_period: string }; Returns: Json }
+      check_is_admin: { Args: never; Returns: boolean }
       clean_old_notifications: { Args: never; Returns: undefined }
       fn_perfil_id_unico_por_nome: { Args: { p_nome: string }; Returns: string }
       fn_perfil_nome_por_id: { Args: { p_id: string }; Returns: string }
+      get_dashboard_kpis: {
+        Args: { p_end: string; p_start: string }
+        Returns: {
+          a_receber: number
+          alunos_ganhos: number
+          despesas: number
+          lucro: number
+          receita_realizada: number
+        }[]
+      }
+      get_dre: {
+        Args: { p_end: string; p_start: string }
+        Returns: {
+          categoria: string
+          cost_center: string
+          data: string
+          origem: string
+          valor: number
+        }[]
+      }
       get_user_role: { Args: never; Returns: string }
+      is_admin: { Args: never; Returns: boolean }
       refresh_pipelines: { Args: never; Returns: undefined }
     }
     Enums: {

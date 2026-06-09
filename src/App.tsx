@@ -33,10 +33,12 @@ const Login = lazy(() => import('./pages/Login').then(m => ({ default: m.Login }
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword').then(m => ({ default: m.ForgotPassword })));
 const ResetPassword = lazy(() => import('./pages/ResetPassword').then(m => ({ default: m.ResetPassword })));
 const PublicForm = lazy(() => import('./pages/PublicForm').then(m => ({ default: m.PublicForm })));
+const PublicFormIA = lazy(() => import('./pages/PublicFormIA').then(m => ({ default: m.PublicFormIA })));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage').then(m => ({ default: m.NotificationsPage })));
 const LeadRotationSettings = lazy(() => import('./pages/settings/LeadRotationSettings').then(m => ({ default: m.LeadRotationSettings })));
 const ManageSquads = lazy(() => import('./pages/settings/ManageSquads').then(m => ({ default: m.ManageSquads })));
 const AuditLogs = lazy(() => import('./pages/settings/AuditLogs').then(m => ({ default: m.AuditLogs })));
+const PublicFormsSettings = lazy(() => import('./pages/settings/PublicForms').then(m => ({ default: m.PublicForms })));
 
 const SuspenseFallback = () => (
   <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -98,6 +100,7 @@ export default function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/formulario" element={<PublicForm />} />
+          <Route path="/formulario-ia" element={<PublicFormIA />} />
           <Route
             element={
               <ProtectedRoute>
@@ -134,6 +137,7 @@ export default function App() {
               <Route path="rotation" element={<LeadRotationSettings />} />
               <Route path="squads" element={<ManageSquads />} />
               <Route path="audit" element={<AuditLogs />} />
+              <Route path="public-forms" element={<PublicFormsSettings />} />
             </Route>
             <Route path="/analytics" element={<Dashboard />} />
           </Route>

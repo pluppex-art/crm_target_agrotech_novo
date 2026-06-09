@@ -1,14 +1,14 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import {
   User, Bell, Lock, Globe, Shield, UserPlus, Tag, Activity,
-  Target, ClipboardList, Settings as SettingsIcon, RefreshCcw, Users2, History, Loader2
+  ClipboardList, Settings as SettingsIcon, RefreshCcw, Users2, History, Loader2, FileText
 } from 'lucide-react';
 import { cn, isVendedor } from '../../lib/utils';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useProfileStore } from '../../store/useProfileStore';
 import { useEffect, useState, Suspense } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const settingsNav = [
   { icon: User,           label: 'Perfil',               path: '/settings/profile' },
@@ -25,6 +25,7 @@ const settingsNav = [
   { icon: RefreshCcw,    label: 'Rodízio de Leads',     path: '/settings/rotation' },
   { icon: Users2,        label: 'Squads',               path: '/settings/squads' },
   { icon: History,       label: 'Auditoria (Logs)',     path: '/settings/audit' },
+  { icon: FileText,      label: 'Formulários Públicos', path: '/settings/public-forms' },
 ];
 
 export function SettingsLayout() {

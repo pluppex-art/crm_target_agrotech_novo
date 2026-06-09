@@ -17,16 +17,20 @@ import { useProductStore } from '../../store/useProductStore';
 import { useProfileStore } from '../../store/useProfileStore';
 import { financialCalculator } from '../../services/financialCalculator';
 
-import { X, Trophy, ThumbsDown, Sparkles, Phone, PhoneOff, Loader2 } from 'lucide-react';
+import { X, Trophy, ThumbsDown, Sparkles, Phone, PhoneOff, Loader2, Brain } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import { LeadDetailsModalProps, TabType } from './types';
 import { cn } from '@/lib/utils';
 import { useLeadStore } from '../../store/useLeadStore';
+import { useTaskStore } from '../../store/useTaskStore';
 import { emailService } from '../../services/emailService';
 import { emailTemplates } from '../../services/emailTemplates';
 import { callService } from '../../services/callService';
 import { noteService } from '../../services/noteService';
 import { useAuthStore } from '../../store/useAuthStore';
+import type { DetectedTask } from '../../services/voiceTranscriptionService';
+import { AICopilotPanel } from './AICopilotPanel';
 
 const TURMA_STAGES = [
   { id: 'matriculado' as const, name: 'Matriculado', color: 'bg-blue-500' },
@@ -55,9 +59,27 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
   const [isCallInProgress, setIsCallInProgress] = useState(false);
   const [showLockWarning, setShowLockWarning] = useState(false);
   const [isLoggingCall, setIsLoggingCall] = useState<string | null>(null);
+  const [showCopilot, setShowCopilot] = useState(false);
 
   const { user } = useAuthStore();
   const { deleteLead } = useLeadStore();
+  const { addTask } = useTaskStore();
+
+  const handleVoiceTaskDetected = async (task: DetectedTask) => {
+    if (!user?.id) return;
+    await addTask({
+      title: task.title,
+      description: task.description,
+      due_date: task.due_date,
+      scheduled_time: task.scheduled_time ?? undefined,
+      status: 'pending',
+      priority: 'medium',
+      category: 'follow_up',
+      lead_id: lead.id,
+      lead_name: lead.name,
+      responsavel_usuario_id: user.id,
+    });
+  };
 
   const handleClose = () => {
     if (isCallInProgress) {
@@ -312,12 +334,26 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
                 </>
               )}
             </div>
-            <button
-              onClick={handleClose}
-              className="p-1.5 text-slate-400 hover:bg-slate-100 dark:bg-slate-800/50 hover:text-slate-600 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-300 rounded-full transition-colors"
-            >
-              <X size={18} />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setShowCopilot((v) => !v)}
+                title="IA Copilot — qualificação BANT em tempo real"
+                className={cn(
+                  'p-1.5 rounded-full transition-colors',
+                  showCopilot
+                    ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-400'
+                    : 'text-slate-400 hover:bg-slate-100 hover:text-violet-600 dark:hover:bg-slate-800 dark:hover:text-violet-400',
+                )}
+              >
+                <Brain size={18} />
+              </button>
+              <button
+                onClick={handleClose}
+                className="p-1.5 text-slate-400 hover:bg-slate-100 dark:bg-slate-800/50 hover:text-slate-600 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-300 rounded-full transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
           </div>
 
           {/* Stage buttons */}
@@ -444,7 +480,11 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
             </div>
           )}
           {activeTab === 'notes' && (
-            <LeadNotesTab {...leadNotes} />
+            <LeadNotesTab
+              {...leadNotes}
+              leadName={lead.name}
+              onVoiceTaskDetected={handleVoiceTaskDetected}
+            />
           )}
           {activeTab === 'tasks' && (
             <LeadTasksTab
@@ -472,6 +512,26 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
           )}
         </div>
       </motion.div>
+
+      <AnimatePresence>
+        {showCopilot && (
+          <AICopilotPanel
+            leadId={lead.id}
+            leadName={lead.name}
+            leadCompany={lead.company ?? undefined}
+            stageName={currentStageName}
+            existingNotes={
+              leadNotes.notes.length > 0
+                ? leadNotes.notes
+                    .slice(0, 12)
+                    .map((n: { content: string }) => n.content)
+                    .join('\n')
+                : undefined
+            }
+            onClose={() => setShowCopilot(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {showLockWarning && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-[4px]">

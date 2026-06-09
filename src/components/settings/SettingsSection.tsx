@@ -1,4 +1,4 @@
-import { Settings as SettingsIcon, User, Bell, Lock, Globe, Shield, UserPlus, Tag, Activity, Target, ClipboardList, RefreshCcw } from 'lucide-react';
+import { Settings as SettingsIcon, User, Bell, Lock, Globe, Shield, UserPlus, Tag, Activity, Target, ClipboardList, RefreshCcw, FileText } from 'lucide-react';
 
 const sections = [
   { icon: User, label: 'Perfil', description: 'Gerencie suas informações pessoais e foto.', path: '/settings/profile' },
@@ -14,6 +14,7 @@ const sections = [
   { icon: Tag, label: 'Categorias de Produto', description: 'Gerencie categorias e regras para cursos e serviços.', path: '/settings/categories' },
   { icon: Activity, label: 'Categorias de Atividade', description: 'Gerencie os tipos de atividade (ligação, visita, reunião…).', path: '/settings/activity-categories' },
   { icon: RefreshCcw, label: 'Rodízio de Leads', description: 'Bloqueie ou ative vendedores no recebimento automático de novos leads.', path: '/settings/rotation' },
+  { icon: FileText, label: 'Formulários Públicos', description: 'Configure links, produto, preço e WhatsApp dos formulários de captação de leads.', path: '/settings/public-forms' },
 ];
 
 interface SettingsSectionProps {

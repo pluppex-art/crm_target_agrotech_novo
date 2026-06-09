@@ -579,6 +579,26 @@ async function startServer() {
     res.json({ message: "Leads API ready" });
   });
 
+  // Public endpoint — returns form config by key (drone | ia)
+  app.get("/api/form-config/:key", async (req, res) => {
+    const { key } = req.params;
+    const defaults: Record<string, object> = {
+      drone: { form_key: 'drone', title: 'Formulário Drone Agrícola', product: 'Curso de Piloto de Drone Agrícola', price: 197, whatsapp_number: '5566999763455', badge_label: 'Drone', active: true },
+      ia:    { form_key: 'ia',    title: 'Formulário Inseminação Artificial', product: 'Curso de Inseminação Artificial em Bovinos', price: 197, whatsapp_number: '5566999763455', badge_label: 'IA', active: true },
+    };
+    try {
+      const supabase = getSupabaseAdmin() as any;
+      const { data } = await supabase
+        .from('form_configs')
+        .select('*')
+        .eq('form_key', key)
+        .maybeSingle();
+      return res.json(data ?? defaults[key] ?? null);
+    } catch {
+      return res.json(defaults[key] ?? null);
+    }
+  });
+
   // Create auth user (requires service role)
   app.post("/api/create-user", async (req, res) => {
     const { email, password, name } = req.body;
