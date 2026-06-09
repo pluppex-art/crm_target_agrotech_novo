@@ -7,7 +7,6 @@ import { LeadNotesTab } from './tabs/LeadNotesTab';
 import { LeadTasksTab } from './tabs/LeadTasksTab';
 import { LeadTurmaTab } from './tabs/LeadTurmaTab';
 import { LeadChecklistTab } from './tabs/LeadChecklistTab';
-import { LeadSmartResponderTab } from './tabs/LeadSmartResponderTab';
 import { useLeadForm } from '../../hooks/useLeadForm';
 import { useLeadNotes } from '../../hooks/useLeadNotes';
 import { useLeadTasks } from '../../hooks/useLeadTasks';
@@ -17,15 +16,13 @@ import { useProductStore } from '../../store/useProductStore';
 import { useProfileStore } from '../../store/useProfileStore';
 import { financialCalculator } from '../../services/financialCalculator';
 
-import { X, Trophy, ThumbsDown, Sparkles, Phone, PhoneOff, Loader2, Brain } from 'lucide-react';
+import { X, Trophy, ThumbsDown, Phone, PhoneOff, Loader2, Brain } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { LeadDetailsModalProps, TabType } from './types';
 import { cn } from '@/lib/utils';
 import { useLeadStore } from '../../store/useLeadStore';
 import { useTaskStore } from '../../store/useTaskStore';
-import { emailService } from '../../services/emailService';
-import { emailTemplates } from '../../services/emailTemplates';
 import { callService } from '../../services/callService';
 import { noteService } from '../../services/noteService';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -397,7 +394,7 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
 
         {/* Tabs */}
         <div className="flex items-center gap-4 sm:gap-5 px-4 sm:px-5 border-b border-slate-200 dark:border-slate-800 overflow-x-auto whitespace-nowrap [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-          {(['info', 'notes', 'history', 'tasks', 'turma', 'checklist', 'smart_responder'] as TabType[]).map((tab) => (
+          {(['info', 'notes', 'history', 'tasks', 'turma', 'checklist'] as TabType[]).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -424,12 +421,6 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
                   </span>
                 </span>
               ) : tab === 'checklist' && 'Checklist'}
-              {tab === 'smart_responder' && (
-                <span className="flex items-center gap-1.5">
-                  <Sparkles size={12} className={activeTab === 'smart_responder' ? "text-emerald-500" : "text-amber-400"} />
-                  IA Resposta
-                </span>
-              )}
             </button>
           ))}
         </div>
@@ -506,9 +497,6 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
           )}
           {activeTab === 'checklist' && (
             <LeadChecklistTab {...leadChecklist} />
-          )}
-          {activeTab === 'smart_responder' && (
-            <LeadSmartResponderTab leadId={lead.id} leadName={lead.name} />
           )}
         </div>
       </motion.div>
