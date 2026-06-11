@@ -25,7 +25,7 @@ export function generateGoogleCalendarUrl(task: Task): string {
       const time = task.scheduled_time.replace(/:/g, '');
       startDate = `${date}T${time}00`;
       // Assume 1 hour duration
-      const [h, m] = task.scheduled_time.split(':').map(Number);
+      const [h = 0, m = 0] = task.scheduled_time.split(':').map(Number);
       const endH = (h + 1).toString().padStart(2, '0');
       endDate = `${date}T${endH}${m.toString().padStart(2, '0')}00`;
     } else {
