@@ -114,6 +114,18 @@ export const LeadNotesTab: React.FC<LeadNotesTabProps> = ({
     recognitionRef.current = null;
   };
 
+  const handleSaveNoteWithTaskDetection = async () => {
+    const noteContent = newNote.trim();
+    if (!noteContent) return;
+    await handleAddNote();
+    // Detect scheduling triggers in manually typed notes (voice notes handle this in rec.onend)
+    if (recordingState === 'idle') {
+      voiceTranscriptionService.detectTaskIntent(noteContent, leadName).then((task) => {
+        if (task) setDetectedTask(task);
+      });
+    }
+  };
+
   const formatTime = (s: number) =>
     `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
 
@@ -202,7 +214,7 @@ export const LeadNotesTab: React.FC<LeadNotesTabProps> = ({
             )}
           />
           <button
-            onClick={handleAddNote}
+            onClick={handleSaveNoteWithTaskDetection}
             disabled={!newNote.trim() || recordingState !== 'idle'}
             className="absolute bottom-3 right-3 p-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >

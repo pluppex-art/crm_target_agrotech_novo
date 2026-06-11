@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import {
   Mic, MicOff, X, RefreshCw, AlertCircle, Lightbulb, Brain,
   Loader2, ClipboardCopy, Monitor, MonitorOff, Save, CheckCircle2,
+  ChevronDown, ChevronUp, MessageSquare,
 } from 'lucide-react';
 import { useRealTimeTranscription } from '../../hooks/useRealTimeTranscription';
 import { useSystemAudioCapture, Speaker } from '../../hooks/useSystemAudioCapture';
@@ -35,10 +36,10 @@ const BANT_LABELS = {
 } as const;
 
 const STATUS_CONFIG = {
-  unknown:   { text: 'Não coletado', badge: 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400' },
-  partial:   { text: 'Parcial',      badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400' },
-  confirmed: { text: 'Confirmado',   badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400' },
-  negative:  { text: 'Negativo',     badge: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400' },
+  unknown:   { text: 'Não coletado', badge: 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400',    border: 'border-l-slate-300 dark:border-l-slate-600' },
+  partial:   { text: 'Parcial',      badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400', border: 'border-l-amber-400 dark:border-l-amber-500' },
+  confirmed: { text: 'Confirmado',   badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400', border: 'border-l-emerald-500 dark:border-l-emerald-400' },
+  negative:  { text: 'Negativo',     badge: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400',         border: 'border-l-red-400 dark:border-l-red-500' },
 } as const;
 
 const TEMP_CONFIG = {
@@ -60,6 +61,7 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
   const [copied, setCopied] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [showTranscript, setShowTranscript] = useState(true);
   const lastAnalyzedLenRef = useRef(0);
   const transcriptRef = useRef<HTMLDivElement>(null);
 
@@ -327,8 +329,11 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
         {/* BANT + Commercial */}
         {analysis ? (
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Qualificação BANT</span>
+            <div className="flex items-center justify-between pt-1">
+              <div className="flex items-center gap-1.5">
+                <div className="w-1 h-3.5 rounded-full bg-violet-500" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Qualificação BANT</span>
+              </div>
               <span className={cn('text-xs font-bold px-2.5 py-0.5 rounded-full border', TEMP_CONFIG[analysis.bant.temperature].style)}>
                 {TEMP_CONFIG[analysis.bant.temperature].label}
               </span>
@@ -341,7 +346,7 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
                 const labelCfg = BANT_LABELS[key];
                 const statusCfg = STATUS_CONFIG[item.status];
                 return (
-                  <div key={key} className="flex items-start gap-2.5 px-3 py-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                  <div key={key} className={cn('flex items-start gap-2.5 px-3 py-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border-l-[3px]', statusCfg.border)}>
                     <span className="text-sm leading-none mt-0.5">{labelCfg.emoji}</span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
@@ -380,7 +385,10 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
             {/* Commercial section */}
             {(analysis.commercial.valorPrincipal || analysis.commercial.taxaMatricula) && (
               <div className="space-y-1.5">
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Proposta Comercial</span>
+                <div className="flex items-center gap-1.5 pt-1">
+                  <div className="w-1 h-3.5 rounded-full bg-emerald-500" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Proposta Comercial</span>
+                </div>
                 {analysis.commercial.valorPrincipal && (
                   <div className="flex items-center justify-between px-3 py-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl gap-2">
                     <div className="min-w-0">
@@ -434,7 +442,10 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
             {/* Objections */}
             {analysis.objections.length > 0 && (
               <div className="space-y-1">
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Objeções</span>
+                <div className="flex items-center gap-1.5 pt-1">
+                  <div className="w-1 h-3.5 rounded-full bg-amber-500" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Objeções</span>
+                </div>
                 {analysis.objections.map((obj, i) => (
                   <div key={i} className="flex items-start gap-2 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded-xl">
                     <AlertCircle size={11} className="text-amber-500 mt-0.5 shrink-0" />
@@ -447,7 +458,10 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
             {/* Suggestions */}
             {analysis.suggestions.length > 0 && (
               <div className="space-y-1.5">
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Perguntas sugeridas</span>
+                <div className="flex items-center gap-1.5 pt-1">
+                  <div className="w-1 h-3.5 rounded-full bg-blue-500" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Perguntas sugeridas</span>
+                </div>
                 {analysis.suggestions.map((sug, i) => (
                   <div
                     key={i}
@@ -501,52 +515,79 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
           </div>
         )}
 
-        {/* Bidirectional live transcript */}
+        {/* Bidirectional live transcript — collapsible */}
         {(transcriptLines.length > 0 || interimText) && (
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Transcrição</span>
-              {isListening && (
-                <span className="flex items-center gap-1 text-[10px] text-red-500">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse inline-block" />
-                  Ao vivo
+            <button
+              onClick={() => setShowTranscript(v => !v)}
+              className="w-full flex items-center justify-between group"
+            >
+              <div className="flex items-center gap-1.5">
+                <MessageSquare size={11} className="text-slate-400" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  Transcrição
                 </span>
-              )}
-            </div>
-            <div ref={transcriptRef} className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 max-h-48 overflow-y-auto space-y-1.5">
-              {transcriptLines.slice(-30).map((line, i) => (
-                <div key={i} className={cn(
-                  'flex gap-2 text-[11px] leading-snug',
-                  line.speaker === 'Operador' ? 'justify-end' : 'justify-start',
-                )}>
-                  {line.speaker === 'Cliente' && (
-                    <span className="shrink-0 text-[10px] font-black text-blue-500 pt-0.5">C</span>
-                  )}
-                  <span className={cn(
-                    'px-2.5 py-1.5 rounded-xl max-w-[85%]',
-                    line.speaker === 'Operador'
-                      ? 'bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-200'
-                      : 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200',
-                  )}>
-                    {line.text}
+                {transcriptLines.length > 0 && (
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-full">
+                    {transcriptLines.length}
                   </span>
-                  {line.speaker === 'Operador' && (
-                    <span className="shrink-0 text-[10px] font-black text-violet-500 pt-0.5">O</span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {isListening && (
+                  <span className="flex items-center gap-1 text-[10px] text-red-500">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse inline-block" />
+                    Ao vivo
+                  </span>
+                )}
+                {showTranscript
+                  ? <ChevronUp size={12} className="text-slate-400 group-hover:text-slate-600" />
+                  : <ChevronDown size={12} className="text-slate-400 group-hover:text-slate-600" />
+                }
+              </div>
+            </button>
+
+            {showTranscript && (
+              <>
+                <div
+                  ref={transcriptRef}
+                  className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 min-h-[80px] max-h-52 overflow-y-auto space-y-1.5 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700"
+                >
+                  {transcriptLines.slice(-30).map((line, i) => (
+                    <div key={i} className={cn(
+                      'flex gap-2 text-[11px] leading-snug',
+                      line.speaker === 'Operador' ? 'justify-end' : 'justify-start',
+                    )}>
+                      {line.speaker === 'Cliente' && (
+                        <span className="shrink-0 text-[10px] font-black text-blue-500 pt-0.5">C</span>
+                      )}
+                      <span className={cn(
+                        'px-2.5 py-1.5 rounded-xl max-w-[85%]',
+                        line.speaker === 'Operador'
+                          ? 'bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-200'
+                          : 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200',
+                      )}>
+                        {line.text}
+                      </span>
+                      {line.speaker === 'Operador' && (
+                        <span className="shrink-0 text-[10px] font-black text-violet-500 pt-0.5">O</span>
+                      )}
+                    </div>
+                  ))}
+                  {interimText && (
+                    <div className="flex justify-end gap-2">
+                      <span className="px-2.5 py-1.5 rounded-xl bg-violet-50 text-violet-400 dark:bg-violet-900/20 dark:text-violet-400 text-[11px] italic max-w-[85%]">
+                        {interimText}
+                      </span>
+                      <span className="shrink-0 text-[10px] font-black text-violet-400 pt-0.5">O</span>
+                    </div>
                   )}
                 </div>
-              ))}
-              {interimText && (
-                <div className="flex justify-end gap-2">
-                  <span className="px-2.5 py-1.5 rounded-xl bg-violet-50 text-violet-400 dark:bg-violet-900/20 dark:text-violet-400 text-[11px] italic max-w-[85%]">
-                    {interimText}
-                  </span>
-                  <span className="shrink-0 text-[10px] font-black text-violet-400 pt-0.5">O</span>
-                </div>
-              )}
-            </div>
-            <p className="text-[10px] text-slate-400 text-center">
-              <span className="font-bold text-violet-500">O</span> Operador &nbsp;·&nbsp; <span className="font-bold text-blue-500">C</span> Cliente
-            </p>
+                <p className="text-[10px] text-slate-400 text-center">
+                  <span className="font-bold text-violet-500">O</span> Operador &nbsp;·&nbsp; <span className="font-bold text-blue-500">C</span> Cliente
+                </p>
+              </>
+            )}
           </div>
         )}
 

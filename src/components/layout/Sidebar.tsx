@@ -1,7 +1,6 @@
 import {
   LayoutDashboard,
   Kanban,
-  Users,
   Clock,
   Calendar,
   Settings,
@@ -14,6 +13,7 @@ import {
   Package,
   Megaphone,
   GraduationCap,
+  BarChart2,
   X as XIcon,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -33,6 +33,7 @@ const menuItems = [
   { icon: Megaphone, label: 'Marketing', path: '/marketing', permission: 'marketing.view' },
   { icon: Calendar, label: 'Tarefas', path: '/tasks', permission: 'tasks.view' },
   { icon: GraduationCap, label: 'Turmas', path: '/turmas', permission: 'turmas.view' },
+  { icon: BarChart2, label: 'Relatórios', path: '/reports', permission: 'dashboard.view' },
   { icon: Bell, label: 'Notificações', path: '/notifications' },
   { icon: Settings, label: 'Configurações', path: '/settings', permission: 'settings.view' },
 ];

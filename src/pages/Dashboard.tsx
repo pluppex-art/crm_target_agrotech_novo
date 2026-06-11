@@ -25,6 +25,7 @@ import { ImprovedCSSBarChart } from '../components/dashboard/ImprovedCSSBarChart
 import { SellerSemaphore } from '../components/dashboard/SellerSemaphore';
 import { CallsSemaphore } from '../components/dashboard/CallsSemaphore';
 import { PodiumChart } from '../components/dashboard/PodiumChart';
+import { StageReasonsChart } from '../components/dashboard/StageReasonsChart';
 import {
   unlockAudio,
   playSaleRegistered,
@@ -723,6 +724,9 @@ export function Dashboard() {
         totalAchieved={salesMetrics.closedLeadsCount}
         totalGoal={totalLeadsGoal}
       />
+
+      {/* Motivos de Aquecimento / Perdido */}
+      <StageReasonsChart />
 
       {/* Real-time Gamified Celebration Overlays */}
       {newLeader && (

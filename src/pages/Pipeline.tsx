@@ -34,6 +34,8 @@ import { useNotificationStore } from '../store/useNotificationStore';
 import { notifyStageChange } from '../services/leadNotificationService';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useSquadStore } from '../store/useSquadStore';
+import { StageReasonModal } from '../components/leads/StageReasonModal';
+import { stageReasonService, type StageReason } from '../services/stageReasonService';
 
 
 
@@ -112,6 +114,11 @@ export const Pipeline: React.FC = () => {
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
+  const [pendingDragReason, setPendingDragReason] = useState<{
+    lead: Lead;
+    newStageId: string;
+    stageName: string;
+  } | null>(null);
 
   const currentPipeline = pipelines.find(p => p.id === currentPipelineId);
 
@@ -294,34 +301,67 @@ export const Pipeline: React.FC = () => {
       }
     }
 
-    await updateLeadStage(draggableId, newStageId);
+    // Gate: Aquecimento / Perdido require a reason before executing the change
+    if (stageReasonService.requiresReason(targetStage?.name ?? '')) {
+      setPendingDragReason({
+        lead: draggedLead,
+        newStageId,
+        stageName: targetStage?.name ?? '',
+      });
+      return;
+    }
 
-    await updateLead(draggableId, {
+    await executeDragStageChange(draggedLead, newStageId, targetStage?.name ?? '', isGanhoTarget);
+  };
+
+  const executeDragStageChange = async (
+    lead: Lead,
+    newStageId: string,
+    stageName: string,
+    isGanhoTarget: boolean,
+  ) => {
+    await updateLeadStage(lead.id, newStageId);
+
+    await updateLead(lead.id, {
       last_contact_at: new Date().toISOString(),
-      status: (targetStage?.name ?? '') as LeadStatus,
+      status: stageName as LeadStatus,
     });
 
-    if (targetStage?.name) {
-      notifyStageChange(draggedLead, targetStage.name, profiles);
+    if (stageName) {
+      notifyStageChange(lead, stageName, profiles);
     }
 
     if (isGanhoTarget) {
-      const productObj = financialCalculator.findProduct(draggedLead.product, products);
-      const isService = financialCalculator.isServiceProduct(productObj, draggedLead.product);
+      const productObj = financialCalculator.findProduct(lead.product, products);
+      const isService = financialCalculator.isServiceProduct(productObj, lead.product);
       if (!isService) {
-        setEnrollLead(draggedLead);
+        setEnrollLead(lead);
       }
       triggerGanhoAnimation();
 
       const dateStr = new Date().toLocaleDateString('pt-BR');
       const authorName = profiles.find(p => p.id === authUser?.id)?.name || authUser?.user_metadata?.full_name || 'Sistema';
       await noteService.createNote({
-        content: `🎉 Lead ${draggedLead.name || 'Sem nome'} entrou em Ganho na data de ${dateStr}`,
-        lead_id: draggedLead.id,
+        content: `🎉 Lead ${lead.name || 'Sem nome'} entrou em Ganho na data de ${dateStr}`,
+        lead_id: lead.id,
         author_id: authUser?.id ?? '',
         author_name: authorName,
       });
     }
+  };
+
+  const handleDragReasonConfirmed = async (reason: StageReason, notes: string) => {
+    if (!pendingDragReason || !authUser?.id) return;
+    await stageReasonService.saveReason({
+      lead_id: pendingDragReason.lead.id,
+      lead_name: pendingDragReason.lead.name,
+      stage_name: pendingDragReason.stageName,
+      reason,
+      notes,
+      recorded_by: authUser.id,
+    });
+    await executeDragStageChange(pendingDragReason.lead, pendingDragReason.newStageId, pendingDragReason.stageName, false);
+    setPendingDragReason(null);
   };
 
   const handleEnrollConfirm = async (turmaId: string) => {
@@ -768,6 +808,16 @@ export const Pipeline: React.FC = () => {
           lead={enrollLead}
           onConfirm={handleEnrollConfirm}
           onSkip={() => setEnrollLead(null)}
+        />
+      )}
+
+      {/* Stage reason modal — drag-and-drop to Aquecimento / Perdido */}
+      {pendingDragReason && (
+        <StageReasonModal
+          stageName={pendingDragReason.stageName}
+          leadName={pendingDragReason.lead.name}
+          onConfirm={handleDragReasonConfirmed}
+          onCancel={() => setPendingDragReason(null)}
         />
       )}
 

@@ -28,6 +28,8 @@ import { noteService } from '../../services/noteService';
 import { useAuthStore } from '../../store/useAuthStore';
 import type { DetectedTask } from '../../services/voiceTranscriptionService';
 import { AICopilotPanel } from './AICopilotPanel';
+import { StageReasonModal } from './StageReasonModal';
+import { stageReasonService, type StageReason } from '../../services/stageReasonService';
 
 const TURMA_STAGES = [
   { id: 'matriculado' as const, name: 'Matriculado', color: 'bg-blue-500' },
@@ -57,6 +59,7 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
   const [showLockWarning, setShowLockWarning] = useState(false);
   const [isLoggingCall, setIsLoggingCall] = useState<string | null>(null);
   const [showCopilot, setShowCopilot] = useState(false);
+  const [pendingStageChange, setPendingStageChange] = useState<{ stageId: string; stageName: string } | null>(null);
 
   const { user } = useAuthStore();
   const { deleteLead } = useLeadStore();
@@ -211,18 +214,40 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
   const handleStageChange = (stageId: string) => {
     if (isTurmaMode && turmaAttendee && onTurmaStatusChange) {
       onTurmaStatusChange(turmaAttendee.turmaId, turmaAttendee.attendeeId, stageId as any);
-    } else {
-      const targetStage = pipelineStages?.find(s => s.id === stageId);
-      const targetName = ((targetStage as any)?.title || (targetStage as any)?.name || '').toLowerCase();
-      const isGanho = targetName.includes('ganho') || targetName.includes('fechado') || targetName.includes('aprovado');
-
-      if (isGanho && !canMoveToGanho) {
-        alert('Para mover para Ganho (Curso) é necessário:\n• Marcar Taxa Matrícula e Contrato assinado\n• Anexar Comprovante e Contrato (Vendedor na aba Informações)');
-        return;
-      }
-
-      onStageChange?.(stageId);
+      return;
     }
+
+    const targetStage = pipelineStages?.find(s => s.id === stageId);
+    const targetName = ((targetStage as any)?.title || (targetStage as any)?.name || '') as string;
+    const targetNameLower = targetName.toLowerCase();
+    const isGanho = targetNameLower.includes('ganho') || targetNameLower.includes('fechado') || targetNameLower.includes('aprovado');
+
+    if (isGanho && !canMoveToGanho) {
+      alert('Para mover para Ganho (Curso) é necessário:\n• Marcar Taxa Matrícula e Contrato assinado\n• Anexar Comprovante e Contrato (Vendedor na aba Informações)');
+      return;
+    }
+
+    // Gate: Aquecimento / Perdido require a reason
+    if (stageReasonService.requiresReason(targetName)) {
+      setPendingStageChange({ stageId, stageName: targetName });
+      return;
+    }
+
+    onStageChange?.(stageId);
+  };
+
+  const handleStageReasonConfirmed = async (reason: StageReason, notes: string) => {
+    if (!pendingStageChange || !user?.id) return;
+    await stageReasonService.saveReason({
+      lead_id: lead.id,
+      lead_name: lead.name,
+      stage_name: pendingStageChange.stageName,
+      reason,
+      notes,
+      recorded_by: user.id,
+    });
+    onStageChange?.(pendingStageChange.stageId);
+    setPendingStageChange(null);
   };
 
   // Must ALWAYS have confirmations to move to Ganho
@@ -500,6 +525,16 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
           )}
         </div>
       </motion.div>
+
+      {/* Stage reason modal — Aquecimento / Perdido */}
+      {pendingStageChange && (
+        <StageReasonModal
+          stageName={pendingStageChange.stageName}
+          leadName={lead.name}
+          onConfirm={handleStageReasonConfirmed}
+          onCancel={() => setPendingStageChange(null)}
+        />
+      )}
 
       <AnimatePresence>
         {showCopilot && (
