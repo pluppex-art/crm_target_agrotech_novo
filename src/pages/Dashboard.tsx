@@ -38,7 +38,7 @@ import { NewLeaderOverlay, GoalReachedOverlay } from '../components/dashboard/Ce
 import { LeadDetailsModal } from '../components/leads/LeadDetailsModal';
 
 
-type OccupancyItem = { name: string; pct: number; level: 'red' | 'yellow' | 'green'; alunos: number; capacity: number; color: string; category: string };
+type OccupancyItem = { name: string; pct: number; level: 'red' | 'yellow' | 'green'; alunos: number; capacity: number; color: string; category: string; leadsCount: number };
 
 const CATEGORY_ICONS: Record<string, string> = {
   'Drone': '🚁',
@@ -100,6 +100,7 @@ function OccupancyCard({ occupancyData }: { occupancyData: OccupancyItem[] }) {
           value: d.alunos,
           max: d.capacity,
           sublabel: `${d.alunos}/${d.capacity}`,
+          badge: `${d.leadsCount} lead${d.leadsCount !== 1 ? 's' : ''}`,
           color: d.level === 'green' ? '#10b981' : d.level === 'yellow' ? '#f59e0b' : '#ef4444',
         }))}
         emptyLabel="Nenhuma turma cadastrada"

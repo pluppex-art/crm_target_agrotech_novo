@@ -6,6 +6,7 @@ interface BarItem {
   max?: number;
   color?: string;
   sublabel?: string;
+  badge?: string;
 }
 
 interface ImprovedCSSBarChartProps {
@@ -72,6 +73,11 @@ export function ImprovedCSSBarChart({
                 <span className="flex-1 text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">
                   {d.label}
                 </span>
+                {d.badge && (
+                  <span className="shrink-0 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400">
+                    {d.badge}
+                  </span>
+                )}
                 {/* value + pct */}
                 <div className="flex items-baseline gap-2 shrink-0">
                   <span className="text-sm font-black tabular-nums" style={{ color: barColor }}>

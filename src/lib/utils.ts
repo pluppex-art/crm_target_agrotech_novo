@@ -272,12 +272,14 @@ export function getOccupancyData(turmas: Turma[]): Array<{
   capacity: number;
   color: string;
   category: string;
+  leadsCount: number;
 }> {
   return turmas
     .filter(t => t.status !== 'concluida' && t.status !== 'cancelada')
     .map((t, i) => {
       const activeStatuses: AttendanceStatus[] = ['matriculado', 'confirmado'];
       const active = t.attendees.filter(a => activeStatuses.includes(a.status)).length;
+      const leadsCount = t.attendees.length;
       const cap = t.meta ?? 0;
       const pct = cap > 0 ? Math.min((active / cap) * 100, 100) : 0;
 
@@ -297,7 +299,7 @@ export function getOccupancyData(turmas: Turma[]): Array<{
         nameText.startsWith('drone') ? 'Drone' :
           nameText.startsWith('ia') ? 'Inseminação Artificial' :
             t.category;
-      return { name: t.name, pct, level, alunos: active, capacity: cap, color, category: effectiveCategory };
+      return { name: t.name, pct, level, alunos: active, capacity: cap, color, category: effectiveCategory, leadsCount };
     }).sort((a, b) => b.pct - a.pct); // Top occupancy first
 }
 
