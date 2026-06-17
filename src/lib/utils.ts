@@ -264,7 +264,7 @@ export function getSellerIncome(
  * Occupancy data per turma for dashboard.
  * Excludes concluida and cancelada turmas.
  */
-export function getOccupancyData(turmas: Turma[]): Array<{
+export function getOccupancyData(turmas: Turma[], leads: Array<{ product?: string | null }> = []): Array<{
   name: string;
   pct: number;
   level: 'red' | 'yellow' | 'green';
@@ -279,7 +279,7 @@ export function getOccupancyData(turmas: Turma[]): Array<{
     .map((t, i) => {
       const activeStatuses: AttendanceStatus[] = ['matriculado', 'confirmado'];
       const active = t.attendees.filter(a => activeStatuses.includes(a.status)).length;
-      const leadsCount = t.attendees.length;
+      const leadsCount = leads.filter(l => l.product === t.name).length;
       const cap = t.meta ?? 0;
       const pct = cap > 0 ? Math.min((active / cap) * 100, 100) : 0;
 

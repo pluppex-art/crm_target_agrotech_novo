@@ -305,7 +305,7 @@ export function useSalesMetrics({
   const teamGanhos = 0;
 
   // ─── Turma metrics (turmaMetrics.ts) ───────────────────────────────────────
-  const occupancyData = useMemo(() => getOccupancyData(turmas), [turmas]);
+  const occupancyData = useMemo(() => getOccupancyData(turmas, leads as any[]), [turmas, leads]);
 
   const attendeeStages = useMemo(
     () => calcAttendeeStages(turmas as any),
