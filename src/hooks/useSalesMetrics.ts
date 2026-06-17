@@ -90,7 +90,13 @@ export function useSalesMetrics({
   const { tasks } = useTaskStore();
   const { products } = useProductStore();
 
-  const vendedorProfiles = useMemo(() => profiles.filter(p => p.status === 'active' && isVendedor(p)), [profiles]);
+  const vendedorProfiles = useMemo(() => 
+    profiles
+      .filter(p => p.status === 'active' && isVendedor(p))
+      .map(p => ({
+        ...p,
+        cargos: p.cargos || undefined // Converte null para undefined para compatibilidade com Profile[]
+      })), [profiles]);
 
   // ─── Available filter options ───────────────────────────────────────────────
   const availableProducts = useMemo(() => {
@@ -235,19 +241,12 @@ export function useSalesMetrics({
     };
   }, [filteredLeads, stageMap, startDate, endDate, products, leadToTurma]);
 
+  // KPI "Total de Leads" (opção A: todos os leads cadastrados no sistema)
+  // Importante: não excluir "aquecimento", "perdido", etc.
   const leadsCount = useMemo(() => {
-    return filteredLeads.filter(l => {
-      const stageName = l.stage_id ? stageMap.get(l.stage_id) : '';
-      if (!stageName) return true;
-      const normalized = stageName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-      return ![
-        "nao compareceu a turma",
-        "desqualificado",
-        "aquecimento",
-        "perdido"
-      ].includes(normalized);
-    }).length;
-  }, [filteredLeads, stageMap]);
+    return filteredLeads.length;
+  }, [filteredLeads]);
+
 
   const closedLeadsCount = closedLeadsFiltered.length;
   const conversionRate = calcConversionRate(closedLeadsCount, leadsCount);
@@ -319,7 +318,7 @@ export function useSalesMetrics({
   );
 
   const allSellersRanking = useMemo(
-    () => calcAllSellersRanking(salesByResponsible, vendedorProfiles, profiles, goals),
+    () => calcAllSellersRanking(salesByResponsible, vendedorProfiles, profiles as any, goals),
     [salesByResponsible, vendedorProfiles, profiles, goals],
   );
 
@@ -467,4 +466,3 @@ export function useSalesMetrics({
     availableProducts, availableResponsibles, activeLeadsCount,
   };
 }
-
