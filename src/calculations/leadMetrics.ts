@@ -20,6 +20,7 @@ interface Lead {
   updated_at?: string;
   name?: string;
   product?: string;
+  product_id?: string;
   responsible?: string;
   value?: string | number;
   [key: string]: any;
@@ -142,7 +143,7 @@ export function calcActiveLeads(
       const q = searchTerm.toLowerCase();
       if (!l.name?.toLowerCase().includes(q) && !l.product?.toLowerCase().includes(q) && !l.responsible?.toLowerCase().includes(q)) return false;
     }
-    if (filterProduct && filterProduct !== 'all' && l.product !== filterProduct) return false;
+    if (filterProduct && filterProduct !== 'all' && (l.product_id ?? l.product) !== filterProduct) return false;
     if (filterResponsible && filterResponsible !== 'all' && l.responsavel_usuario_id !== filterResponsible) return false;
     if (currentSellerId && l.responsavel_usuario_id !== currentSellerId) return false;
 

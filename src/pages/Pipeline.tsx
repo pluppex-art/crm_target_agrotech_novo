@@ -485,7 +485,15 @@ export const Pipeline: React.FC = () => {
     [filters.filteredLeads, ganhoStageIds, leadToTurma, products, concluStageIds],
   );
 
-  // Filtra produtos para não mostrar os de Turmas já Concluídas no dropdown
+  // Filtra produtos para não mostrar os de Turmas já Concluídas nem genéricos no dropdown
+  const GENERIC_TURMA_IDS_PIPELINE = new Set([
+    'ebebde7b-76d8-4109-b68f-716759cbff4d',
+    '6d9b472e-658d-4914-8a38-f424ed07d9fe',
+    'cab8c1ee-0578-45a2-b032-441b7ef3209a',
+    'd02f2f09-ced0-455a-82cc-4bc3aa31baff',
+    '21d94258-fce1-4da4-ad67-9eb33968737d',
+    '78a3189d-acc5-4fbc-8567-ff72851a1c94',
+  ]);
   const activeProductsForFilter = useMemo(() => {
     const concludedProductNames = new Set<string>();
     turmas.forEach(t => {
@@ -494,7 +502,7 @@ export const Pipeline: React.FC = () => {
       }
     });
 
-    return products.filter(p => !concludedProductNames.has(p.name));
+    return products.filter(p => !concludedProductNames.has(p.name) && !GENERIC_TURMA_IDS_PIPELINE.has(p.id));
   }, [products, turmas]);
 
   return (

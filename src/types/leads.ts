@@ -21,6 +21,7 @@ export interface Lead {
   discount_type?: 'percent' | 'money';
   discount_applied?: boolean;
   product: string | null;
+  product_id?: string | null;
   won_at?: string | null;
   created_at: string;
   updated_at?: string | null;

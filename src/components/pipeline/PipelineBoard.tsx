@@ -151,11 +151,13 @@ export const PipelineBoard: React.FC<PipelineBoardProps> = ({
               (l) => (l.stage_id || columns[0]?.id) === column.id
             );
             const columnSum = columnLeads.reduce((sum, l) => {
-              const productObj = products.find(prod => {
-                const pn = prod.name.toLowerCase().trim();
-                const ln = (l.product ?? '').toLowerCase().trim();
-                return ln === pn || ln.includes(pn);
-              });
+              const productObj = products.find(prod =>
+                l.product_id ? prod.id === l.product_id : (() => {
+                  const pn = prod.name.toLowerCase().trim();
+                  const ln = (l.product ?? '').toLowerCase().trim();
+                  return ln === pn || ln.includes(pn);
+                })()
+              );
               const fee = productObj?.enrollment_fee ?? 197;
               const totalValue = ((l.value && Number(l.value) > 0)
                 ? Number(l.value)

@@ -82,26 +82,19 @@ export default async function handler(req: any, res: any) {
       return false;
     });
 
-  // Sellers com tag explícita para este produto têm prioridade.
-  // Só usa "recebe tudo" (sem tag) se nenhum seller específico existir.
-  const specificSellers = productStr
-    ? (sellers || []).filter(s => {
-        const ap = productRouting[s.id];
-        return ap && ap.length > 0 && matchesProduct(ap);
-      })
-    : [];
-
-  const catchAllSellers = (sellers || []).filter(s => {
+  // Apenas sellers com tag explícita correspondente ao produto recebem o lead.
+  // Sem tag = não recebe nada. Sellers sem nenhuma tag configurada são ignorados.
+  const specificSellers = (sellers || []).filter(s => {
     const ap = productRouting[s.id];
-    return !ap || ap.length === 0;
+    return ap && ap.length > 0 && matchesProduct(ap);
   });
 
-  let validSellers = (specificSellers.length > 0 ? specificSellers : catchAllSellers)
+  let validSellers = specificSellers
     .sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'pt-BR', { sensitivity: 'base' }));
 
-  // Fallback 1: se nenhum vendedor corresponde ao produto, tenta enviar para qualquer um do rodízio
+  // Fallback: se nenhum seller tem tag para este produto, usa todos do rodízio (evita perder o lead)
   if (validSellers.length === 0 && sellers && sellers.length > 0) {
-    validSellers = sellers.sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'pt-BR', { sensitivity: 'base' }));
+    validSellers = [...sellers].sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'pt-BR', { sensitivity: 'base' }));
   }
 
   // Fallback 2: se não há ninguém no rodízio, pega qualquer usuário ativo para não perder o lead

@@ -210,11 +210,11 @@ export function LeadRotationSettings() {
                         </span>
                         <span className={cn(
                           "text-[10px] px-1.5 py-0.5 rounded font-medium",
-                          isAllProducts 
-                            ? "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400" 
-                            : "bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400"
+                          isAllProducts
+                            ? "bg-red-50 text-red-500 dark:bg-red-500/10 dark:text-red-400"
+                            : "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
                         )}>
-                          {isAllProducts ? 'Recebe Todos' : 'Especialista Exclusivo'}
+                          {isAllProducts ? 'Sem produto' : 'Configurado'}
                         </span>
                       </div>
                       
@@ -246,8 +246,8 @@ export function LeadRotationSettings() {
                         })}
                       </div>
                       {isAllProducts && (
-                        <p className="text-[10px] text-slate-400 mt-2">
-                          * Nenhuma tag selecionada: este closer está apto a receber leads de <b>qualquer</b> produto. Selecione tags para restringir a distribuição.
+                        <p className="text-[10px] text-red-400 mt-2">
+                          * Nenhuma tag selecionada: este closer <b>não receberá leads</b> automaticamente. Selecione pelo menos um produto.
                         </p>
                       )}
                     </div>
@@ -273,7 +273,7 @@ export function LeadRotationSettings() {
           <p className="text-xs text-blue-600/80 dark:text-blue-400/80 leading-relaxed mt-1">
             Novos leads vindos do formulário do site são distribuídos automaticamente entre os closers ativados nesta página.
             Se você selecionar produtos específicos para um vendedor, ele <b>só</b> receberá leads desses produtos.
-            Se você não selecionar nenhum produto, o vendedor receberá <b>todos</b> os leads.
+            Se você não selecionar nenhum produto, o vendedor <b>não receberá</b> leads automaticamente.
           </p>
         </div>
       </div>

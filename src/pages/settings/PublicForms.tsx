@@ -3,7 +3,7 @@ import {
   FileText, Copy, Check, ExternalLink, Save, Loader2,
   ToggleLeft, ToggleRight, Globe, ChevronDown, ChevronUp,
   MessageSquare, Plus, Trash2, Pencil, X,
-  Type, Phone, Mail, MapPin, List, DollarSign, AlertCircle,
+  Type, Phone, Mail, MapPin, List, DollarSign,
   ArrowUp, ArrowDown,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -53,27 +53,6 @@ const FIELD_ICONS: Record<FieldType, React.ElementType> = {
 
 const LOCKED_IDS = ['phone', 'email']; // cannot delete
 
-const DEFAULT_STEPS: Record<string, FormStep[]> = {
-  drone: [
-    { id: 'name',     label: 'Qual é o seu nome?',                   hint: 'Pode ser apenas o primeiro nome.', type: 'text',   placeholder: 'Ex: João',             required: false },
-    { id: 'phone',    label: 'Qual é o seu WhatsApp?',               hint: 'Com DDD. Ex: +5566999999999',      type: 'tel',    placeholder: '+55 (00) 00000-0000',   required: true },
-    { id: 'email',    label: 'Qual é o seu melhor e-mail?',          hint: 'Para envio de materiais.',         type: 'email',  placeholder: 'exemplo@email.com',     required: true },
-    { id: 'city',     label: 'De qual cidade você é?',               hint: 'Digite para pesquisar.',           type: 'city',   placeholder: 'Pesquise sua cidade...', required: true },
-    { id: 'interest', label: 'Quais áreas você tem mais interesse?', hint: 'Selecione uma das opções.',        type: 'select', placeholder: '', required: true,
-      options: ['Curso de Inseminação Artificial em Bovinos', 'Curso de Piloto de Drone Agrícola'] },
-  ],
-  ia: [
-    { id: 'name',  label: 'Qual é o seu nome?',          hint: 'Pode ser apenas o primeiro nome.', type: 'text',  placeholder: 'Ex: João',             required: false },
-    { id: 'phone', label: 'Qual é o seu WhatsApp?',      hint: 'Com DDD. Ex: +5566999999999',      type: 'tel',   placeholder: '+55 (00) 00000-0000',   required: true },
-    { id: 'email', label: 'Qual é o seu melhor e-mail?', hint: 'Para envio de materiais.',         type: 'email', placeholder: 'exemplo@email.com',     required: true },
-    { id: 'city',  label: 'De qual cidade você é?',      hint: 'Digite para pesquisar.',           type: 'city',  placeholder: 'Pesquise sua cidade...', required: true },
-  ],
-};
-
-const DEFAULTS: FormConfig[] = [
-  { form_key: 'drone', title: 'Formulário Drone Agrícola',        product: 'Curso de Piloto de Drone Agrícola',          price: 197, whatsapp_number: '', badge_label: 'Drone', active: true, steps: DEFAULT_STEPS.drone },
-  { form_key: 'ia',    title: 'Formulário Inseminação Artificial', product: 'Curso de Inseminação Artificial em Bovinos', price: 197, whatsapp_number: '', badge_label: 'IA',    active: true, steps: DEFAULT_STEPS.ia },
-];
 
 // ── Step Editor (inline) ──────────────────────────────────────────────────────
 
@@ -222,7 +201,7 @@ function StepEditor({
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function PublicForms() {
-  const [configs, setConfigs]   = useState<FormConfig[]>(DEFAULTS);
+  const [configs, setConfigs]   = useState<FormConfig[]>([]);
   const [loading, setLoading]   = useState(true);
   const [saving, setSaving]     = useState<string | null>(null);
   const [saved, setSaved]       = useState<string | null>(null);
@@ -235,7 +214,7 @@ export function PublicForms() {
       if (data && data.length > 0) {
         const parsed = (data as FormConfig[]).map(c => ({
           ...c,
-          steps: Array.isArray(c.steps) ? c.steps : DEFAULT_STEPS[c.form_key] ?? [],
+          steps: Array.isArray(c.steps) ? c.steps : [],
         }));
         setConfigs(parsed);
       }
@@ -446,11 +425,7 @@ export function PublicForms() {
                             {step.required && (
                               <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">obrigatório</span>
                             )}
-                            {locked && (
-                              <span className="text-[10px] text-amber-600 font-semibold flex items-center gap-0.5">
-                                <AlertCircle className="w-3 h-3" /> fixo
-                              </span>
-                            )}
+
                             {step.options && step.options.length > 0 && (
                               <span className="text-[10px] text-slate-400">{step.options.length} opções</span>
                             )}

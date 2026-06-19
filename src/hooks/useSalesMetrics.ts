@@ -99,11 +99,25 @@ export function useSalesMetrics({
       })), [profiles]);
 
   // ─── Available filter options ───────────────────────────────────────────────
+  const GENERIC_TURMA_IDS = new Set([
+    'ebebde7b-76d8-4109-b68f-716759cbff4d', // Curso de Piloto de Drone Agrícola
+    '6d9b472e-658d-4914-8a38-f424ed07d9fe', // Curso de Inseminação Artificial em Bovinos
+    'cab8c1ee-0578-45a2-b032-441b7ef3209a', // Interesse Geral
+    'd02f2f09-ced0-455a-82cc-4bc3aa31baff', // Outros
+    '21d94258-fce1-4da4-ad67-9eb33968737d', // Aplicação com Drone T-70
+    '78a3189d-acc5-4fbc-8567-ff72851a1c94', // Drone, Palmas-To, 17/04/26 (genérico)
+  ]);
+
   const availableProducts = useMemo(() => {
     const seen = new Set<string>();
-    leads.forEach((l: any) => { if (l.product) seen.add(l.product); });
-    return Array.from(seen).sort().map(p => ({ value: p, label: p }));
-  }, [leads]);
+    leads.forEach((l: any) => {
+      if (l.product_id && !GENERIC_TURMA_IDS.has(l.product_id)) seen.add(l.product_id);
+    });
+    return Array.from(seen).map(id => {
+      const product = products.find((p: any) => p.id === id);
+      return { value: id, label: product?.name || id };
+    }).sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'));
+  }, [leads, products]);
 
   const availableResponsibles = useMemo(() => {
     const inactiveIds = new Set(profiles.filter(p => p.status === 'inactive').map(p => p.id));
@@ -165,7 +179,7 @@ export function useSalesMetrics({
       result = result.filter(l => l.name?.toLowerCase().includes(q) || l.product?.toLowerCase().includes(q) || l.responsible?.toLowerCase().includes(q));
     }
     if (filterStage !== 'all') result = result.filter(l => l.stage_id === filterStage);
-    if (filterProduct !== 'all') result = result.filter(l => l.product === filterProduct);
+    if (filterProduct !== 'all') result = result.filter(l => (l.product_id ?? l.product) === filterProduct);
     if (filterResponsible !== 'all') result = result.filter(l => l.responsavel_usuario_id === filterResponsible);
 
     // IMPORTANTE: Para o Dashboard Geral, não filtramos por vendedor logado nos cartões de topo,
@@ -241,11 +255,21 @@ export function useSalesMetrics({
     };
   }, [filteredLeads, stageMap, startDate, endDate, products, leadToTurma]);
 
-  // KPI "Total de Leads" (opção A: todos os leads cadastrados no sistema)
-  // Importante: não excluir "aquecimento", "perdido", etc.
+  // KPI "Total de Leads" — exclui Perdido, Desqualificado, Aquecimento e Não Compareceu na Turma
   const leadsCount = useMemo(() => {
-    return filteredLeads.length;
-  }, [filteredLeads]);
+    return filteredLeads.filter(l => {
+      const stageName = l.stage_id ? stageMap.get(l.stage_id) : l.status;
+      if (!stageName) return true;
+      const n = stageName.toLowerCase();
+      return (
+        !n.includes('perdido') &&
+        !n.includes('desqualificado') &&
+        !n.includes('aquecimento') &&
+        !n.includes('não compareceu') &&
+        !n.includes('nao compareceu')
+      );
+    }).length;
+  }, [filteredLeads, stageMap]);
 
 
   const closedLeadsCount = closedLeadsFiltered.length;
@@ -361,7 +385,7 @@ export function useSalesMetrics({
       // Process all leads for operational stages, but filter by month for result stages
       leads.forEach((l: any) => {
         // Apply basic filters (product, responsible, etc.) but ignore date for operational stages
-        if (filterProduct !== 'all' && l.product !== filterProduct) return;
+        if (filterProduct !== 'all' && (l.product_id ?? l.product) !== filterProduct) return;
         if (filterResponsible !== 'all' && l.responsavel_usuario_id !== filterResponsible) return;
         if (currentSellerId && l.responsavel_usuario_id !== currentSellerId) return;
         if (searchTerm) {

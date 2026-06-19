@@ -98,7 +98,7 @@ export function calcSalesByResponsible(
 
     const rawKey = l.responsavel_usuario_id;
 
-    if (filterProduct && filterProduct !== 'all' && l.product !== filterProduct) return;
+    if (filterProduct && filterProduct !== 'all' && (l.product_id ?? l.product) !== filterProduct) return;
     
     if (currentSellerId && rawKey !== currentSellerId) return;
 
@@ -125,7 +125,7 @@ export function calcSalesByResponsible(
       result[rawKey].count += 1;
       result[rawKey].value += getLeadEffectiveValue(l as any);
       
-      const prod = products.find(p => p.id === l.product || p.name === l.product);
+      const prod = products.find(p => l.product_id ? p.id === l.product_id : (p.id === l.product || p.name === l.product));
       const productName = prod ? prod.name : l.product;
       const wDate = new Date(l.won_at || l.created_at);
       const formattedWonAt = wDate.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
