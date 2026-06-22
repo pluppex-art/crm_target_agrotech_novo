@@ -1,4 +1,4 @@
-import { getSupabase, setCors, checkAuth } from '../../_lib/crm';
+import { getSupabase, setCors, checkAuth } from '../_lib/crm';
 
 const GET_RESOURCES = new Set(['leads','turmas','vendedores','tarefas','metas','financeiro','chamadas','matriculas']);
 const POST_RESOURCES = new Set(['tarefas','notas']);
