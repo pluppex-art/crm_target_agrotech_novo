@@ -840,6 +840,374 @@ async function startServer() {
     }
   });
 
+  // ── CRM API Contract ────────────────────────────────────────────────────────
+  // Authorization: Bearer TARGET_API_KEY required on all /api/crm/* routes
+
+  function crmAuth(req: any, res: any, next: () => void) {
+    const expectedToken = process.env.TARGET_API_KEY;
+    if (!expectedToken) {
+      return res.status(500).json({ error: 'TARGET_API_KEY não configurada no servidor.' });
+    }
+    const authHeader = req.headers['authorization'] as string | undefined;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Authorization: Bearer {token} obrigatório.' });
+    }
+    const token = authHeader.slice(7).trim();
+    if (token !== expectedToken) {
+      return res.status(403).json({ error: 'Token inválido.' });
+    }
+    next();
+  }
+
+  // GET /api/crm/leads
+  // Lista todos os leads com estágio, pipeline, responsável e produto
+  app.get('/api/crm/leads', crmAuth, async (_req, res) => {
+    try {
+      const supabase = getSupabaseAdmin() as any;
+      const { data, error } = await supabase
+        .from('leads')
+        .select(`
+          id, name, email, phone, city, product, value, status, substatus,
+          responsible, responsavel_usuario_id,
+          stars, lead_source, seller_origin, cost_center,
+          pix_completed, contract_signed, motivo_perda,
+          created_at, updated_at, last_contact_at,
+          pipeline_stages!leads_stage_id_fkey(id, name)
+        `)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return res.json({
+        data: (data || []).map((l: any) => ({
+          id: l.id,
+          nome: l.name,
+          email: l.email ?? null,
+          telefone: l.phone ?? null,
+          cidade: l.city ?? null,
+          produto: l.product ?? null,
+          valor: Number(l.value) || 0,
+          status: l.status ?? null,
+          substatus: l.substatus ?? null,
+          estagio: l.pipeline_stages?.name ?? null,
+          responsavel: l.responsible ?? null,
+          responsavel_id: l.responsavel_usuario_id ?? null,
+          estrelas: l.stars ?? null,
+          origem: l.lead_source ?? null,
+          empresa_origem: l.seller_origin ?? null,
+          centro_custo: l.cost_center ?? null,
+          pix_pago: l.pix_completed ?? false,
+          contrato_assinado: l.contract_signed ?? false,
+          motivo_perda: l.motivo_perda ?? null,
+          criado_em: l.created_at,
+          atualizado_em: l.updated_at ?? null,
+          ultimo_contato: l.last_contact_at ?? null,
+        })),
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  // GET /api/crm/turmas
+  // Lista turmas (cursos/aulas) com número de matrículas
+  app.get('/api/crm/turmas', crmAuth, async (_req, res) => {
+    try {
+      const supabase = getSupabaseAdmin() as any;
+      const { data, error } = await supabase
+        .from('turmas')
+        .select(`
+          id, name, category, date, time, location, price, enrollment_fee,
+          professor_name, professor_email, description, status, student_goal,
+          created_at,
+          lead_class_enrollments(id, board_status)
+        `)
+        .order('date', { ascending: false });
+      if (error) throw error;
+      return res.json({
+        data: (data || []).map((t: any) => {
+          const enrollments: any[] = t.lead_class_enrollments || [];
+          return {
+            id: t.id,
+            nome: t.name,
+            categoria: t.category ?? null,
+            data: t.date ?? null,
+            hora: t.time ?? null,
+            local: t.location ?? null,
+            preco: Number(t.price) || 0,
+            taxa_matricula: Number(t.enrollment_fee) || 0,
+            professor: t.professor_name ?? null,
+            professor_email: t.professor_email ?? null,
+            descricao: t.description ?? null,
+            status: t.status ?? null,
+            meta_alunos: t.student_goal ?? null,
+            total_matriculas: enrollments.length,
+            criado_em: t.created_at,
+          };
+        }),
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  // GET /api/crm/vendedores
+  // Lista vendedores/consultores ativos com cargo
+  app.get('/api/crm/vendedores', crmAuth, async (_req, res) => {
+    try {
+      const supabase = getSupabaseAdmin() as any;
+      const { data, error } = await supabase
+        .from('perfis')
+        .select('id, name, email, phone, department, status, avatar_url, in_round_robin, cargos:role_id(name)')
+        .order('name');
+      if (error) throw error;
+      return res.json({
+        data: (data || []).map((p: any) => ({
+          id: p.id,
+          nome: p.name,
+          email: p.email ?? null,
+          telefone: p.phone ?? null,
+          departamento: p.department ?? null,
+          status: p.status ?? null,
+          cargo: (p.cargos as any)?.name ?? null,
+          avatar: p.avatar_url ?? null,
+          no_rodizio: p.in_round_robin ?? true,
+        })),
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  // GET /api/crm/tarefas
+  // Lista todas as tarefas com lead e responsável vinculados
+  app.get('/api/crm/tarefas', crmAuth, async (_req, res) => {
+    try {
+      const supabase = getSupabaseAdmin() as any;
+      const { data, error } = await supabase
+        .from('tasks')
+        .select(`
+          id, title, description, due_date, scheduled_time,
+          status, priority, category, lead_id, created_at,
+          perfis!tasks_responsavel_usuario_id_fkey(name),
+          leads(name)
+        `)
+        .order('due_date', { ascending: true });
+      if (error) throw error;
+      return res.json({
+        data: (data || []).map((t: any) => ({
+          id: t.id,
+          titulo: t.title,
+          descricao: t.description ?? null,
+          lead_id: t.lead_id ?? null,
+          lead_nome: (t.leads as any)?.name ?? null,
+          responsavel: (t.perfis as any)?.name ?? null,
+          prazo: t.due_date ?? null,
+          horario: t.scheduled_time ?? null,
+          status: t.status,
+          prioridade: t.priority,
+          categoria: t.category ?? null,
+          criado_em: t.created_at,
+        })),
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  // GET /api/crm/metas
+  // Lista metas de vendas (empresa e por vendedor)
+  app.get('/api/crm/metas', crmAuth, async (_req, res) => {
+    try {
+      const supabase = getSupabaseAdmin() as any;
+      const { data, error } = await supabase
+        .from('goals')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return res.json({
+        data: (data || []).map((g: any) => ({
+          id: g.id,
+          tipo: g.type,
+          vendedor_id: g.seller_id ?? null,
+          vendedor_nome: g.seller_name ?? null,
+          meta_receita: g.revenue_goal ?? null,
+          meta_leads: g.leads_goal ?? null,
+          meta_chamadas: g.calls_goal ?? null,
+          periodo: g.period ?? null,
+          criado_em: g.created_at,
+        })),
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  // GET /api/crm/financeiro
+  // Lista transações financeiras
+  app.get('/api/crm/financeiro', crmAuth, async (_req, res) => {
+    try {
+      const supabase = getSupabaseAdmin() as any;
+      const { data, error } = await supabase
+        .from('financial_transactions')
+        .select(`
+          id, description, amount, type, status,
+          payment_date, due_date, lead_id, created_at
+        `)
+        .order('payment_date', { ascending: false });
+      if (error) throw error;
+      return res.json({
+        data: (data || []).map((t: any) => ({
+          id: t.id,
+          descricao: t.description ?? null,
+          valor: Number(t.amount) || 0,
+          tipo: t.type ?? null,
+          status: t.status ?? null,
+          data_pagamento: t.payment_date ?? null,
+          data_vencimento: t.due_date ?? null,
+          lead_id: t.lead_id ?? null,
+          criado_em: t.created_at,
+        })),
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  // GET /api/crm/chamadas
+  // Lista registros de chamadas
+  app.get('/api/crm/chamadas', crmAuth, async (_req, res) => {
+    try {
+      const supabase = getSupabaseAdmin() as any;
+      const { data, error } = await supabase
+        .from('call_logs')
+        .select('id, user_id, lead_id, type, called_at, perfis!call_logs_user_id_fkey(name), leads(name)')
+        .order('called_at', { ascending: false });
+      if (error) throw error;
+      return res.json({
+        data: (data || []).map((c: any) => ({
+          id: c.id,
+          vendedor_id: c.user_id ?? null,
+          vendedor_nome: (c.perfis as any)?.name ?? null,
+          lead_id: c.lead_id ?? null,
+          lead_nome: (c.leads as any)?.name ?? null,
+          tipo: c.type ?? null,
+          realizada_em: c.called_at,
+        })),
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  // GET /api/crm/matriculas
+  // Lista matrículas de leads em turmas
+  app.get('/api/crm/matriculas', crmAuth, async (_req, res) => {
+    try {
+      const supabase = getSupabaseAdmin() as any;
+      const { data, error } = await supabase
+        .from('lead_class_enrollments')
+        .select(`
+          id, lead_id, class_id, board_status, status,
+          valor_recebido, taxa_matricula_recebido,
+          pix_completed, contract_signed, seller_origin,
+          created_at,
+          leads(name, email, phone),
+          turmas(name, date, category)
+        `)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return res.json({
+        data: (data || []).map((m: any) => ({
+          id: m.id,
+          lead_id: m.lead_id,
+          lead_nome: (m.leads as any)?.name ?? null,
+          lead_email: (m.leads as any)?.email ?? null,
+          lead_telefone: (m.leads as any)?.phone ?? null,
+          turma_id: m.class_id,
+          turma_nome: (m.turmas as any)?.name ?? null,
+          turma_data: (m.turmas as any)?.date ?? null,
+          turma_categoria: (m.turmas as any)?.category ?? null,
+          status_quadro: m.board_status ?? null,
+          status: m.status ?? null,
+          valor_recebido: Number(m.valor_recebido) || 0,
+          taxa_matricula_recebido: Number(m.taxa_matricula_recebido) || 0,
+          pix_pago: m.pix_completed ?? false,
+          contrato_assinado: m.contract_signed ?? false,
+          empresa_origem: m.seller_origin ?? null,
+          criado_em: m.created_at,
+        })),
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST /api/crm/notas
+  // Cria nota em um lead   Body: { leadId, texto }
+  app.post('/api/crm/notas', crmAuth, async (req, res) => {
+    const { leadId, texto } = req.body ?? {};
+    if (!leadId || !texto) {
+      return res.status(400).json({ error: 'leadId e texto são obrigatórios.' });
+    }
+    try {
+      const supabase = getSupabaseAdmin() as any;
+      const { data, error } = await supabase
+        .from('notes')
+        .insert([{ lead_id: leadId, content: texto, author_name: 'API Externa' }])
+        .select()
+        .single();
+      if (error) throw error;
+      return res.status(201).json({
+        data: {
+          id: data.id,
+          lead_id: data.lead_id,
+          texto: data.content,
+          criado_em: data.created_at,
+        },
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST /api/crm/tarefas
+  // Cria tarefa vinculada a um lead   Body: { leadId, titulo, prazo?, prioridade? }
+  app.post('/api/crm/tarefas', crmAuth, async (req, res) => {
+    const { leadId, titulo, prazo, prioridade } = req.body ?? {};
+    if (!leadId || !titulo) {
+      return res.status(400).json({ error: 'leadId e titulo são obrigatórios.' });
+    }
+    try {
+      const supabase = getSupabaseAdmin() as any;
+      const { data, error } = await supabase
+        .from('tasks')
+        .insert([{
+          lead_id: leadId,
+          title: titulo,
+          due_date: prazo ?? null,
+          status: 'pending',
+          priority: prioridade ?? 'medium',
+        }])
+        .select()
+        .single();
+      if (error) throw error;
+      return res.status(201).json({
+        data: {
+          id: data.id,
+          lead_id: data.lead_id,
+          titulo: data.title,
+          prazo: data.due_date ?? null,
+          status: data.status,
+          prioridade: data.priority,
+          criado_em: data.created_at,
+        },
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ────────────────────────────────────────────────────────────────────────────
+
   const distPath = path.join(process.cwd(), "dist");
   app.use(express.static(distPath));
 
