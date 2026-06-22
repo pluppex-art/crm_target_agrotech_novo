@@ -120,7 +120,9 @@ export function PublicFormBase({ formKey, backgroundImage, gradient, headerIcon 
   }, [inputValue, currentStep]);
 
   useEffect(() => {
-    setTimeout(() => (inputRef.current as HTMLInputElement | null)?.focus(), 350);
+    if (window.innerWidth >= 768) {
+      setTimeout(() => (inputRef.current as HTMLInputElement | null)?.focus(), 350);
+    }
   }, [currentStep]);
 
   useEffect(() => {
@@ -226,7 +228,7 @@ export function PublicFormBase({ formKey, backgroundImage, gradient, headerIcon 
   // Loading config
   if (loadingConfig) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-emerald-950">
+      <div className="flex items-center justify-center bg-emerald-950" style={{ minHeight: '100dvh' }}>
         <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
       </div>
     );
@@ -235,7 +237,7 @@ export function PublicFormBase({ formKey, backgroundImage, gradient, headerIcon 
   // Success screen
   if (submitted) {
     return (
-      <div className="min-h-screen flex flex-col relative overflow-hidden bg-emerald-950">
+      <div className="flex flex-col relative overflow-x-hidden bg-emerald-950" style={{ minHeight: '100dvh' }}>
         <div className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat" style={bgStyle} />
         <div className={`absolute inset-0 z-0 ${gradient}`} />
         <div className="flex-1 flex items-center justify-center p-6 relative z-10">
@@ -271,7 +273,7 @@ export function PublicFormBase({ formKey, backgroundImage, gradient, headerIcon 
 
   // Form
   return (
-    <div className="min-h-screen flex flex-col relative overflow-hidden bg-emerald-950">
+    <div className="flex flex-col relative overflow-x-hidden bg-emerald-950" style={{ minHeight: '100dvh' }}>
       <div className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat" style={bgStyle} />
       <div className={`absolute inset-0 z-0 ${gradient}`} />
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
@@ -303,7 +305,7 @@ export function PublicFormBase({ formKey, backgroundImage, gradient, headerIcon 
       </div>
 
       {/* Content */}
-      <div className="relative z-10 flex-1 flex items-center justify-center px-6 py-12">
+      <div className="relative z-10 flex-1 flex items-center justify-center px-6 py-8 sm:py-12">
         <div className="w-full max-w-xl">
           <AnimatePresence mode="wait" custom={direction}>
             {step && (
