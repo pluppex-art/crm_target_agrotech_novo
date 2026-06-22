@@ -864,20 +864,27 @@ async function startServer() {
   app.get('/api/crm/leads', crmAuth, async (_req, res) => {
     try {
       const supabase = getSupabaseAdmin() as any;
-      const { data, error } = await supabase
+      const { data: leads, error } = await supabase
         .from('leads')
         .select(`
           id, name, email, phone, city, product, value, status, substatus,
-          responsible, responsavel_usuario_id,
+          responsible, responsavel_usuario_id, stage_id,
           stars, lead_source, seller_origin, cost_center,
           pix_completed, contract_signed, motivo_perda,
-          created_at, updated_at, last_contact_at,
-          pipeline_stages!leads_stage_id_fkey(id, name)
+          created_at, updated_at, last_contact_at
         `)
         .order('created_at', { ascending: false });
       if (error) throw error;
+
+      const rows = leads || [];
+      const stageIds = [...new Set(rows.map((l: any) => l.stage_id).filter(Boolean))];
+      const { data: stagesData } = stageIds.length
+        ? await supabase.from('pipeline_stages').select('id, name').in('id', stageIds)
+        : { data: [] };
+      const stagesMap = new Map<string, any>((stagesData || []).map((s: any) => [s.id, s]));
+
       return res.json({
-        data: (data || []).map((l: any) => ({
+        data: rows.map((l: any) => ({
           id: l.id,
           nome: l.name,
           email: l.email ?? null,
@@ -887,7 +894,7 @@ async function startServer() {
           valor: Number(l.value) || 0,
           status: l.status ?? null,
           substatus: l.substatus ?? null,
-          estagio: l.pipeline_stages?.name ?? null,
+          estagio: stagesMap.get(l.stage_id)?.name ?? null,
           responsavel: l.responsible ?? null,
           responsavel_id: l.responsavel_usuario_id ?? null,
           estrelas: l.stars ?? null,
@@ -912,37 +919,41 @@ async function startServer() {
   app.get('/api/crm/turmas', crmAuth, async (_req, res) => {
     try {
       const supabase = getSupabaseAdmin() as any;
-      const { data, error } = await supabase
+      const { data: turmas, error } = await supabase
         .from('turmas')
-        .select(`
-          id, name, category, date, time, location, price, enrollment_fee,
-          professor_name, professor_email, description, status, student_goal,
-          created_at,
-          lead_class_enrollments(id, board_status)
-        `)
+        .select('id, name, category, date, time, location, price, enrollment_fee, professor_name, professor_email, description, status, student_goal, created_at')
         .order('date', { ascending: false });
       if (error) throw error;
+
+      const rows = turmas || [];
+      const turmaIds = rows.map((t: any) => t.id);
+      const { data: enrollmentsData } = turmaIds.length
+        ? await supabase.from('lead_class_enrollments').select('class_id').in('class_id', turmaIds)
+        : { data: [] };
+
+      const enrollmentCount = new Map<string, number>();
+      for (const e of (enrollmentsData || [])) {
+        enrollmentCount.set(e.class_id, (enrollmentCount.get(e.class_id) ?? 0) + 1);
+      }
+
       return res.json({
-        data: (data || []).map((t: any) => {
-          const enrollments: any[] = t.lead_class_enrollments || [];
-          return {
-            id: t.id,
-            nome: t.name,
-            categoria: t.category ?? null,
-            data: t.date ?? null,
-            hora: t.time ?? null,
-            local: t.location ?? null,
-            preco: Number(t.price) || 0,
-            taxa_matricula: Number(t.enrollment_fee) || 0,
-            professor: t.professor_name ?? null,
-            professor_email: t.professor_email ?? null,
-            descricao: t.description ?? null,
-            status: t.status ?? null,
-            meta_alunos: t.student_goal ?? null,
-            total_matriculas: enrollments.length,
-            criado_em: t.created_at,
-          };
-        }),
+        data: rows.map((t: any) => ({
+          id: t.id,
+          nome: t.name,
+          categoria: t.category ?? null,
+          data: t.date ?? null,
+          hora: t.time ?? null,
+          local: t.location ?? null,
+          preco: Number(t.price) || 0,
+          taxa_matricula: Number(t.enrollment_fee) || 0,
+          professor: t.professor_name ?? null,
+          professor_email: t.professor_email ?? null,
+          descricao: t.description ?? null,
+          status: t.status ?? null,
+          meta_alunos: t.student_goal ?? null,
+          total_matriculas: enrollmentCount.get(t.id) ?? 0,
+          criado_em: t.created_at,
+        })),
       });
     } catch (err: any) {
       return res.status(500).json({ error: err.message });
@@ -954,20 +965,28 @@ async function startServer() {
   app.get('/api/crm/vendedores', crmAuth, async (_req, res) => {
     try {
       const supabase = getSupabaseAdmin() as any;
-      const { data, error } = await supabase
+      const { data: perfis, error } = await supabase
         .from('perfis')
-        .select('id, name, email, phone, department, status, avatar_url, in_round_robin, cargos:role_id(name)')
+        .select('id, name, email, phone, department, status, avatar_url, in_round_robin, role_id')
         .order('name');
       if (error) throw error;
+
+      const rows = perfis || [];
+      const roleIds = [...new Set(rows.map((p: any) => p.role_id).filter(Boolean))];
+      const { data: cargosData } = roleIds.length
+        ? await supabase.from('cargos').select('id, name').in('id', roleIds)
+        : { data: [] };
+      const cargosMap = new Map<string, any>((cargosData || []).map((c: any) => [c.id, c]));
+
       return res.json({
-        data: (data || []).map((p: any) => ({
+        data: rows.map((p: any) => ({
           id: p.id,
           nome: p.name,
           email: p.email ?? null,
           telefone: p.phone ?? null,
           departamento: p.department ?? null,
           status: p.status ?? null,
-          cargo: (p.cargos as any)?.name ?? null,
+          cargo: cargosMap.get(p.role_id)?.name ?? null,
           avatar: p.avatar_url ?? null,
           no_rodizio: p.in_round_robin ?? true,
         })),
@@ -982,24 +1001,36 @@ async function startServer() {
   app.get('/api/crm/tarefas', crmAuth, async (_req, res) => {
     try {
       const supabase = getSupabaseAdmin() as any;
-      const { data, error } = await supabase
+      const { data: tasks, error } = await supabase
         .from('tasks')
-        .select(`
-          id, title, description, due_date, scheduled_time,
-          status, priority, category, lead_id, created_at,
-          perfis!tasks_responsavel_usuario_id_fkey(name),
-          leads(name)
-        `)
+        .select('id, title, description, due_date, scheduled_time, status, priority, category, lead_id, responsavel_usuario_id, created_at')
         .order('due_date', { ascending: true });
       if (error) throw error;
+
+      const rows = tasks || [];
+      const userIds = [...new Set(rows.map((t: any) => t.responsavel_usuario_id).filter(Boolean))];
+      const leadIds = [...new Set(rows.map((t: any) => t.lead_id).filter(Boolean))];
+
+      const [{ data: perfisData }, { data: leadsData }] = await Promise.all([
+        userIds.length
+          ? supabase.from('perfis').select('id, name').in('id', userIds)
+          : Promise.resolve({ data: [] }),
+        leadIds.length
+          ? supabase.from('leads').select('id, name').in('id', leadIds)
+          : Promise.resolve({ data: [] }),
+      ]);
+
+      const perfisMap = new Map<string, any>((perfisData || []).map((p: any) => [p.id, p]));
+      const leadsMap = new Map<string, any>((leadsData || []).map((l: any) => [l.id, l]));
+
       return res.json({
-        data: (data || []).map((t: any) => ({
+        data: rows.map((t: any) => ({
           id: t.id,
           titulo: t.title,
           descricao: t.description ?? null,
           lead_id: t.lead_id ?? null,
-          lead_nome: (t.leads as any)?.name ?? null,
-          responsavel: (t.perfis as any)?.name ?? null,
+          lead_nome: leadsMap.get(t.lead_id)?.name ?? null,
+          responsavel: perfisMap.get(t.responsavel_usuario_id)?.name ?? null,
           prazo: t.due_date ?? null,
           horario: t.scheduled_time ?? null,
           status: t.status,
@@ -1123,38 +1154,52 @@ async function startServer() {
   app.get('/api/crm/matriculas', crmAuth, async (_req, res) => {
     try {
       const supabase = getSupabaseAdmin() as any;
-      const { data, error } = await supabase
+      const { data: enrollments, error } = await supabase
         .from('lead_class_enrollments')
-        .select(`
-          id, lead_id, class_id, board_status, status,
-          valor_recebido, taxa_matricula_recebido,
-          pix_completed, contract_signed, seller_origin,
-          created_at,
-          leads(name, email, phone),
-          turmas(name, date, category)
-        `)
+        .select('id, lead_id, class_id, board_status, status, valor_recebido, taxa_matricula_recebido, pix_completed, contract_signed, seller_origin, created_at')
         .order('created_at', { ascending: false });
       if (error) throw error;
+
+      const rows = enrollments || [];
+      const leadIds = [...new Set(rows.map((r: any) => r.lead_id).filter(Boolean))];
+      const classIds = [...new Set(rows.map((r: any) => r.class_id).filter(Boolean))];
+
+      const [{ data: leadsData }, { data: turmasData }] = await Promise.all([
+        leadIds.length
+          ? supabase.from('leads').select('id, name, email, phone').in('id', leadIds)
+          : Promise.resolve({ data: [] }),
+        classIds.length
+          ? supabase.from('turmas').select('id, name, date, category').in('id', classIds)
+          : Promise.resolve({ data: [] }),
+      ]);
+
+      const leadsMap = new Map<string, any>((leadsData || []).map((l: any) => [l.id, l]));
+      const turmasMap = new Map<string, any>((turmasData || []).map((t: any) => [t.id, t]));
+
       return res.json({
-        data: (data || []).map((m: any) => ({
-          id: m.id,
-          lead_id: m.lead_id,
-          lead_nome: (m.leads as any)?.name ?? null,
-          lead_email: (m.leads as any)?.email ?? null,
-          lead_telefone: (m.leads as any)?.phone ?? null,
-          turma_id: m.class_id,
-          turma_nome: (m.turmas as any)?.name ?? null,
-          turma_data: (m.turmas as any)?.date ?? null,
-          turma_categoria: (m.turmas as any)?.category ?? null,
-          status_quadro: m.board_status ?? null,
-          status: m.status ?? null,
-          valor_recebido: Number(m.valor_recebido) || 0,
-          taxa_matricula_recebido: Number(m.taxa_matricula_recebido) || 0,
-          pix_pago: m.pix_completed ?? false,
-          contrato_assinado: m.contract_signed ?? false,
-          empresa_origem: m.seller_origin ?? null,
-          criado_em: m.created_at,
-        })),
+        data: rows.map((m: any) => {
+          const lead = leadsMap.get(m.lead_id);
+          const turma = turmasMap.get(m.class_id);
+          return {
+            id: m.id,
+            lead_id: m.lead_id,
+            lead_nome: lead?.name ?? null,
+            lead_email: lead?.email ?? null,
+            lead_telefone: lead?.phone ?? null,
+            turma_id: m.class_id,
+            turma_nome: turma?.name ?? null,
+            turma_data: turma?.date ?? null,
+            turma_categoria: turma?.category ?? null,
+            status_quadro: m.board_status ?? null,
+            status: m.status ?? null,
+            valor_recebido: Number(m.valor_recebido) || 0,
+            taxa_matricula_recebido: Number(m.taxa_matricula_recebido) || 0,
+            pix_pago: m.pix_completed ?? false,
+            contrato_assinado: m.contract_signed ?? false,
+            empresa_origem: m.seller_origin ?? null,
+            criado_em: m.created_at,
+          };
+        }),
       });
     } catch (err: any) {
       return res.status(500).json({ error: err.message });
