@@ -1,4 +1,4 @@
-import { getSupabase, setCors, checkAuth } from '../../_lib/crm';
+import { getSupabase, setCors, checkAuth } from './lib';
 
 const RESOURCE_CONFIG: Record<string, { table: string; allowed: Record<string, string>; returnFields: string; addUpdatedAt?: boolean }> = {
   leads: {
