@@ -1073,22 +1073,42 @@ async function startServer() {
   });
 
   // GET /api/crm/chamadas
-  // Lista registros de chamadas
+  // Lista registros de chamadas com nome do vendedor e do lead
   app.get('/api/crm/chamadas', crmAuth, async (_req, res) => {
     try {
       const supabase = getSupabaseAdmin() as any;
-      const { data, error } = await supabase
+
+      const { data: logs, error } = await supabase
         .from('call_logs')
-        .select('id, user_id, lead_id, type, called_at, perfis!call_logs_user_id_fkey(name), leads(name)')
+        .select('id, user_id, lead_id, type, called_at')
         .order('called_at', { ascending: false });
       if (error) throw error;
+
+      const calls = logs || [];
+
+      // Lookup maps to enrich with names (same approach do callService)
+      const userIds = [...new Set(calls.map((c: any) => c.user_id).filter(Boolean))];
+      const leadIds = [...new Set(calls.map((c: any) => c.lead_id).filter(Boolean))];
+
+      const [{ data: perfisData }, { data: leadsData }] = await Promise.all([
+        userIds.length
+          ? supabase.from('perfis').select('id, name').in('id', userIds)
+          : Promise.resolve({ data: [] }),
+        leadIds.length
+          ? supabase.from('leads').select('id, name').in('id', leadIds)
+          : Promise.resolve({ data: [] }),
+      ]);
+
+      const perfisMap = new Map((perfisData || []).map((p: any) => [p.id, p.name]));
+      const leadsMap = new Map((leadsData || []).map((l: any) => [l.id, l.name]));
+
       return res.json({
-        data: (data || []).map((c: any) => ({
+        data: calls.map((c: any) => ({
           id: c.id,
           vendedor_id: c.user_id ?? null,
-          vendedor_nome: (c.perfis as any)?.name ?? null,
+          vendedor_nome: perfisMap.get(c.user_id) ?? null,
           lead_id: c.lead_id ?? null,
-          lead_nome: (c.leads as any)?.name ?? null,
+          lead_nome: leadsMap.get(c.lead_id) ?? null,
           tipo: c.type ?? null,
           realizada_em: c.called_at,
         })),
@@ -1201,6 +1221,183 @@ async function startServer() {
           criado_em: data.created_at,
         },
       });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  // PUT /api/crm/leads/:id
+  // Atualiza campos de um lead
+  // Body: { nome?, email?, telefone?, cidade?, produto?, valor?, status?,
+  //         substatus?, responsavel_id?, estagio_id?, motivo_perda?,
+  //         pix_pago?, contrato_assinado? }
+  app.put('/api/crm/leads/:id', crmAuth, async (req, res) => {
+    const { id } = req.params;
+    const body = req.body ?? {};
+    if (!id) return res.status(400).json({ error: 'id é obrigatório.' });
+
+    const allowed: Record<string, string> = {
+      nome: 'name',
+      email: 'email',
+      telefone: 'phone',
+      cidade: 'city',
+      produto: 'product',
+      valor: 'value',
+      status: 'status',
+      substatus: 'substatus',
+      responsavel_id: 'responsavel_usuario_id',
+      estagio_id: 'stage_id',
+      motivo_perda: 'motivo_perda',
+      pix_pago: 'pix_completed',
+      contrato_assinado: 'contract_signed',
+    };
+
+    const patch: Record<string, any> = {};
+    for (const [key, col] of Object.entries(allowed)) {
+      if (key in body) patch[col] = body[key];
+    }
+    if (Object.keys(patch).length === 0) {
+      return res.status(400).json({ error: 'Nenhum campo válido para atualizar.' });
+    }
+    patch.updated_at = new Date().toISOString();
+
+    try {
+      const supabase = getSupabaseAdmin() as any;
+      const { data, error } = await supabase
+        .from('leads')
+        .update(patch)
+        .eq('id', id)
+        .select('id, name, email, phone, status, substatus, updated_at')
+        .single();
+      if (error) throw error;
+      return res.json({ data });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  // PUT /api/crm/tarefas/:id
+  // Atualiza campos de uma tarefa
+  // Body: { titulo?, descricao?, prazo?, status?, prioridade?, categoria? }
+  app.put('/api/crm/tarefas/:id', crmAuth, async (req, res) => {
+    const { id } = req.params;
+    const body = req.body ?? {};
+    if (!id) return res.status(400).json({ error: 'id é obrigatório.' });
+
+    const allowed: Record<string, string> = {
+      titulo: 'title',
+      descricao: 'description',
+      prazo: 'due_date',
+      horario: 'scheduled_time',
+      status: 'status',
+      prioridade: 'priority',
+      categoria: 'category',
+    };
+
+    const patch: Record<string, any> = {};
+    for (const [key, col] of Object.entries(allowed)) {
+      if (key in body) patch[col] = body[key];
+    }
+    if (Object.keys(patch).length === 0) {
+      return res.status(400).json({ error: 'Nenhum campo válido para atualizar.' });
+    }
+
+    try {
+      const supabase = getSupabaseAdmin() as any;
+      const { data, error } = await supabase
+        .from('tasks')
+        .update(patch)
+        .eq('id', id)
+        .select('id, title, status, priority, due_date')
+        .single();
+      if (error) throw error;
+      return res.json({ data });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  // PUT /api/crm/turmas/:id
+  // Atualiza campos de uma turma
+  // Body: { nome?, data?, hora?, local?, status?, meta_alunos?, descricao? }
+  app.put('/api/crm/turmas/:id', crmAuth, async (req, res) => {
+    const { id } = req.params;
+    const body = req.body ?? {};
+    if (!id) return res.status(400).json({ error: 'id é obrigatório.' });
+
+    const allowed: Record<string, string> = {
+      nome: 'name',
+      data: 'date',
+      hora: 'time',
+      local: 'location',
+      status: 'status',
+      meta_alunos: 'student_goal',
+      descricao: 'description',
+      professor: 'professor_name',
+      professor_email: 'professor_email',
+      preco: 'price',
+      taxa_matricula: 'enrollment_fee',
+    };
+
+    const patch: Record<string, any> = {};
+    for (const [key, col] of Object.entries(allowed)) {
+      if (key in body) patch[col] = body[key];
+    }
+    if (Object.keys(patch).length === 0) {
+      return res.status(400).json({ error: 'Nenhum campo válido para atualizar.' });
+    }
+
+    try {
+      const supabase = getSupabaseAdmin() as any;
+      const { data, error } = await supabase
+        .from('turmas')
+        .update(patch)
+        .eq('id', id)
+        .select('id, name, date, status')
+        .single();
+      if (error) throw error;
+      return res.json({ data });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  // PUT /api/crm/matriculas/:id
+  // Atualiza status de pagamento de uma matrícula
+  // Body: { status?, status_quadro?, pix_pago?, contrato_assinado?,
+  //         valor_recebido?, taxa_matricula_recebido? }
+  app.put('/api/crm/matriculas/:id', crmAuth, async (req, res) => {
+    const { id } = req.params;
+    const body = req.body ?? {};
+    if (!id) return res.status(400).json({ error: 'id é obrigatório.' });
+
+    const allowed: Record<string, string> = {
+      status: 'status',
+      status_quadro: 'board_status',
+      pix_pago: 'pix_completed',
+      contrato_assinado: 'contract_signed',
+      valor_recebido: 'valor_recebido',
+      taxa_matricula_recebido: 'taxa_matricula_recebido',
+    };
+
+    const patch: Record<string, any> = {};
+    for (const [key, col] of Object.entries(allowed)) {
+      if (key in body) patch[col] = body[key];
+    }
+    if (Object.keys(patch).length === 0) {
+      return res.status(400).json({ error: 'Nenhum campo válido para atualizar.' });
+    }
+
+    try {
+      const supabase = getSupabaseAdmin() as any;
+      const { data, error } = await supabase
+        .from('lead_class_enrollments')
+        .update(patch)
+        .eq('id', id)
+        .select('id, lead_id, class_id, status, board_status, pix_completed, contract_signed')
+        .single();
+      if (error) throw error;
+      return res.json({ data });
     } catch (err: any) {
       return res.status(500).json({ error: err.message });
     }
