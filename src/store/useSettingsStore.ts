@@ -1,6 +1,33 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 
+export interface SLARule {
+  enabled: boolean;
+  maxHours: number;
+  preAlertHours: number;
+  effect: string;
+  theme: string;
+  icon: string;
+}
+
+export interface SLAConfig {
+  alta: SLARule;
+  media: SLARule;
+  baixa: SLARule;
+  exceptions: {
+    ignoreWithTasks: boolean;
+    ignoreGanho: boolean;
+    ignoreAquecimento: boolean;
+  };
+}
+
+export const DEFAULT_SLA_CONFIG: SLAConfig = {
+  alta:  { enabled: true,  maxHours: 24, preAlertHours: 4,  effect: 'pulse-red',   theme: 'vermelho', icon: 'fogo'    },
+  media: { enabled: true,  maxHours: 48, preAlertHours: 8,  effect: 'pulse-amber', theme: 'laranja',  icon: 'relogio' },
+  baixa: { enabled: false, maxHours: 72, preAlertHours: 12, effect: 'pulse-blue',  theme: 'azul',     icon: 'info'    },
+  exceptions: { ignoreWithTasks: true, ignoreGanho: true, ignoreAquecimento: true },
+};
+
 export interface NotificationPrefs {
   newLead: boolean;
   leadInactive: boolean;
@@ -25,6 +52,7 @@ const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
 
 interface SettingsState {
   autoTransferHours: number;
+  slaConfig: SLAConfig;
   notificationPrefs: NotificationPrefs;
   isLoading: boolean;
   fetchSettings: () => Promise<void>;
@@ -35,6 +63,7 @@ interface SettingsState {
 
 export const useSettingsStore = create<SettingsState>((set) => ({
   autoTransferHours: 48,
+  slaConfig: DEFAULT_SLA_CONFIG,
   notificationPrefs: DEFAULT_NOTIFICATION_PREFS,
   isLoading: false,
 
@@ -52,6 +81,9 @@ export const useSettingsStore = create<SettingsState>((set) => ({
           }
           if (key === 'notification_preferences') {
             set({ notificationPrefs: { ...DEFAULT_NOTIFICATION_PREFS, ...(value as object) } });
+          }
+          if (key === 'sla_config') {
+            set({ slaConfig: { ...DEFAULT_SLA_CONFIG, ...(value as SLAConfig) } });
           }
         }
       )
@@ -71,6 +103,9 @@ export const useSettingsStore = create<SettingsState>((set) => ({
 
       set({
         autoTransferHours: Number(settings['lead_transfer_timeout_hours'] || 48),
+        slaConfig: settings['sla_config']
+          ? { ...DEFAULT_SLA_CONFIG, ...(settings['sla_config'] as SLAConfig) }
+          : DEFAULT_SLA_CONFIG,
         notificationPrefs: {
           ...DEFAULT_NOTIFICATION_PREFS,
           ...(settings['notification_preferences'] || {}),

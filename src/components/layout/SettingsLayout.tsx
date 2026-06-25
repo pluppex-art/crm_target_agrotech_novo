@@ -1,7 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import {
   User, Bell, Lock, Globe, Shield, UserPlus, Tag, Activity,
-  ClipboardList, Settings as SettingsIcon, RefreshCcw, Users2, History, Loader2, FileText, ArrowLeftRight
+  ClipboardList, Settings as SettingsIcon, RefreshCcw, Users2, History, Loader2, FileText, ArrowLeftRight, Clock
 } from 'lucide-react';
 import { cn, isVendedor } from '../../lib/utils';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -27,6 +27,7 @@ const settingsNav = [
   { icon: History,         label: 'Auditoria (Logs)',     path: '/settings/audit' },
   { icon: FileText,        label: 'Formulários Públicos', path: '/settings/public-forms' },
   { icon: ArrowLeftRight,  label: 'Transferir Leads',     path: '/settings/transfer-leads' },
+  { icon: Clock,           label: 'SLA & Alertas',        path: '/settings/sla' },
 ];
 
 export function SettingsLayout() {

@@ -20,6 +20,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import type { Lead, LeadStatus } from '../types/leads';
 import { LeadDetailsModal } from '../components/leads/LeadDetailsModal';
 import { NewLeadModal } from '../components/leads/NewLeadModal';
+
 import { cn, getLeadEffectiveValue } from '../lib/utils';
 import { requestNotificationPermission } from '../services/alertService';
 import { PeriodFilterModal } from '../components/common/PeriodFilterModal';
@@ -525,6 +526,7 @@ export const Pipeline: React.FC = () => {
           setInitialStageIdForNewLead(undefined);
           setIsNewLeadModalOpen(true);
         }}
+
         viewMode={viewMode}
         onViewModeChange={setViewMode}
       />
@@ -655,17 +657,28 @@ export const Pipeline: React.FC = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <div className="flex justify-center gap-0.5">
-                          {[...Array(5)].map((_, i) => (
-                            <div
-                              key={i}
-                              className={cn(
-                                "w-1 h-3 rounded-full",
-                                i < (lead.stars || 0) ? "bg-orange-400 shadow-[0_0_8px_rgba(251,146,60,0.5)]" : "bg-slate-100 dark:bg-slate-800/50"
-                              )}
-                            />
-                          ))}
-                        </div>
+                        {(() => {
+                          const s = lead.stars || 0;
+                          if (s >= 4) {
+                            return (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-md bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900/30 uppercase tracking-wider">
+                                🔥 Quente
+                              </span>
+                            );
+                          } else if (s === 3) {
+                            return (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/30 uppercase tracking-wider">
+                                🌤️ Morno
+                              </span>
+                            );
+                          } else {
+                            return (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/30 uppercase tracking-wider">
+                                🥶 Frio
+                              </span>
+                            );
+                          }
+                        })()}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="font-black text-slate-800 dark:text-slate-200 tabular-nums">
@@ -809,6 +822,8 @@ export const Pipeline: React.FC = () => {
           }
         }}
       />
+
+
 
       {/* Enroll in Turma Modal */}
       {enrollLead && (

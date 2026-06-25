@@ -56,6 +56,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose, ini
     motivo_perda: '', address: '', instagram: '', emergency_contact: '',
     seller_origin: 'target', cost_center: 'cursos', centro_custo_id: '',
     is_minor: false, guardian_name: '', guardian_cpf: '', guardian_phone: '',
+    stars: 2,
   });
 
   const [proofFile, setProofFile] = useState<File | null>(null);

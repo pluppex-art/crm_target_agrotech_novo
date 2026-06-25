@@ -16,7 +16,7 @@ import { useProductStore } from '../../store/useProductStore';
 import { useProfileStore } from '../../store/useProfileStore';
 import { financialCalculator } from '../../services/financialCalculator';
 
-import { X, Trophy, ThumbsDown, Phone, PhoneOff, Loader2, Brain } from 'lucide-react';
+import { X, Trophy, ThumbsDown, Phone, PhoneOff, Loader2, Brain, Flame } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { LeadDetailsModalProps, TabType } from './types';

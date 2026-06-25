@@ -1,5 +1,5 @@
 import React from 'react';
-import { Loader2, Download, Plus, Trophy, UserCheck, CalendarRange, LayoutGrid, List } from 'lucide-react';
+import { Download, Plus, LayoutGrid, List } from 'lucide-react';
 
 import { PipelineSelect } from './PipelineSelect';
 import { PipelineMetricCards } from './PipelineMetricCards';

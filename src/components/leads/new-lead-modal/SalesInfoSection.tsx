@@ -1,5 +1,5 @@
 import React from 'react';
-import { DollarSign, GraduationCap, ChevronDown, Percent, User as UserIcon } from 'lucide-react';
+import { DollarSign, GraduationCap, ChevronDown, Percent, User as UserIcon, Flame } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { LeadSubStatus } from '../../../types/leads';
 
@@ -182,6 +182,47 @@ export const SalesInfoSection: React.FC<SalesInfoSectionProps> = ({
             </select>
           </div>
         )}
+
+        {/* Temperature / Rating */}
+        <div className="flex flex-col gap-2 md:col-span-2">
+          <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Temperatura / Pontuação</label>
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { value: 2, label: 'Frio', flames: 2, activeClass: 'border-blue-400 dark:border-blue-600 bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.2)]', flameActiveClass: 'fill-blue-400 text-blue-400', flameInactiveClass: 'text-slate-200 dark:text-slate-600' },
+              { value: 3, label: 'Morno', flames: 3, activeClass: 'border-amber-400 dark:border-amber-600 bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.2)]', flameActiveClass: 'fill-amber-400 text-amber-400', flameInactiveClass: 'text-slate-200 dark:text-slate-600' },
+              { value: 5, label: 'Quente', flames: 5, activeClass: 'border-red-400 dark:border-red-600 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 shadow-[0_0_12px_rgba(239,68,68,0.2)]', flameActiveClass: 'fill-orange-500 text-orange-500', flameInactiveClass: 'text-slate-200 dark:text-slate-600' },
+            ].map((opt) => {
+              const isSelected = (formData.stars || 2) === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setFormData((prev: any) => ({ ...prev, stars: opt.value }))}
+                  className={cn(
+                    "flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border-2 transition-all font-bold text-xs",
+                    isSelected
+                      ? opt.activeClass
+                      : "border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-400 dark:text-slate-500 hover:border-slate-200 dark:hover:border-slate-600"
+                  )}
+                >
+                  <div className="flex items-center gap-0.5">
+                    {[...Array(5)].map((_, i) => (
+                      <Flame
+                        key={i}
+                        size={14}
+                        className={cn(
+                          "transition-colors",
+                          isSelected && i < opt.flames ? opt.flameActiveClass : opt.flameInactiveClass
+                        )}
+                      />
+                    ))}
+                  </div>
+                  <span className="uppercase tracking-tight font-black text-[10px]">{opt.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );

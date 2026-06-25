@@ -73,24 +73,50 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             )}
           </div>
 
-          <div className="flex items-center gap-0.5">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <button
-                key={i}
-                onClick={() => handleStarClick(i)}
-                onMouseEnter={() => setHoverStars(i)}
-                onMouseLeave={() => setHoverStars(0)}
-                className="focus:outline-none transition-transform hover:scale-110"
-              >
-                <Flame
-                  size={18}
-                  className={cn(
-                    "transition-colors",
-                    i <= (hoverStars || formData.stars) ? "fill-orange-500 text-orange-500" : "text-slate-200"
-                  )}
-                />
-              </button>
-            ))}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-0.5">
+              {[1, 2, 3, 4, 5].map((i) => {
+                const activeStars = hoverStars || formData.stars || 0;
+                const isLit = i <= activeStars;
+                const flameColor = isLit
+                  ? activeStars >= 4
+                    ? 'fill-orange-500 text-orange-500'
+                    : activeStars === 3
+                      ? 'fill-amber-400 text-amber-400'
+                      : 'fill-blue-400 text-blue-400'
+                  : 'text-slate-200 dark:text-slate-600';
+                return (
+                  <button
+                    key={i}
+                    onClick={() => handleStarClick(i)}
+                    onMouseEnter={() => setHoverStars(i)}
+                    onMouseLeave={() => setHoverStars(0)}
+                    className="focus:outline-none transition-transform hover:scale-110"
+                  >
+                    <Flame size={18} className={cn('transition-colors', flameColor)} />
+                  </button>
+                );
+              })}
+            </div>
+            {/* Temperature badge */}
+            {(() => {
+              const s = hoverStars || formData.stars || 0;
+              if (s >= 4) return (
+                <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-red-50 dark:bg-red-950/20 text-red-500 dark:text-red-400 border border-red-100 dark:border-red-900/30 uppercase tracking-wider">
+                  🔥 Quente
+                </span>
+              );
+              if (s === 3) return (
+                <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/20 text-amber-500 dark:text-amber-400 border border-amber-100 dark:border-amber-900/30 uppercase tracking-wider">
+                  🌤️ Morno
+                </span>
+              );
+              return (
+                <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/20 text-blue-500 dark:text-blue-400 border border-blue-100 dark:border-blue-900/30 uppercase tracking-wider">
+                  🥶 Frio
+                </span>
+              );
+            })()}
           </div>
           <div className="flex items-center gap-2 pt-0.5 flex-wrap">
             <div className="flex flex-col items-start justify-center min-h-[32px]">

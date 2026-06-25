@@ -2,6 +2,20 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@keyframes sla-shake {
+  0%, 85%, 100% { transform: translateX(0) rotate(0deg); }
+  87%  { transform: translateX(-3px) rotate(-0.4deg); }
+  89%  { transform: translateX(3px)  rotate(0.4deg);  }
+  91%  { transform: translateX(-2px) rotate(-0.3deg); }
+  93%  { transform: translateX(2px)  rotate(0.3deg);  }
+  95%  { transform: translateX(-1px); }
+  97%  { transform: translateX(1px);  }
+}
+
+.sla-shake {
+  animation: sla-shake 4s ease-in-out infinite;
+}
+
 @layer base {
   :root {
     color-scheme: light;

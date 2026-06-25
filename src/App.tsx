@@ -40,6 +40,7 @@ const ManageSquads = lazy(() => import('./pages/settings/ManageSquads').then(m =
 const AuditLogs = lazy(() => import('./pages/settings/AuditLogs').then(m => ({ default: m.AuditLogs })));
 const PublicFormsSettings = lazy(() => import('./pages/settings/PublicForms').then(m => ({ default: m.PublicForms })));
 const TransferLeads = lazy(() => import('./pages/settings/TransferLeads').then(m => ({ default: m.TransferLeads })));
+const SLASettings = lazy(() => import('./pages/settings/SLASettings').then(m => ({ default: m.SLASettings })));
 const Reports = lazy(() => import('./pages/Reports').then(m => ({ default: m.Reports })));
 
 const SuspenseFallback = () => (
@@ -142,6 +143,7 @@ export default function App() {
               <Route path="audit" element={<AuditLogs />} />
               <Route path="public-forms" element={<PublicFormsSettings />} />
               <Route path="transfer-leads" element={<TransferLeads />} />
+              <Route path="sla" element={<SLASettings />} />
             </Route>
             <Route path="/analytics" element={<Dashboard />} />
           </Route>
