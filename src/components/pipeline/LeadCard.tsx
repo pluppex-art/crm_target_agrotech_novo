@@ -97,13 +97,13 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
   const isInactiveStage =
     lead.status === 'closed' ||
     stageName.includes('ganho') || stageName.includes('aprovado') || stageName.includes('fechado') ||
-    stageName.includes('concluido') || stageName.includes('matriculado') || stageName.includes('confirmado') ||
+    stageName.includes('concluido') || stageName.includes('concluida') || stageName.includes('matriculado') || stageName.includes('confirmado') ||
     stageName.includes('certificado') || stageName.includes('pos-venda') ||
     stageName.includes('perdido') || stageName.includes('desqualificado') ||
-    subStatusName.includes('ganho') || subStatusName.includes('concluido') ||
+    subStatusName.includes('ganho') || subStatusName.includes('concluido') || subStatusName.includes('concluida') ||
     subStatusName.includes('matriculado') || subStatusName.includes('confirmado') ||
     columnStageName.includes('ganho') || columnStageName.includes('aprovado') ||
-    columnStageName.includes('fechado') || columnStageName.includes('concluido') ||
+    columnStageName.includes('fechado') || columnStageName.includes('concluido') || columnStageName.includes('concluida') ||
     columnStageName.includes('matriculado') || columnStageName.includes('confirmado') ||
     columnStageName.includes('certificado') || columnStageName.includes('pos-venda');
 
