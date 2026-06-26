@@ -58,12 +58,16 @@ const parseBriefingContent = (content: string | null | undefined): ParsedBriefin
   const fields: BriefingField[] = [];
   const freeText: string[] = [];
   let score: string | null = null;
+  let titleSkipped = false;
 
   for (const line of lines) {
     if (!line) continue;
     const normalized = line.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-    // skip title line
-    if (normalized.startsWith('briefing') || normalized.startsWith('brifing')) continue;
+    // skip only the first title line
+    if (!titleSkipped && (normalized.startsWith('briefing') || normalized.startsWith('brifing'))) {
+      titleSkipped = true;
+      continue;
+    }
     if (normalized.startsWith('score:')) {
       score = line.replace(/^score:\s*/i, '');
       continue;
@@ -71,7 +75,7 @@ const parseBriefingContent = (content: string | null | undefined): ParsedBriefin
     const colonIdx = line.indexOf(':');
     if (colonIdx > 0 && colonIdx < line.length - 1) {
       fields.push({ key: line.slice(0, colonIdx).trim(), value: line.slice(colonIdx + 1).trim() });
-    } else if (line) {
+    } else {
       freeText.push(line);
     }
   }
@@ -381,26 +385,27 @@ export const LeadNotesTab: React.FC<LeadNotesTabProps> = ({
                     </button>
                   </div>
 
-                  {/* Fields */}
-                  {(parsed.fields.length > 0 || parsed.freeText.length > 0) && (
-                    <div className="bg-white dark:bg-slate-900 px-4 py-3 divide-y divide-slate-100 dark:divide-slate-800">
-                      {parsed.fields.map((f, i) => (
-                        <div key={i} className="flex items-start gap-3 py-2 first:pt-0 last:pb-0">
-                          <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide min-w-[110px] flex-shrink-0 pt-0.5">
-                            {f.key}
-                          </span>
-                          <span className="text-sm font-medium text-slate-700 dark:text-slate-200 flex-1">
-                            {f.value}
-                          </span>
-                        </div>
-                      ))}
-                      {parsed.freeText.map((t, i) => (
-                        <p key={i} className="py-2 text-sm text-slate-600 dark:text-slate-300 first:pt-0 last:pb-0">
-                          {t}
-                        </p>
-                      ))}
-                    </div>
-                  )}
+                  {/* Fields / body */}
+                  <div className="bg-white dark:bg-slate-900 px-4 py-3 divide-y divide-slate-100 dark:divide-slate-800">
+                    {parsed.fields.map((f, i) => (
+                      <div key={i} className="flex items-start gap-3 py-2 first:pt-0 last:pb-0">
+                        <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide min-w-[110px] flex-shrink-0 pt-0.5">
+                          {f.key}
+                        </span>
+                        <span className="text-sm font-medium text-slate-700 dark:text-slate-200 flex-1">
+                          {f.value}
+                        </span>
+                      </div>
+                    ))}
+                    {parsed.freeText.length > 0 && (
+                      <p className={cn('text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap', parsed.fields.length > 0 ? 'pt-2' : '')}>
+                        {parsed.freeText.join('\n')}
+                      </p>
+                    )}
+                    {parsed.fields.length === 0 && parsed.freeText.length === 0 && (
+                      <p className="text-sm text-slate-400 italic">Sem conteúdo.</p>
+                    )}
+                  </div>
 
                   {/* Score footer */}
                   {parsed.score && (
