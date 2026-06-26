@@ -43,7 +43,8 @@ const getBriefingStyle = (stars: number | null | undefined) => {
   };
 };
 
-const isBriefingNote = (content: string) => {
+const isBriefingNote = (content: string | null | undefined): boolean => {
+  if (!content) return false;
   const normalized = content.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   return normalized.startsWith('briefing') || normalized.startsWith('brifing');
 };
@@ -51,7 +52,8 @@ const isBriefingNote = (content: string) => {
 interface BriefingField { key: string; value: string; }
 interface ParsedBriefing { fields: BriefingField[]; score: string | null; freeText: string[] }
 
-const parseBriefingContent = (content: string): ParsedBriefing => {
+const parseBriefingContent = (content: string | null | undefined): ParsedBriefing => {
+  if (!content) return { fields: [], score: null, freeText: [] };
   const lines = content.split('\n').map(l => l.trim());
   const fields: BriefingField[] = [];
   const freeText: string[] = [];
@@ -333,23 +335,24 @@ export const LeadNotesTab: React.FC<LeadNotesTabProps> = ({
             const dateStr = noteDate.toLocaleDateString('pt-BR');
             const timeStr = noteDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-            const isBriefing = isBriefingNote(note.content);
+            const content: string = note.content ?? '';
+            const isBriefing = isBriefingNote(content);
 
             const isVendaFechadaOriginal =
-              note.content.includes('🎉 Lead') && note.content.includes('entrou em Ganho na data de');
-            const isVendaFechadaNova = note.content.includes('🏆 Venda Fechada!');
+              content.includes('🎉 Lead') && content.includes('entrou em Ganho na data de');
+            const isVendaFechadaNova = content.includes('🏆 Venda Fechada!');
             const isVendaFechada = isVendaFechadaOriginal || isVendaFechadaNova;
 
-            let displayContent = note.content;
+            let displayContent = content;
             if (isVendaFechadaOriginal) {
-              displayContent = note.content.replace(
+              displayContent = content.replace(
                 /🎉 Lead (.*?) entrou em Ganho na data de (.*)/,
                 '🏆 Venda Fechada! O lead $1 foi movido para Ganho com sucesso no dia $2.'
               );
             }
 
             if (isBriefing) {
-              const parsed = parseBriefingContent(note.content);
+              const parsed = parseBriefingContent(content);
               return (
                 <div
                   key={note.id}
