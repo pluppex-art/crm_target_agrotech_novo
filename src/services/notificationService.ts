@@ -33,7 +33,7 @@ export const notificationService = {
         read: false,
       }]);
 
-    if (error) console.error('Notification error:', error);
+    if (error && (error as any).code !== '23505') console.error('Notification error:', error);
   },
 
   async sendSuccess(message: string, title = 'Sucesso', link?: string) {

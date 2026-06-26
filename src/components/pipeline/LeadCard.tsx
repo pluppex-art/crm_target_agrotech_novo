@@ -166,12 +166,19 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
       {/* Card Header */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2.5">
-          <img
-            src={lead.photo || 'https://via.placeholder.com/150'}
-            alt={lead.name}
-            className="w-10 h-10 rounded-full object-cover border-2 border-slate-50 dark:border-slate-700 shadow-sm"
-            referrerPolicy="no-referrer"
-          />
+          {lead.photo ? (
+            <img
+              src={lead.photo}
+              alt={lead.name}
+              className="w-10 h-10 rounded-full object-cover border-2 border-slate-50 dark:border-slate-700 shadow-sm"
+              referrerPolicy="no-referrer"
+              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-full border-2 border-slate-50 dark:border-slate-700 shadow-sm bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-sm font-bold text-slate-500 dark:text-slate-300 flex-shrink-0">
+              {(lead.name || '?').charAt(0).toUpperCase()}
+            </div>
+          )}
           <div className="space-y-0.5">
             <h4 className="font-bold text-slate-800 dark:text-slate-100 text-sm leading-tight">{lead.name}</h4>
             <div className="flex gap-0.5">

@@ -142,7 +142,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
           read: false
         }]);
 
-      if (error) throw error;
+      if (error && (error as any).code !== '23505') throw error;
     } catch (error) {
       console.error('Error adding notification:', error);
     }
