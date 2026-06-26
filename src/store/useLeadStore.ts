@@ -239,6 +239,32 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
         } else if (toIdentifier) {
           notifyLeadAssignment(updatedLead as Lead, toIdentifier, profiles);
         }
+
+        // Auto-move: SDR assigns a Closer → lead leaves SDR pipeline → main pipeline
+        if (newResponsibleId) {
+          const { profiles: allProfiles } = useProfileStore.getState();
+          const { pipelines } = usePipelineStore.getState();
+
+          const newResponsible = allProfiles.find(p => p.id === newResponsibleId);
+          const cargoName = (newResponsible?.cargos?.name || '').toLowerCase();
+          const isCloser = cargoName.includes('closer');
+
+          const leadPipelineId = prevLead?.pipeline_id;
+          const currentPipeline = pipelines.find(p => p.id === leadPipelineId);
+          const isInSdrPipeline = (currentPipeline?.name || '').toLowerCase().includes('sdr');
+
+          if (isCloser && isInSdrPipeline) {
+            const mainPipeline = pipelines.find(p => !(p.name || '').toLowerCase().includes('sdr'));
+            if (mainPipeline && mainPipeline.stages.length > 0) {
+              const normalize = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+              const qualifiedStage = mainPipeline.stages.find(s => normalize(s.name).includes('qualificado'))
+                ?? [...mainPipeline.stages].sort((a, b) => (a.position ?? 0) - (b.position ?? 0))[0];
+              if (qualifiedStage) {
+                await get().updateLeadStage(leadId, qualifiedStage.id);
+              }
+            }
+          }
+        }
       }
 
       // 2. Enrollment Email: Trigger if it's a course and we have turma info

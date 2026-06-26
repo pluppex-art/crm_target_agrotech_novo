@@ -554,7 +554,7 @@ export function Dashboard() {
               </div>
             ) : (
               <div className="space-y-5">
-                {salesMetrics.allSellersRanking.slice(0, 7).map((s, i) => (
+                {salesMetrics.allSellersRanking.slice(0, 10).map((s, i) => (
                   <HorizontalBar
                     key={s.label}
                     label={s.label}
