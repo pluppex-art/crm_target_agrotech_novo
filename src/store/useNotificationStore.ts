@@ -17,7 +17,7 @@ interface NotificationState {
   clearAll: () => Promise<void>;
 }
 
-export const useNotificationStore = create<NotificationState>((set, get) => ({
+export const useNotificationStore = create<NotificationState>((set) => ({
   notifications: [],
   unreadCount: 0,
   isLoading: false,
@@ -122,24 +122,14 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       const targetUserId = userId || user?.id;
       if (!targetUserId) return;
 
-      const row = { ...notif, user_id: targetUserId, read: false };
+      const { error } = await supabase
+        .from('notifications')
+        .insert([{ ...notif, user_id: targetUserId, read: false }]);
 
-      let error: any;
-      if (notif.type === 'urgent') {
-        // Urgent notifications have a unique partial index (user_id, title).
-        // Use upsert with ignoreDuplicates to avoid race-condition 409s.
-        const result = await supabase
-          .from('notifications')
-          .upsert([row], { onConflict: 'user_id,title', ignoreDuplicates: true });
-        error = result.error;
-      } else {
-        const result = await supabase.from('notifications').insert([row]);
-        error = result.error;
-      }
-
+      // 23505 = duplicate key (idx_notif_dedup) — notification already exists, silently ignore
       if (error && error.code !== '23505') throw error;
-    } catch (error) {
-      console.error('Error adding notification:', error);
+    } catch (err: any) {
+      if (err?.code !== '23505') console.error('Error adding notification:', err);
     }
   },
 
