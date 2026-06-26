@@ -37,11 +37,18 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100 dark:border-slate-800">
       <div className="flex items-center gap-4 flex-1 min-w-0 w-full">
-        <img
-          src={formData.profile_photo_url || formData.photo || '/placeholder-avatar.jpg'}
-          alt={formData.name}
-          className="w-14 h-14 rounded-full object-cover border-4 border-white shadow-sm shrink-0"
-        />
+        {(formData.profile_photo_url || formData.photo) ? (
+          <img
+            src={formData.profile_photo_url || formData.photo}
+            alt={formData.name}
+            className="w-14 h-14 rounded-full object-cover border-4 border-white shadow-sm shrink-0"
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+          />
+        ) : (
+          <div className="w-14 h-14 rounded-full border-4 border-white shadow-sm shrink-0 bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xl font-bold text-slate-500 dark:text-slate-300">
+            {(formData.name || '?').charAt(0).toUpperCase()}
+          </div>
+        )}
         <div className="flex-1 min-w-0 space-y-1">
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 truncate">{formData.name}</h3>

@@ -122,27 +122,22 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       const targetUserId = userId || user?.id;
       if (!targetUserId) return;
 
-      // Dedup: skip if same title already inserted for this user in the last hour
-      const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-      const { data: existing } = await supabase
-        .from('notifications')
-        .select('id')
-        .eq('user_id', targetUserId)
-        .eq('title', notif.title)
-        .gte('created_at', since)
-        .limit(1);
+      const row = { ...notif, user_id: targetUserId, read: false };
 
-      if (existing && existing.length > 0) return;
+      let error: any;
+      if (notif.type === 'urgent') {
+        // Urgent notifications have a unique partial index (user_id, title).
+        // Use upsert with ignoreDuplicates to avoid race-condition 409s.
+        const result = await supabase
+          .from('notifications')
+          .upsert([row], { onConflict: 'user_id,title', ignoreDuplicates: true });
+        error = result.error;
+      } else {
+        const result = await supabase.from('notifications').insert([row]);
+        error = result.error;
+      }
 
-      const { error } = await supabase
-        .from('notifications')
-        .insert([{
-          ...notif,
-          user_id: targetUserId,
-          read: false
-        }]);
-
-      if (error && (error as any).code !== '23505') throw error;
+      if (error && error.code !== '23505') throw error;
     } catch (error) {
       console.error('Error adding notification:', error);
     }
