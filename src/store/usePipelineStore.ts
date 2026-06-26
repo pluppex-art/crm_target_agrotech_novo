@@ -92,8 +92,11 @@ export const usePipelineStore = create<PipelineState>((set, get) => ({
     }
   },
 
-  createStage: async (pipelineId, name, color = '#3B82F6', position = 0) => {
+  createStage: async (pipelineId, name, color = '#3B82F6', _position = 0) => {
     try {
+      const pipeline = get().pipelines.find(p => p.id === pipelineId);
+      const maxPos = pipeline?.stages.reduce((m, s) => Math.max(m, s.position ?? 0), -1) ?? -1;
+      const position = maxPos + 1;
       const newStage = await pipelineService.createStage(pipelineId, name, color, position);
       if (newStage) {
         set((state) => ({
