@@ -48,6 +48,34 @@ const isBriefingNote = (content: string) => {
   return normalized.startsWith('briefing') || normalized.startsWith('brifing');
 };
 
+interface BriefingField { key: string; value: string; }
+interface ParsedBriefing { fields: BriefingField[]; score: string | null; freeText: string[] }
+
+const parseBriefingContent = (content: string): ParsedBriefing => {
+  const lines = content.split('\n').map(l => l.trim());
+  const fields: BriefingField[] = [];
+  const freeText: string[] = [];
+  let score: string | null = null;
+
+  for (const line of lines) {
+    if (!line) continue;
+    const normalized = line.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    // skip title line
+    if (normalized.startsWith('briefing') || normalized.startsWith('brifing')) continue;
+    if (normalized.startsWith('score:')) {
+      score = line.replace(/^score:\s*/i, '');
+      continue;
+    }
+    const colonIdx = line.indexOf(':');
+    if (colonIdx > 0 && colonIdx < line.length - 1) {
+      fields.push({ key: line.slice(0, colonIdx).trim(), value: line.slice(colonIdx + 1).trim() });
+    } else if (line) {
+      freeText.push(line);
+    }
+  }
+  return { fields, score, freeText };
+};
+
 export const LeadNotesTab: React.FC<LeadNotesTabProps> = ({
   notes,
   newNote,
@@ -321,31 +349,26 @@ export const LeadNotesTab: React.FC<LeadNotesTabProps> = ({
             }
 
             if (isBriefing) {
+              const parsed = parseBriefingContent(note.content);
               return (
                 <div
                   key={note.id}
                   className={cn(
-                    'border-2 rounded-2xl p-4 relative group transition-all shadow-sm',
+                    'border-2 rounded-2xl overflow-hidden relative group transition-all shadow-sm',
                     briefingStyle.border,
-                    briefingStyle.bg,
                   )}
                 >
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-2">
-                        <span className={cn('flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase', briefingStyle.badge)}>
-                          <Pin size={9} className="rotate-45" />
-                          Briefing
-                        </span>
-                        <span className={cn('text-[10px] font-semibold', briefingStyle.text, 'opacity-60')}>
-                          {dateStr} às {timeStr}
-                        </span>
-                      </div>
-                      {note.author_name && (
-                        <span className={cn('text-[10px] font-semibold px-1', briefingStyle.text, 'opacity-60')}>
-                          por {note.author_name}
-                        </span>
-                      )}
+                  {/* Header */}
+                  <div className={cn('flex items-center justify-between px-4 py-2.5', briefingStyle.bg)}>
+                    <div className="flex items-center gap-2">
+                      <span className={cn('flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase', briefingStyle.badge)}>
+                        <Pin size={9} className="rotate-45" />
+                        Briefing
+                      </span>
+                      <span className={cn('text-[10px] font-semibold opacity-60', briefingStyle.text)}>
+                        {dateStr} às {timeStr}
+                        {note.author_name && ` · ${note.author_name}`}
+                      </span>
                     </div>
                     <button
                       onClick={() => handleDeleteNote(note.id)}
@@ -354,9 +377,35 @@ export const LeadNotesTab: React.FC<LeadNotesTabProps> = ({
                       <Trash2 size={14} />
                     </button>
                   </div>
-                  <p className={cn('text-sm leading-relaxed font-medium', briefingStyle.text)}>
-                    {displayContent}
-                  </p>
+
+                  {/* Fields */}
+                  {(parsed.fields.length > 0 || parsed.freeText.length > 0) && (
+                    <div className="bg-white dark:bg-slate-900 px-4 py-3 divide-y divide-slate-100 dark:divide-slate-800">
+                      {parsed.fields.map((f, i) => (
+                        <div key={i} className="flex items-start gap-3 py-2 first:pt-0 last:pb-0">
+                          <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide min-w-[110px] flex-shrink-0 pt-0.5">
+                            {f.key}
+                          </span>
+                          <span className="text-sm font-medium text-slate-700 dark:text-slate-200 flex-1">
+                            {f.value}
+                          </span>
+                        </div>
+                      ))}
+                      {parsed.freeText.map((t, i) => (
+                        <p key={i} className="py-2 text-sm text-slate-600 dark:text-slate-300 first:pt-0 last:pb-0">
+                          {t}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Score footer */}
+                  {parsed.score && (
+                    <div className={cn('px-4 py-2 flex items-center gap-2 border-t', briefingStyle.border, briefingStyle.bg)}>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Score</span>
+                      <span className={cn('text-xs font-bold', briefingStyle.text)}>{parsed.score}</span>
+                    </div>
+                  )}
                 </div>
               );
             }
