@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Plus, Trash2, Loader2, MessageSquare, Mic, MicOff, CalendarPlus, X, Clock, Phone } from 'lucide-react';
+import { Plus, Trash2, Loader2, MessageSquare, Mic, MicOff, CalendarPlus, X, Clock, Phone, Pin } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { voiceTranscriptionService, DetectedTask } from '../../../services/voiceTranscriptionService';
 import { LiveCallTranscriber } from '../LiveCallTranscriber';
@@ -9,6 +9,7 @@ interface LeadNotesTabProps {
   newNote: string;
   loadingNotes: boolean;
   leadName?: string;
+  leadStars?: number | null;
   setNewNote: (note: string) => void;
   handleAddNote: () => Promise<void>;
   handleDeleteNote: (noteId: string) => Promise<void>;
@@ -17,11 +18,42 @@ interface LeadNotesTabProps {
 
 type RecordingState = 'idle' | 'recording' | 'correcting';
 
+const getBriefingStyle = (stars: number | null | undefined) => {
+  const s = stars || 0;
+  if (s >= 4) return {
+    border: 'border-red-300 dark:border-red-700',
+    bg: 'bg-red-50 dark:bg-red-950/30',
+    badge: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+    text: 'text-red-800 dark:text-red-200',
+    pin: 'text-red-400',
+  };
+  if (s === 3) return {
+    border: 'border-amber-300 dark:border-amber-700',
+    bg: 'bg-amber-50 dark:bg-amber-950/30',
+    badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+    text: 'text-amber-800 dark:text-amber-200',
+    pin: 'text-amber-400',
+  };
+  return {
+    border: 'border-blue-300 dark:border-blue-700',
+    bg: 'bg-blue-50 dark:bg-blue-950/30',
+    badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+    text: 'text-blue-800 dark:text-blue-200',
+    pin: 'text-blue-400',
+  };
+};
+
+const isBriefingNote = (content: string) => {
+  const normalized = content.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  return normalized.startsWith('briefing') || normalized.startsWith('brifing');
+};
+
 export const LeadNotesTab: React.FC<LeadNotesTabProps> = ({
   notes,
   newNote,
   loadingNotes,
   leadName,
+  leadStars,
   setNewNote,
   handleAddNote,
   handleDeleteNote,
@@ -118,7 +150,6 @@ export const LeadNotesTab: React.FC<LeadNotesTabProps> = ({
     const noteContent = newNote.trim();
     if (!noteContent) return;
     await handleAddNote();
-    // Detect scheduling triggers in manually typed notes (voice notes handle this in rec.onend)
     if (recordingState === 'idle') {
       voiceTranscriptionService.detectTaskIntent(noteContent, leadName).then((task) => {
         if (task) setDetectedTask(task);
@@ -128,6 +159,17 @@ export const LeadNotesTab: React.FC<LeadNotesTabProps> = ({
 
   const formatTime = (s: number) =>
     `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+
+  const briefingStyle = getBriefingStyle(leadStars);
+
+  // Pin briefing notes to top, keep insertion order for the rest
+  const sortedNotes = [...notes].sort((a, b) => {
+    const aIsBriefing = isBriefingNote(a.content);
+    const bIsBriefing = isBriefingNote(b.content);
+    if (aIsBriefing && !bIsBriefing) return -1;
+    if (!aIsBriefing && bIsBriefing) return 1;
+    return 0;
+  });
 
   return (
     <div className="p-8 space-y-6">
@@ -257,11 +299,13 @@ export const LeadNotesTab: React.FC<LeadNotesTabProps> = ({
           <div className="flex justify-center p-8">
             <Loader2 className="animate-spin text-emerald-600 w-6 h-6" />
           </div>
-        ) : notes.length > 0 ? (
-          notes.map((note: any) => {
+        ) : sortedNotes.length > 0 ? (
+          sortedNotes.map((note: any) => {
             const noteDate = new Date(note.created_at);
             const dateStr = noteDate.toLocaleDateString('pt-BR');
             const timeStr = noteDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+            const isBriefing = isBriefingNote(note.content);
 
             const isVendaFechadaOriginal =
               note.content.includes('🎉 Lead') && note.content.includes('entrou em Ganho na data de');
@@ -273,6 +317,47 @@ export const LeadNotesTab: React.FC<LeadNotesTabProps> = ({
               displayContent = note.content.replace(
                 /🎉 Lead (.*?) entrou em Ganho na data de (.*)/,
                 '🏆 Venda Fechada! O lead $1 foi movido para Ganho com sucesso no dia $2.'
+              );
+            }
+
+            if (isBriefing) {
+              return (
+                <div
+                  key={note.id}
+                  className={cn(
+                    'border-2 rounded-2xl p-4 relative group transition-all shadow-sm',
+                    briefingStyle.border,
+                    briefingStyle.bg,
+                  )}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <span className={cn('flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase', briefingStyle.badge)}>
+                          <Pin size={9} className="rotate-45" />
+                          Briefing
+                        </span>
+                        <span className={cn('text-[10px] font-semibold', briefingStyle.text, 'opacity-60')}>
+                          {dateStr} às {timeStr}
+                        </span>
+                      </div>
+                      {note.author_name && (
+                        <span className={cn('text-[10px] font-semibold px-1', briefingStyle.text, 'opacity-60')}>
+                          por {note.author_name}
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleDeleteNote(note.id)}
+                      className="text-slate-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all p-1"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                  <p className={cn('text-sm leading-relaxed font-medium', briefingStyle.text)}>
+                    {displayContent}
+                  </p>
+                </div>
               );
             }
 

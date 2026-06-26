@@ -499,6 +499,7 @@ const LeadDetailsModal: React.FC<LeadDetailsModalProps & { initialTab?: TabType 
             <LeadNotesTab
               {...leadNotes}
               leadName={lead.name}
+              leadStars={lead.stars}
               onVoiceTaskDetected={handleVoiceTaskDetected}
             />
           )}
