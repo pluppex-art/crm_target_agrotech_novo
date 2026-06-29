@@ -15,7 +15,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { useNotificationStore } from '../store/useNotificationStore';
 import { cn, formatRelativeTime } from '../lib/utils';
-import { openWhatsApp } from '../services/alertService';
+import { openWhatsApp, dismissLeadAlerts } from '../services/alertService';
 import { useNavigate } from 'react-router-dom';
 
 export function NotificationsPage() {
@@ -30,7 +30,7 @@ export function NotificationsPage() {
     subscribe: subscribeNotifs
   } = useNotificationStore();
 
-  const [filter, setFilter] = useState<'all' | 'unread' | 'system' | 'user'>('all');
+  const [filter, setFilter] = useState<'all' | 'unread' | 'system' | 'user'>('unread');
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
@@ -60,7 +60,7 @@ export function NotificationsPage() {
     return <User className="w-5 h-5" />;
   };
 
-  const getColors = (type: string, category: string, read: boolean) => {
+  const getColors = (type: string, category: string) => {
     if (category === 'system') return 'bg-blue-50 text-blue-600 border-blue-100';
     if (type === 'urgent') return 'bg-red-50 text-red-600 border-red-100';
     if (type === 'pending') return 'bg-amber-50 text-amber-600 border-amber-100';
@@ -165,7 +165,7 @@ export function NotificationsPage() {
 
                       <div className={cn(
                         "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border",
-                        getColors(notification.type, notification.category, notification.read)
+                        getColors(notification.type, notification.category)
                       )}>
                         {getIcon(notification.type, notification.category)}
                       </div>
@@ -205,8 +205,12 @@ export function NotificationsPage() {
                               Marcar como lida
                             </button>
                           )}
-                          <button 
-                            onClick={() => removeNotification(notification.id)}
+                          <button
+                            onClick={() => {
+                              const leadId = notification.link?.match(/lead=([^&]+)/)?.[1];
+                              if (leadId) dismissLeadAlerts(leadId);
+                              removeNotification(notification.id);
+                            }}
                             className="text-xs font-bold text-slate-400 hover:text-red-600 transition-colors"
                           >
                             Remover

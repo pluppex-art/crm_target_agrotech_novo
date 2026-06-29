@@ -255,9 +255,10 @@ export function useSalesMetrics({
     };
   }, [filteredLeads, stageMap, startDate, endDate, products, leadToTurma]);
 
-  // KPI "Total de Leads" — exclui Perdido, Desqualificado, Aquecimento e Não Compareceu na Turma
+  // KPI "Total de Leads" — apenas leads com pipeline, excluindo etapas descartadas
   const leadsCount = useMemo(() => {
     return filteredLeads.filter(l => {
+      if (!l.pipeline_id) return false;
       const stageName = l.stage_id ? stageMap.get(l.stage_id) : l.status;
       if (!stageName) return true;
       const n = stageName.toLowerCase();

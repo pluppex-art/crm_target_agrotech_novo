@@ -48,6 +48,12 @@ export function resetLeadAlerts(leadId: string) {
   clearAlertRecord(leadId);
 }
 
+export function dismissLeadAlerts(leadId: string) {
+  const sent = getSentAlerts();
+  sent[leadId] = { m3: true, m15: true, m30: true, h1: true, h6: true, h12: true, h24: true, h36: true, h48: true };
+  localStorage.setItem(SENT_ALERTS_KEY, JSON.stringify(sent));
+}
+
 function getMsWithoutContact(lead: Lead): number {
   const referenceTime = lead.last_contact_at ?? lead.created_at;
   return Date.now() - new Date(referenceTime).getTime();
