@@ -2117,6 +2117,51 @@ export type Database = {
           },
         ]
       }
+      media_library: {
+        Row: {
+          id: string
+          titulo: string
+          descricao: string | null
+          url: string
+          thumbnail_url: string | null
+          tipo_curso: string
+          finalidade: string
+          duracao_seg: number | null
+          ativo: boolean
+          ordem: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          titulo: string
+          descricao?: string | null
+          url: string
+          thumbnail_url?: string | null
+          tipo_curso?: string
+          finalidade?: string
+          duracao_seg?: number | null
+          ativo?: boolean
+          ordem?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          titulo?: string
+          descricao?: string | null
+          url?: string
+          thumbnail_url?: string | null
+          tipo_curso?: string
+          finalidade?: string
+          duracao_seg?: number | null
+          ativo?: boolean
+          ordem?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_compensation_profiles: {
         Row: {
           active: boolean | null
