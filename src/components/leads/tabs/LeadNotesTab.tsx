@@ -54,7 +54,11 @@ interface ParsedBriefing { fields: BriefingField[]; score: string | null; freeTe
 
 const parseBriefingContent = (content: string | null | undefined): ParsedBriefing => {
   if (!content) return { fields: [], score: null, freeText: [] };
-  const lines = content.split('\n').map(l => l.trim());
+  let lines = content.split('\n').map(l => l.trim()).filter(Boolean);
+  // Automação envia o briefing como uma única linha separada por " | " ao invés de quebras de linha
+  if (lines.length <= 1 && content.includes('|')) {
+    lines = content.split('|').map(l => l.trim()).filter(Boolean);
+  }
   const fields: BriefingField[] = [];
   const freeText: string[] = [];
   let score: string | null = null;
