@@ -1,7 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import {
   User, Bell, Lock, Globe, Shield, UserPlus, Tag, Activity,
-  ClipboardList, Settings as SettingsIcon, RefreshCcw, Users2, History, Loader2, FileText, ArrowLeftRight, Clock
+  ClipboardList, Settings as SettingsIcon, RefreshCcw, Users2, History, Loader2, FileText, ArrowLeftRight, Clock, Video
 } from 'lucide-react';
 import { cn, isVendedor } from '../../lib/utils';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -28,6 +28,7 @@ const settingsNav = [
   { icon: FileText,        label: 'Formulários Públicos', path: '/settings/public-forms' },
   { icon: ArrowLeftRight,  label: 'Transferir Leads',     path: '/settings/transfer-leads' },
   { icon: Clock,           label: 'SLA & Alertas',        path: '/settings/sla' },
+  { icon: Video,           label: 'Biblioteca de Vídeos', path: '/settings/media-library' },
 ];
 
 export function SettingsLayout() {
