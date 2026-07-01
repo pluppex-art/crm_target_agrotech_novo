@@ -140,38 +140,75 @@ export function AIChat() {
   const { user } = useAuthStore();
 
   // ── WAHA helpers ─────────────────────────────────────────────────────────
+  const resolveSession = async (): Promise<string> => {
+    try {
+      const sessions: any[] = await wahaFetch('/api/sessions');
+      if (Array.isArray(sessions)) {
+        const working = sessions.find(s => s.status === 'WORKING');
+        if (working?.name) {
+          console.log('[WAHA] session resolved:', working.name, '| status:', working.status);
+          return working.name;
+        }
+        // session exists but not WORKING yet — log its status
+        if (sessions[0]) console.warn('[WAHA] session status:', sessions[0].name, sessions[0].status);
+      }
+    } catch (e) {
+      console.warn('[WAHA] /api/sessions failed:', e);
+    }
+    return WAHA_SESSION;
+  };
+
+  const mapChatsFromContacts = (contacts: any[]): Chat[] =>
+    contacts
+      .filter(c => c.id?.endsWith('@c.us') || c.id?.endsWith('@g.us'))
+      .map(c => ({
+        id:          c.id as string,
+        initials:    getInitials(c.name || c.pushname || formatPhone(c.id as string)),
+        name:        c.name || c.pushname || formatPhone(c.id as string),
+        lastMessage: '',
+        time:        '',
+        unread:      0,
+        platform:    'whatsapp' as Platform,
+        color:       colorForId(c.id as string),
+        phone:       formatPhone(c.id as string),
+      }));
+
   const loadChats = async () => {
     setLoadingChats(true);
     try {
-      // Auto-detect the active session name
-      let sessionName = WAHA_SESSION;
+      const sessionName = await resolveSession();
+
+      // Try chats endpoint first
       try {
-        const sessions: any[] = await wahaFetch('/api/sessions');
-        const working = Array.isArray(sessions) && sessions.find(s => s.status === 'WORKING');
-        if (working?.name) {
-          sessionName = working.name;
-          console.log('[WAHA] session detected:', sessionName);
-        }
+        const data: any[] = await wahaFetch(`/api/${sessionName}/chats`);
+        setChats(
+          data.map(c => ({
+            id:          c.id as string,
+            initials:    getInitials(c.name || formatPhone(c.id as string)),
+            name:        c.name || formatPhone(c.id as string),
+            lastMessage: c.lastMessage?.body ?? c.lastMessage?.text ?? '',
+            time:        c.timestamp ? fmtTime(c.timestamp as number) : '',
+            unread:      (c.unreadCount as number) ?? 0,
+            platform:    'whatsapp' as Platform,
+            color:       colorForId(c.id as string),
+            phone:       formatPhone(c.id as string),
+          }))
+        );
+        return;
       } catch (e) {
-        console.warn('[WAHA] could not list sessions, using env value:', sessionName, e);
+        console.warn('[WAHA] /chats not available, trying /contacts:', e);
       }
 
-      const data: any[] = await wahaFetch(`/api/${sessionName}/chats`);
-      setChats(
-        data.map(c => ({
-          id:          c.id as string,
-          initials:    getInitials(c.name || formatPhone(c.id as string)),
-          name:        c.name || formatPhone(c.id as string),
-          lastMessage: c.lastMessage?.body ?? c.lastMessage?.text ?? '',
-          time:        c.timestamp ? fmtTime(c.timestamp as number) : '',
-          unread:      (c.unreadCount as number) ?? 0,
-          platform:    'whatsapp' as Platform,
-          color:       colorForId(c.id as string),
-          phone:       formatPhone(c.id as string),
-        }))
-      );
+      // Fallback: use contacts endpoint (GOWS sometimes lacks /chats)
+      const contacts: any[] = await wahaFetch(`/api/${sessionName}/contacts`);
+      if (Array.isArray(contacts) && contacts.length > 0) {
+        setChats(mapChatsFromContacts(contacts));
+        return;
+      }
+
+      console.warn('[WAHA] no chats/contacts — list will populate via WebSocket');
     } catch (err) {
-      console.error('[WAHA] chats fetch failed:', err);
+      console.error('[WAHA] loadChats failed:', err);
     } finally {
       setLoadingChats(false);
     }
