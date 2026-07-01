@@ -41,10 +41,11 @@ interface Chat {
 }
 
 // ── WAHA ─────────────────────────────────────────────────────────────────────
-const WAHA_WS  = 'wss://automacao-target-waha.vr4mar.easypanel.host/sx5zl6hg3s6q5ikcofao8nflyhc9q5fw';
 const WAHA_API = 'https://automacao-target-waha.vr4mar.easypanel.host';
 const WAHA_API_KEY = (import.meta.env.VITE_WAHA_API_KEY as string) ?? '';
 const WAHA_SESSION  = (import.meta.env.VITE_WAHA_SESSION  as string) ?? 'default';
+// Browser WebSocket cannot send custom headers — pass key as query param
+const WAHA_WS = `wss://automacao-target-waha.vr4mar.easypanel.host/ws?x-api-key=${WAHA_API_KEY}`;
 
 const CHAT_COLORS = [
   'from-emerald-500 to-teal-600', 'from-violet-500 to-purple-600',
@@ -130,6 +131,7 @@ export function AIChat() {
   const chatMessagesRef = useRef<HTMLDivElement>(null);
   const wsRef           = useRef<WebSocket | null>(null);
   const reconnectRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activeSessionRef = useRef<string>(WAHA_SESSION);
 
   const activeChat     = chats.find(c => c.id === activeChatId) ?? null;
   const activeMessages = activeChatId ? (messages[activeChatId] ?? []) : [];
@@ -147,15 +149,15 @@ export function AIChat() {
         const working = sessions.find(s => s.status === 'WORKING');
         if (working?.name) {
           console.log('[WAHA] session resolved:', working.name, '| status:', working.status);
+          activeSessionRef.current = working.name;
           return working.name;
         }
-        // session exists but not WORKING yet — log its status
         if (sessions[0]) console.warn('[WAHA] session status:', sessions[0].name, sessions[0].status);
       }
     } catch (e) {
       console.warn('[WAHA] /api/sessions failed:', e);
     }
-    return WAHA_SESSION;
+    return activeSessionRef.current;
   };
 
   const mapChatsFromContacts = (contacts: any[]): Chat[] =>
@@ -346,7 +348,7 @@ export function AIChat() {
     setLoadingMessages(true);
     try {
       const data: any = await wahaFetch(
-        `/api/${WAHA_SESSION}/chats/${encodeURIComponent(chatId)}/messages?limit=50&downloadMedia=false`
+        `/api/${activeSessionRef.current}/chats/${encodeURIComponent(chatId)}/messages?limit=50&downloadMedia=false`
       );
       const list: any[] = Array.isArray(data) ? data : (data.messages ?? []);
       setMessages(prev => ({ ...prev, [chatId]: list.reverse().map(mapMessage) }));
@@ -370,7 +372,7 @@ export function AIChat() {
       window.dispatchEvent(new CustomEvent('refresh-lead-notes', { detail: { leadId: matchedRealLead.id } }));
     } else if (!isNotesMode) {
       try {
-        await wahaFetch(`/api/${WAHA_SESSION}/sendText`, {
+        await wahaFetch(`/api/${activeSessionRef.current}/sendText`, {
           method: 'POST',
           body: JSON.stringify({ chatId: activeChatId, text: finalContent }),
         });
