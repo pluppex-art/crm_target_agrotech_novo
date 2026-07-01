@@ -59,6 +59,8 @@ export function AIChat() {
   const activeChatIdRef = useRef<string | null>(null);
   // Supabase Realtime channel handle (for cleanup)
   const realtimeRef = useRef<RealtimeChannel | null>(null);
+  // @lid-derived chatId → canonical chatId (e.g. "17042532587583@c.us" → "556381123932@c.us")
+  const lidToCanonical = useRef<Map<string, string>>(new Map());
 
   const activeChat     = chats.find(c => c.id === activeChatId) ?? null;
   const activeMessages = activeChatId ? (messages[activeChatId] ?? []) : [];
@@ -90,7 +92,8 @@ export function AIChat() {
       .filter(c => {
         const id: string = c.id ?? '';
         if (!id || id === '0@c.us' || id.startsWith('status@') || id.startsWith('0@')) return false;
-        return id.endsWith('@c.us') || id.endsWith('@g.us') || id.endsWith('@s.whatsapp.net') || id.endsWith('@lid');
+        if (id.endsWith('@lid')) return false; // @lid = ID interno multi-device, não é número de telefone real
+        return id.endsWith('@c.us') || id.endsWith('@g.us') || id.endsWith('@s.whatsapp.net');
       })
       .map(c => ({
         id:          normalizeChatId(c.id as string),
@@ -172,6 +175,7 @@ export function AIChat() {
 
   // Apply chats to state and build phone→name lookup for WS name resolution
   const applyChats = (list: Chat[]) => {
+    chatsRef.current = list; // sync update — disponível imediatamente para o WS handler
     setChats(list);
     const map = new Map<string, string>();
     list.forEach(c => {
@@ -181,17 +185,44 @@ export function AIChat() {
     contactNamesRef.current = map;
   };
 
+  /**
+   * Pré-carrega o mapeamento @lid → canonical a partir de um array bruto da API.
+   * O WAHA retorna ambos os entries para o mesmo contato:
+   *   "17042532587583@lid"   → ID interno multi-device (não é telefone)
+   *   "556381123932@s.whatsapp.net" → JID real do telefone
+   * Cruzamos pelo nome para montar o cache ANTES de qualquer evento WS.
+   */
+  const buildLidMapping = (rawList: any[]) => {
+    const lidEntries  = rawList.filter(c => (c.id ?? '').endsWith('@lid') && c.name);
+    const realEntries = rawList.filter(c => !(c.id ?? '').endsWith('@lid'));
+    lidEntries.forEach(lid => {
+      const match = realEntries.find(r =>
+        r.name && (r.name as string).toLowerCase() === (lid.name as string).toLowerCase()
+      );
+      if (match) {
+        lidToCanonical.current.set(
+          normalizeChatId(lid.id as string),
+          normalizeChatId(match.id as string),
+        );
+      }
+    });
+  };
+
   const loadChats = async () => {
     setLoadingChats(true);
     try {
       const sessionName = await resolveSession();
       try {
-        const data: any[] = await wahaFetch(`/api/${sessionName}/chats`);
+        const rawData: any[] = await wahaFetch(`/api/${sessionName}/chats`);
+        // Build @lid→canonical cache before filtering so outgoing AI messages are routed correctly
+        buildLidMapping(rawData);
         applyChats(
-          data
+          rawData
             .filter(c => {
               const id: string = c.id ?? '';
-              return id && id !== '0@c.us' && !id.startsWith('status@') && !id.startsWith('0@');
+              if (!id || id === '0@c.us' || id.startsWith('status@') || id.startsWith('0@')) return false;
+              if (id.endsWith('@lid')) return false; // fantasma multi-device — contato real já vem com JID de telefone
+              return true;
             })
             .map(c => ({
               id:          normalizeChatId(c.id as string),
@@ -209,9 +240,10 @@ export function AIChat() {
       } catch {
         // fallback to contacts
       }
-      const contacts: any[] = await wahaFetch(`/api/${sessionName}/contacts`);
-      if (Array.isArray(contacts) && contacts.length > 0) {
-        applyChats(mapChatsFromContacts(contacts));
+      const rawContacts: any[] = await wahaFetch(`/api/${sessionName}/contacts`);
+      if (Array.isArray(rawContacts) && rawContacts.length > 0) {
+        buildLidMapping(rawContacts);
+        applyChats(mapChatsFromContacts(rawContacts));
       }
     } catch (err) {
       console.error('[WAHA] loadChats failed:', err);
@@ -279,26 +311,45 @@ export function AIChat() {
         if (!chatId) return;
 
         // Resolve canonical ID: match by ID, phone digits, or sender name (handles @lid JID mismatches)
-        const digitsOnly     = (s: string) => s.replace(/\D/g, '');
-        const chatPhone      = formatPhone(chatId);
+        const digitsOnly      = (s: string) => s.replace(/\D/g, '');
+        const chatPhone       = formatPhone(chatId);
         const chatPhoneDigits = chatPhone.replace(/\D/g, '');
-        const senderName     = (msg.notifyName || msg.pushName || '').trim();
+        const senderName      = (msg.notifyName || msg.pushName || msg.pushname || '').trim();
 
-        let knownChat = chatsRef.current.find(c =>
-          c.id === chatId ||
-          (chatPhoneDigits && digitsOnly(c.phone) === chatPhoneDigits) ||
-          (senderName && c.name && !/^\+[\d\s\-()+]+$/.test(c.name) &&
-            c.name.toLowerCase() === senderName.toLowerCase())
-        );
-        // Last resort: if the message belongs to the currently open chat (handles @lid ↔ @c.us mismatch)
+        // Detect @lid — digits do NOT correspond to a phone number
+        const rawJid  = (msg.key?.remoteJid ?? msg.from ?? '') as string;
+        const isLidJid = rawJid.endsWith('@lid');
+
+        // Check @lid→canonical cache first (populated after first successful match)
+        const cachedCanonical = isLidJid ? lidToCanonical.current.get(chatId) : undefined;
+
+        let knownChat = cachedCanonical
+          ? chatsRef.current.find(c => c.id === cachedCanonical)
+          : chatsRef.current.find(c => {
+              if (c.id === chatId) return true;
+              // For @lid JIDs, skip phone comparison — LID digits ≠ real phone
+              if (!isLidJid && chatPhoneDigits && digitsOnly(c.phone) === chatPhoneDigits) return true;
+              // Name match (works for non-phone-only names)
+              if (senderName && c.name && !/^\+[\d\s\-()+]+$/.test(c.name) &&
+                  c.name.toLowerCase() === senderName.toLowerCase()) return true;
+              return false;
+            });
+
+        // Last resort: currently active chat — covers @lid with empty notifyName
         if (!knownChat && activeChatIdRef.current) {
           const ac = chatsRef.current.find(c => c.id === activeChatIdRef.current);
           if (ac && (
             (senderName && ac.name && ac.name.toLowerCase() === senderName.toLowerCase()) ||
-            (chatPhoneDigits && digitsOnly(ac.phone) === chatPhoneDigits)
+            (!isLidJid && chatPhoneDigits && digitsOnly(ac.phone) === chatPhoneDigits)
           )) knownChat = ac;
         }
+
         const canonicalId = knownChat?.id ?? chatId;
+
+        // Cache @lid → canonical so subsequent messages skip the lookup
+        if (isLidJid && knownChat && !cachedCanonical) {
+          lidToCanonical.current.set(chatId, knownChat.id);
+        }
 
         // Persist best known name for future incoming messages from same contact
         if (senderName && chatPhoneDigits) contactNamesRef.current.set(chatPhoneDigits, senderName);
