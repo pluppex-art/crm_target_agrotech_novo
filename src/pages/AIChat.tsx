@@ -47,6 +47,8 @@ export function AIChat() {
   const typingTimers    = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   // Maps message content → tempId so we can replace temp with real echo from WAHA
   const pendingEchos = useRef<Map<string, string>>(new Map());
+  // Mirror of chats state for synchronous lookup inside WS handler closures
+  const chatsRef = useRef<Chat[]>([]);
 
   const activeChat     = chats.find(c => c.id === activeChatId) ?? null;
   const activeMessages = activeChatId ? (messages[activeChatId] ?? []) : [];
@@ -189,7 +191,16 @@ export function AIChat() {
         const chatId   = extractChatId(msg);
         if (!chatId) return;
 
-        setTypingChats(prev => ({ ...prev, [chatId]: false }));
+        // Resolve canonical ID: prefer existing chat matched by ID or by digits-only phone
+        const digitsOnly = (s: string) => s.replace(/\D/g, '');
+        const chatPhone  = formatPhone(chatId);
+        const knownChat  = chatsRef.current.find(
+          c => c.id === chatId || digitsOnly(c.phone) === digitsOnly(chatPhone)
+        );
+        // Use the already-established ID so messages land under the correct key
+        const canonicalId = knownChat?.id ?? chatId;
+
+        setTypingChats(prev => ({ ...prev, [canonicalId]: false }));
         const newMsg = mapMessage(msg);
 
         if (msg.fromMe) {
@@ -203,47 +214,43 @@ export function AIChat() {
                   return { ...prev, [key]: msgs.map(m => m.id === tempId ? { ...newMsg } : m) };
                 }
               }
-              // Temp not found — add only if ID not already present
-              const existing = prev[chatId] ?? [];
-              if (existing.some(m => m.id === newMsg.id)) return prev;
-              return { ...prev, [chatId]: [...existing, newMsg] };
+              const cur = prev[canonicalId] ?? [];
+              if (cur.some(m => m.id === newMsg.id)) return prev;
+              return { ...prev, [canonicalId]: [...cur, newMsg] };
             });
           } else {
-            // Sent from another device — deduplicate by ID
             setMessages(prev => {
-              const existing = prev[chatId] ?? [];
-              if (existing.some(m => m.id === newMsg.id)) return prev;
-              return { ...prev, [chatId]: [...existing, newMsg] };
+              const cur = prev[canonicalId] ?? [];
+              if (cur.some(m => m.id === newMsg.id)) return prev;
+              return { ...prev, [canonicalId]: [...cur, newMsg] };
             });
           }
         } else {
-          // Incoming from contact — WAHA may fire both "message" and "message.received",
-          // so always deduplicate by message ID before appending
+          // WAHA fires both "message" and "message.received" for the same event — deduplicate by ID
           setMessages(prev => {
-            const existing = prev[chatId] ?? [];
-            if (existing.some(m => m.id === newMsg.id)) return prev;
-            return { ...prev, [chatId]: [...existing, newMsg] };
+            const cur = prev[canonicalId] ?? [];
+            if (cur.some(m => m.id === newMsg.id)) return prev;
+            return { ...prev, [canonicalId]: [...cur, newMsg] };
           });
         }
 
-        // Match by ID first, fall back to phone number to avoid creating duplicate chat entries
+        // Update sidebar — never create a new entry if an existing chat already represents this contact
         setChats(prev => {
-          const chatPhone = formatPhone(chatId);
-          const existing  = prev.find(c => c.id === chatId || c.phone === chatPhone);
+          const existing = prev.find(c => c.id === canonicalId);
           const updated: Chat = existing
             ? { ...existing, lastMessage: newMsg.content, time: newMsg.timestamp, unread: msg.fromMe ? existing.unread : existing.unread + 1 }
             : {
-                id:          chatId,
-                initials:    getInitials(msg.notifyName || formatPhone(chatId)),
-                name:        msg.notifyName || formatPhone(chatId),
+                id:          canonicalId,
+                initials:    getInitials(msg.notifyName || chatPhone),
+                name:        msg.notifyName || chatPhone,
                 lastMessage: newMsg.content,
                 time:        newMsg.timestamp,
                 unread:      msg.fromMe ? 0 : 1,
                 platform:    'whatsapp' as const,
-                color:       colorForId(chatId),
+                color:       colorForId(canonicalId),
                 phone:       chatPhone,
               };
-          return [updated, ...prev.filter(c => c.id !== (existing?.id ?? chatId))];
+          return [updated, ...prev.filter(c => c.id !== canonicalId)];
         });
       } catch {}
     };
@@ -269,6 +276,9 @@ export function AIChat() {
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Keep chatsRef in sync so WS handler can do synchronous ID lookups
+  useEffect(() => { chatsRef.current = chats; }, [chats]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
