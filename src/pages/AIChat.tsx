@@ -198,22 +198,32 @@ export function AIChat() {
           if (tempId) {
             pendingEchos.current.delete(newMsg.content);
             setMessages(prev => {
-              // Search all keys in case of ID mismatch (find where the temp is stored)
               for (const [key, msgs] of Object.entries(prev)) {
                 if (msgs.some(m => m.id === tempId)) {
                   return { ...prev, [key]: msgs.map(m => m.id === tempId ? { ...newMsg } : m) };
                 }
               }
-              // Temp not found (e.g. sent from another device) — add normally
-              return { ...prev, [chatId]: [...(prev[chatId] ?? []), newMsg] };
+              // Temp not found — add only if ID not already present
+              const existing = prev[chatId] ?? [];
+              if (existing.some(m => m.id === newMsg.id)) return prev;
+              return { ...prev, [chatId]: [...existing, newMsg] };
+            });
+          } else {
+            // Sent from another device — deduplicate by ID
+            setMessages(prev => {
+              const existing = prev[chatId] ?? [];
+              if (existing.some(m => m.id === newMsg.id)) return prev;
+              return { ...prev, [chatId]: [...existing, newMsg] };
             });
           }
-          // Echo with no pending temp = sent from another device, add it
-          else {
-            setMessages(prev => ({ ...prev, [chatId]: [...(prev[chatId] ?? []), newMsg] }));
-          }
         } else {
-          setMessages(prev => ({ ...prev, [chatId]: [...(prev[chatId] ?? []), newMsg] }));
+          // Incoming from contact — WAHA may fire both "message" and "message.received",
+          // so always deduplicate by message ID before appending
+          setMessages(prev => {
+            const existing = prev[chatId] ?? [];
+            if (existing.some(m => m.id === newMsg.id)) return prev;
+            return { ...prev, [chatId]: [...existing, newMsg] };
+          });
         }
 
         // Match by ID first, fall back to phone number to avoid creating duplicate chat entries
