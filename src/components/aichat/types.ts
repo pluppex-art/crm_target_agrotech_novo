@@ -9,13 +9,16 @@ export interface AttachedFile {
 }
 
 export interface Message {
-  id: string;
+  id: string;              // waha_msg_id — chave de dedup entre WS e Realtime
   sender: 'me' | 'contact';
+  senderType?: 'human' | 'ai' | 'client'; // quem realmente enviou no backend
   content: string;
   timestamp: string;
-  ack?: number;
+  ack?: number;            // 0=sending 1=sent 2=delivered 3=read -1=failed
   isNote?: boolean;
   file?: AttachedFile;
+  msgType?: string;
+  mediaUrl?: string;
 }
 
 export interface Chat {

@@ -18,6 +18,10 @@ import {
   normalizeChatId, extractChatId, wahaFetch,
   mapMessage, colorForId, getInitials, formatPhone, fmtTime,
 } from '../components/aichat/utils';
+import { supabase } from '../lib/supabase';
+import { whatsappMessageService } from '../services/whatsappMessageService';
+import type { WaMessage, WaMsgSender } from '../services/whatsappMessageService';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export function AIChat() {
   const [activeFilter, setActiveFilter] = useState('Todas');
@@ -51,6 +55,10 @@ export function AIChat() {
   const chatsRef = useRef<Chat[]>([]);
   // phone digits → saved contact name, built when chats load from API
   const contactNamesRef = useRef<Map<string, string>>(new Map());
+  // tracks active chat ID synchronously inside WS handler closures
+  const activeChatIdRef = useRef<string | null>(null);
+  // Supabase Realtime channel handle (for cleanup)
+  const realtimeRef = useRef<RealtimeChannel | null>(null);
 
   const activeChat     = chats.find(c => c.id === activeChatId) ?? null;
   const activeMessages = activeChatId ? (messages[activeChatId] ?? []) : [];
@@ -95,6 +103,72 @@ export function AIChat() {
         color:       colorForId(c.id as string),
         phone:       formatPhone(c.id as string),
       }));
+
+  // Map Supabase row → UI Message (usa waha_msg_id como chave de dedup com o WS)
+  const mapDbMessage = (row: WaMessage): Message => ({
+    id:         row.waha_msg_id,
+    sender:     row.sender === 'client' ? 'contact' : 'me',
+    senderType: row.sender,
+    content:    row.content ?? '(sem conteúdo)',
+    timestamp:  fmtTime(Math.floor(new Date(row.created_at).getTime() / 1000)),
+    ack:        row.status === 'read' ? 3 : row.status === 'delivered' ? 2 : row.status === 'sent' ? 1 : 0,
+    msgType:    row.msg_type,
+    mediaUrl:   row.media_url ?? undefined,
+  });
+
+  // Supabase Realtime — fonte primária de mensagens (ativada quando n8n gravar no banco)
+  const subscribeRealtime = () => {
+    if (realtimeRef.current) supabase.removeChannel(realtimeRef.current);
+    realtimeRef.current = whatsappMessageService.subscribe(
+      // INSERT: mensagem nova (client, ai ou human via n8n)
+      (row) => {
+        const msg = mapDbMessage(row);
+        setMessages(prev => {
+          const cur = prev[row.chat_id] ?? [];
+          if (cur.some(m => m.id === msg.id)) return prev; // dedup com WS
+          return { ...prev, [row.chat_id]: [...cur, msg] };
+        });
+        const ts = fmtTime(Math.floor(new Date(row.created_at).getTime() / 1000));
+        setChats(prev => {
+          const existing = prev.find(c => c.id === row.chat_id);
+          if (existing) {
+            const updated: Chat = {
+              ...existing,
+              lastMessage: row.content ?? '',
+              time: ts,
+              unread: row.sender === 'client' && activeChatIdRef.current !== row.chat_id
+                ? existing.unread + 1
+                : existing.unread,
+            };
+            return [updated, ...prev.filter(c => c.id !== row.chat_id)];
+          }
+          const phone = row.phone ?? formatPhone(row.chat_id);
+          const name  = contactNamesRef.current.get(phone.replace(/\D/g, '')) || phone || row.chat_id;
+          return [{
+            id: row.chat_id, initials: getInitials(name), name,
+            lastMessage: row.content ?? '', time: ts,
+            unread: row.sender === 'client' ? 1 : 0,
+            platform: 'whatsapp' as const, color: colorForId(row.chat_id), phone,
+          }, ...prev];
+        });
+      },
+      // UPDATE: mudança de status (sent→delivered→read)
+      (row) => {
+        const ack = row.status === 'read' ? 3 : row.status === 'delivered' ? 2 : row.status === 'sent' ? 1 : 0;
+        setMessages(prev => {
+          for (const [chatId, msgs] of Object.entries(prev)) {
+            const idx = msgs.findIndex(m => m.id === row.waha_msg_id);
+            if (idx !== -1) {
+              const updated = [...msgs];
+              updated[idx] = { ...updated[idx], ack };
+              return { ...prev, [chatId]: updated };
+            }
+          }
+          return prev;
+        });
+      },
+    );
+  };
 
   // Apply chats to state and build phone→name lookup for WS name resolution
   const applyChats = (list: Chat[]) => {
@@ -204,14 +278,30 @@ export function AIChat() {
         const chatId   = extractChatId(msg);
         if (!chatId) return;
 
-        // Resolve canonical ID: prefer existing chat matched by ID or by digits-only phone
-        const digitsOnly = (s: string) => s.replace(/\D/g, '');
-        const chatPhone  = formatPhone(chatId);
-        const knownChat  = chatsRef.current.find(
-          c => c.id === chatId || digitsOnly(c.phone) === digitsOnly(chatPhone)
+        // Resolve canonical ID: match by ID, phone digits, or sender name (handles @lid JID mismatches)
+        const digitsOnly     = (s: string) => s.replace(/\D/g, '');
+        const chatPhone      = formatPhone(chatId);
+        const chatPhoneDigits = chatPhone.replace(/\D/g, '');
+        const senderName     = (msg.notifyName || msg.pushName || '').trim();
+
+        let knownChat = chatsRef.current.find(c =>
+          c.id === chatId ||
+          (chatPhoneDigits && digitsOnly(c.phone) === chatPhoneDigits) ||
+          (senderName && c.name && !/^\+[\d\s\-()+]+$/.test(c.name) &&
+            c.name.toLowerCase() === senderName.toLowerCase())
         );
-        // Use the already-established ID so messages land under the correct key
+        // Last resort: if the message belongs to the currently open chat (handles @lid ↔ @c.us mismatch)
+        if (!knownChat && activeChatIdRef.current) {
+          const ac = chatsRef.current.find(c => c.id === activeChatIdRef.current);
+          if (ac && (
+            (senderName && ac.name && ac.name.toLowerCase() === senderName.toLowerCase()) ||
+            (chatPhoneDigits && digitsOnly(ac.phone) === chatPhoneDigits)
+          )) knownChat = ac;
+        }
         const canonicalId = knownChat?.id ?? chatId;
+
+        // Persist best known name for future incoming messages from same contact
+        if (senderName && chatPhoneDigits) contactNamesRef.current.set(chatPhoneDigits, senderName);
 
         setTypingChats(prev => ({ ...prev, [canonicalId]: false }));
         const newMsg = mapMessage(msg);
@@ -239,7 +329,7 @@ export function AIChat() {
             });
           }
         } else {
-          // WAHA fires both "message" and "message.received" for the same event — deduplicate by ID
+          // WAHA fires both "message" and "message.received" — deduplicate by ID
           setMessages(prev => {
             const cur = prev[canonicalId] ?? [];
             if (cur.some(m => m.id === newMsg.id)) return prev;
@@ -247,17 +337,29 @@ export function AIChat() {
           });
         }
 
-        // Resolve best available display name
-        const chatPhoneDigits = chatPhone.replace(/\D/g, '');
+        // Best display name: contactNamesRef (from API or prior WS) → senderName → phone fallback
         const resolvedName =
-          contactNamesRef.current.get(chatPhoneDigits) ||
-          msg.notifyName || msg.pushName || chatPhone;
+          contactNamesRef.current.get(chatPhoneDigits) || senderName || chatPhone;
 
-        // Update sidebar — never create a new entry if an existing chat already represents this contact
+        // Update sidebar — upgrade phone-only name to real name when WS provides it
         setChats(prev => {
           const existing = prev.find(c => c.id === canonicalId);
+          const isPhoneOnlyName = existing && (
+            existing.name === existing.phone || /^\+[\d\s\-()+]+$/.test(existing.name)
+          );
+          const bestName = isPhoneOnlyName && resolvedName && resolvedName !== chatPhone
+            ? resolvedName
+            : (existing?.name ?? resolvedName);
+
           const updated: Chat = existing
-            ? { ...existing, lastMessage: newMsg.content, time: newMsg.timestamp, unread: msg.fromMe ? existing.unread : existing.unread + 1 }
+            ? {
+                ...existing,
+                name:        bestName,
+                initials:    bestName !== existing.name ? getInitials(bestName) : existing.initials,
+                lastMessage: newMsg.content,
+                time:        newMsg.timestamp,
+                unread:      msg.fromMe ? existing.unread : existing.unread + 1,
+              }
             : {
                 id:          canonicalId,
                 initials:    getInitials(resolvedName),
@@ -281,7 +383,10 @@ export function AIChat() {
     if (pipelines.length === 0) fetchPipelines();
     if (profiles.length === 0) fetchProfiles();
     // Load chats first so chatsRef and contactNamesRef are populated before WS messages arrive
-    loadChats().finally(() => connectWS());
+    loadChats().finally(() => {
+      connectWS();
+      subscribeRealtime(); // Supabase Realtime — fonte primária de mensagens
+    });
     fetch('https://raw.githubusercontent.com/github/gemoji/master/db/emoji.json')
       .then(r => r.json())
       .then((data: any[]) => {
@@ -292,12 +397,14 @@ export function AIChat() {
     return () => {
       wsRef.current?.close();
       if (reconnectRef.current) clearTimeout(reconnectRef.current);
+      if (realtimeRef.current) supabase.removeChannel(realtimeRef.current);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Keep chatsRef in sync so WS handler can do synchronous ID lookups
   useEffect(() => { chatsRef.current = chats; }, [chats]);
+  useEffect(() => { activeChatIdRef.current = activeChatId; }, [activeChatId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -349,13 +456,30 @@ export function AIChat() {
     if (messages[chatId]) return;
     setLoadingMessages(true);
     try {
+      // Supabase primeiro — fonte da verdade quando n8n estiver configurado
+      const rows = await whatsappMessageService.fetchMessages(chatId, 50);
+      if (rows.length > 0) {
+        setMessages(prev => {
+          const ws   = prev[chatId] ?? [];
+          const db   = rows.map(mapDbMessage);
+          const dbIds = new Set(db.map(m => m.id));
+          return { ...prev, [chatId]: [...db, ...ws.filter(m => !dbIds.has(m.id))] };
+        });
+        return;
+      }
+      // Fallback: WAHA API (chats ainda sem histórico no Supabase)
       const data: any = await wahaFetch(
         `/api/${activeSessionRef.current}/chats/${encodeURIComponent(chatId)}/messages?limit=50&downloadMedia=false`
       );
       const list: any[] = Array.isArray(data) ? data : (data.messages ?? []);
-      setMessages(prev => ({ ...prev, [chatId]: list.reverse().map(mapMessage) }));
+      setMessages(prev => {
+        const ws  = prev[chatId] ?? [];
+        const api = list.reverse().map(mapMessage);
+        const apiIds = new Set(api.map(m => m.id));
+        return { ...prev, [chatId]: [...api, ...ws.filter(m => !apiIds.has(m.id))] };
+      });
     } catch (err) {
-      console.error('[WAHA] messages fetch failed:', err);
+      console.error('[AIChat] messages fetch failed:', err);
       setMessages(prev => ({ ...prev, [chatId]: [] }));
     } finally {
       setLoadingMessages(false);
@@ -367,45 +491,91 @@ export function AIChat() {
 
     let finalContent = inputValue;
     if (attachedFile && !finalContent.trim()) finalContent = `Enviou o arquivo: ${attachedFile.name}`;
+    const ts = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     if (isNotesMode && matchedRealLead && user) {
+      // ── Anotação interna ──────────────────────────────────────────────────
       const authorName = profiles.find(p => p.id === user.id)?.name || user.email || 'Vendedor';
       await noteService.createNote({ content: finalContent, lead_id: matchedRealLead.id, author_id: user.id, author_name: authorName });
       window.dispatchEvent(new CustomEvent('refresh-lead-notes', { detail: { leadId: matchedRealLead.id } }));
+      setMessages(prev => ({
+        ...prev,
+        [activeChatId]: [...(prev[activeChatId] ?? []), {
+          id: `note_${Date.now()}`, sender: 'me', senderType: 'human' as const,
+          content: finalContent, timestamp: ts, isNote: true, file: attachedFile || undefined,
+        }],
+      }));
+      setChats(prev => {
+        const ex = prev.find(c => c.id === activeChatId);
+        if (!ex) return prev;
+        return [{ ...ex, lastMessage: `[Anotação] ${finalContent}`, time: ts }, ...prev.filter(c => c.id !== activeChatId)];
+      });
     } else if (!isNotesMode) {
+      // ── Mensagem WhatsApp ─────────────────────────────────────────────────
+      const tempId = `temp_${Date.now()}`;
+
+      // 1) Exibe otimisticamente
+      setMessages(prev => ({
+        ...prev,
+        [activeChatId]: [...(prev[activeChatId] ?? []), {
+          id: tempId, sender: 'me', senderType: 'human' as const,
+          content: finalContent, timestamp: ts, ack: 0, file: attachedFile || undefined,
+        }],
+      }));
+
       try {
-        await wahaFetch(`/api/sendText`, {
+        // 2) Envia via WAHA REST
+        const wahaResp: any = await wahaFetch(`/api/sendText`, {
           method: 'POST',
           body: JSON.stringify({ session: activeSessionRef.current, chatId: activeChatId, text: finalContent }),
         });
+
+        // 3) Extrai ID real do WAHA
+        const wahaMsgId: string =
+          (typeof wahaResp?.id === 'object' ? wahaResp.id._serialized : wahaResp?.id) ??
+          wahaResp?.key?.id ?? tempId;
+
+        // 4) Substitui temp pelo ID real (dedup com Realtime e WS)
+        setMessages(prev => {
+          const cur = prev[activeChatId] ?? [];
+          if (cur.some(m => m.id === wahaMsgId)) {
+            return { ...prev, [activeChatId]: cur.filter(m => m.id !== tempId) };
+          }
+          return { ...prev, [activeChatId]: cur.map(m => m.id === tempId ? { ...m, id: wahaMsgId, ack: 1 } : m) };
+        });
+
+        // 5) Registra no pendingEchos para dedup com WS (retrocompatibilidade)
+        pendingEchos.current.set(finalContent, wahaMsgId);
+        setTimeout(() => pendingEchos.current.delete(finalContent), 10_000);
+
+        // 6) Persiste no Supabase — Realtime irá deduplicar pelo waha_msg_id
+        whatsappMessageService.insert({
+          waha_msg_id: wahaMsgId,
+          chat_id:     activeChatId,
+          phone:       activeChat?.phone ?? null,
+          sender:      'human' as WaMsgSender,
+          content:     finalContent,
+          msg_type:    attachedFile ? (attachedFile.type.split('/')[0] || 'document') : 'text',
+          media_url:   attachedFile?.url ?? null,
+          status:      'sent',
+          raw_payload: wahaResp ?? null,
+        }).catch(e => console.warn('[Supabase] insert failed:', e));
+
       } catch (err) {
         console.error('[WAHA] send failed:', err);
+        setMessages(prev => ({
+          ...prev,
+          [activeChatId]: (prev[activeChatId] ?? []).map(m => m.id === tempId ? { ...m, ack: -1 } : m),
+        }));
       }
+
+      setChats(prev => {
+        const ex = prev.find(c => c.id === activeChatId);
+        if (!ex) return prev;
+        return [{ ...ex, lastMessage: finalContent, time: ts }, ...prev.filter(c => c.id !== activeChatId)];
+      });
     }
 
-    const tempId = `temp_${Date.now()}`;
-    const newMessage: Message = {
-      id: tempId,
-      sender: 'me',
-      content: finalContent,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isNote: isNotesMode,
-      file: attachedFile || undefined,
-    };
-
-    // Register so the WAHA echo can replace this temp instead of duplicating
-    if (!isNotesMode) {
-      pendingEchos.current.set(finalContent, tempId);
-      // Clear after 10s in case WAHA never echoes (e.g. send failed silently)
-      setTimeout(() => pendingEchos.current.delete(finalContent), 10_000);
-    }
-
-    setMessages(prev => ({ ...prev, [activeChatId]: [...(prev[activeChatId] ?? []), newMessage] }));
-    setChats(prev => {
-      const existing = prev.find(c => c.id === activeChatId);
-      if (!existing) return prev;
-      return [{ ...existing, lastMessage: isNotesMode ? `[Anotação] ${finalContent}` : finalContent, time: newMessage.timestamp }, ...prev.filter(c => c.id !== activeChatId)];
-    });
     setInputValue('');
     setAttachedFile(null);
     setIsNotesMode(false);
