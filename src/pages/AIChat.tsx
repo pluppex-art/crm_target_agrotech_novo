@@ -456,11 +456,12 @@ export function AIChat() {
     };
 
     setMessages(prev => ({ ...prev, [activeChatId]: [...(prev[activeChatId] ?? []), newMessage] }));
-    setChats(prev => prev.map(c =>
-      c.id === activeChatId
-        ? { ...c, lastMessage: isNotesMode ? `[Anotação] ${finalContent}` : finalContent, time: newMessage.timestamp }
-        : c
-    ));
+    setChats(prev => {
+      const existing = prev.find(c => c.id === activeChatId);
+      if (!existing) return prev;
+      const updated = { ...existing, lastMessage: isNotesMode ? `[Anotação] ${finalContent}` : finalContent, time: newMessage.timestamp };
+      return [updated, ...prev.filter(c => c.id !== activeChatId)];
+    });
     setInputValue('');
     setAttachedFile(null);
     setIsNotesMode(false);
@@ -661,9 +662,17 @@ export function AIChat() {
                         </span>
                         digitando…
                       </p>
-                    ) : (
+                    ) : chat.lastMessage ? (
                       <p className={cn('text-[12px] truncate', chat.unread > 0 ? 'text-slate-800 dark:text-slate-200 font-bold' : 'text-slate-500 dark:text-slate-400')}>
-                        {chat.lastMessage || <span className="italic opacity-60">Sem mensagens</span>}
+                        {chat.lastMessage}
+                      </p>
+                    ) : (
+                      <p className="text-[12px] text-slate-400 dark:text-slate-500 italic flex items-center gap-1">
+                        <svg width="11" height="11" viewBox="0 0 12 12" fill="none" className="shrink-0 opacity-60">
+                          <rect x="2" y="5" width="8" height="6" rx="1.2" stroke="currentColor" strokeWidth="1.2"/>
+                          <path d="M4 5V3.5a2 2 0 0 1 4 0V5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                        </svg>
+                        As mensagens são criptografadas
                       </p>
                     )}
                     {chat.unread > 0 && (
