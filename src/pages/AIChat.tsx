@@ -141,7 +141,7 @@ export function AIChat() {
     setLoadingChats(true);
     try {
       const data: any[] = await wahaFetch(
-        `/api/${WAHA_SESSION}/chats?sortField=lastMessage.timestamp&sortOrder=desc&limit=100`
+        `/api/${WAHA_SESSION}/chats?limit=100`
       );
       setChats(
         data.map(c => ({
