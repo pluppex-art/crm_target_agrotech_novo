@@ -49,6 +49,8 @@ export function AIChat() {
   const pendingEchos = useRef<Map<string, string>>(new Map());
   // Mirror of chats state for synchronous lookup inside WS handler closures
   const chatsRef = useRef<Chat[]>([]);
+  // phone digits → saved contact name, built when chats load from API
+  const contactNamesRef = useRef<Map<string, string>>(new Map());
 
   const activeChat     = chats.find(c => c.id === activeChatId) ?? null;
   const activeMessages = activeChatId ? (messages[activeChatId] ?? []) : [];
@@ -94,13 +96,24 @@ export function AIChat() {
         phone:       formatPhone(c.id as string),
       }));
 
+  // Apply chats to state and build phone→name lookup for WS name resolution
+  const applyChats = (list: Chat[]) => {
+    setChats(list);
+    const map = new Map<string, string>();
+    list.forEach(c => {
+      const digits = c.phone.replace(/\D/g, '');
+      if (digits && c.name && c.name !== c.phone) map.set(digits, c.name);
+    });
+    contactNamesRef.current = map;
+  };
+
   const loadChats = async () => {
     setLoadingChats(true);
     try {
       const sessionName = await resolveSession();
       try {
         const data: any[] = await wahaFetch(`/api/${sessionName}/chats`);
-        setChats(
+        applyChats(
           data
             .filter(c => {
               const id: string = c.id ?? '';
@@ -124,7 +137,7 @@ export function AIChat() {
       }
       const contacts: any[] = await wahaFetch(`/api/${sessionName}/contacts`);
       if (Array.isArray(contacts) && contacts.length > 0) {
-        setChats(mapChatsFromContacts(contacts));
+        applyChats(mapChatsFromContacts(contacts));
       }
     } catch (err) {
       console.error('[WAHA] loadChats failed:', err);
@@ -234,6 +247,12 @@ export function AIChat() {
           });
         }
 
+        // Resolve best available display name
+        const chatPhoneDigits = chatPhone.replace(/\D/g, '');
+        const resolvedName =
+          contactNamesRef.current.get(chatPhoneDigits) ||
+          msg.notifyName || msg.pushName || chatPhone;
+
         // Update sidebar — never create a new entry if an existing chat already represents this contact
         setChats(prev => {
           const existing = prev.find(c => c.id === canonicalId);
@@ -241,8 +260,8 @@ export function AIChat() {
             ? { ...existing, lastMessage: newMsg.content, time: newMsg.timestamp, unread: msg.fromMe ? existing.unread : existing.unread + 1 }
             : {
                 id:          canonicalId,
-                initials:    getInitials(msg.notifyName || chatPhone),
-                name:        msg.notifyName || chatPhone,
+                initials:    getInitials(resolvedName),
+                name:        resolvedName,
                 lastMessage: newMsg.content,
                 time:        newMsg.timestamp,
                 unread:      msg.fromMe ? 0 : 1,
@@ -261,8 +280,8 @@ export function AIChat() {
     if (leads.length === 0) fetchLeads();
     if (pipelines.length === 0) fetchPipelines();
     if (profiles.length === 0) fetchProfiles();
-    loadChats();
-    connectWS();
+    // Load chats first so chatsRef and contactNamesRef are populated before WS messages arrive
+    loadChats().finally(() => connectWS());
     fetch('https://raw.githubusercontent.com/github/gemoji/master/db/emoji.json')
       .then(r => r.json())
       .then((data: any[]) => {
