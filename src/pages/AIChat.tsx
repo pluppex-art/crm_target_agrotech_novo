@@ -24,8 +24,29 @@ interface Message {
   sender: 'me' | 'contact';
   content: string;
   timestamp: string;
+  ack?: number; // -1 error | 0 pending | 1 sent | 2 delivered | 3 read
   isNote?: boolean;
   file?: { name: string; type: string; url: string };
+}
+
+// WhatsApp-style double/single ticks
+function MsgTicks({ ack }: { ack?: number }) {
+  if (ack === undefined || ack < 0) return null;
+  const read = ack >= 3;
+  const delivered = ack >= 2;
+  const color = read ? '#53bdeb' : '#a0aec0';
+  if (ack === 0) return (
+    <svg className="inline-block" width="14" height="14" viewBox="0 0 16 16" fill="none">
+      <circle cx="8" cy="8" r="6" stroke="#a0aec0" strokeWidth="1.5" />
+      <path d="M8 5v3.5l2 1.5" stroke="#a0aec0" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+  return (
+    <svg className="inline-block" width="16" height="11" viewBox="0 0 16 11" fill="none">
+      {delivered && <path d="M1 5.5L4.5 9L11 2" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />}
+      <path d={delivered ? 'M5 5.5L8.5 9L15 2' : 'M3 5.5L6.5 9L13 2'} stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
 }
 
 interface Chat {
@@ -100,6 +121,7 @@ function mapMessage(m: any): Message {
     sender: m.fromMe ? 'me' : 'contact',
     content: m.body || (m.hasMedia ? `[${m.type ?? 'Mídia'}]` : '(sem conteúdo)'),
     timestamp: m.timestamp ? fmtTime(m.timestamp) : '',
+    ack: m.fromMe ? (m.ack ?? 1) : undefined,
   };
 }
 // ─────────────────────────────────────────────────────────────────────────────
@@ -127,6 +149,8 @@ export function AIChat() {
   const [selectedLeadForModal, setSelectedLeadForModal] = useState<Lead | null>(null);
   const [modalInitialTab, setModalInitialTab] = useState<'info' | 'history' | 'notes' | 'tasks' | 'turma' | 'checklist'>('info');
 
+  const [typingChats, setTypingChats] = useState<Record<string, boolean>>({});
+
   const messagesEndRef  = useRef<HTMLDivElement>(null);
   const dropdownRef     = useRef<HTMLDivElement>(null);
   const emojiPickerRef  = useRef<HTMLDivElement>(null);
@@ -134,7 +158,8 @@ export function AIChat() {
   const chatMessagesRef = useRef<HTMLDivElement>(null);
   const wsRef           = useRef<WebSocket | null>(null);
   const reconnectRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const activeSessionRef = useRef<string>(WAHA_SESSION);
+  const activeSessionRef  = useRef<string>(WAHA_SESSION);
+  const typingTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   const activeChat     = chats.find(c => c.id === activeChatId) ?? null;
   const activeMessages = activeChatId ? (messages[activeChatId] ?? []) : [];
@@ -236,15 +261,52 @@ export function AIChat() {
 
     ws.onmessage = (evt) => {
       try {
-        const event  = JSON.parse(evt.data as string);
-        const type   = (event.event ?? event.type ?? '') as string;
+        const event   = JSON.parse(evt.data as string);
+        const type    = (event.event ?? event.type ?? '') as string;
         const payload = event.payload ?? event.data ?? event;
 
+        // ── Typing indicator ─────────────────────────────────────────────────
+        if (type === 'presence.update') {
+          const presences: any[] = payload.presences ?? [];
+          const chatId: string = payload.id ?? '';
+          if (!chatId) return;
+          const isTyping = presences.some((p: any) =>
+            p.lastKnownPresence === 'typing' || p.lastKnownPresence === 'recording'
+          );
+          setTypingChats(prev => ({ ...prev, [chatId]: isTyping }));
+          if (isTyping) {
+            clearTimeout(typingTimers.current[chatId]);
+            typingTimers.current[chatId] = setTimeout(() => {
+              setTypingChats(prev => ({ ...prev, [chatId]: false }));
+            }, 5000);
+          }
+          return;
+        }
+
+        // ── ACK update ───────────────────────────────────────────────────────
+        if (type === 'message.ack') {
+          const ackMsg = payload;
+          const msgId  = typeof ackMsg.id === 'object' ? (ackMsg.id._serialized ?? '') : String(ackMsg.id ?? '');
+          const ack    = ackMsg.ack as number;
+          const chatId: string = ackMsg.fromMe ? (ackMsg.to ?? '') : (ackMsg.from ?? '');
+          if (msgId && chatId) {
+            setMessages(prev => ({
+              ...prev,
+              [chatId]: (prev[chatId] ?? []).map(m => m.id === msgId ? { ...m, ack } : m),
+            }));
+          }
+          return;
+        }
+
+        // ── New message ──────────────────────────────────────────────────────
         if (!['message', 'message.any', 'message.received'].includes(type)) return;
 
         const msg: any = payload;
         const chatId: string = msg.fromMe ? (msg.to ?? '') : (msg.from ?? '');
         if (!chatId) return;
+
+        // Clear typing when message arrives
+        setTypingChats(prev => ({ ...prev, [chatId]: false }));
 
         const newMsg = mapMessage(msg);
 
@@ -590,9 +652,20 @@ export function AIChat() {
                     </span>
                   </div>
                   <div className="flex items-center justify-between gap-3">
-                    <p className={cn('text-[12px] truncate', chat.unread > 0 ? 'text-slate-800 dark:text-slate-200 font-bold' : 'text-slate-500 dark:text-slate-400')}>
-                      {chat.lastMessage || <span className="italic opacity-60">Sem mensagens</span>}
-                    </p>
+                    {typingChats[chat.id] ? (
+                      <p className="text-[12px] text-emerald-500 font-semibold italic flex items-center gap-1">
+                        <span className="flex gap-0.5 items-end h-3">
+                          <span className="w-1 h-1 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <span className="w-1 h-1 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <span className="w-1 h-1 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                        </span>
+                        digitando…
+                      </p>
+                    ) : (
+                      <p className={cn('text-[12px] truncate', chat.unread > 0 ? 'text-slate-800 dark:text-slate-200 font-bold' : 'text-slate-500 dark:text-slate-400')}>
+                        {chat.lastMessage || <span className="italic opacity-60">Sem mensagens</span>}
+                      </p>
+                    )}
                     {chat.unread > 0 && (
                       <div className="w-5 h-5 rounded-full bg-emerald-600 flex items-center justify-center text-[10px] font-black text-white shrink-0 shadow-sm shadow-emerald-500/25">
                         {chat.unread}
@@ -786,12 +859,25 @@ export function AIChat() {
                         <span className={cn('text-[9px]', msg.sender === 'me' ? 'text-emerald-100' : 'text-slate-400')}>
                           {msg.timestamp}
                         </span>
+                        {msg.sender === 'me' && <MsgTicks ack={msg.ack} />}
                       </div>
                     </div>
                   </div>
                 )
               ))
             )}
+
+            {/* Typing indicator bubble */}
+            {activeChatId && typingChats[activeChatId] && (
+              <div className="flex justify-start">
+                <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm flex items-center gap-1.5">
+                  <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+              </div>
+            )}
+
             <div ref={messagesEndRef} />
           </div>
 
