@@ -44,7 +44,9 @@ export function AIChat() {
   const wsRef           = useRef<WebSocket | null>(null);
   const reconnectRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeSessionRef  = useRef<string>(WAHA_SESSION);
-  const typingTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const typingTimers    = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  // Maps message content → tempId so we can replace temp with real echo from WAHA
+  const pendingEchos = useRef<Map<string, string>>(new Map());
 
   const activeChat     = chats.find(c => c.id === activeChatId) ?? null;
   const activeMessages = activeChatId ? (messages[activeChatId] ?? []) : [];
@@ -190,13 +192,34 @@ export function AIChat() {
         setTypingChats(prev => ({ ...prev, [chatId]: false }));
         const newMsg = mapMessage(msg);
 
-        setMessages(prev => ({
-          ...prev,
-          [chatId]: [...(prev[chatId] ?? []), newMsg],
-        }));
+        if (msg.fromMe) {
+          // Replace temp message we added optimistically, avoid duplicate
+          const tempId = pendingEchos.current.get(newMsg.content);
+          if (tempId) {
+            pendingEchos.current.delete(newMsg.content);
+            setMessages(prev => {
+              // Search all keys in case of ID mismatch (find where the temp is stored)
+              for (const [key, msgs] of Object.entries(prev)) {
+                if (msgs.some(m => m.id === tempId)) {
+                  return { ...prev, [key]: msgs.map(m => m.id === tempId ? { ...newMsg } : m) };
+                }
+              }
+              // Temp not found (e.g. sent from another device) — add normally
+              return { ...prev, [chatId]: [...(prev[chatId] ?? []), newMsg] };
+            });
+          }
+          // Echo with no pending temp = sent from another device, add it
+          else {
+            setMessages(prev => ({ ...prev, [chatId]: [...(prev[chatId] ?? []), newMsg] }));
+          }
+        } else {
+          setMessages(prev => ({ ...prev, [chatId]: [...(prev[chatId] ?? []), newMsg] }));
+        }
 
+        // Match by ID first, fall back to phone number to avoid creating duplicate chat entries
         setChats(prev => {
-          const existing = prev.find(c => c.id === chatId);
+          const chatPhone = formatPhone(chatId);
+          const existing  = prev.find(c => c.id === chatId || c.phone === chatPhone);
           const updated: Chat = existing
             ? { ...existing, lastMessage: newMsg.content, time: newMsg.timestamp, unread: msg.fromMe ? existing.unread : existing.unread + 1 }
             : {
@@ -208,9 +231,9 @@ export function AIChat() {
                 unread:      msg.fromMe ? 0 : 1,
                 platform:    'whatsapp' as const,
                 color:       colorForId(chatId),
-                phone:       formatPhone(chatId),
+                phone:       chatPhone,
               };
-          return [updated, ...prev.filter(c => c.id !== chatId)];
+          return [updated, ...prev.filter(c => c.id !== (existing?.id ?? chatId))];
         });
       } catch {}
     };
@@ -321,14 +344,22 @@ export function AIChat() {
       }
     }
 
+    const tempId = `temp_${Date.now()}`;
     const newMessage: Message = {
-      id: `temp_${Date.now()}`,
+      id: tempId,
       sender: 'me',
       content: finalContent,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isNote: isNotesMode,
       file: attachedFile || undefined,
     };
+
+    // Register so the WAHA echo can replace this temp instead of duplicating
+    if (!isNotesMode) {
+      pendingEchos.current.set(finalContent, tempId);
+      // Clear after 10s in case WAHA never echoes (e.g. send failed silently)
+      setTimeout(() => pendingEchos.current.delete(finalContent), 10_000);
+    }
 
     setMessages(prev => ({ ...prev, [activeChatId]: [...(prev[activeChatId] ?? []), newMessage] }));
     setChats(prev => {

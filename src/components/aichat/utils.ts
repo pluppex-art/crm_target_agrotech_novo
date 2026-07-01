@@ -3,7 +3,9 @@ import { CHAT_COLORS, WAHA_API, WAHA_API_KEY } from './constants';
 
 export function normalizeChatId(id: string): string {
   if (!id) return id;
+  // Strip multi-device suffix like ":3@" → "5511999@s.whatsapp.net" before replacing domain
   return id
+    .replace(/:\d+@/, '@')
     .replace(/@s\.whatsapp\.net$/, '@c.us')
     .replace(/@lid$/, '@c.us');
 }
