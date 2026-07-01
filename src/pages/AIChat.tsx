@@ -120,6 +120,9 @@ export function AIChat() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [attachedFile, setAttachedFile] = useState<{ name: string; type: string; url: string } | null>(null);
   const [emojisList, setEmojisList]     = useState<string[]>(EMOJIS);
+  const [showMsgSearch, setShowMsgSearch]   = useState(false);
+  const [msgSearchQuery, setMsgSearchQuery] = useState('');
+  const [phoneCopied, setPhoneCopied]       = useState(false);
 
   const [selectedLeadForModal, setSelectedLeadForModal] = useState<Lead | null>(null);
   const [modalInitialTab, setModalInitialTab] = useState<'info' | 'history' | 'notes' | 'tasks' | 'turma' | 'checklist'>('info');
@@ -372,9 +375,9 @@ export function AIChat() {
       window.dispatchEvent(new CustomEvent('refresh-lead-notes', { detail: { leadId: matchedRealLead.id } }));
     } else if (!isNotesMode) {
       try {
-        await wahaFetch(`/api/${activeSessionRef.current}/sendText`, {
+        await wahaFetch(`/api/sendText`, {
           method: 'POST',
-          body: JSON.stringify({ chatId: activeChatId, text: finalContent }),
+          body: JSON.stringify({ session: activeSessionRef.current, chatId: activeChatId, text: finalContent }),
         });
       } catch (err) {
         console.error('[WAHA] send failed:', err);
@@ -404,6 +407,25 @@ export function AIChat() {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessageOrSaveNote(); }
   };
+
+  const handleCopyPhone = () => {
+    if (!activeChat) return;
+    navigator.clipboard.writeText(activeChat.phone).then(() => {
+      setPhoneCopied(true);
+      setTimeout(() => setPhoneCopied(false), 2000);
+    });
+  };
+
+  const handleToggleMsgSearch = () => {
+    setShowMsgSearch(prev => !prev);
+    setMsgSearchQuery('');
+  };
+
+  const visibleMessages = useMemo(() => {
+    if (!msgSearchQuery.trim()) return activeMessages;
+    const q = msgSearchQuery.toLowerCase();
+    return activeMessages.filter(m => m.content.toLowerCase().includes(q));
+  }, [activeMessages, msgSearchQuery]);
 
   const handleAddEmoji  = (emoji: string) => setInputValue(prev => prev + emoji);
   const handleFileClick = () => fileInputRef.current?.click();
@@ -628,10 +650,18 @@ export function AIChat() {
                   Ver Lead
                 </button>
               )}
-              <button className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg">
+              <button
+                onClick={handleToggleMsgSearch}
+                title="Buscar mensagens"
+                className={cn('transition-colors p-2 rounded-lg', showMsgSearch ? 'text-emerald-600 bg-emerald-50 dark:bg-slate-800' : 'text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-800')}
+              >
                 <Search size={18} />
               </button>
-              <button className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg">
+              <button
+                onClick={handleCopyPhone}
+                title={phoneCopied ? 'Copiado!' : 'Copiar telefone'}
+                className={cn('transition-colors p-2 rounded-lg', phoneCopied ? 'text-emerald-600 bg-emerald-50 dark:bg-slate-800' : 'text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-800')}
+              >
                 <Phone size={18} />
               </button>
               <button
@@ -661,20 +691,47 @@ export function AIChat() {
             </div>
           </div>
 
+          {/* In-chat search bar */}
+          {showMsgSearch && (
+            <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-800/60 bg-white dark:bg-slate-900 z-10 shrink-0">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="Buscar nas mensagens…"
+                  value={msgSearchQuery}
+                  onChange={e => setMsgSearchQuery(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-800/50 text-[13px] font-semibold text-slate-800 dark:text-slate-200 rounded-xl pl-9 pr-9 py-2 outline-none focus:ring-1 focus:ring-emerald-500 border border-slate-200 dark:border-slate-700 placeholder:text-slate-400"
+                />
+                {msgSearchQuery && (
+                  <button onClick={() => setMsgSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+              {msgSearchQuery && (
+                <p className="text-[11px] text-slate-400 mt-1 ml-1">
+                  {visibleMessages.length} resultado{visibleMessages.length !== 1 ? 's' : ''}
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Messages */}
           <div ref={chatMessagesRef} className="flex-1 overflow-y-auto p-6 space-y-4 z-0 custom-scrollbar">
             {loadingMessages ? (
               <div className="flex justify-center py-12">
                 <Loader2 className="w-7 h-7 text-emerald-500 animate-spin" />
               </div>
-            ) : activeMessages.length === 0 ? (
+            ) : visibleMessages.length === 0 ? (
               <div className="text-center mt-10">
                 <span className="bg-white/80 dark:bg-slate-800/80 px-4 py-2 rounded-lg text-xs font-medium text-slate-500 shadow-sm">
-                  Início da conversa
+                  {msgSearchQuery ? 'Nenhuma mensagem encontrada' : 'Início da conversa'}
                 </span>
               </div>
             ) : (
-              activeMessages.map(msg => (
+              visibleMessages.map(msg => (
                 msg.isNote ? (
                   <div key={msg.id} className="flex justify-center my-3">
                     <div className="max-w-[85%] bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 border border-amber-200/80 dark:border-amber-900/50 rounded-2xl px-5 py-3 shadow-sm flex items-start gap-3">
