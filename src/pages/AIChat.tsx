@@ -85,7 +85,10 @@ async function wahaFetch<T = any>(path: string, options?: RequestInit): Promise<
     ...options,
     headers: { 'X-Api-Key': WAHA_API_KEY, 'Content-Type': 'application/json', ...options?.headers },
   });
-  if (!res.ok) throw new Error(`WAHA ${res.status}`);
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`WAHA ${res.status}: ${body}`);
+  }
   return res.json() as Promise<T>;
 }
 
@@ -140,15 +143,26 @@ export function AIChat() {
   const loadChats = async () => {
     setLoadingChats(true);
     try {
-      const data: any[] = await wahaFetch(
-        `/api/${WAHA_SESSION}/chats?limit=100`
-      );
+      // Auto-detect the active session name
+      let sessionName = WAHA_SESSION;
+      try {
+        const sessions: any[] = await wahaFetch('/api/sessions');
+        const working = Array.isArray(sessions) && sessions.find(s => s.status === 'WORKING');
+        if (working?.name) {
+          sessionName = working.name;
+          console.log('[WAHA] session detected:', sessionName);
+        }
+      } catch (e) {
+        console.warn('[WAHA] could not list sessions, using env value:', sessionName, e);
+      }
+
+      const data: any[] = await wahaFetch(`/api/${sessionName}/chats`);
       setChats(
         data.map(c => ({
           id:          c.id as string,
           initials:    getInitials(c.name || formatPhone(c.id as string)),
           name:        c.name || formatPhone(c.id as string),
-          lastMessage: c.lastMessage?.body ?? '',
+          lastMessage: c.lastMessage?.body ?? c.lastMessage?.text ?? '',
           time:        c.timestamp ? fmtTime(c.timestamp as number) : '',
           unread:      (c.unreadCount as number) ?? 0,
           platform:    'whatsapp' as Platform,
