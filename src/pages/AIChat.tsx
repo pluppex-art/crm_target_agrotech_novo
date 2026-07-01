@@ -91,6 +91,20 @@ function formatPhone(waId: string) {
   return `+${num}`;
 }
 
+function normalizeChatId(id: string): string {
+  if (!id) return id;
+  return id
+    .replace(/@s\.whatsapp\.net$/, '@c.us')
+    .replace(/@lid$/, '@c.us');
+}
+
+function extractChatId(msg: any): string {
+  // remoteJid is the canonical WhatsApp chat identifier (works for both sent/received)
+  const remoteJid: string = msg.key?.remoteJid ?? '';
+  if (remoteJid) return normalizeChatId(remoteJid);
+  return normalizeChatId(msg.fromMe ? (msg.to ?? '') : (msg.from ?? ''));
+}
+
 function fmtTime(ts: number) {
   const d = new Date(ts * 1000);
   const now = new Date();
@@ -190,9 +204,9 @@ export function AIChat() {
 
   const mapChatsFromContacts = (contacts: any[]): Chat[] =>
     contacts
-      .filter(c => c.id?.endsWith('@c.us') || c.id?.endsWith('@g.us'))
+      .filter(c => c.id?.endsWith('@c.us') || c.id?.endsWith('@g.us') || c.id?.endsWith('@s.whatsapp.net') || c.id?.endsWith('@lid'))
       .map(c => ({
-        id:          c.id as string,
+        id:          normalizeChatId(c.id as string),
         initials:    getInitials(c.name || c.pushname || formatPhone(c.id as string)),
         name:        c.name || c.pushname || formatPhone(c.id as string),
         lastMessage: '',
@@ -213,7 +227,7 @@ export function AIChat() {
         const data: any[] = await wahaFetch(`/api/${sessionName}/chats`);
         setChats(
           data.map(c => ({
-            id:          c.id as string,
+            id:          normalizeChatId(c.id as string),
             initials:    getInitials(c.name || formatPhone(c.id as string)),
             name:        c.name || formatPhone(c.id as string),
             lastMessage: c.lastMessage?.body ?? c.lastMessage?.text ?? '',
@@ -288,7 +302,7 @@ export function AIChat() {
           const ackMsg = payload;
           const msgId  = typeof ackMsg.id === 'object' ? (ackMsg.id._serialized ?? '') : String(ackMsg.id ?? '');
           const ack    = ackMsg.ack as number;
-          const chatId: string = ackMsg.fromMe ? (ackMsg.to ?? '') : (ackMsg.from ?? '');
+          const chatId: string = extractChatId(ackMsg);
           if (msgId && chatId) {
             setMessages(prev => ({
               ...prev,
@@ -302,7 +316,7 @@ export function AIChat() {
         if (!['message', 'message.any', 'message.received'].includes(type)) return;
 
         const msg: any = payload;
-        const chatId: string = msg.fromMe ? (msg.to ?? '') : (msg.from ?? '');
+        const chatId: string = extractChatId(msg);
         if (!chatId) return;
 
         // Clear typing when message arrives
