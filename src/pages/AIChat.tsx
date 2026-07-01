@@ -193,12 +193,17 @@ export function AIChat() {
    * Cruzamos pelo nome para montar o cache ANTES de qualquer evento WS.
    */
   const buildLidMapping = (rawList: any[]) => {
-    const lidEntries  = rawList.filter(c => (c.id ?? '').endsWith('@lid') && c.name);
+    const lidEntries  = rawList.filter(c => (c.id ?? '').endsWith('@lid'));
     const realEntries = rawList.filter(c => !(c.id ?? '').endsWith('@lid'));
     lidEntries.forEach(lid => {
-      const match = realEntries.find(r =>
-        r.name && (r.name as string).toLowerCase() === (lid.name as string).toLowerCase()
-      );
+      if (!lid.name) return;
+      const lidName = (lid.name as string).toLowerCase();
+      // Try exact match first, then partial match (one name contains the other)
+      const match = realEntries.find(r => {
+        if (!r.name) return false;
+        const rName = (r.name as string).toLowerCase();
+        return rName === lidName || rName.includes(lidName) || lidName.includes(rName);
+      });
       if (match) {
         lidToCanonical.current.set(
           normalizeChatId(lid.id as string),
@@ -216,6 +221,23 @@ export function AIChat() {
         const rawData: any[] = await wahaFetch(`/api/${sessionName}/chats`);
         // Build @lid→canonical cache before filtering so outgoing AI messages are routed correctly
         buildLidMapping(rawData);
+        // Async: resolve any @lid entries still unmapped via WAHA contacts API
+        const unresolvedLids = rawData.filter((c: any) =>
+          (c.id ?? '').endsWith('@lid') && !lidToCanonical.current.has(normalizeChatId(c.id as string))
+        );
+        if (unresolvedLids.length > 0) {
+          Promise.allSettled(
+            unresolvedLids.slice(0, 10).map(async (lid: any) => {
+              try {
+                const contact: any = await wahaFetch(`/api/${sessionName}/contacts/${encodeURIComponent(lid.id as string)}`);
+                const realJid: string = contact?.id ?? '';
+                if (realJid && !realJid.endsWith('@lid')) {
+                  lidToCanonical.current.set(normalizeChatId(lid.id as string), normalizeChatId(realJid));
+                }
+              } catch {}
+            })
+          ).catch(() => {});
+        }
         applyChats(
           rawData
             .filter(c => {
@@ -392,9 +414,14 @@ export function AIChat() {
         const resolvedName =
           contactNamesRef.current.get(chatPhoneDigits) || senderName || chatPhone;
 
+        // True when @lid JID arrived but no canonical mapping was found — would create a phantom
+        const isUnresolvedLid = isLidJid && !knownChat;
+
         // Update sidebar — upgrade phone-only name to real name when WS provides it
         setChats(prev => {
           const existing = prev.find(c => c.id === canonicalId);
+          // Never create a phantom sidebar entry for an unresolved @lid JID
+          if (!existing && isUnresolvedLid) return prev;
           const isPhoneOnlyName = existing && (
             existing.name === existing.phone || /^\+[\d\s\-()+]+$/.test(existing.name)
           );
@@ -424,6 +451,41 @@ export function AIChat() {
               };
           return [updated, ...prev.filter(c => c.id !== canonicalId)];
         });
+
+        // For unresolved @lid: async-resolve via WAHA contacts API, then reroute to the real chat
+        if (isUnresolvedLid) {
+          wahaFetch(`/api/${activeSessionRef.current}/contacts/${encodeURIComponent(rawJid)}`)
+            .then((contact: any) => {
+              const realPhoneJid: string = contact?.id ?? '';
+              if (!realPhoneJid || realPhoneJid.endsWith('@lid')) return;
+              const realId = normalizeChatId(realPhoneJid);
+              lidToCanonical.current.set(chatId, realId);
+              // Move any messages buffered under the @lid ID to the real chat
+              setMessages(prev => {
+                const pending = prev[chatId] ?? [];
+                if (!pending.length) return prev;
+                const real = prev[realId] ?? [];
+                const realIds = new Set(real.map(m => m.id));
+                const { [chatId]: _phantom, ...rest } = prev;
+                return { ...rest, [realId]: [...real, ...pending.filter(m => !realIds.has(m.id))] };
+              });
+              // Bump the real chat to the top of the sidebar
+              setChats(prev => {
+                const realChat = prev.find(c => c.id === realId);
+                if (!realChat) return prev;
+                return [
+                  {
+                    ...realChat,
+                    lastMessage: newMsg.content,
+                    time:        newMsg.timestamp,
+                    unread:      msg.fromMe ? realChat.unread : realChat.unread + 1,
+                  },
+                  ...prev.filter(c => c.id !== realId),
+                ];
+              });
+            })
+            .catch(() => {});
+        }
       } catch {}
     };
   };
