@@ -156,7 +156,10 @@ export function Users() {
         const oldProfile = profiles.find(p => p.id === editingId);
         const goingInactive = formData.status === 'inactive' && oldProfile?.status === 'active';
         // Only include email if it actually changed — avoids slow auth API call on every edit
-        const updateData = formEmail !== oldProfile?.email ? { ...restData, email: formEmail } : restData;
+        const updateData: any = formEmail !== oldProfile?.email ? { ...restData, email: formEmail } : { ...restData };
+        if (password) {
+          updateData.password = password;
+        }
 
         await updateProfile(editingId, updateData);
 
@@ -418,19 +421,17 @@ export function Users() {
                   />
                 </div>
 
-                {!editingId && (
-                  <div className="space-y-1.5 md:col-span-2">
-                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Senha</label>
-                    <input
-                      required
-                      type="password"
-                      value={formData.password}
-                      onChange={(e) => setFormData({...formData, password: e.target.value})}
-                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 dark:text-slate-300"
-                      placeholder="Senha segura"
-                    />
-                  </div>
-                )}
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Senha</label>
+                  <input
+                    required={!editingId}
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({...formData, password: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-slate-700 dark:text-slate-300"
+                    placeholder={editingId ? "Deixe em branco para não alterar" : "Senha segura"}
+                  />
+                </div>
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Departamento</label>
