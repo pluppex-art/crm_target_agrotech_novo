@@ -37,8 +37,28 @@ export const useAuthStore = create<AuthState>((set) => ({
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.error || 'Erro ao enviar e-mail de recuperação.');
+        const details = (data as any)?.details;
+        const status = (data as any)?.status;
+        const message = (data as any)?.message;
+
+        const detailStr = details
+          ? typeof details === 'string'
+            ? details
+            : JSON.stringify(details)
+          : undefined;
+
+        throw new Error(
+          [
+            data.error || 'Erro ao enviar e-mail de recuperação.',
+            status ? `HTTP ${status}` : null,
+            message ? `Resend: ${message}` : null,
+            detailStr ? `Details: ${detailStr}` : null,
+          ]
+            .filter(Boolean)
+            .join(' | ')
+        );
       }
+
       
       if (data.debugLink) {
         console.log('DEBUG: Link de recuperação gerado:', data.debugLink);

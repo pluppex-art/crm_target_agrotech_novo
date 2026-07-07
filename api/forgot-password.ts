@@ -79,10 +79,16 @@ export default async function handler(req: any, res: any) {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Resend Error:', errorData);
-      return res.status(400).json({ error: 'Erro ao enviar e-mail via Resend.' });
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Resend Error:', { status: response.status, errorData });
+      return res.status(response.status).json({
+        error: 'Erro ao enviar e-mail via Resend.',
+        status: response.status,
+        details: errorData,
+        message: errorData?.message || errorData?.error || undefined,
+      });
     }
+
 
     return res.status(200).json({ success: true, debugLink: recoveryLink });
   } catch (error: any) {
