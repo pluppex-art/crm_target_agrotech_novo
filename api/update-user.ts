@@ -5,10 +5,22 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { id, email, password, name } = req.body;
+  const body = req.body ?? {};
+  const { id, email, password, name } = body;
 
   if (!id) {
     return res.status(400).json({ error: 'id é obrigatório.' });
+  }
+
+  // Evita aceitar payloads claramente inválidos
+  if (password !== undefined && password !== null && typeof password !== 'string') {
+    return res.status(400).json({ error: 'password deve ser uma string.' });
+  }
+  if (email !== undefined && email !== null && typeof email !== 'string') {
+    return res.status(400).json({ error: 'email deve ser uma string.' });
+  }
+  if (name !== undefined && name !== null && typeof name !== 'string') {
+    return res.status(400).json({ error: 'name deve ser uma string.' });
   }
 
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -22,16 +34,47 @@ export default async function handler(req: any, res: any) {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
+  // Monta attrs com cuidado. Não incluímos campos quando não vierem.
   const attrs: Record<string, any> = {};
-  if (email) { attrs.email = email; attrs.email_confirm = true; }
-  if (password) attrs.password = password;
-  if (name !== undefined) attrs.user_metadata = { name };
+  if (email) {
+    attrs.email = email;
+    attrs.email_confirm = true;
+  }
+  if (password) {
+    // Observação: Supabase valida senha (tamanho/regras)
+    attrs.password = password;
+  }
+  if (name !== undefined) {
+    attrs.user_metadata = { name };
+  }
+
+  // Logs sanitizados para debugar 400s sem expor password
+  console.log('[api/update-user] payload', {
+    id,
+    hasEmail: Boolean(email),
+    hasPassword: Boolean(password),
+    nameProvided: name !== undefined,
+  });
 
   const { error } = await supabaseAdmin.auth.admin.updateUserById(id, attrs);
 
   if (error) {
-    return res.status(400).json({ error: error.message });
+    console.error('[api/update-user] supabase error', {
+      message: error.message,
+      // Supabase errors podem ter status/code; quando existir, ajuda no diagnóstico
+      status: (error as any)?.status,
+      code: (error as any)?.code,
+    });
+
+    return res.status(400).json({
+      error: error.message,
+      details: {
+        status: (error as any)?.status,
+        code: (error as any)?.code,
+      },
+    });
   }
 
   return res.status(200).json({ success: true });
 }
+
