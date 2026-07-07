@@ -89,14 +89,22 @@ export const profileService = {
     }
 
     // Update auth user email/password via API (with timeout to prevent modal hanging)
-    if (email || password) {
+    // Regra: se password vier vazio/whitespace, não envia password.
+    const trimmedPassword = typeof password === 'string' ? password.trim() : password;
+    const shouldUpdatePassword = typeof trimmedPassword === 'string' && trimmedPassword.length > 0;
+
+    if (email || shouldUpdatePassword) {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 8000);
         const resp = await fetch('/api/update-user', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, email, password }),
+          body: JSON.stringify({
+            id,
+            email,
+            password: shouldUpdatePassword ? trimmedPassword : undefined,
+          }),
           signal: controller.signal,
         });
         clearTimeout(timeoutId);
@@ -108,6 +116,7 @@ export const profileService = {
         console.warn('Auth update via API failed (network/timeout):', err);
       }
     }
+
 
     return { data: normaliseProfile(data), error: null };
   },
