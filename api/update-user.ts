@@ -42,19 +42,22 @@ export default async function handler(req: any, res: any) {
   }
 
   // Evita 400 do Supabase por senha curta
+  // Se password vier vazia/null/undefined: não atualiza.
+  // Se vier menor que 6: falha cedo.
   if (password !== undefined && password !== null) {
     const pwd = typeof password === 'string' ? password : '';
     if (!pwd) {
-      // se veio vazio, não atualiza password
-    } else if (pwd.length < 6) {
+      // não atualiza password
+    } else if (pwd.trim().length < 6) {
       return res.status(400).json({
         error: 'password deve ter pelo menos 6 caracteres.',
         details: { minLength: 6 },
       });
     } else {
-      attrs.password = pwd;
+      attrs.password = pwd.trim();
     }
   }
+
 
   if (name !== undefined) {
     attrs.user_metadata = { name };
