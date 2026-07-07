@@ -45,18 +45,19 @@ export default async function handler(req: any, res: any) {
   // Se password vier vazia/null/undefined: não atualiza.
   // Se vier menor que 6: falha cedo.
   if (password !== undefined && password !== null) {
-    const pwd = typeof password === 'string' ? password : '';
+    const pwd = typeof password === 'string' ? password.trim() : '';
     if (!pwd) {
       // não atualiza password
-    } else if (pwd.trim().length < 6) {
+    } else if (pwd.length < 6) {
       return res.status(400).json({
         error: 'password deve ter pelo menos 6 caracteres.',
         details: { minLength: 6 },
       });
     } else {
-      attrs.password = pwd.trim();
+      attrs.password = pwd;
     }
   }
+
 
 
   if (name !== undefined) {
