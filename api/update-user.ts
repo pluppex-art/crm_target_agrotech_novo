@@ -36,10 +36,12 @@ export default async function handler(req: any, res: any) {
 
   // Monta attrs com cuidado. Não incluímos campos quando não vierem.
   const attrs: Record<string, any> = {};
-  if (email) {
+
+  if (email !== undefined && email !== null && email !== '') {
     attrs.email = email;
     attrs.email_confirm = true;
   }
+
 
   // Evita 400 do Supabase por senha curta
   // Se password vier vazia/null/undefined: não atualiza.
