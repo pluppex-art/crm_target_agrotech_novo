@@ -40,13 +40,26 @@ export default async function handler(req: any, res: any) {
     attrs.email = email;
     attrs.email_confirm = true;
   }
-  if (password) {
-    // Observação: Supabase valida senha (tamanho/regras)
-    attrs.password = password;
+
+  // Evita 400 do Supabase por senha curta
+  if (password !== undefined && password !== null) {
+    const pwd = typeof password === 'string' ? password : '';
+    if (!pwd) {
+      // se veio vazio, não atualiza password
+    } else if (pwd.length < 6) {
+      return res.status(400).json({
+        error: 'password deve ter pelo menos 6 caracteres.',
+        details: { minLength: 6 },
+      });
+    } else {
+      attrs.password = pwd;
+    }
   }
+
   if (name !== undefined) {
     attrs.user_metadata = { name };
   }
+
 
   // Logs sanitizados para debugar 400s sem expor password
   console.log('[api/update-user] payload', {
