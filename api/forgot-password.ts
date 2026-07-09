@@ -35,11 +35,25 @@ export default async function handler(req: any, res: any) {
     options: { redirectTo: `https://crm.targetagrotech.com.br/reset-password` },
   });
 
+  // Importante: não expor detalhes do erro (para segurança)
+  // Além disso, quando houver falha ao gerar o link (ex.: e-mail inválido/ não entregue),
+  // a gente ainda responde success para que o usuário entenda que pode tentar novamente.
   if (linkError) {
-    if (linkError.message.includes('User with this email not found')) {
+    // caso: e-mail não existe
+    if (linkError.message?.includes('User with this email not found')) {
       return res.status(200).json({ success: true, message: 'Se o e-mail existir, você receberá as instruções.' });
     }
-    return res.status(400).json({ error: linkError.message });
+
+    // caso geral: não falhar o fluxo do usuário
+    console.error('[forgot-password] generateLink error:', {
+      message: linkError.message,
+      code: (linkError as any)?.code,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Se o e-mail estiver cadastrado, você receberá as instruções.'
+    });
   }
 
   const recoveryLink = data?.properties?.action_link;

@@ -116,19 +116,20 @@ export function calcSalesByResponsible(
     const inWinRange = (!start || cWinDate >= start) && (!end || cWinDate <= end);
 
     const isStrictlyWon = (l: any) => {
-      // A regra anterior exigia won_at preenchido.
-      // Porém alguns fluxos marcariam o lead como “Ganho/fechado” sem preencher won_at.
-      // Para não perder pontuação, usamos um fallback de data ao contar o lead no período.
+      // Regra para “ganho no período”:
+      // - Se existir won_at, ele é a fonte da verdade.
+      // - Se não existir won_at, NÃO vamos usar updated_at/created_at como fallback,
+      //   pois isso pode recontar leads que foram marcados como ganho/fechado
+      //   fora do período (bug que você está vendo no mês atual).
+      //   Nesse caso, o lead só conta quando houver won_at.
 
       const closedLike = stageNameToStatus(l.status ?? '') === 'closed' ||
         (l.stage_id && pipelines.some(p => p.stages.some(s => s.id === l.stage_id && stageNameToStatus(s.name) === 'closed')));
 
       if (!closedLike) return false;
+      if (!l.won_at) return false;
 
-      const baseDate = l.won_at
-        ? new Date(l.won_at)
-        : (l.updated_at ? new Date(l.updated_at) : new Date(l.created_at));
-
+      const baseDate = new Date(l.won_at);
       if (Number.isNaN(baseDate.getTime())) return false;
 
       return (!start || baseDate >= start) && (!end || baseDate <= end);
