@@ -127,16 +127,18 @@ export function calcSalesByResponsible(
       const tInfo = leadToTurma[l.id];
 
       // Data base do “ganho” no mês:
-      // - preferir won_at
-      // - se won_at não existir, NÃO usar fallback: só conta se existir tInfo.date
-      //   (mantém exatamente a regra “sem fallback” que você pediu)
-      if (!l.won_at) {
+      // - se won_at existir: usa won_at
+      // - se won_at não existir: só conta se existir tInfo.date
+      if (l.won_at) {
+        // ok
+      } else {
         if (tInfo?.date == null) return false;
       }
 
       const baseDate = l.won_at
         ? new Date(l.won_at as any)
         : new Date(`${tInfo.date as any}T12:00:00`);
+
 
       if (Number.isNaN(baseDate.getTime())) return false;
 
