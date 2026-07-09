@@ -164,11 +164,15 @@ export function calcSalesByResponsible(
     // Data de referência para receita:
     // - Turma concluída: tInfo.date (data da turma é autoritativa — paid_at é auto-timestamp de entrada)
     // - Ganho ativo: won_at (quando o lead foi ganho — único timestamp confiável para ganhos sem turma)
+    // Para evitar contabilizar “turmas já passadas” fora do período do mês,
+    // a receita monetária deve usar o mesmo critério de “ganho no período”:
+    // - se houver turma concluída mapeada, usa tInfo.date
+    // - senão, usa won_at e faz fallback para updated_at/created_at (apenas para closed sem won_at)
     const revenueDate = (isConcluStage && tInfo?.date)
       ? new Date(`${tInfo.date}T12:00:00`)
       : l.won_at
         ? new Date(l.won_at)
-        : null;
+        : (l.updated_at ? new Date(l.updated_at) : new Date(l.created_at));
 
     if (!revenueDate) return;
     const inRevenueRange = (!start || revenueDate >= start) && (!end || revenueDate <= end);

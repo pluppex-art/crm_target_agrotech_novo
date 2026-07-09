@@ -98,12 +98,11 @@ export const profileService = {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-        const payload: any = {
-          id,
-          // só manda email se vier realmente preenchido
-          ...(email ? { email } : {}),
-          password: shouldUpdatePassword ? trimmedPassword : undefined,
-        };
+        // Payload: não enviar password: undefined. Isso evita que o endpoint
+        // trate como “presente” e não atualize corretamente em alguns casos.
+        const payload: any = { id };
+        if (email) payload.email = email;
+        if (shouldUpdatePassword) payload.password = trimmedPassword;
 
         const resp = await fetch('/api/update-user', {
           method: 'POST',
