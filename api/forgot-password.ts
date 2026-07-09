@@ -13,6 +13,14 @@ export default async function handler(req: any, res: any) {
   const accountEmail = emailAccount || req.body?.email;
   const receiveEmail = emailToReceive || req.body?.email;
 
+  console.log('[forgot-password] payload received', {
+    emailAccount,
+    emailToReceive,
+    accountEmail,
+    receiveEmail,
+  });
+
+
 
   if (!emailAccount) {
     return res.status(400).json({ error: 'E-mail da conta é obrigatório.' });
