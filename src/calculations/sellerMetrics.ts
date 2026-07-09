@@ -124,26 +124,26 @@ export function calcSalesByResponsible(
         (l.stage_id && pipelines.some(p => p.stages.some(s => s.id === l.stage_id && stageNameToStatus(s.name) === 'closed')));
 
       if (!closedLike) return false;
-      if (!l.won_at) return false;
+      const tInfo = leadToTurma[l.id];
 
-      const baseDate = new Date(l.won_at);
+      // Data base do “ganho” no mês:
+      // - preferir won_at
+      // - se won_at não existir, permitir contar pela data da turma (tInfo.date)
+      const baseDate = l.won_at
+        ? new Date(l.won_at as any)
+        : (tInfo?.date != null ? new Date(`${tInfo.date as any}T12:00:00`) : null);
+
+      if (!baseDate) return false;
       if (Number.isNaN(baseDate.getTime())) return false;
+
+      // ignora turmas futuras quando existir turma mapeada
+      if (tInfo?.date != null) {
+        const tDate = new Date(`${tInfo.date as any}T12:00:00`);
+        if (tDate > new Date()) return false;
+      }
 
       const inWonRange = (!start || baseDate >= start) && (!end || baseDate <= end);
       if (!inWonRange) return false;
-
-      const tInfo = leadToTurma[l.id];
-      if (tInfo?.date != null) {
-        const tDate = new Date(`${tInfo.date as any}T12:00:00`);
-
-
-        // ignora turmas futuras
-        if (tDate > new Date()) return false;
-
-        // turmas só contam se estiverem no mesmo mês/período do filtro
-        const inTurmaRange = (!start || tDate >= start) && (!end || tDate <= end);
-        if (!inTurmaRange) return false;
-      }
 
       return true;
     };
