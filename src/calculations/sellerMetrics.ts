@@ -116,13 +116,10 @@ export function calcSalesByResponsible(
     const inWinRange = (!start || cWinDate >= start) && (!end || cWinDate <= end);
 
     const isStrictlyWon = (l: any) => {
-      // Regra para “ganho no período”:
-      // - Se existir won_at, ele é a fonte da verdade.
-      // - Se não existir won_at, NÃO vamos usar updated_at/created_at como fallback,
-      //   pois isso pode recontar leads que foram marcados como ganho/fechado
-      //   fora do período (bug que você está vendo no mês atual).
-      //   Nesse caso, o lead só conta quando houver won_at.
-
+      // Conta “ganho” no ranking pelo mês do lead (won_at),
+      // e quando existir turma mapeada (leadToTurma), também valida tInfo.date:
+      // - turmas futuras não entram
+      // - turmas passadas/ocorridas entram conforme o filtro do mês
       const closedLike = stageNameToStatus(l.status ?? '') === 'closed' ||
         (l.stage_id && pipelines.some(p => p.stages.some(s => s.id === l.stage_id && stageNameToStatus(s.name) === 'closed')));
 
@@ -132,18 +129,35 @@ export function calcSalesByResponsible(
       const baseDate = new Date(l.won_at);
       if (Number.isNaN(baseDate.getTime())) return false;
 
-      return (!start || baseDate >= start) && (!end || baseDate <= end);
+      const inWonRange = (!start || baseDate >= start) && (!end || baseDate <= end);
+      if (!inWonRange) return false;
+
+      const tInfo = leadToTurma[l.id];
+      if (tInfo?.date != null) {
+        const tDate = new Date(`${tInfo.date as any}T12:00:00`);
+
+
+        // ignora turmas futuras
+        if (tDate > new Date()) return false;
+
+        // turmas só contam se estiverem no mesmo mês/período do filtro
+        const inTurmaRange = (!start || tDate >= start) && (!end || tDate <= end);
+        if (!inTurmaRange) return false;
+      }
+
+      return true;
     };
 
     if (isStrictlyWon(l)) {
       result[rawKey].count += 1;
       result[rawKey].value += getLeadEffectiveValue(l as any);
-      
+
+      // Data exibida do “ganho”
       const prod = products.find(p => l.product_id ? p.id === l.product_id : (p.id === l.product || p.name === l.product));
       const productName = prod ? prod.name : l.product;
-      const wDate = new Date(l.won_at || l.created_at);
+      const wDate = new Date(l.won_at as any);
       const formattedWonAt = wDate.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-      
+
       result[rawKey].leads.push({ ...l, productName, formattedWonAt });
     }
 
@@ -174,6 +188,13 @@ export function calcSalesByResponsible(
       : l.won_at
         ? new Date(l.won_at)
         : (l.updated_at ? new Date(l.updated_at) : new Date(l.created_at));
+
+    // regra: turmas futuras não entram no cálculo
+    if (isConcluStage && tInfo?.date) {
+      const tDate = new Date(`${tInfo.date}T12:00:00`);
+      if (tDate > new Date()) return;
+    }
+
 
     if (!revenueDate) return;
     const inRevenueRange = (!start || revenueDate >= start) && (!end || revenueDate <= end);

@@ -5,7 +5,9 @@ import { Mail, Loader2, AlertCircle, ArrowLeft, CheckCircle, Info } from 'lucide
 import { useAuthStore } from '../store/useAuthStore';
 
 export function ForgotPassword() {
-  const [email, setEmail] = useState('');
+  const [emailAccount, setEmailAccount] = useState('');
+  const [emailToReceive, setEmailToReceive] = useState('');
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -22,7 +24,8 @@ export function ForgotPassword() {
     setIsSandbox(false);
 
     try {
-      const result = await resetPassword(email);
+      const result = await resetPassword({ emailAccount, emailToReceive });
+
       if (result.error) throw result.error;
       if (result.debugLink) setDebugLink(result.debugLink);
       if (result.isSandbox) setIsSandbox(true);
@@ -53,6 +56,7 @@ export function ForgotPassword() {
             </div>
             <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-200 text-center">Recuperar Senha</h1>
             <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium text-center">Enviaremos um link para redefinir sua senha</p>
+
           </div>
 
           {success ? (
@@ -135,20 +139,38 @@ export function ForgotPassword() {
                 </div>
               )}
 
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">E-mail</label>
-                <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <input 
-                    required
-                    type="email" 
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl py-3.5 pl-12 pr-4 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all text-slate-700 dark:text-slate-300 font-medium"
-                    placeholder="seu@email.com"
-                  />
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">E-mail da conta</label>
+                  <div className="relative">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <input 
+                      required
+                      type="email" 
+                      value={emailAccount}
+                      onChange={(e) => setEmailAccount(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl py-3.5 pl-12 pr-4 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all text-slate-700 dark:text-slate-300 font-medium"
+                      placeholder="seu@email.com"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">E-mail para receber</label>
+                  <div className="relative">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <input 
+                      required
+                      type="email" 
+                      value={emailToReceive}
+                      onChange={(e) => setEmailToReceive(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl py-3.5 pl-12 pr-4 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all text-slate-700 dark:text-slate-300 font-medium"
+                      placeholder="para receber o link"
+                    />
+                  </div>
                 </div>
               </div>
+
 
               <button 
                 type="submit"

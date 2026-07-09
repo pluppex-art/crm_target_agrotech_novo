@@ -1,21 +1,12 @@
-# TODO - Fix Dashboard Leads Count / Gráficos Zerados
+# TODO - Esqueci Senha (email alternativo)
 
-## Passo 1 — Depurar origem da contagem
-- [ ] Validar no front (useSalesMetrics) se `leads` carregados em `useLeadStore` está correto.
-- [ ] Adicionar logs/indicadores internos (somente dev) para comparar:
-  - `leads.length`
-  - `filteredLeads.length`
-  - contagens por estágio/status excluídos.
+- [x] Atualizar `api/forgot-password.ts` para aceitar `emailAccount` e `emailToReceive` e enviar o e-mail para `emailToReceive`.
+- [x] Atualizar `src/store/useAuthStore.ts` para chamar `/api/forgot-password` passando ambos os emails.
+- [x] Atualizar `src/pages/ForgotPassword.tsx` para adicionar 2 campos (conta e destino) e enviar para o store.
+- [x] Rodar build/TypeScript para validar.
 
-## Passo 2 — Corrigir KPI “Total de Leads” e gráficos
-- [x] Alterar `useSalesMetrics` para que `leadsCount` (KPI) passe a ser a contagem de **todos os leads cadastrados** (opção A).
-- [ ] Garantir que o “funil/pipeline/tendências” usem `leads`/`filteredLeads` corretamente sem ficar zerando por exclusões.
+(Concluído.)
 
 
-## Passo 3 — Validar build e evitar regressões
-- [ ] Rodar `npm run build`.
-- [ ] Confirmar que “Total de Leads” mostra ~1300.
 
-## Passo 4 — Se ainda zerar, corrigir fetch do Supabase
-- [ ] Revisar `supabaseService.getLeads` e `useLeadStore.fetchLeads` para remover filtros indevidos.
 

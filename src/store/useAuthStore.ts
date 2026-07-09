@@ -8,7 +8,8 @@ interface AuthState {
   initialized: boolean;
   setUser: (user: User | null) => void;
   signOut: () => Promise<void>;
-  resetPassword: (email: string) => Promise<{ error: any; debugLink?: string; message?: string; isSandbox?: boolean }>;
+  resetPassword: (payload: { emailAccount: string; emailToReceive: string }) => Promise<{ error: any; debugLink?: string; message?: string; isSandbox?: boolean }>;
+
   initialize: () => Promise<void>;
 }
 
@@ -24,14 +25,17 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ user: null });
   },
 
-  resetPassword: async (email: string) => {
-    console.log('Iniciando recuperação de senha para:', email);
+  resetPassword: async (payload: { emailAccount: string; emailToReceive: string }) => {
+    const { emailAccount, emailToReceive } = payload;
+    console.log('Iniciando recuperação de senha para:', emailAccount, 'enviar para:', emailToReceive);
+
     
     try {
       const response = await fetch('/api/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ emailAccount, emailToReceive }),
+
       });
 
       const data = await response.json();

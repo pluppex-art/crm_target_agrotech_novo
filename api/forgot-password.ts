@@ -6,11 +6,22 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { email } = req.body;
+  const { emailAccount, emailToReceive } = req.body;
 
-  if (!email) {
-    return res.status(400).json({ error: 'E-mail é obrigatório.' });
+  // mantém compatibilidade: se alguém ainda enviar apenas { email }
+  // (caso exista deploy anterior do front), fallback evita quebra total.
+  const accountEmail = emailAccount || req.body?.email;
+  const receiveEmail = emailToReceive || req.body?.email;
+
+
+  if (!emailAccount) {
+    return res.status(400).json({ error: 'E-mail da conta é obrigatório.' });
   }
+
+  if (!emailToReceive) {
+    return res.status(400).json({ error: 'E-mail para receber é obrigatório.' });
+  }
+
 
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -31,9 +42,10 @@ export default async function handler(req: any, res: any) {
 
   const { data, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
     type: 'recovery',
-    email,
+    email: accountEmail,
     options: { redirectTo: `https://crm.targetagrotech.com.br/reset-password` },
   });
+
 
   // Importante: não expor detalhes do erro (para segurança)
   // Além disso, quando houver falha ao gerar o link (ex.: e-mail inválido/ não entregue),
@@ -45,10 +57,12 @@ export default async function handler(req: any, res: any) {
     }
 
     // caso geral: não falhar o fluxo do usuário
-    console.error('[forgot-password] generateLink error:', {
-      message: linkError.message,
-      code: (linkError as any)?.code,
-    });
+      console.error('[forgot-password] generateLink error:', {
+      	message: linkError.message,
+      	code: (linkError as any)?.code,
+      	accountEmail,
+      });
+
 
     return res.status(200).json({
       success: true,
@@ -71,7 +85,8 @@ export default async function handler(req: any, res: any) {
       },
       body: JSON.stringify({
         from: "Target Agrotech <crm@notificacoes.targetagrotech.com.br>",
-        to: [email],
+        to: [receiveEmail],
+
         subject: 'Recuperação de Senha - Target Agrotech',
         html: `
           <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px;border:1px solid #e2e8f0;border-radius:16px;">
