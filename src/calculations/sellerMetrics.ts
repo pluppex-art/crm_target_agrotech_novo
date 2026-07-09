@@ -128,15 +128,19 @@ export function calcSalesByResponsible(
 
       // Data base do “ganho” no mês:
       // - preferir won_at
-      // - se won_at não existir, permitir contar pela data da turma (tInfo.date)
+      // - se won_at não existir, NÃO usar fallback: só conta se existir tInfo.date
+      //   (mantém exatamente a regra “sem fallback” que você pediu)
+      if (!l.won_at) {
+        if (tInfo?.date == null) return false;
+      }
+
       const baseDate = l.won_at
         ? new Date(l.won_at as any)
-        : (tInfo?.date != null ? new Date(`${tInfo.date as any}T12:00:00`) : null);
+        : new Date(`${tInfo.date as any}T12:00:00`);
 
-      if (!baseDate) return false;
       if (Number.isNaN(baseDate.getTime())) return false;
 
-      // ignora turmas futuras quando existir turma mapeada
+      // ignora turmas futuras
       if (tInfo?.date != null) {
         const tDate = new Date(`${tInfo.date as any}T12:00:00`);
         if (tDate > new Date()) return false;
