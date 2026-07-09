@@ -43,10 +43,18 @@ export function Login() {
         passwordLength: normalizedPassword.length,
       });
 
-      const { error } = await supabase.auth.signInWithPassword({
+      const result = await supabase.auth.signInWithPassword({
         email: normalizedEmail,
         password: normalizedPassword,
       });
+
+      console.log('[login] signInWithPassword result', {
+        error: (result as any)?.error,
+        dataUserId: (result as any)?.data?.user?.id,
+      });
+
+      const { error } = result;
+
 
 
       if (error) throw error;
