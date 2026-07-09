@@ -35,16 +35,20 @@ export default async function handler(req: any, res: any) {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
+  // origem real do request (ex.: seu domínio), para garantir que o link volte para o site correto
   let origin = req.headers.origin || req.headers.referer || process.env.APP_URL || 'https://crm.targetagrotech.com.br';
-  if (origin.endsWith('/')) origin = origin.slice(0, -1);
-  if (origin.includes('/forgot-password')) origin = origin.split('/forgot-password')[0];
-  if (origin.includes('/login')) origin = origin.split('/login')[0];
+  if (typeof origin === 'string' && origin.endsWith('/')) origin = origin.slice(0, -1);
+  if (typeof origin === 'string' && origin.includes('/forgot-password')) origin = origin.split('/forgot-password')[0];
+  if (typeof origin === 'string' && origin.includes('/login')) origin = origin.split('/login')[0];
+
+  const redirectTo = `${origin}/reset-password`;
 
   const { data, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
     type: 'recovery',
     email: accountEmail,
-    options: { redirectTo: `https://crm.targetagrotech.com.br/reset-password` },
+    options: { redirectTo },
   });
+
 
 
   // Importante: não expor detalhes do erro (para segurança)
