@@ -81,6 +81,13 @@ export default async function handler(req: any, res: any) {
 
   // Use Resend API via fetch
   try {
+    console.log('[forgot-password] sending via Resend', {
+      to: receiveEmail,
+      subject: 'Recuperação de Senha - Target Agrotech',
+      accountEmail,
+      redirectTo,
+    });
+
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -111,17 +118,22 @@ export default async function handler(req: any, res: any) {
       })
     });
 
+    const resendBody = await response.json().catch(() => null);
+
+    console.log('[forgot-password] Resend response', {
+      ok: response.ok,
+      status: response.status,
+      resendBody,
+    });
+
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('Resend Error:', { status: response.status, errorData });
       return res.status(response.status).json({
         error: 'Erro ao enviar e-mail via Resend.',
         status: response.status,
-        details: errorData,
-        message: errorData?.message || errorData?.error || undefined,
+        details: resendBody,
+        message: (resendBody as any)?.message || (resendBody as any)?.error || undefined,
       });
     }
-
 
     return res.status(200).json({ success: true, debugLink: recoveryLink });
   } catch (error: any) {
