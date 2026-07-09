@@ -22,11 +22,32 @@ export function Login() {
     setLoading(true);
     setError(null);
 
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedPassword = password; // senha deve ser preservada (case-sensitive)
+
+    if (!normalizedEmail) {
+      setError('E-mail inválido.');
+      setLoading(false);
+      return;
+    }
+
+    if (!normalizedPassword) {
+      setError('Senha inválida.');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      console.log('[login] signInWithPassword payload', {
+        email: normalizedEmail,
+        passwordLength: normalizedPassword.length,
       });
+
+      const { error } = await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password: normalizedPassword,
+      });
+
 
       if (error) throw error;
       navigate('/');
