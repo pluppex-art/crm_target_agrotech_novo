@@ -128,25 +128,18 @@ export function calcSalesByResponsible(
 
       // Data base do “ganho” no mês:
       // - se won_at existir: usa won_at
-      // - se won_at não existir: só conta se existir tInfo.date
-      if (l.won_at) {
-        // ok
-      } else {
-        if (tInfo?.date == null) return false;
+      // - se won_at não existir: conta como ganho (sem considerar a data da turma)
+      //   (a data do mês vem do won_at quando existir)
+      if (!l.won_at) {
+        // mesmo sem won_at, entra no ranking (sem olhar tInfo.date)
       }
 
       const baseDate = l.won_at
         ? new Date(l.won_at as any)
-        : new Date(`${tInfo.date as any}T12:00:00`);
-
+        : new Date(l.created_at);
 
       if (Number.isNaN(baseDate.getTime())) return false;
 
-      // ignora turmas futuras
-      if (tInfo?.date != null) {
-        const tDate = new Date(`${tInfo.date as any}T12:00:00`);
-        if (tDate > new Date()) return false;
-      }
 
       const inWonRange = (!start || baseDate >= start) && (!end || baseDate <= end);
       if (!inWonRange) return false;
