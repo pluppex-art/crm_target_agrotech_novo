@@ -33,15 +33,13 @@ export function getSupabaseClient(): SupabaseClient<Database> {
   return supabase;
 }
 
-const supabaseServiceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY as string | undefined;
-
-/** Client com service role key para operações admin (createUser, deleteUser). */
-export const supabaseAdmin: SupabaseClient<Database> = createClient<Database>(
-  supabaseUrl,
-  supabaseServiceRoleKey ?? supabaseAnonKey,
-  { auth: { autoRefreshToken: false, persistSession: false } }
-);
+// ATENÇÃO:
+// Evitar criar client com service role key no browser.
+// Isso pode causar múltiplas instâncias do auth (GoTrue) e gerar comportamentos inesperados.
+//
+// Operações admin devem ser feitas via endpoints do server (ex.: /api/create-user, /api/update-user etc).
 
 export function getServiceSupabaseClient(): SupabaseClient<Database> {
-  return supabaseAdmin;
+  throw new Error('getServiceSupabaseClient() não deve ser usado no browser. Use endpoints /api server-side.');
 }
+
