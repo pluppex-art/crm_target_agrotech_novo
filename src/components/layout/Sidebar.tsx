@@ -22,19 +22,50 @@ import { useEffect } from 'react';
 import { cn } from '../../lib/utils';
 import { NavLink } from 'react-router-dom';
 
-const menuItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/', permission: 'dashboard.view' },
-  { icon: Kanban, label: 'Pipeline', path: '/pipeline', permission: 'pipeline.view' },
-  { icon: Clock, label: 'Horário de Ponto', path: '/ponto' },
-  { icon: DollarSign, label: 'Financeiro', path: '/finance', permission: 'finance.view' },
-  { icon: MessageSquare, label: 'AI Sales Chat', path: '/ai-chat', permission: 'ai-chat.view' },
-  { icon: FileText, label: 'Contratos', path: '/contracts', permission: 'contracts.view' },
-  { icon: Package, label: 'Produtos', path: '/products', permission: 'products.view' },
-  { icon: Megaphone, label: 'Marketing', path: '/marketing', permission: 'marketing.view' },
-  { icon: Calendar, label: 'Tarefas', path: '/tasks', permission: 'tasks.view' },
-  { icon: GraduationCap, label: 'Turmas', path: '/turmas', permission: 'turmas.view' },
-  { icon: BarChart2, label: 'Relatórios', path: '/reports', permission: 'dashboard.view' },
-  { icon: Bell, label: 'Notificações', path: '/notifications' },
+// Menu agrupado por categorias para organizar a sidebar. Cada módulo pode
+// ter seu próprio Dashboard interno (ex.: Financeiro, Marketing) — por isso
+// o Dashboard geral da raiz é rotulado "Home", para não confundir com eles.
+const menuGroups = [
+  {
+    category: 'Geral',
+    items: [
+      { icon: LayoutDashboard, label: 'Home', path: '/', permission: 'dashboard.view' },
+      { icon: Calendar, label: 'Tarefas', path: '/tasks', permission: 'tasks.view' },
+      { icon: Clock, label: 'Horário de Ponto', path: '/ponto' },
+      { icon: Bell, label: 'Notificações', path: '/notifications' },
+    ],
+  },
+  {
+    category: 'Comercial',
+    items: [
+      { icon: Kanban, label: 'Pipeline', path: '/pipeline', permission: 'pipeline.view' },
+      { icon: GraduationCap, label: 'Turmas', path: '/turmas', permission: 'turmas.view' },
+      { icon: Package, label: 'Produtos', path: '/products', permission: 'products.view' },
+      { icon: FileText, label: 'Contratos', path: '/contracts', permission: 'contracts.view' },
+      { icon: MessageSquare, label: 'AI Sales Chat', path: '/ai-chat', permission: 'ai-chat.view' },
+    ],
+  },
+  {
+    category: 'Marketing',
+    items: [
+      { icon: Megaphone, label: 'Marketing', path: '/marketing', permission: 'marketing.view' },
+    ],
+  },
+  {
+    category: 'Financeiro',
+    items: [
+      { icon: DollarSign, label: 'Financeiro', path: '/finance', permission: 'finance.view' },
+    ],
+  },
+  {
+    category: 'Análise',
+    items: [
+      { icon: BarChart2, label: 'Relatórios', path: '/reports', permission: 'dashboard.view' },
+    ],
+  },
+];
+
+const bottomItems = [
   { icon: Settings, label: 'Configurações', path: '/settings', permission: 'settings.view' },
 ];
 
@@ -63,11 +94,37 @@ export function Sidebar({ collapsed = false, onToggle, onClose, isOpen }: Sideba
     if (window.innerWidth < 1024 && onClose) onClose();
   };
 
-  const filteredMenuItems = menuItems.filter(item => {
+  const canSee = (item: { permission?: string }) => {
     if (isAdmin) return true;
     if (!item.permission) return true;
     return userPermissions.includes(item.permission);
-  });
+  };
+
+  const filteredMenuGroups = menuGroups
+    .map(group => ({ ...group, items: group.items.filter(canSee) }))
+    .filter(group => group.items.length > 0);
+
+  const filteredBottomItems = bottomItems.filter(canSee);
+
+  const renderNavLink = ({ icon: Icon, label, path }: { icon: typeof LayoutDashboard; label: string; path: string }) => (
+    <NavLink
+      key={path}
+      to={path}
+      end={path === '/'}
+      onClick={handleNavClick}
+      title={collapsed ? label : undefined}
+      className={({ isActive }) => cn(
+        "flex items-center rounded-xl px-3 h-12 text-sm font-medium transition-all duration-200 overflow-hidden border",
+        (collapsed && !isOpen) ? "justify-center" : "gap-3",
+        isActive
+          ? "bg-gradient-to-r from-emerald-500/10 to-emerald-600/10 text-emerald-700 dark:from-emerald-500/20 dark:to-emerald-600/20 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30 shadow-sm"
+          : "text-slate-600 dark:text-slate-400 border-transparent hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-800 hover:text-slate-900 dark:text-slate-100 dark:hover:text-slate-200 hover:border-slate-100 dark:border-slate-800 dark:hover:border-slate-700"
+      )}
+    >
+      <Icon aria-hidden="true" className="w-5 h-5 flex-shrink-0" />
+      {(!collapsed || isOpen) && <span className="truncate">{label}</span>}
+    </NavLink>
+  );
 
   return (
     <div className="flex flex-col h-full w-full bg-white dark:bg-slate-900 transition-colors duration-300">
@@ -126,30 +183,22 @@ export function Sidebar({ collapsed = false, onToggle, onClose, isOpen }: Sideba
       </header>
 
       {/* ── Navigation ─────────────────────────────────────── */}
-      <nav aria-label="Menu principal" className="flex-1 overflow-y-auto px-2 py-4 space-y-1">
-        {filteredMenuItems.map(({ icon: Icon, label, path }) => (
-          <NavLink
-            key={path}
-            to={path}
-            end={path === '/'}
-            onClick={handleNavClick}
-            title={collapsed ? label : undefined}
-            className={({ isActive }) => cn(
-              "flex items-center rounded-xl px-3 h-12 text-sm font-medium transition-all duration-200 overflow-hidden border",
-              (collapsed && !isOpen) ? "justify-center" : "gap-3",
-              isActive
-                ? "bg-gradient-to-r from-emerald-500/10 to-emerald-600/10 text-emerald-700 dark:from-emerald-500/20 dark:to-emerald-600/20 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30 shadow-sm"
-                : "text-slate-600 dark:text-slate-400 border-transparent hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-800 hover:text-slate-900 dark:text-slate-100 dark:hover:text-slate-200 hover:border-slate-100 dark:border-slate-800 dark:hover:border-slate-700"
+      <nav aria-label="Menu principal" className="flex-1 overflow-y-auto px-2 py-4 space-y-4">
+        {filteredMenuGroups.map(group => (
+          <div key={group.category} className="space-y-1">
+            {(!collapsed || isOpen) && (
+              <p className="px-3 pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                {group.category}
+              </p>
             )}
-          >
-            <Icon aria-hidden="true" className="w-5 h-5 flex-shrink-0" />
-            {(!collapsed || isOpen) && <span className="truncate">{label}</span>}
-          </NavLink>
+            {group.items.map(renderNavLink)}
+          </div>
         ))}
       </nav>
 
       {/* ── Footer ─────────────────────────────────────────── */}
-      <footer className="p-3 border-t border-slate-100 dark:border-slate-800 flex-shrink-0">
+      <footer className="p-3 border-t border-slate-100 dark:border-slate-800 flex-shrink-0 space-y-1">
+        {filteredBottomItems.map(renderNavLink)}
         <button
           type="button"
           onClick={signOut}

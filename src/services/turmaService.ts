@@ -344,9 +344,9 @@ export const turmaService = {
     };
   },
 
-  async update(id: string, turmaData: Partial<Omit<Turma, 'id' | 'attendees'>>): Promise<boolean> {
+  async update(id: string, turmaData: Partial<Omit<Turma, 'id' | 'attendees'>>): Promise<{ ok: boolean; error?: string }> {
     const supabase = getSupabaseClient();
-    if (!supabase) return false;
+    if (!supabase) return { ok: false, error: 'Conexão com o banco de dados indisponível.' };
 
     const sanitized: any = { ...turmaData };
 
@@ -363,7 +363,7 @@ export const turmaService = {
 
     if (error) {
       console.error('Error updating turma:', error);
-      return false;
+      return { ok: false, error: error.message };
     }
 
     if (turmaData.status === 'concluida') {
@@ -452,7 +452,7 @@ export const turmaService = {
       }
     }
 
-    return true;
+    return { ok: true };
   },
 
   async remove(id: string): Promise<boolean> {

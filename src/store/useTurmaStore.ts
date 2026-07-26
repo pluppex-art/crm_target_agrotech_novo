@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { turmaService, Turma, TurmaAttendee, AttendanceStatus } from '../services/turmaService';
 import { getSupabaseClient } from '../lib/supabase';
+import { useToastStore } from './useToastStore';
 
 export type { Turma, TurmaAttendee, AttendanceStatus };
 
@@ -45,13 +46,19 @@ export const useTurmaStore = create<TurmaState>((set, get) => ({
   },
 
   updateTurma: async (turmaId, turmaData) => {
-    const ok = await turmaService.update(turmaId, turmaData);
+    const { ok, error } = await turmaService.update(turmaId, turmaData);
     if (ok) {
       set((state) => ({
         turmas: state.turmas.map((t) =>
           t.id === turmaId ? { ...t, ...turmaData } : t
         ),
       }));
+    } else {
+      useToastStore.getState().show({
+        title: 'Não foi possível atualizar a turma',
+        message: error || 'Tente novamente ou contate o suporte.',
+        type: 'urgent',
+      });
     }
   },
 

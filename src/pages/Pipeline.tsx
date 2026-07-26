@@ -42,6 +42,21 @@ import { stageReasonService, type StageReason } from '../services/stageReasonSer
 
 
 
+const normalizeStageName = (name: string) =>
+  name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+
+// Trava: qualquer etapa posicionada depois de "Não Respondeu" exige que o lead
+// já tenha uma turma vinculada (ver useTurmaStore / leadToTurma).
+const stageRequiresTurma = (
+  stages: { name: string; position: number }[] | undefined,
+  targetStage: { name: string; position: number } | undefined
+) => {
+  if (!stages || !targetStage) return false;
+  const naoRespondeu = stages.find(s => normalizeStageName(s.name) === 'nao respondeu');
+  if (!naoRespondeu) return false;
+  return targetStage.position > naoRespondeu.position;
+};
+
 // ── Main component ────────────────────────────────────────────────────────────
 export const Pipeline: React.FC = () => {
   const { hasPermission } = usePermissions();
@@ -262,6 +277,12 @@ export const Pipeline: React.FC = () => {
     const targetStage = currentPipeline?.stages.find(s => s.id === newStageId);
     const stageLower = targetStage?.name.toLowerCase() ?? '';
     const isGanhoTarget = stageLower.includes('ganho') || stageLower.includes('fechado') || stageLower.includes('aprovado');
+
+    // Trava: exige turma vinculada para avançar além de "Não Respondeu"
+    if (stageRequiresTurma(currentPipeline?.stages, targetStage) && !leadToTurma[draggedLead.id]) {
+      alert(`Selecione uma turma para "${draggedLead.name}" antes de mover para a etapa "${targetStage?.name}".`);
+      return;
+    }
 
     // Validation for Ganho
     if (isGanhoTarget) {
@@ -486,7 +507,8 @@ export const Pipeline: React.FC = () => {
     [filters.filteredLeads, ganhoStageIds, leadToTurma, products, concluStageIds],
   );
 
-  // Filtra produtos para não mostrar os de Turmas já Concluídas nem genéricos no dropdown
+  // Filtra produtos para não mostrar os de Turmas Concluídas/Canceladas nem genéricos no dropdown.
+  // Produtos e turmas são o mesmo registro (tabela `turmas`), então basta olhar o próprio status.
   const GENERIC_TURMA_IDS_PIPELINE = new Set([
     'ebebde7b-76d8-4109-b68f-716759cbff4d',
     '6d9b472e-658d-4914-8a38-f424ed07d9fe',
@@ -496,15 +518,12 @@ export const Pipeline: React.FC = () => {
     '78a3189d-acc5-4fbc-8567-ff72851a1c94',
   ]);
   const activeProductsForFilter = useMemo(() => {
-    const concludedProductNames = new Set<string>();
-    turmas.forEach(t => {
-      if (t.status === 'concluida') {
-        concludedProductNames.add(t.name);
-      }
-    });
-
-    return products.filter(p => !concludedProductNames.has(p.name) && !GENERIC_TURMA_IDS_PIPELINE.has(p.id));
-  }, [products, turmas]);
+    return products.filter(p =>
+      p.status !== 'concluida' &&
+      p.status !== 'cancelada' &&
+      !GENERIC_TURMA_IDS_PIPELINE.has(p.id)
+    );
+  }, [products]);
 
   return (
     <div className="p-4 sm:p-6 space-y-4 bg-transparent flex-1 min-h-0 w-full flex flex-col overflow-hidden min-w-0 max-w-full">
@@ -731,6 +750,12 @@ export const Pipeline: React.FC = () => {
             const targetStage = currentPipeline?.stages.find(s => s.id === stageId);
             const stageLower = targetStage?.name.toLowerCase() ?? '';
             const isGanhoTarget = stageLower.includes('ganho') || stageLower.includes('fechado') || stageLower.includes('aprovado');
+
+            // Trava: exige turma vinculada para avançar além de "Não Respondeu"
+            if (stageRequiresTurma(currentPipeline?.stages, targetStage) && !leadToTurma[selectedLead.id]) {
+              alert(`Selecione uma turma para "${selectedLead.name}" antes de mover para a etapa "${targetStage?.name}".`);
+              return;
+            }
 
             if (isGanhoTarget) {
               const validation = checkGanhoRequirements(selectedLead);
