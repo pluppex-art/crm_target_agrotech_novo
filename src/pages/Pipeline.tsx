@@ -42,21 +42,6 @@ import { stageReasonService, type StageReason } from '../services/stageReasonSer
 
 
 
-const normalizeStageName = (name: string) =>
-  name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-
-// Trava: qualquer etapa posicionada depois de "Não Respondeu" exige que o lead
-// já tenha uma turma vinculada (ver useTurmaStore / leadToTurma).
-const stageRequiresTurma = (
-  stages: { name: string; position: number }[] | undefined,
-  targetStage: { name: string; position: number } | undefined
-) => {
-  if (!stages || !targetStage) return false;
-  const naoRespondeu = stages.find(s => normalizeStageName(s.name) === 'nao respondeu');
-  if (!naoRespondeu) return false;
-  return targetStage.position > naoRespondeu.position;
-};
-
 // ── Main component ────────────────────────────────────────────────────────────
 export const Pipeline: React.FC = () => {
   const { hasPermission } = usePermissions();
@@ -277,12 +262,6 @@ export const Pipeline: React.FC = () => {
     const targetStage = currentPipeline?.stages.find(s => s.id === newStageId);
     const stageLower = targetStage?.name.toLowerCase() ?? '';
     const isGanhoTarget = stageLower.includes('ganho') || stageLower.includes('fechado') || stageLower.includes('aprovado');
-
-    // Trava: exige turma vinculada para avançar além de "Não Respondeu"
-    if (stageRequiresTurma(currentPipeline?.stages, targetStage) && !leadToTurma[draggedLead.id]) {
-      alert(`Selecione uma turma para "${draggedLead.name}" antes de mover para a etapa "${targetStage?.name}".`);
-      return;
-    }
 
     // Validation for Ganho
     if (isGanhoTarget) {
@@ -750,12 +729,6 @@ export const Pipeline: React.FC = () => {
             const targetStage = currentPipeline?.stages.find(s => s.id === stageId);
             const stageLower = targetStage?.name.toLowerCase() ?? '';
             const isGanhoTarget = stageLower.includes('ganho') || stageLower.includes('fechado') || stageLower.includes('aprovado');
-
-            // Trava: exige turma vinculada para avançar além de "Não Respondeu"
-            if (stageRequiresTurma(currentPipeline?.stages, targetStage) && !leadToTurma[selectedLead.id]) {
-              alert(`Selecione uma turma para "${selectedLead.name}" antes de mover para a etapa "${targetStage?.name}".`);
-              return;
-            }
 
             if (isGanhoTarget) {
               const validation = checkGanhoRequirements(selectedLead);
