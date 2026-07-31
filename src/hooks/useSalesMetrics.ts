@@ -400,7 +400,7 @@ export function useSalesMetrics({
 
         if (isResultStage(stageName)) {
           // For result stages, only count if it happened this month
-          const date = new Date(l.updated_at || l.created_at);
+          const date = new Date(l.won_at || l.updated_at || l.created_at);
           if (date >= startOfMonth) {
             countMap[l.stage_id] = (countMap[l.stage_id] || 0) + 1;
           }
@@ -461,7 +461,7 @@ export function useSalesMetrics({
     });
     const isDaily = dateIntervals.length > 0 && dateIntervals[0].type === 'day';
     const grouped = closedLeads.reduce((acc: Record<string, number>, lead: any) => {
-      const dateStr = lead.last_contact_at || lead.created_at; if (!dateStr) return acc;
+      const dateStr = lead.won_at || lead.last_contact_at || lead.created_at; if (!dateStr) return acc;
       const d = new Date(dateStr);
       const key = isDaily ? `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}` : `${d.getFullYear()}-${d.getMonth()}`;
       acc[key] = (acc[key] || 0) + 1; return acc;

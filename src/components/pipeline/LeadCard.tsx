@@ -359,7 +359,11 @@ export function LeadCard({ lead, index: _index, onDoubleClick, columnId, isDragg
             SQUAD {squadInfo.name}
           </span>
         )}
-        {lead.created_at && (
+        {lead.won_at ? (
+          <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold tracking-wide">
+            Ganho em {new Date(lead.won_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })} às {new Date(lead.won_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+          </span>
+        ) : lead.created_at && (
           <span className="text-[9px] text-slate-400 font-medium tracking-wide opacity-60">
             Criado em {new Date(lead.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })} às {new Date(lead.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
           </span>

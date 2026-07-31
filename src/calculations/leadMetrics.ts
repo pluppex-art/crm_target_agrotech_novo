@@ -79,7 +79,7 @@ export function calcAverageSalesCycle(closedLeads: Lead[]): number {
   if (closedLeads.length === 0) return 0;
   const totalDays = closedLeads.reduce((sum, l) => {
     const created = new Date(l.created_at).getTime();
-    const updated = new Date(l.updated_at || l.created_at).getTime();
+    const updated = new Date(l.won_at || l.updated_at || l.created_at).getTime();
     const diffDays = Math.round((updated - created) / (1000 * 60 * 60 * 24));
     return sum + (diffDays === 0 ? 1 : diffDays);
   }, 0);

@@ -419,6 +419,12 @@ export const LeadInfoTab: React.FC<LeadInfoTabProps> = (props) => {
             <ReadField label="Closer" value={formData.responsible} />
             <ReadField label="Origem" value={sellerOriginLabel} />
             {ccName && <ReadField label="Centro de Custo" value={ccName} />}
+            {lead.won_at && (
+              <ReadField
+                label="Data de Ganho"
+                value={new Date(lead.won_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+              />
+            )}
             {formData.isPerdidoStage && formData.motivo_perda && (
               <ReadField label="Motivo da Perda" value={formData.motivo_perda} />
             )}
