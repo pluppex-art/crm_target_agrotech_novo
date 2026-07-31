@@ -329,102 +329,12 @@ export function TransferLeads() {
         </div>
       </div>
 
-      {/* Step 2 — Select destination closers */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-sm font-black uppercase tracking-widest text-slate-400">2. Destinos</h2>
-            <p className="text-xs text-slate-400 mt-0.5">Selecione um ou mais closers. Os leads serão divididos proporcionalmente.</p>
-          </div>
-          {toIds.size > 0 && (
-            <span className="px-2.5 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full text-xs font-black">
-              {toIds.size} selecionado(s)
-            </span>
-          )}
-        </div>
-
-        {/* Recipient search */}
-        <div className="relative mb-3">
-          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            value={recipientSearch}
-            onChange={e => setRecipientSearch(e.target.value)}
-            placeholder="Buscar closer..."
-            className="w-full pl-8 pr-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:border-emerald-500"
-          />
-        </div>
-
-        {/* Recipient list */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-60 overflow-y-auto custom-scrollbar pr-1">
-          {availableRecipients.length === 0 ? (
-            <p className="col-span-full text-sm text-slate-400 py-4 text-center">
-              {fromId ? 'Nenhum outro responsável disponível.' : 'Selecione a origem primeiro.'}
-            </p>
-          ) : (
-            availableRecipients.map(p => {
-              const isSelected = toIds.has(p.id);
-              const slice = distribution.find(d => d.id === p.id);
-              return (
-                <div
-                  key={p.id}
-                  onClick={() => toggleRecipient(p.id)}
-                  className={cn(
-                    'flex items-center gap-2.5 px-3 py-2.5 rounded-xl border cursor-pointer transition-all select-none',
-                    isSelected
-                      ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700 shadow-sm'
-                      : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 hover:border-emerald-300 hover:bg-emerald-50/40',
-                  )}
-                >
-                  {isSelected
-                    ? <CheckSquare size={15} className="text-emerald-500 shrink-0" />
-                    : <Square size={15} className="text-slate-300 dark:text-slate-600 shrink-0" />
-                  }
-                  <div className="flex-1 min-w-0">
-                    <p className={cn('text-sm font-semibold truncate', isSelected ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-300')}>
-                      {p.name}
-                    </p>
-                    {isSelected && slice && selected.size > 0 && (
-                      <p className="text-[10px] text-emerald-600 dark:text-emerald-500 font-bold">
-                        Receberá {slice.count} lead{slice.count !== 1 ? 's' : ''}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-
-        {/* Selected recipients chips */}
-        {toIds.size > 0 && (
-          <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">Selecionados</p>
-            <div className="flex flex-wrap gap-1.5">
-              {Array.from(toIds).map(id => {
-                const name = allProfiles.find(p => p.id === id)?.name ?? id;
-                return (
-                  <span key={id} className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full text-xs font-semibold">
-                    {name}
-                    <button
-                      onClick={e => { e.stopPropagation(); toggleRecipient(id); }}
-                      className="hover:text-emerald-900 transition-colors"
-                    >
-                      <X size={11} />
-                    </button>
-                  </span>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Step 3 — Select leads */}
+      {/* Step 2 — Select leads */}
       {fromId && (
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-3">
             <h2 className="text-sm font-black uppercase tracking-widest text-slate-400">
-              3. Selecionar leads{' '}
+              2. Selecionar leads{' '}
               {selected.size > 0 && (
                 <span className="ml-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-full text-[10px] font-black normal-case">
                   {selected.size} selecionado(s)
@@ -553,6 +463,96 @@ export function TransferLeads() {
           )}
         </div>
       )}
+
+      {/* Step 3 — Select destination closers */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-sm font-black uppercase tracking-widest text-slate-400">3. Destinos</h2>
+            <p className="text-xs text-slate-400 mt-0.5">Selecione um ou mais closers. Os leads serão divididos proporcionalmente.</p>
+          </div>
+          {toIds.size > 0 && (
+            <span className="px-2.5 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full text-xs font-black">
+              {toIds.size} selecionado(s)
+            </span>
+          )}
+        </div>
+
+        {/* Recipient search */}
+        <div className="relative mb-3">
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            value={recipientSearch}
+            onChange={e => setRecipientSearch(e.target.value)}
+            placeholder="Buscar closer..."
+            className="w-full pl-8 pr-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:border-emerald-500"
+          />
+        </div>
+
+        {/* Recipient list */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-60 overflow-y-auto custom-scrollbar pr-1">
+          {availableRecipients.length === 0 ? (
+            <p className="col-span-full text-sm text-slate-400 py-4 text-center">
+              {fromId ? 'Nenhum outro responsável disponível.' : 'Selecione a origem primeiro.'}
+            </p>
+          ) : (
+            availableRecipients.map(p => {
+              const isSelected = toIds.has(p.id);
+              const slice = distribution.find(d => d.id === p.id);
+              return (
+                <div
+                  key={p.id}
+                  onClick={() => toggleRecipient(p.id)}
+                  className={cn(
+                    'flex items-center gap-2.5 px-3 py-2.5 rounded-xl border cursor-pointer transition-all select-none',
+                    isSelected
+                      ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700 shadow-sm'
+                      : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 hover:border-emerald-300 hover:bg-emerald-50/40',
+                  )}
+                >
+                  {isSelected
+                    ? <CheckSquare size={15} className="text-emerald-500 shrink-0" />
+                    : <Square size={15} className="text-slate-300 dark:text-slate-600 shrink-0" />
+                  }
+                  <div className="flex-1 min-w-0">
+                    <p className={cn('text-sm font-semibold truncate', isSelected ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-300')}>
+                      {p.name}
+                    </p>
+                    {isSelected && slice && selected.size > 0 && (
+                      <p className="text-[10px] text-emerald-600 dark:text-emerald-500 font-bold">
+                        Receberá {slice.count} lead{slice.count !== 1 ? 's' : ''}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Selected recipients chips */}
+        {toIds.size > 0 && (
+          <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">Selecionados</p>
+            <div className="flex flex-wrap gap-1.5">
+              {Array.from(toIds).map(id => {
+                const name = allProfiles.find(p => p.id === id)?.name ?? id;
+                return (
+                  <span key={id} className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full text-xs font-semibold">
+                    {name}
+                    <button
+                      onClick={e => { e.stopPropagation(); toggleRecipient(id); }}
+                      className="hover:text-emerald-900 transition-colors"
+                    >
+                      <X size={11} />
+                    </button>
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Step 4 — Confirm */}
       {canTransfer && (
