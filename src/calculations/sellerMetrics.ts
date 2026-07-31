@@ -83,8 +83,8 @@ export function calcSalesByResponsible(
 ): Array<{ id: string; label: string; value: number; received: number; count: number; leads?: any[] }> {
   const result: Record<string, { id: string; label: string; value: number; received: number; count: number; leads: any[] }> = {};
 
-  const start = startDate ? new Date(startDate) : null;
-  const end = endDate ? new Date(endDate) : null;
+  const start = startDate ? new Date(startDate + 'T00:00:00') : null;
+  const end = endDate ? new Date(endDate + 'T00:00:00') : null;
   if (end) end.setHours(23, 59, 59, 999);
 
   const processedLeads = new Set<string>();

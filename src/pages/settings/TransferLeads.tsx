@@ -1,9 +1,10 @@
 import { useEffect, useState, useMemo } from 'react';
-import { ArrowRight, Search, Loader2, CheckSquare, Square, Users, RefreshCw, CheckCircle2, AlertCircle, Filter, X } from 'lucide-react';
+import { ArrowRight, Search, Loader2, CheckSquare, Square, Users, RefreshCw, CheckCircle2, AlertCircle, Filter, X, GraduationCap } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useProfileStore } from '../../store/useProfileStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { usePipelineStore } from '../../store/usePipelineStore';
+import { useProductStore } from '../../store/useProductStore';
 import { auditService } from '../../services/auditService';
 import { cn } from '../../lib/utils';
 
@@ -15,6 +16,8 @@ interface LeadRow {
   pipeline_id?: string;
   responsavel_usuario_id?: string;
   responsible?: string;
+  product?: string | null;
+  product_id?: string | null;
 }
 
 interface TransferLog {
@@ -34,6 +37,7 @@ interface RecipientSlice {
 export function TransferLeads() {
   const { profiles, fetchProfiles } = useProfileStore();
   const { pipelines, fetchPipelines } = usePipelineStore();
+  const { products, fetchProducts } = useProductStore();
   const { user } = useAuthStore();
 
   const [fromId, setFromId] = useState('');
@@ -45,25 +49,28 @@ export function TransferLeads() {
   const [log, setLog] = useState<TransferLog[]>([]);
   const [search, setSearch] = useState('');
   const [pipelineFilter, setPipelineFilter] = useState('');
+  const [turmaFilter, setTurmaFilter] = useState('');
   const [recipientSearch, setRecipientSearch] = useState('');
   const [toast, setToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
 
   useEffect(() => {
     if (profiles.length === 0) fetchProfiles();
     if (pipelines.length === 0) fetchPipelines();
-  }, [fetchProfiles, fetchPipelines, profiles.length, pipelines.length]);
+    if (products.length === 0) fetchProducts();
+  }, [fetchProfiles, fetchPipelines, fetchProducts, profiles.length, pipelines.length, products.length]);
 
   useEffect(() => {
     if (!fromId) { setLeads([]); setSelected(new Set()); return; }
     setLoading(true);
     setSelected(new Set());
+    setTurmaFilter('');
     supabase
       .from('leads')
-      .select('id, name, phone, stage_id, pipeline_id, responsavel_usuario_id, responsible')
+      .select('id, name, phone, stage_id, pipeline_id, responsavel_usuario_id, responsible, product, product_id')
       .eq('responsavel_usuario_id', fromId)
       .order('name')
       .then(({ data }) => {
-        setLeads((data as LeadRow[]) || []);
+        setLeads((data as unknown as LeadRow[]) || []);
         setLoading(false);
       });
   }, [fromId]);
@@ -96,13 +103,31 @@ export function TransferLeads() {
     return map;
   }, [pipelines]);
 
+  const turmaMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    products.forEach(p => { map[p.id] = p.name; });
+    return map;
+  }, [products]);
+
+  const leadTurmaKey = (l: LeadRow) => l.product_id ?? l.product ?? '';
+
+  // Turmas actually present among the leads of the selected responsible
+  const availableTurmas = useMemo(() => {
+    const seen = new Set<string>();
+    leads.forEach(l => { const key = leadTurmaKey(l); if (key) seen.add(key); });
+    return Array.from(seen)
+      .map(key => ({ value: key, label: turmaMap[key] || key }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'));
+  }, [leads, turmaMap]);
+
   const filteredLeads = useMemo(() => {
     return leads.filter(l => {
       const matchSearch = !search || l.name.toLowerCase().includes(search.toLowerCase()) || (l.phone ?? '').includes(search);
       const matchPipeline = !pipelineFilter || l.pipeline_id === pipelineFilter;
-      return matchSearch && matchPipeline;
+      const matchTurma = !turmaFilter || leadTurmaKey(l) === turmaFilter;
+      return matchSearch && matchPipeline && matchTurma;
     });
-  }, [leads, search, pipelineFilter]);
+  }, [leads, search, pipelineFilter, turmaFilter]);
 
   // Available recipients (excluding fromId), filtered by search
   const availableRecipients = useMemo(() => {
@@ -431,6 +456,22 @@ export function TransferLeads() {
                   </select>
                 </div>
               )}
+              {availableTurmas.length > 0 && (
+                <div className="relative">
+                  <GraduationCap size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <select
+                    value={turmaFilter}
+                    onChange={e => setTurmaFilter(e.target.value)}
+                    className="pl-7 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-emerald-500 max-w-[220px]"
+                    title="Filtrar por turma/produto"
+                  >
+                    <option value="">Todas as turmas</option>
+                    {availableTurmas.map(t => (
+                      <option key={t.value} value={t.value}>{t.label}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           </div>
 
@@ -466,6 +507,8 @@ export function TransferLeads() {
                   const isChecked = selected.has(lead.id);
                   const stageName = lead.stage_id ? stageMap[lead.stage_id] : null;
                   const pipelineName = lead.pipeline_id ? pipelineMap[lead.pipeline_id] : null;
+                  const turmaKey = leadTurmaKey(lead);
+                  const turmaName = turmaKey ? (turmaMap[turmaKey] || turmaKey) : null;
                   return (
                     <div
                       key={lead.id}
@@ -494,6 +537,11 @@ export function TransferLeads() {
                         {stageName && (
                           <span className="text-[10px] font-semibold px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-full">
                             {stageName}
+                          </span>
+                        )}
+                        {turmaName && (
+                          <span className="text-[10px] font-semibold px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-full">
+                            {turmaName}
                           </span>
                         )}
                       </div>

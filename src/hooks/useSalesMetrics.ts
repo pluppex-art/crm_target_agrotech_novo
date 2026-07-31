@@ -149,8 +149,8 @@ export function useSalesMetrics({
   const filteredLeads = useMemo(() => {
     let result = leads as any[];
     if (startDate || endDate) {
-      const s = startDate ? new Date(startDate) : null;
-      const e = endDate ? new Date(endDate) : null;
+      const s = startDate ? new Date(startDate + 'T00:00:00') : null;
+      const e = endDate ? new Date(endDate + 'T00:00:00') : null;
       if (e) e.setHours(23, 59, 59, 999);
 
       result = result.filter(l => {
@@ -197,8 +197,8 @@ export function useSalesMetrics({
     let receivedValue = 0;
     const closed: any[] = [];
 
-    const s = startDate ? new Date(startDate) : null;
-    const e = endDate ? new Date(endDate) : null;
+    const s = startDate ? new Date(startDate + 'T00:00:00') : null;
+    const e = endDate ? new Date(endDate + 'T00:00:00') : null;
     if (e) e.setHours(23, 59, 59, 999);
 
     filteredLeads.forEach(l => {
