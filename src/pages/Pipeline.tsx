@@ -37,6 +37,7 @@ import { useSettingsStore } from '@/store/useSettingsStore';
 import { useSquadStore } from '../store/useSquadStore';
 import { StageReasonModal } from '../components/leads/StageReasonModal';
 import { stageReasonService, type StageReason } from '../services/stageReasonService';
+import { trackMetaPurchase } from '../lib/metaPixel';
 
 
 
@@ -339,6 +340,13 @@ export const Pipeline: React.FC = () => {
         setEnrollLead(lead);
       }
       triggerGanhoAnimation();
+
+      // Meta Pixel — evento Purchase (venda concluída)
+      trackMetaPurchase({
+        value: getLeadEffectiveValue(lead, products),
+        currency: 'BRL',
+        content_name: lead.product ?? '',
+      });
 
       const dateStr = new Date().toLocaleDateString('pt-BR');
       const authorName = profiles.find(p => p.id === authUser?.id)?.name || authUser?.user_metadata?.full_name || 'Sistema';
@@ -775,6 +783,13 @@ export const Pipeline: React.FC = () => {
               }
               triggerGanhoAnimation();
 
+              // Meta Pixel — evento Purchase (venda concluída)
+              trackMetaPurchase({
+                value: getLeadEffectiveValue(selectedLead, products),
+                currency: 'BRL',
+                content_name: selectedLead.product ?? '',
+              });
+
               const dateStr = new Date().toLocaleDateString('pt-BR');
               const authorName = profiles.find(p => p.id === authUser?.id)?.name || authUser?.user_metadata?.full_name || 'Sistema';
               await noteService.createNote({
@@ -808,6 +823,13 @@ export const Pipeline: React.FC = () => {
               setEnrollLead(lead);
             }
             triggerGanhoAnimation();
+
+            // Meta Pixel — evento Purchase (venda concluída)
+            trackMetaPurchase({
+              value: getLeadEffectiveValue(lead, products),
+              currency: 'BRL',
+              content_name: lead.product ?? '',
+            });
 
             const dateStr = new Date().toLocaleDateString('pt-BR');
             const authorName = profiles.find(p => p.id === authUser?.id)?.name || authUser?.user_metadata?.full_name || 'Sistema';

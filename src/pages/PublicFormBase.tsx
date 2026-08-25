@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { formatPhone } from '../lib/utils';
 import { supabase } from '../lib/supabase';
+import { trackMetaLead } from '../lib/metaPixel';
 
 interface FormStep {
   id: string;
@@ -167,6 +168,14 @@ export function PublicFormBase({ formKey, backgroundImage, gradient, headerIcon 
       if (!resp.ok) throw new Error(result.error || 'Erro ao enviar.');
       if (result.responsibleName) setSellerName(result.responsibleName);
       if (result.responsiblePhone) setSellerPhone(result.responsiblePhone);
+
+      // Meta Pixel — evento Lead
+      trackMetaLead({
+        value: value,
+        currency: 'BRL',
+        content_name: product,
+      });
+
       setSubmitted(true);
     } catch (err: any) {
       setError(err.message || 'Erro ao enviar. Tente novamente.');
